@@ -1,0 +1,390 @@
+{
+  "name": "RAG Student Query - Personalized",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rag-student-query",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "rag-student-query-personalized"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalizar y validar entrada\nconst body = $input.first().json;\n\n// Validar entrada requerida\nif (!body.query) {\n  throw new Error('Query es requerida');\n}\n\nif (!body.context) {\n  throw new Error('Contexto es requerido');\n}\n\nconst { query, context } = body;\nconst { studentId, courseId, conversationId } = context;\n\n// Validar contexto requerido\nif (!studentId || !courseId) {\n  throw new Error('studentId y courseId son requeridos');\n}\n\n// Preparar datos normalizados\nconst normalizedData = {\n  query: query.trim(),\n  studentId,\n  courseId,\n  conversationId: conversationId || `conv-${Date.now()}`,\n  timestamp: new Date().toISOString(),\n  metadata: {\n    source: 'audio-tutor-multi-agent',\n    version: '2.0.0'\n  }\n};\n\nreturn {\n  json: normalizedData\n};"
+      },
+      "id": "normalize-inputs",
+      "name": "Normalize Inputs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "course_pedagogical_settings",
+        "filterType": "manual",
+        "conditions": {
+          "course_id": "={{ $json.courseId }}"
+        }
+      },
+      "id": "load-pedagogical-context",
+      "name": "Load Pedagogical Context",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [680, 200],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-credentials",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "student_learning_profiles",
+        "filterType": "manual",
+        "conditions": {
+          "student_id": "={{ $json.studentId }}",
+          "course_id": "={{ $json.courseId }}"
+        }
+      },
+      "id": "load-student-profile",
+      "name": "Load Student Profile",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [680, 400],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-credentials",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "tutor_conversations",
+        "filterType": "manual",
+        "conditions": {
+          "id": "={{ $json.conversationId }}"
+        }
+      },
+      "id": "load-conversation-context",
+      "name": "Load Conversation Context",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [680, 600],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-credentials",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combinar contextos de personalización\nconst normalizedData = $('Normalize Inputs').first().json;\nconst pedagogicalSettings = $('Load Pedagogical Context').first().json[0] || {};\nconst studentProfile = $('Load Student Profile').first().json[0] || {};\nconst conversationContext = $('Load Conversation Context').first().json[0] || {};\n\n// Crear contexto personalizado\nconst personalizedContext = {\n  ...normalizedData,\n  pedagogicalSettings: {\n    teachingStyle: pedagogicalSettings.teaching_style || 'directo',\n    tonePreference: pedagogicalSettings.tone_preference || 'amigable',\n    detailLevel: pedagogicalSettings.detail_level || 'medio',\n    useExamples: pedagogicalSettings.use_examples || true,\n    encourageQuestions: pedagogicalSettings.encourage_questions || true,\n    voiceName: pedagogicalSettings.voice_name || 'Kore',\n    voiceSpeed: pedagogicalSettings.voice_speed || 1.0,\n    systemPromptOverride: pedagogicalSettings.system_prompt_override\n  },\n  studentProfile: {\n    learningStyle: studentProfile.preferred_learning_style || 'visual',\n    topicsStruggled: studentProfile.topics_struggled || [],\n    topicsMastered: studentProfile.topics_mastered || [],\n    difficultyLevel: studentProfile.difficulty_level || 'medio',\n    preferredExamples: studentProfile.preferred_examples || 'practicos'\n  },\n  conversationContext: {\n    conversationId: conversationContext.id,\n    startedAt: conversationContext.started_at,\n    lastActivity: conversationContext.last_activity_at,\n    metadata: conversationContext.metadata || {}\n  }\n};\n\n// Generar system prompt personalizado\nconst systemPrompt = generatePersonalizedPrompt(personalizedContext);\n\nreturn {\n  json: {\n    ...personalizedContext,\n    systemPrompt\n  }\n};\n\nfunction generatePersonalizedPrompt(context) {\n  const { pedagogicalSettings, studentProfile, conversationContext } = context;\n  \n  let prompt = `Eres EduSpark, un tutor de IA especializado en educación personalizada.\\n\\n`;\n  \n  // Estilo pedagógico del docente\n  prompt += `ESTILO PEDAGÓGICO DEL DOCENTE:\\n`;\n  prompt += `- Metodología: ${pedagogicalSettings.teachingStyle}\\n`;\n  prompt += `- Tono: ${pedagogicalSettings.tonePreference}\\n`;\n  prompt += `- Nivel de detalle: ${pedagogicalSettings.detailLevel}\\n`;\n  \n  if (pedagogicalSettings.useExamples) {\n    prompt += `- Incluye ejemplos prácticos\\n`;\n  }\n  \n  if (pedagogicalSettings.encourageQuestions) {\n    prompt += `- Fomenta preguntas del estudiante\\n`;\n  }\n  \n  if (pedagogicalSettings.systemPromptOverride) {\n    prompt += `- Instrucciones especiales: ${pedagogicalSettings.systemPromptOverride}\\n`;\n  }\n  \n  prompt += `\\n`;\n  \n  // Perfil del estudiante\n  prompt += `PERFIL DEL ESTUDIANTE:\\n`;\n  prompt += `- Estilo de aprendizaje: ${studentProfile.learningStyle}\\n`;\n  \n  if (studentProfile.topicsStruggled && studentProfile.topicsStruggled.length > 0) {\n    prompt += `- Temas que requieren refuerzo: ${studentProfile.topicsStruggled.join(', ')}\\n`;\n  }\n  \n  if (studentProfile.topicsMastered && studentProfile.topicsMastered.length > 0) {\n    prompt += `- Temas dominados: ${studentProfile.topicsMastered.join(', ')}\\n`;\n  }\n  \n  prompt += `- Nivel de dificultad: ${studentProfile.difficultyLevel}\\n`;\n  prompt += `- Ejemplos preferidos: ${studentProfile.preferredExamples}\\n`;\n  \n  prompt += `\\n`;\n  \n  // Instrucciones de personalización\n  prompt += `INSTRUCCIONES DE PERSONALIZACIÓN:\\n`;\n  prompt += `1. Adapta tu respuesta al estilo pedagógico del docente\\n`;\n  prompt += `2. Considera el estilo de aprendizaje del estudiante\\n`;\n  prompt += `3. Usa ejemplos apropiados para el nivel del estudiante\\n`;\n  prompt += `4. Mantén un tono ${pedagogicalSettings.tonePreference}\\n`;\n  prompt += `5. Proporciona nivel de detalle ${pedagogicalSettings.detailLevel}\\n`;\n  \n  if (pedagogicalSettings.teachingStyle === 'socratico') {\n    prompt += `6. Usa preguntas guiadas para fomentar el descubrimiento\\n`;\n  } else if (pedagogicalSettings.teachingStyle === 'directo') {\n    prompt += `6. Proporciona explicaciones claras y estructuradas\\n`;\n  } else if (pedagogicalSettings.teachingStyle === 'constructivista') {\n    prompt += `6. Ayuda al estudiante a construir su propio conocimiento\\n`;\n  }\n  \n  if (studentProfile.learningStyle === 'visual') {\n    prompt += `7. Incluye referencias visuales, diagramas y ejemplos gráficos\\n`;\n  } else if (studentProfile.learningStyle === 'auditory') {\n    prompt += `7. Usa analogías sonoras y explicaciones verbales\\n`;\n  } else if (studentProfile.learningStyle === 'kinesthetic') {\n    prompt += `7. Incluye actividades prácticas y experimentos\\n`;\n  }\n  \n  prompt += `\\n`;\n  prompt += `IMPORTANTE: Responde basándote ÚNICAMENTE en el contexto del material del curso. Si no encuentras la información, di claramente que no está disponible en el material.`;\n  \n  return prompt;\n}"
+      },
+      "id": "merge-personalization-context",
+      "name": "Merge Personalization Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "course_materials",
+        "filterType": "manual",
+        "conditions": {
+          "course_id": "={{ $json.courseId }}"
+        }
+      },
+      "id": "load-course-materials",
+      "name": "Load Course Materials",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1120, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-credentials",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Preparar consulta para búsqueda vectorial\nconst personalizedContext = $('Merge Personalization Context').first().json;\nconst courseMaterials = $('Load Course Materials').first().json;\n\n// Crear consulta enriquecida con contexto personalizado\nconst enrichedQuery = `${personalizedContext.query}\\n\\nContexto del estudiante: ${personalizedContext.studentProfile.learningStyle}\\nEstilo pedagógico: ${personalizedContext.pedagogicalSettings.teachingStyle}\\nNivel de detalle: ${personalizedContext.pedagogicalSettings.detailLevel}`;\n\n// Preparar materiales para búsqueda\nconst materials = courseMaterials.map(material => ({\n  id: material.id,\n  title: material.title,\n  content: material.content,\n  type: material.type,\n  metadata: material.metadata || {}\n}));\n\nreturn {\n  json: {\n    ...personalizedContext,\n    enrichedQuery,\n    materials,\n    searchContext: {\n      courseId: personalizedContext.courseId,\n      studentId: personalizedContext.studentId,\n      learningStyle: personalizedContext.studentProfile.learningStyle,\n      teachingStyle: personalizedContext.pedagogicalSettings.teachingStyle\n    }\n  }\n};"
+      },
+      "id": "prepare-vector-search",
+      "name": "Prepare Vector Search",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "input",
+              "value": "={{ $json.enrichedQuery }}"
+            },
+            {
+              "name": "model",
+              "value": "text-embedding-3-small"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "generate-query-embedding",
+      "name": "Generate Query Embedding",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 200],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Búsqueda vectorial simple (simulada)\nconst personalizedContext = $('Prepare Vector Search').first().json;\nconst queryEmbedding = $('Generate Query Embedding').first().json.data[0].embedding;\n\n// Simular búsqueda vectorial\nconst materials = personalizedContext.materials;\nconst query = personalizedContext.enrichedQuery.toLowerCase();\n\n// Buscar materiales relevantes\nconst relevantMaterials = materials\n  .map(material => {\n    const content = material.content.toLowerCase();\n    const title = material.title.toLowerCase();\n    \n    // Calcular relevancia simple basada en palabras clave\n    const queryWords = query.split(' ');\n    let relevance = 0;\n    \n    queryWords.forEach(word => {\n      if (content.includes(word)) relevance += 0.1;\n      if (title.includes(word)) relevance += 0.2;\n    });\n    \n    return {\n      ...material,\n      relevance: Math.min(relevance, 1.0)\n    };\n  })\n  .filter(material => material.relevance > 0.1)\n  .sort((a, b) => b.relevance - a.relevance)\n  .slice(0, 5); // Top 5 materiales más relevantes\n\n// Crear contexto RAG\nconst ragContext = relevantMaterials\n  .map(material => `**${material.title}**\\n${material.content.substring(0, 500)}...`)\n  .join('\\n\\n');\n\nreturn {\n  json: {\n    ...personalizedContext,\n    ragContext,\n    relevantMaterials,\n    queryEmbedding\n  }\n};"
+      },
+      "id": "vector-search",
+      "name": "Vector Search",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "model": "gemini-2.5-flash",
+        "systemPrompt": "={{ $json.systemPrompt }}",
+        "prompt": "={{ $json.query }}\\n\\nCONTEXTO DEL MATERIAL:\\n{{ $json.ragContext }}",
+        "temperature": "={{ $json.pedagogicalSettings.detailLevel === 'avanzado' ? 0.7 : 0.5 }}",
+        "maxTokens": 1000,
+        "options": {
+          "topP": 0.9,
+          "topK": 40
+        }
+      },
+      "id": "generate-answer",
+      "name": "Generate Answer",
+      "type": "n8n-nodes-base.googleGemini",
+      "typeVersion": 1,
+      "position": [2000, 300],
+      "credentials": {
+        "googleGeminiApi": {
+          "id": "gemini-credentials",
+          "name": "Google Gemini API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatear respuesta con personalización\nconst personalizedContext = $('Vector Search').first().json;\nconst geminiResponse = $('Generate Answer').first().json;\n\n// Extraer respuesta del texto generado\nconst responseText = geminiResponse.text || geminiResponse.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar respuesta';\n\n// Crear fuentes basadas en materiales relevantes\nconst sources = personalizedContext.relevantMaterials\n  .filter(material => material.relevance > 0.3)\n  .map(material => ({\n    title: material.title,\n    url: material.metadata?.url || `#${material.id}`,\n    relevance: material.relevance,\n    type: material.type\n  }));\n\n// Crear metadatos de personalización\nconst personalization = {\n  appliedStyle: personalizedContext.pedagogicalSettings.teachingStyle,\n  learningStyle: personalizedContext.studentProfile.learningStyle,\n  examplesIncluded: personalizedContext.pedagogicalSettings.useExamples,\n  questionsEncouraged: personalizedContext.pedagogicalSettings.encourageQuestions,\n  detailLevel: personalizedContext.pedagogicalSettings.detailLevel,\n  toneApplied: personalizedContext.pedagogicalSettings.tonePreference,\n  voiceSettings: {\n    name: personalizedContext.pedagogicalSettings.voiceName,\n    speed: personalizedContext.pedagogicalSettings.voiceSpeed\n  }\n};\n\n// Crear respuesta final\nconst response = {\n  response: responseText,\n  sources,\n  personalization,\n  metadata: {\n    timestamp: new Date().toISOString(),\n    conversationId: personalizedContext.conversationId,\n    courseId: personalizedContext.courseId,\n    studentId: personalizedContext.studentId,\n    query: personalizedContext.query,\n    materialsUsed: personalizedContext.relevantMaterials.length,\n    processingTime: Date.now() - new Date(personalizedContext.timestamp).getTime()\n  }\n};\n\nreturn {\n  json: response\n};"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2220, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "return-response",
+      "name": "Return Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2440, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Inputs": {
+      "main": [
+        [
+          {
+            "node": "Load Pedagogical Context",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Student Profile",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Conversation Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Pedagogical Context": {
+      "main": [
+        [
+          {
+            "node": "Merge Personalization Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Student Profile": {
+      "main": [
+        [
+          {
+            "node": "Merge Personalization Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Conversation Context": {
+      "main": [
+        [
+          {
+            "node": "Merge Personalization Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Personalization Context": {
+      "main": [
+        [
+          {
+            "node": "Load Course Materials",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Course Materials": {
+      "main": [
+        [
+          {
+            "node": "Prepare Vector Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Vector Search": {
+      "main": [
+        [
+          {
+            "node": "Generate Query Embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Query Embedding": {
+      "main": [
+        [
+          {
+            "node": "Vector Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector Search": {
+      "main": [
+        [
+          {
+            "node": "Generate Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Answer": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Return Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "audio-tutor",
+      "name": "Audio Tutor"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "2.0.0"
+}

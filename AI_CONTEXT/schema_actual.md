@@ -1,48 +1,106 @@
-# Esquema de Base de Datos para el MVP
+# Schema Actual de la Base de Datos - EduSpark
 
-Este documento describe la estructura y configuración de la base de datos vectorial que se utilizará en el backend del proyecto.
+## 📊 Resumen del Sistema
 
-## a. Backend (Base de Datos Vectorial)
+**Estado:** ✅ **COMPLETAMENTE FUNCIONAL**
+**Fecha de actualización:** 20 de octubre de 2025
+**Versión:** 2.0 - Sistema Unificado
 
-### Configuración de Base de Datos
+## 🗄️ Estructura de Base de Datos
 
--   **Plataforma**: Se utilizará una instancia de **PostgreSQL** en **Supabase**.
--   **Extensión Requerida**: La extensión `pgvector` debe estar habilitada en la instancia de Supabase para permitir el almacenamiento y la consulta de datos vectoriales.
--   **Dimensión del Vector**: El tamaño del vector debe coincidir con la salida del modelo de embedding de Gemini. Por ejemplo, si el modelo `text-embedding-004` genera vectores de 768 dimensiones, la columna `embedding` debe ser de tipo `vector(768)`.
+### Tabla: `roles`
+```sql
+CREATE TABLE roles (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+```
 
-### Esquema de Datos
+**Datos iniciales:**
+- `1` - `admin` - Administrador del sistema
+- `2` - `teacher` - Docente
+- `3` - `student` - Estudiante
 
-Se creará una tabla principal para almacenar los fragmentos de los documentos de los cursos.
+### Tabla: `users`
+```sql
+CREATE TABLE users (
+    id UUID PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    role_id INTEGER REFERENCES roles(id),
+    is_active BOOLEAN DEFAULT true,
+    email_verified BOOLEAN DEFAULT false,
+    last_login TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+```
 
--   **Nombre de la Tabla**: `course_content_chunks`
+## 🔐 Políticas de Seguridad (RLS)
 
--   **Columnas**:
+### Políticas para `roles`:
+- **"Allow public read access to roles"** - Permite lectura pública de roles (necesario para registro)
 
-| Nombre de Columna | Tipo de Dato                             | Descripción                                                                 | Restricciones      |
-| ----------------- | ---------------------------------------- | --------------------------------------------------------------------------- | ------------------ |
-| `id`              | `uuid`                                   | Identificador único para cada fragmento.                                    | Clave Primaria     |
-| `course_id`       | `text`                                   | Identificador del curso al que pertenece el fragmento.                      | No Nulo            |
-| `content`         | `text`                                   | El texto real del fragmento del documento.                                  | No Nulo            |
-| `embedding`       | `vector(768)`                            | El vector numérico generado por Gemini para el `content`.                   |                    |
-| `created_at`      | `timestamp with time zone`               | Fecha y hora de creación del registro.                                      | Valor por defecto: `now()` |
+### Políticas para `users`:
+- **"Allow user registration"** - Permite inserción de nuevos usuarios
+- **"Allow authenticated read users"** - Permite lectura a usuarios autenticados
+- **"Users can update own profile"** - Permite actualización de perfil propio
 
--   **Índices**:
-    -   Se debe crear un índice IVFFlat en la columna `embedding` para acelerar las búsquedas de similitud. Esto es crucial para el rendimiento.
-    -   Se recomienda un índice en `course_id` para filtrar eficientemente por curso antes de la búsqueda vectorial.
+## 🔄 Triggers y Funciones
 
-### Función de Búsqueda (Edge Function)
+### Función: `handle_new_user()`
+```sql
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.users (id, email, first_name, last_name, role_id)
+  VALUES (
+    new.id,
+    new.email,
+    COALESCE(new.raw_user_meta_data->>'first_name', ''),
+    COALESCE(new.raw_user_meta_data->>'last_name', ''),
+    COALESCE((new.raw_user_meta_data->>'role_id')::integer, 3)
+  );
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
 
-Se creará una Edge Function en Supabase para encapsular la lógica de búsqueda.
+### Trigger: `on_auth_user_created`
+```sql
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+```
 
--   **Nombre de la Función**: `search_course_content_chunks`
--   **Entrada**:
-    -   `query_embedding`: El vector de la pregunta del usuario.
-    -   `course_id`: El ID del curso en el que se debe buscar.
-    -   `match_count`: (Opcional) El número de fragmentos a devolver (ej. 5 por defecto).
--   **Lógica**:
-    1.  Recibe el vector de la pregunta y el `course_id`.
-    2.  Realiza una consulta SQL a la tabla `course_content_chunks`.
-    3.  Filtra los registros por `course_id`.
-    4.  Utiliza el operador de similitud de cosenos (`<=>`) de `pgvector` para encontrar los `match_count` fragmentos más cercanos al `query_embedding`.
-    5.  Devuelve los fragmentos de texto (`content`) de los registros encontrados.
--   **Salida**: Un array de objetos, donde cada objeto contiene el `content` del fragmento relevante.
+## 🚀 Estado de Funcionalidades
+
+### ✅ Completamente Funcional:
+- **Autenticación** - Login y registro
+- **Sistema de roles** - Asignación automática
+- **Interfaz de usuario** - Diseño moderno y responsive
+- **Base de datos** - Estructura completa y optimizada
+
+### 🔧 Configuración Actual:
+- **Supabase Auth** - Habilitado con confirmación de email
+- **Row Level Security** - Configurado y funcionando
+- **Triggers automáticos** - Sincronización de usuarios
+- **Políticas de seguridad** - Implementadas correctamente
+
+## 📝 Notas Importantes
+
+1. **Confirmación de email:** Actualmente habilitada en Supabase
+2. **Sincronización:** Los usuarios se sincronizan automáticamente entre `auth.users` y `public.users`
+3. **Roles por defecto:** Los nuevos usuarios se asignan como "student" (ID: 3)
+4. **Seguridad:** RLS habilitado con políticas específicas para cada operación
+
+## 🔄 Próximos Pasos
+
+1. **Deshabilitar confirmación de email** en Supabase para simplificar el registro
+2. **Implementar dashboard** específico por rol
+3. **Agregar funcionalidades** de gestión de cursos
+4. **Integrar sistema RAG** con el tutor virtual

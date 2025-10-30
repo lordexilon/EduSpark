@@ -7,18 +7,19 @@ Tu misión principal es desarrollar e integrar un Asistente de IA Interactivo (b
 
 ## Technical Stack & Architecture
 - **Frontend**: React
-- **Orquestación**: n8n
+- **Orquestación**: Sistema multi-agente local (A2A)
 - **Base de Datos Vectorial**: Supabase (PostgreSQL con la extensión `pgvector`)
 - **Modelo de IA**: Google Gemini API (`embedContent` para embeddings, `generateContent` para respuestas)
 
-**Flujo Arquitectónico (RAG):**
-1.  **Pregunta (Frontend)**: El usuario envía una pregunta desde el componente de chat en React a un webhook de n8n.
-2.  **Orquestación (n8n)**: n8n recibe la pregunta.
-3.  **Vectorización (n8n -> Gemini)**: n8n llama a la API de Gemini para convertir la pregunta en un vector (embedding).
-4.  **Búsqueda (n8n -> Supabase)**: n8n usa este vector para buscar fragmentos de texto relevantes en la base de datos de Supabase.
-5.  **Construcción de Prompt (n8n)**: n8n construye un prompt enriquecido que contiene el contexto (los fragmentos recuperados) y la pregunta original del usuario.
-6.  **Generación de Respuesta (n8n -> Gemini)**: n8n envía el prompt final a la API de Gemini para generar una respuesta coherente y contextualizada.
-7.  **Respuesta (n8n -> Frontend)**: n8n devuelve la respuesta generada al frontend para mostrarla al usuario.
+**Flujo Arquitectónico (A2A Local RAG):**
+1.  **Pregunta (Frontend)**: El usuario envía una pregunta desde el componente de chat en React.
+2.  **AgentCoordinator (Local)**: coordina los agentes locales en el frontend.
+3.  **ContextAgent**: obtiene contexto relevante (RAG) desde Supabase (pgvector).
+4.  **RAGAgent**: compone el prompt final y llama a Gemini para generar la respuesta.
+5.  **VoiceAgent (opcional)**: maneja audio y voz.
+6.  **Respuesta (Frontend)**: el sistema retorna la respuesta al usuario.
+
+**⚠️ NOTA**: Este es un sistema A2A **local** implementado en el frontend, no un coordinador externo distribuido.
 
 ---
 
@@ -29,13 +30,16 @@ Tu misión principal es desarrollar e integrar un Asistente de IA Interactivo (b
 - **Esquema de Datos**: Crear una tabla para `course_content_chunks` con `id`, `content`, `embedding` y `course_id`.
 - **Función de Búsqueda**: Crear una Edge Function en Supabase para la búsqueda de similitud de cosenos.
 
-### Orquestación (n8n)
-- **Workflow 1 (Ingesta de Contenido)**: Un workflow manual que lee un documento, lo divide en fragmentos, genera embeddings con Gemini y los guarda en Supabase.
-- **Workflow 2 (Consulta del Alumno)**: Un workflow activado por webhook que implementa el flujo RAG en tiempo real.
+### Orquestación (A2A Local)
+- **AgentCoordinator**: punto único de entrada/salida; coordina agentes locales.
+- **ContextAgent**: búsqueda semántica y normalización de contexto.
+- **RAGAgent**: construcción de prompt y llamada a LLM.
+- **VoiceAgent**: manejo de audio y voz.
 
 ### Frontend (React)
-- **Nuevo Componente `AsistenteIA.tsx`**: Un componente de chat con historial de sesión, campo de entrada y manejo de estados de carga/error.
-- **Servicio de Integración (`ragService.ts`)**: Lógica para llamar al webhook del workflow de consulta de n8n, reemplazando cualquier simulación existente.
+- **Componente `AsistenteIA.tsx`**: chat con historial de sesión y estados de carga/error.
+- **Hook `useAgentSystem`**: Coordina el sistema multi-agente local.
+- **Servicio de Integración (`agentService.ts`)**: Para futura integración con coordinador A2A externo.
 
 ---
 
@@ -51,15 +55,15 @@ No debes implementar, sugerir ni trabajar en las siguientes áreas para este MVP
 
 ## Plan de Implementación (Alto Nivel)
 Sigue estas fases en orden:
-1.  **Fase 1**: Configuración del Backend en Supabase.
-2.  **Fase 2**: Desarrollo de los Workflows en n8n.
-3.  **Fase 3**: Desarrollo del Frontend en React.
-4.  **Fase 4**: Integración y Pruebas End-to-End.
+1.  **Fase 1**: Configuración del sistema multi-agente local (A2A).
+2.  **Fase 2**: Integración con Supabase (pgvector) para RAG.
+3.  **Fase 3**: Integración Frontend vía `useAgentSystem`.
+4.  **Fase 4**: Observabilidad y auditoría de eventos.
 
 ---
 
 ## Requisitos Previos
 Asume que las siguientes herramientas y accesos están disponibles:
 - Cuenta de Google Cloud con API de Gemini habilitada.
-- Instancia de n8n accesible públicamente.
-- Cuenta de Supabase.
+- Cuenta de Supabase con extensión pgvector.
+- Variables de entorno configuradas (VITE_GEMINI_API_KEY, VITE_SUPABASE_URL, etc.).

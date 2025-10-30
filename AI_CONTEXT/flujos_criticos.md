@@ -1,52 +1,220 @@
-# Flujos Críticos del Asistente de IA
+# Flujos Críticos del Sistema EduSpark
 
-Este documento detalla la arquitectura y los flujos de trabajo que constituyen el núcleo del sistema RAG (Retrieval-Augmented Generation) para EduSpark.
+## 🔐 Flujo de Autenticación
 
-## 1. Arquitectura Propuesta
-
-El flujo de datos sigue un patrón claro desde el cliente hasta el backend y de regreso:
-
-```
-[Frontend React] <--(1. Pregunta)--> [Webhook n8n] --(2. Orquesta)--> [API Gemini & Supabase]
-      ^                                     |
-      |                                     |
-      +--------(5. Respuesta)---------------+
+### **1. Registro de Usuario**
+```mermaid
+graph TD
+    A[Usuario llena formulario] --> B[Validación de datos]
+    B --> C[Crear usuario en Supabase Auth]
+    C --> D[Trigger automático crea registro en public.users]
+    D --> E[Usuario confirmado y listo]
 ```
 
-1.  **Pregunta**: El usuario escribe una pregunta en el componente de chat. React llama al Webhook de n8n.
-2.  **Orquestación**: n8n ejecuta el workflow de consulta.
-3.  **Búsqueda y Generación**: n8n interactúa con las APIs externas (Gemini para vectorizar la pregunta y generar la respuesta; Supabase para buscar el contexto).
-4.  **Respuesta**: n8n devuelve la respuesta final al frontend, que la muestra al usuario.
+**Pasos detallados:**
+1. Usuario completa formulario de registro
+2. Validación de datos en frontend
+3. Llamada a `supabase.auth.signUp()`
+4. Trigger `handle_new_user()` se ejecuta automáticamente
+5. Usuario creado en ambas tablas (`auth.users` y `public.users`)
 
----
+### **2. Login de Usuario**
+```mermaid
+graph TD
+    A[Usuario ingresa credenciales] --> B[Validación en Supabase Auth]
+    B --> C{¿Credenciales válidas?}
+    C -->|Sí| D[Crear sesión JWT]
+    C -->|No| E[Mostrar error]
+    D --> F[Obtener datos del usuario]
+    F --> G[Redirigir a dashboard]
+```
 
-## 2. Orquestación (n8n)
+**Pasos detallados:**
+1. Usuario ingresa email y contraseña
+2. Llamada a `supabase.auth.signInWithPassword()`
+3. Supabase valida credenciales
+4. Si es válido, se crea sesión JWT
+5. Se obtienen datos del usuario desde `public.users`
+6. Usuario es redirigido al dashboard
 
-### Workflow 1: Ingesta de Contenido (Manual para el MVP)
+## 🗄️ Flujo de Sincronización de Datos
 
-Este workflow se encarga de procesar los materiales del curso y prepararlos para la búsqueda.
+### **Sincronización Automática de Usuarios**
+```mermaid
+graph TD
+    A[Nuevo usuario en auth.users] --> B[Trigger on_auth_user_created]
+    B --> C[Función handle_new_user()]
+    C --> D[Insertar en public.users]
+    D --> E[Sincronización completa]
+```
 
--   **Disparador**: Manual o activado por un Webhook simple.
--   **Proceso**:
-    1.  **Recibir Documento**: Recibe la ubicación de un documento de curso (ej. un archivo de texto o PDF).
-    2.  **Dividir en Fragmentos (Chunking)**: Lee y divide el documento en fragmentos (chunks) de texto de tamaño manejable.
-    3.  **Generar Embeddings**: Para cada fragmento, llama al endpoint `embedContent` de la API de Gemini para generar su vector numérico.
-    4.  **Almacenar en DB**: Guarda el texto del fragmento y su vector correspondiente en la tabla `course_content_chunks` de Supabase, junto con el `course_id`.
+**Datos sincronizados:**
+- `id` - UUID del usuario
+- `email` - Email del usuario
+- `first_name` - Nombre del usuario
+- `last_name` - Apellido del usuario
+- `role_id` - ID del rol asignado
 
-### Workflow 2: Consulta del Alumno (RAG en tiempo real)
+## 🔒 Flujo de Seguridad
 
-Este es el workflow principal que responde a las preguntas de los estudiantes.
+### **Row Level Security (RLS)**
+```mermaid
+graph TD
+    A[Consulta a base de datos] --> B{¿Usuario autenticado?}
+    B -->|Sí| C[Aplicar políticas RLS]
+    B -->|No| D[Acceso denegado]
+    C --> E{¿Política permite acceso?}
+    E -->|Sí| F[Ejecutar consulta]
+    E -->|No| G[Acceso denegado]
+```
 
--   **Disparador**: Webhook que será llamado por la aplicación React.
--   **Entrada**: Recibirá un JSON con `pregunta` y `course_id`.
--   **Proceso**:
-    1.  **Vectorizar Pregunta**: Llama a la API de Gemini (`embedContent`) para convertir la pregunta del usuario en un vector.
-    2.  **Buscar Contexto Relevante**: Llama a la Edge Function de Supabase con el vector de la pregunta para buscar los fragmentos de texto más relevantes para ese `course_id`.
-    3.  **Construir Prompt Final**: Construye un prompt estructurado que incluye el contexto (los fragmentos recuperados) y la pregunta original. Ejemplo:
-        ```
-        Contexto: [Texto del fragmento 1], [Texto del fragmento 2], ...
-        Pregunta: [Pregunta original del usuario]
-        Basándote únicamente en el contexto proporcionado, responde la pregunta.
-        ```
-    4.  **Generar Respuesta**: Llama a la API de Gemini (`generateContent`) con el prompt final para obtener la respuesta.
-    5.  **Devolver Respuesta**: Devuelve la respuesta generada al frontend de React a través de la respuesta del webhook.
+**Políticas implementadas:**
+- **Roles:** Lectura pública (necesario para registro)
+- **Usuarios:** Lectura para autenticados, actualización propia
+- **Inserción:** Permitida para registro de nuevos usuarios
+
+## 🎨 Flujo de Interfaz de Usuario
+
+### **Navegación Principal**
+```mermaid
+graph TD
+    A[Usuario accede a la app] --> B{¿Usuario autenticado?}
+    B -->|No| C[Mostrar página de login]
+    B -->|Sí| D[Mostrar dashboard]
+    C --> E[Usuario hace login/registro]
+    E --> F[Redirigir a dashboard]
+    D --> G[Mostrar contenido según rol]
+```
+
+### **Estados de la Aplicación**
+1. **Loading** - Verificando autenticación
+2. **Unauthenticated** - Mostrando login/registro
+3. **Authenticated** - Mostrando dashboard
+4. **Error** - Mostrando mensaje de error
+
+## 🔄 Flujo de Gestión de Estados
+
+### **Estado de Autenticación**
+```mermaid
+graph TD
+    A[Inicialización] --> B[Verificar sesión existente]
+    B --> C{¿Sesión válida?}
+    C -->|Sí| D[Usuario autenticado]
+    C -->|No| E[Usuario no autenticado]
+    D --> F[Obtener datos del usuario]
+    E --> G[Mostrar formulario de login]
+```
+
+**Estados del hook useAuth:**
+- `user` - Usuario actual o null
+- `loading` - Estado de carga
+- `isAuthenticated` - Boolean de autenticación
+- `login()` - Función de login
+- `logout()` - Función de logout
+- `register()` - Función de registro
+
+## 🚨 Flujo de Manejo de Errores
+
+### **Errores Comunes y Soluciones**
+```mermaid
+graph TD
+    A[Error ocurrido] --> B{¿Tipo de error?}
+    B -->|Autenticación| C[Redirigir a login]
+    B -->|Validación| D[Mostrar mensaje de error]
+    B -->|Red| E[Mostrar error de conexión]
+    B -->|Servidor| F[Mostrar error del servidor]
+```
+
+**Tipos de errores manejados:**
+- **401 Unauthorized** - Credenciales inválidas
+- **400 Bad Request** - Datos inválidos
+- **Network Error** - Problemas de conexión
+- **Validation Error** - Errores de validación
+
+## 📊 Flujo de Datos
+
+### **Estructura de Datos del Usuario**
+```typescript
+interface User {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: {
+    id: number;
+    name: string;
+  };
+  created_at: string;
+  updated_at: string;
+}
+```
+
+### **Flujo de Actualización de Datos**
+1. Usuario modifica datos
+2. Validación en frontend
+3. Envío a Supabase
+4. Aplicación de políticas RLS
+5. Actualización en base de datos
+6. Refresco de datos en frontend
+
+## 🤖 Flujo del Tutor Virtual (A2A Local)
+
+```mermaid
+sequenceDiagram
+  participant UI as Frontend (TutorVirtualPage)
+  participant US as useAgentSystem Hook
+  participant AC as AgentCoordinator (Local)
+  participant CX as ContextAgent
+  participant RG as RAGAgent (Gemini)
+  participant DB as Supabase (pgvector)
+
+  UI->>US: sendMessage(text)
+  US->>AC: handleUserInput(text)
+  AC->>CX: getRelevantContext(query)
+  CX->>DB: Búsqueda vectorial
+  DB-->>CX: Fragmentos relevantes
+  CX-->>AC: Contexto normalizado
+  AC->>RG: query(message, context)
+  RG->>RG: Construye prompt y llama a Gemini
+  RG-->>AC: Respuesta generada
+  AC-->>US: AgentResponse
+  US-->>UI: Actualizar mensajes
+```
+
+**⚠️ NOTA**: Este es un sistema A2A **local** implementado en el frontend, no un coordinador externo distribuido.
+
+**Variables de entorno relevantes (frontend):**
+- `VITE_GEMINI_API_KEY` → API Key de Google Gemini
+- `VITE_SUPABASE_URL` → URL de Supabase
+- `VITE_SUPABASE_ANON_KEY` → Clave anónima de Supabase
+
+## 🔧 Flujo de Configuración
+
+### **Configuración Inicial del Sistema**
+1. **Instalación de dependencias**
+2. **Configuración de variables de entorno**
+3. **Configuración de Supabase**
+4. **Creación de tablas y políticas**
+5. **Inserción de datos iniciales**
+6. **Configuración de triggers**
+
+### **Configuración de Desarrollo**
+1. **Clonar repositorio**
+2. **Instalar dependencias** (`npm install`)
+3. **Configurar variables de entorno**
+4. **Ejecutar scripts de base de datos**
+5. **Iniciar servidor de desarrollo** (`npm run dev`)
+
+## 📈 Flujo de Monitoreo
+
+### **Métricas Importantes**
+- **Tiempo de respuesta** de autenticación
+- **Tasa de éxito** de login/registro
+- **Errores** de autenticación
+- **Uso de recursos** del sistema
+
+### **Logs Importantes**
+- **Eventos de autenticación**
+- **Errores de base de datos**
+- **Errores de red**
+- **Cambios de estado** de la aplicación

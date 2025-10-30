@@ -12,10 +12,14 @@ const ProfilePage: React.FC = () => {
     return <p>Cargando perfil...</p>; 
   }
 
-  const displayRole = (role: string) => {
-    if (role === 'student') return 'Estudiante';
-    if (role === 'teacher') return 'Profesor';
-    return role.charAt(0).toUpperCase() + role.slice(1);
+  const displayRole = (role: any) => {
+    // Si role es un objeto, usar la propiedad name
+    const roleName = typeof role === 'object' && role?.name ? role.name : role;
+    
+    if (roleName === 'student') return 'Estudiante';
+    if (roleName === 'teacher') return 'Profesor';
+    if (roleName === 'admin') return 'Administrador';
+    return roleName;
   }
 
   return (
@@ -23,12 +27,12 @@ const ProfilePage: React.FC = () => {
       <h1 className="text-3xl font-bold text-slate-800 text-center">Mi Perfil</h1>
       <Card>
         <div className="flex flex-col items-center">
-          {user.avatarUrl ? (
-            <img src={user.avatarUrl} alt={user.name} className="w-32 h-32 rounded-full mb-4 shadow-lg" />
+          {user.avatar_url ? (
+            <img src={user.avatar_url} alt={`${user.first_name} ${user.last_name}`} className="w-32 h-32 rounded-full mb-4 shadow-lg" />
           ) : (
             <IconUserCircle className="w-32 h-32 text-slate-400 mb-4" />
           )}
-          <h2 className="text-2xl font-semibold text-slate-800">{user.name}</h2>
+          <h2 className="text-2xl font-semibold text-slate-800">{`${user.first_name} ${user.last_name}`}</h2>
           <p className="text-slate-500 capitalize">{displayRole(user.role)}</p>
         </div>
         

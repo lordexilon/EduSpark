@@ -372,7 +372,7 @@ const DashboardPage: React.FC = () => {
   
   return (
     <div>
-        <WelcomeHeader name={user?.name || 'Estudiante'} />
+        <WelcomeHeader name={user?.first_name || 'Estudiante'} />
         <main className="grid grid-cols-12 gap-6">
             <CurrentClasses />
             <LearningHours />

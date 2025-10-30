@@ -75,11 +75,26 @@ export interface CourseSession {
 
 export interface User {
   id: string;
-  name: string;
   email: string;
-  role: 'student' | 'teacher';
-  avatarUrl?: string; // e.g., https://picsum.photos/100/100
+  first_name: string;
+  last_name: string;
+  role: {
+    id: number;
+    name: string;
+  };
+  created_at: string;
+  updated_at: string;
 }
+
+// Helper para obtener el nombre completo
+export const getUserFullName = (user: User): string => {
+  return `${user.first_name} ${user.last_name}`;
+};
+
+// Helper para obtener el rol como string
+export const getUserRole = (user: User): string => {
+  return user.role.name;
+};
 
 export interface StudentProgress {
   sessionId: string;

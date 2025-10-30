@@ -3,7 +3,48 @@
 // --- ¡ACCIÓN REQUERIDA! ---
 // Reemplace esta URL con la URL de su Webhook de producción del workflow '[MVP] Consulta RAG de Alumno'.
 // En una aplicación real, esto debería ser una variable de entorno (ej. process.env.REACT_APP_N8N_WEBHOOK_URL).
-const N8N_WEBHOOK_URL = 'https://applicandola.auto.hostybee.com/webhook/rag-student-query';
+const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || 'https://applicandola.auto.hostybee.com/webhook/tutor-chat';
+
+async function fetchWithRetry(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  options: { attempts?: number; baseDelayMs?: number; timeoutMs?: number } = {}
+): Promise<Response> {
+  const { attempts = 4, baseDelayMs = 1000, timeoutMs = 12000 } = options;
+
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(input, { ...init, signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        // Capturamos cuerpo para logging, pero dejamos que el caller decida
+        const errorBody = await response.text().catch(() => '');
+        console.error(`RAGService: intento ${attempt} falló con HTTP ${response.status}. Cuerpo:`, errorBody);
+        lastError = new Error(`HTTP ${response.status}`);
+      } else {
+        return response;
+      }
+    } catch (err) {
+      clearTimeout(timeoutId);
+      lastError = err;
+      const delay = baseDelayMs * attempt; // backoff lineal simple (1000ms, 2000ms, ...)
+      console.warn(`RAGService: intento ${attempt} falló (${String(err)}). Reintentando en ${delay}ms...`);
+      if (attempt < attempts) {
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('No se pudo completar la solicitud después de reintentos');
+}
 
 /**
  * Llama al backend RAG (Retrieval-Augmented Generation) orquestado por n8n 
@@ -22,7 +63,9 @@ export const getAiAssistantResponse = async (question: string, course_id: string
   }
 
   try {
-    const response = await fetch(N8N_WEBHOOK_URL, {
+    const response = await fetchWithRetry(
+      N8N_WEBHOOK_URL,
+      {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -31,7 +74,9 @@ export const getAiAssistantResponse = async (question: string, course_id: string
         question: question,
         courseId: course_id, // El workflow de n8n espera la clave 'courseId'
       }),
-    });
+      },
+      { attempts: 4, baseDelayMs: 1000, timeoutMs: 15000 }
+    );
 
     if (!response.ok) {
       const errorBody = await response.text();

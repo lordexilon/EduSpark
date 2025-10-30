@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { getAiAssistantResponse } from '../services/ragService.ts';
+import { getAgentAssistantResponse } from '../services/agentService.ts';
 import { IconSparkles, IconX, IconPaperAirplane } from './Icons.tsx';
 
 interface Message {
@@ -48,7 +48,7 @@ const AssistantIA: React.FC<AssistantIAProps> = ({ courseId }) => {
     setIsLoading(true);
 
     try {
-      const aiResponseText = await getAiAssistantResponse(inputValue, courseId);
+      const aiResponseText = await getAgentAssistantResponse(inputValue, courseId);
       const aiMessage: Message = {
         id: Date.now() + 1,
         text: aiResponseText,

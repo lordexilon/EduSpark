@@ -1,19 +1,24 @@
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { IconDashboard, IconBookOpen, IconClipboardList, IconCog, IconTrophy, IconUserGroup } from './Icons.tsx';
+import { IconDashboard, IconBookOpen, IconClipboardList, IconCog, IconTrophy, IconUserGroup, IconChatAlt2 } from './Icons.tsx';
+import { useAuth } from '../hooks/useAuth';
 
 const navItems = [
   { name: 'Panel', path: '/dashboard', icon: IconDashboard },
   { name: 'Mis Clases', path: '/sessions', icon: IconBookOpen },
+  { name: 'Tutor IA', path: '/tutor', icon: IconChatAlt2 },
   { name: 'Mis Tareas', path: '/assignments', icon: IconClipboardList },
   { name: 'Calificaciones', path: '/grades', icon: IconTrophy },
   { name: 'Foros', path: '/forums', icon: IconUserGroup },
 ];
 
+
 const Sidebar: React.FC = () => {
+  const { user } = useAuth();
   const activeClassName = "bg-primary/10 text-primary font-semibold";
   const inactiveClassName = "text-text-light hover:bg-gray-100 hover:text-text-dark";
+
 
   return (
     <aside className="w-64 bg-surface text-text-dark flex flex-col p-4 border-r border-border">
@@ -26,7 +31,7 @@ const Sidebar: React.FC = () => {
             <path d="M12 7.5L12 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             <path d="M12 16.5L12 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        <h2 className="text-xl font-bold text-text-dark">EthosPro</h2>
+        <h2 className="text-xl font-bold text-text-dark">EduSpark</h2>
       </div>
       <nav className="flex-1">
         <ul className="space-y-2">

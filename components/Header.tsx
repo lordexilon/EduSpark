@@ -2,10 +2,12 @@
 
 import React from 'react';
 import { useAuth } from '../hooks/useAuth.tsx';
-import { IconUserCircle, IconBell, IconSearch } from './Icons.tsx';
+import { usePageReload } from '../hooks/usePageReload.tsx';
+import { IconUserCircle, IconBell, IconSearch, IconRefreshCw } from './Icons.tsx';
 
 const Header: React.FC = () => {
   const { user } = useAuth();
+  const { forceReload } = usePageReload();
 
   return (
     <header className="bg-surface p-4 lg:px-8 flex justify-between items-center sticky top-0 z-10 border-b border-border">
@@ -20,6 +22,13 @@ const Header: React.FC = () => {
         />
       </div>
       <div className="flex items-center space-x-5">
+        <button 
+          onClick={forceReload}
+          className="text-text-light hover:text-text-dark transition p-1 rounded hover:bg-background"
+          title="Recargar página (F5)"
+        >
+          <IconRefreshCw className="w-6 h-6" />
+        </button>
         <button className="text-text-light hover:text-text-dark transition">
           <IconBell className="w-6 h-6" />
         </button>

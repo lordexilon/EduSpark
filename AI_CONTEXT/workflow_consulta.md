@@ -1,16 +1,30 @@
-# Workflow 2 (Mejorado): [MVP] Consulta RAG de Alumno
+# 🧠 Tutor Virtual Inteligente — Workflow de Consulta RAG
 
-Este documento proporciona la guía detallada y el JSON completo para implementar el workflow de consulta de alumnos en n8n, actualizado con las mejores prácticas de la API de Gemini.
+Este documento proporciona la guía detallada y el JSON completo para implementar el **Tutor Virtual Inteligente** en n8n, actualizado con las mejores prácticas de la API de Gemini y funcionalidades avanzadas de IA.
 
-## 1. Propósito
+## 🎯 Propósito
 
-Este workflow es el **cerebro en tiempo real** de nuestro Asistente de IA. Se activa cuando un estudiante hace una pregunta en el chat. Su función es:
-1.  Recibir la pregunta.
-2.  Convertirla en un vector (embedding).
-3.  Buscar en la base de datos de Supabase los fragmentos de contenido más relevantes del curso.
-4.  Construir un prompt inteligente con ese contexto.
-5.  Usar el modelo de Gemini para generar una respuesta precisa y basada únicamente en el material del curso.
-6.  Devolver la respuesta al estudiante.
+Este workflow es el **cerebro inteligente** de nuestro Tutor Virtual. Se activa cuando un estudiante hace una pregunta en el chat. Su función es:
+
+1. **🧠 Análisis Inteligente**: Detectar la intención y tono emocional del estudiante
+2. **🔍 Búsqueda Contextual**: Convertir la pregunta en un vector semántico y buscar contenido relevante
+3. **💬 Respuesta Empática**: Generar respuestas contextuales o empáticas según el tipo de consulta
+4. **🎯 Personalización**: Preparar el flujo para futura integración con perfiles de estudiantes
+
+## 🚀 Funcionalidades Avanzadas
+
+### **Detección de Intención**
+- Clasifica automáticamente si es una pregunta de contenido, saludo, o solicitud de ayuda
+- Usa Gemini 2.5 Flash para análisis inteligente
+
+### **Análisis de Tono**
+- Detecta el estado emocional del estudiante (empático, entusiasta, neutro, formal)
+- Permite respuestas personalizadas según el contexto emocional
+
+### **RAG Inteligente**
+- Búsqueda vectorial en PostgreSQL con embeddings
+- Respuestas basadas únicamente en el material del curso
+- Fallback empático para conversaciones casuales
 
 ## 2. Instrucciones de Implementación
 
@@ -21,17 +35,45 @@ Este workflow es el **cerebro en tiempo real** de nuestro Asistente de IA. Se ac
     *   **Nodo `Supabase`**: Configura tus credenciales de Supabase (Postgres) y selecciónalas en el nodo `Search Context`.
 4.  **Activar el Webhook**: Guarda y activa el workflow. Copia la URL del Webhook de producción; la necesitarás para conectar el frontend.
 
-## 3. Mejoras Clave en esta Versión
+## 🚀 Mejoras Clave en esta Versión
 
-Esta versión del workflow ha sido migrada para seguir las directrices más recientes y eficientes de la API de Gemini:
+Esta versión del workflow ha sido completamente rediseñada para implementar un **Tutor Virtual Inteligente** con capacidades avanzadas:
 
--   **Actualización del Modelo de Generación**: Se ha migrado del obsoleto `gemini-1.5-flash` al modelo más reciente y eficiente **`gemini-2.5-flash`**. Esto asegura un mejor rendimiento y acceso a las últimas capacidades.
--   **Uso de `systemInstruction`**: El prompt ha sido reestructurado para utilizar el campo `systemInstruction`. En lugar de mezclar las instrucciones, el contexto y la pregunta en un solo bloque, ahora separamos claramente el rol del asistente ("Eres un asistente que solo puede responder..."). Esto permite al modelo entender mejor su tarea y comportarse de manera más consistente y predecible.
--   **Manejo de CORS**: Se ha añadido lógica explícita para manejar las solicitudes de `preflight` (método OPTIONS) de los navegadores, incluyendo las cabeceras `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods`, y `Access-Control-Allow-Headers`. Esto soluciona los errores "Failed to fetch" y permite que el frontend (en un dominio diferente) se comunique de forma segura con el webhook de n8n.
+### **🧠 Inteligencia Artificial Avanzada**
+-   **Detección de Intención**: Clasifica automáticamente el tipo de consulta (pregunta_contenido, saludo, plan_estudio, otro)
+-   **Análisis de Tono**: Detecta el estado emocional del estudiante (empático, entusiasta, neutro, formal)
+-   **Respuestas Contextuales**: Usa RAG para responder basándose en el material del curso
+-   **Respuestas Empáticas**: Maneja conversaciones casuales con empatía y motivación
+
+### **🔧 Tecnologías Actualizadas**
+-   **Gemini 2.5 Flash**: Modelo más reciente y eficiente para todas las tareas de IA
+-   **Google Text Embedding 004**: Generación de vectores semánticos de alta calidad
+-   **PostgreSQL + pgvector**: Búsqueda vectorial optimizada para contexto relevante
+-   **Manejo de CORS**: Soporte completo para comunicación frontend-backend
+
+### **📊 Flujo de Datos Inteligente**
+```
+Webhook → Normalize Inputs → Detect Intent + Tone
+                ↓
+        Merge Meta (perfil/intención/tono)
+                ↓
+       Embeddings → Postgres → Contexto
+                ↓
+       Gemini Generate Answer → Extract Answer
+                ↓
+             Respond Webhook
+```
+
+### **🎯 Preparado para el Futuro**
+- Integración con Supabase para perfiles de estudiantes
+- Personalización basada en historial académico
+- Métricas y analytics de interacciones
 
 ---
 
 ## 4. Código JSON del Workflow para n8n
+
+**⚠️ NOTA IMPORTANTE**: Este JSON corresponde al workflow **simplificado** de consulta RAG. Para el **Tutor Virtual Inteligente completo** con detección de intención y análisis de tono, usa el archivo `n8n_workflow_final.json` que contiene el flujo completo de 13 nodos.
 
 ```json
 {
@@ -342,3 +384,42 @@ Esta versión del workflow ha sido migrada para seguir las directrices más reci
   "pinData": {}
 }
 ```
+
+---
+
+## 🔄 **Diferencias entre Workflows**
+
+### **📋 Workflow Simplificado (Este documento)**
+- **Propósito**: Consulta RAG básica
+- **Nodos**: 8 nodos
+- **Funcionalidades**: 
+  - ✅ Embeddings
+  - ✅ Búsqueda vectorial
+  - ✅ Respuesta contextual
+  - ❌ Detección de intención
+  - ❌ Análisis de tono
+  - ❌ Respuestas empáticas
+
+### **🧠 Tutor Virtual Inteligente (n8n_workflow_final.json)**
+- **Propósito**: Tutor Virtual completo con IA avanzada
+- **Nodos**: 13 nodos
+- **Funcionalidades**:
+  - ✅ Embeddings
+  - ✅ Búsqueda vectorial
+  - ✅ Respuesta contextual
+  - ✅ **Detección de intención**
+  - ✅ **Análisis de tono**
+  - ✅ **Respuestas empáticas**
+  - ✅ **Ruteo inteligente**
+  - ✅ **Preparado para Supabase**
+
+### **🎯 Recomendación**
+Para un **Tutor Virtual completo y funcional**, usa el archivo `n8n_workflow_final.json` que contiene todas las funcionalidades avanzadas de IA.
+
+---
+
+## 📚 **Documentación Relacionada**
+
+- **Flujo Completo**: `AI_CONTEXT/Tutor_Virtual_Flujo_n8n.md`
+- **Estado del Proyecto**: `AI_CONTEXT/project_status.md`
+- **Workflow Funcional**: `n8n_workflow_final.json`
