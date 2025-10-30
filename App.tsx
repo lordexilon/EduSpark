@@ -14,6 +14,8 @@ import AssignmentsPage from './pages/AssignmentsPage.tsx';
 import GradesPage from './pages/GradesPage.tsx';
 import ForumsPage from './pages/ForumsPage.tsx';
 import ProfilePage from './pages/ProfilePage.tsx';
+import AdminModulesPage from './pages/AdminModulesPage.tsx';
+import MyCoursesPage from './pages/MyCoursesPage.tsx';
 // Teacher pages
 import TeacherDashboardPage from './pages/TeacherDashboardPage.tsx';
 import { TeacherCoursesPage } from './pages/TeacherCoursesPage.tsx';
@@ -24,6 +26,8 @@ import CreateCoursePage from './pages/CreateCoursePage.tsx';
 import LandingPage from './pages/LandingPage.tsx';
 // Tutor Virtual
 import TutorVirtualPage from './pages/TutorVirtualPage.tsx';
+import CourseModulesPage from './pages/CourseModulesPage.tsx';
+import ModuleEditorPage from './pages/ModuleEditorPage.tsx';
 
 // This component handles the conditional rendering of routes based on authentication.
 const AppRoutes: React.FC = () => {
@@ -71,12 +75,15 @@ const AppRoutes: React.FC = () => {
           <Route path="/teacher/courses/new" element={<CreateCoursePage />} />
           <Route path="/teacher/courses/:id" element={<CourseEditorPage />} />
           <Route path="/teacher/courses/:id/edit" element={<CreateCoursePage />} />
+          <Route path="/teacher/courses/:id/modules" element={<CourseModulesPage />} />
+          <Route path="/teacher/courses/:courseId/modules/:moduleId" element={<ModuleEditorPage />} />
           <Route path="/teacher/assignments" element={<TeacherAssignmentsPage />} />
           <Route path="/teacher/grades" element={<GradesPage />} />
           <Route path="/teacher/forums" element={<ForumsPage />} />
           <Route path="/teacher/tutor" element={<TutorVirtualPage />} />
           <Route path="/teacher/students" element={<div>Estudiantes - En desarrollo</div>} />
           {/* Admin routes */}
+          <Route path="/admin/modules" element={<AdminModulesPage />} />
           <Route path="/admin/all-courses" element={<div>Todos los Cursos - En desarrollo</div>} />
           <Route path="/admin/users" element={<div>Gestión de Usuarios - En desarrollo</div>} />
           <Route path="/admin/settings" element={<div>Configuración del Sistema - En desarrollo</div>} />
@@ -93,6 +100,7 @@ const AppRoutes: React.FC = () => {
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/my/courses" element={<MyCoursesPage />} />
         <Route path="/sessions" element={<SessionsListPage />} />
         <Route path="/session/nueva" element={<AddEditSessionPage />} />
         <Route path="/session/editar/:sessionId" element={<AddEditSessionPage />} />

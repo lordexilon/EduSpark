@@ -19,6 +19,7 @@ const getNavItems = (userRole: string) => {
   if (userRole === 'admin') {
     return [
       ...baseItems,
+      { name: 'Módulos (Admin)', path: '/admin/modules', icon: IconBookOpen },
       { name: 'Todos los Cursos', path: '/admin/all-courses', icon: IconBookOpen },
       { name: 'Usuarios', path: '/admin/users', icon: IconUsers },
       { name: 'Configuración', path: '/admin/settings', icon: IconCog },

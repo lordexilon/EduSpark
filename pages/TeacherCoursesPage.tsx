@@ -152,6 +152,12 @@ export const TeacherCoursesPage: React.FC = () => {
                     Ver Curso
                   </Link>
                   <Link 
+                    to={`/teacher/courses/${course.id}/modules`}
+                    className="flex-1 bg-indigo-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors text-center"
+                  >
+                    Módulos
+                  </Link>
+                  <Link 
                     to={`/teacher/courses/${course.id}/edit`}
                     className="flex-1 bg-gray-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors text-center"
                   >

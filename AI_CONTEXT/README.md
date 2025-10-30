@@ -27,3 +27,19 @@ Este directorio contiene la documentación central para el desarrollo e integrac
 - Puerto de desarrollo del frontend: **5173** (Vite)
 - Backend directo con **Supabase** (sin servidor Express intermedio)
 - Roles del sistema: **admin**, **teacher**, **student** — actualizados y operativos
+
+## 5. A2A local y anclaje por módulo (NUEVO)
+- El Tutor Virtual A2A se ancla a curso y módulo mediante parámetros de URL:
+  - Tutor: `/teacher/tutor?courseId=<id>&moduleId=<id>`
+  - Admin: `/admin/modules` (abrir Tutor por módulo)
+  - Docente: `/teacher/courses`
+  - Estudiante: `/my/courses`
+- El contexto incluye `moduleId`; el RAG filtra/prioriza materiales del módulo cuando esté disponible, con fallback a contenido del curso.
+
+## 6. Cambios de esquema relevantes (NUEVO)
+- Tablas agregadas: `course_modules`, `enrollments`.
+- Vistas: `vw_admin_course_overview`, `vw_admin_modules_by_teacher`.
+- Ver detalle en `schema_actual.md`.
+
+## 7. Plan del MVP
+Revisa la carpeta `MVP_PLAN/` en la raíz del repositorio para alcance, datos, flujos y métricas.

@@ -30,6 +30,10 @@ const TutorVirtualPage: React.FC = () => {
   const [todayCost, setTodayCost] = useState(0);
   const [isMicrophoneMuted, setIsMicrophoneMuted] = useState(false);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
+  const [showSourcesFor, setShowSourcesFor] = useState<string | null>(null);
+  const [highlightMaterialId, setHighlightMaterialId] = useState<string | undefined>(undefined);
+  const [initializedFromQuery, setInitializedFromQuery] = useState(false);
+  const [selectedModuleId, setSelectedModuleId] = useState<string>('');
 
   // Hooks del sistema de agentes
   const capabilities = useAudioCapabilities();
@@ -46,15 +50,32 @@ const TutorVirtualPage: React.FC = () => {
       const initTimeout = setTimeout(() => {
         if (!agentSystem.isInitialized && agentSystem.isProcessing) {
           console.warn('⚠️ Timeout en inicialización del sistema de agentes, reintentando...');
-          agentSystem.initializeAgentSystem(user);
+          agentSystem.initializeAgentSystem(user, selectedModuleId);
         }
       }, 8000);
 
-      agentSystem.initializeAgentSystem(user);
+      agentSystem.initializeAgentSystem(user, selectedModuleId);
 
       return () => clearTimeout(initTimeout);
     }
   }, [selectedCourseId, user, agentSystem.isInitialized, agentSystem.isProcessing]);
+
+  // Leer courseId/moduleId desde querystring al cargar
+  useEffect(() => {
+    if (initializedFromQuery) return;
+    const hash = typeof window !== 'undefined' ? window.location.hash : '';
+    const qs = new URLSearchParams(hash.split('?')[1] || '');
+    const courseId = qs.get('courseId') || '';
+    const moduleId = qs.get('moduleId') || '';
+    if (courseId) {
+      setSelectedCourseId(courseId);
+      setShowCourseSelector(false);
+    }
+    if (moduleId) {
+      setSelectedModuleId(moduleId);
+    }
+    setInitializedFromQuery(true);
+  }, [initializedFromQuery]);
 
   // Auto-scroll del chat
   useEffect(() => {
@@ -368,11 +389,63 @@ const TutorVirtualPage: React.FC = () => {
                     : 'bg-gray-100 text-gray-900 rounded-bl-none'
                 }`}>
                   <p className="whitespace-pre-wrap">{message.text}</p>
+                  {/* Fuentes */}
+                  {message.role === 'assistant' && Array.isArray(message.metadata?.sources) && message.metadata.sources.length > 0 && (
+                    <div className="mt-2">
+                      <button
+                        className="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded"
+                        onClick={() => setShowSourcesFor(showSourcesFor === message.id ? null : message.id)}
+                      >
+                        Fuentes
+                      </button>
+                      {showSourcesFor === message.id && (
+                        <div className="mt-2 bg-white rounded border p-2 text-xs text-gray-700">
+                          <ul className="space-y-1">
+                            {message.metadata.sources.map((s: any) => (
+                              <li key={s.id} className="flex items-center justify-between gap-2">
+                                <span className="truncate">{s.title || `Material #${s.id}`}</span>
+                                {s.url ? (
+                                  <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Abrir</a>
+                                ) : (
+                                  <button
+                                    className="text-blue-600 hover:underline"
+                                    onClick={() => {
+                                      setShowCourseContent(true);
+                                      setHighlightMaterialId(String(s.id));
+                                    }}
+                                  >
+                                    Ver en panel
+                                  </button>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
                   {/* Metadatos de confianza */}
                   {message.metadata?.confidence && (
                     <div className="mt-2 text-xs opacity-75">
                       Confianza: {Math.round(message.metadata.confidence * 100)}%
+                    </div>
+                  )}
+
+                  {/* Truncado: permitir continuar */}
+                  {message.role === 'assistant' && message.metadata?.truncated && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          const hint = message.metadata?.continuationHint || '';
+                          const continuePrompt = `continúa desde: ${hint}`;
+                          agentSystem.sendMessage(continuePrompt);
+                        }}
+                        className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        Continuar
+                      </button>
+                      <span className="text-xs text-gray-500">La respuesta se cortó por límite de tokens</span>
                     </div>
                   )}
                 </div>
@@ -590,6 +663,8 @@ const TutorVirtualPage: React.FC = () => {
         isOpen={showCourseContent} 
         onClose={() => setShowCourseContent(false)}
         courseId={selectedCourseId}
+        filterMaterialId={highlightMaterialId}
+        moduleId={selectedModuleId}
       />
     </div>
   );

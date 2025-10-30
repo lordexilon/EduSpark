@@ -97,10 +97,10 @@ const DebugMonitor: React.FC = () => {
           if ('caches' in window) {
             caches.keys().then(names => {
               names.forEach(name => caches.delete(name));
-              window.location.reload();
+              (window as any).location.reload();
             });
           } else {
-            window.location.reload();
+            (window as any).location.reload();
           }
         }}
         style={{
@@ -215,7 +215,7 @@ const NavigationHandler: React.FC = () => {
         const loadingElement = document.querySelector('[data-loading="true"]');
         if (loadingElement) {
           console.warn('Página colgada en estado "Cargando", recargando...');
-          location.reload();
+          window.location.reload();
         }
       }, 5000);
     };
@@ -280,6 +280,16 @@ const RouterWrapper: React.FC<RouterWrapperProps> = ({ children }) => {
 
   // Función global para forzar recarga
   useEffect(() => {
+    // Silenciar error común causado por extensiones del navegador
+    const handleUnhandled = (e: PromiseRejectionEvent) => {
+      const msg = String((e as any)?.reason || '')
+      if (msg.includes('A listener indicated an asynchronous response')) {
+        e.preventDefault();
+        console.warn('🔕 Ignorando error de extensión del navegador (listener async)...');
+      }
+    };
+    window.addEventListener('unhandledrejection', handleUnhandled);
+
     (window as any).forceReload = () => {
       console.log('🔄 Forzando recarga completa...');
       // Limpiar localStorage
@@ -305,6 +315,9 @@ const RouterWrapper: React.FC<RouterWrapperProps> = ({ children }) => {
     };
 
     console.log('💡 Función global disponible: window.forceReload()');
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandled);
+    };
   }, []);
 
   return (

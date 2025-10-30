@@ -47,7 +47,8 @@ export class AgentCoordinator {
   async initialize(
     studentId: string,
     courseId: string,
-    user: any
+    user: any,
+    options?: { moduleId?: string }
   ): Promise<void> {
     try {
       // Inicializar contexto de conversación
@@ -67,7 +68,8 @@ export class AgentCoordinator {
         course: {
           id: courseId,
           name: 'Curso', // Se obtendría de la base de datos
-          teacherId: pedagogicalSettings.teacherId
+          teacherId: pedagogicalSettings.teacherId,
+          moduleId: options?.moduleId
         },
         pedagogical: pedagogicalSettings,
         student: studentProfile,
@@ -164,6 +166,7 @@ export class AgentCoordinator {
       const conversationContext = {
         studentId: this.currentContext!.user.id,
         courseId: this.currentContext!.course.id,
+        moduleId: this.currentContext!.course.moduleId,
         conversationId: this.currentContext!.conversation.id,
         pedagogicalSettings: this.currentContext!.pedagogical,
         studentProfile: this.currentContext!.student,

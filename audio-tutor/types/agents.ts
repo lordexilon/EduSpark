@@ -60,6 +60,7 @@ export interface RAGResponse {
 export interface ConversationContext {
   studentId: string;
   courseId: string;
+  moduleId?: string;
   conversationId: string;
   pedagogicalSettings: PedagogicalSettings;
   studentProfile: StudentProfile;
@@ -106,6 +107,7 @@ export interface FullContext {
     id: string;
     name: string;
     teacherId: string;
+    moduleId?: string;
   };
   pedagogical: PedagogicalSettings;
   student: StudentProfile;

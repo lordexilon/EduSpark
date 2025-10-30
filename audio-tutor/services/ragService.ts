@@ -29,6 +29,9 @@ interface RAGResponse {
     timestamp: string;
     confidence?: number;
     sources?: string[];
+    // Nuevos metadatos para UI
+    truncated?: boolean;
+    continuationHint?: string;
   };
 }
 
@@ -49,6 +52,8 @@ export class RAGService {
   private readonly model = 'gemini-2.5-flash';  // Modelo actual disponible
   private readonly maxContextLength = 4000;
   private readonly maxSources = 5;
+  private lastFinishReason: string | null = null;
+  private lastResponseTail: string | null = null;
 
   /**
    * Procesa una consulta RAG con contexto personalizado
@@ -61,8 +66,9 @@ export class RAGService {
       // 1. Obtener contenido relevante del curso
       const relevantContent = await this.getRelevantContent(
         query, 
-        context.courseId, 
-        context.studentProfile
+        context.courseId,
+        context.studentProfile,
+        context.moduleId
       );
 
       // 2. Construir prompt personalizado
@@ -100,7 +106,8 @@ export class RAGService {
   private async getRelevantContent(
     query: string, 
     courseId: string, 
-    studentProfile: StudentProfile
+    studentProfile: StudentProfile,
+    moduleId?: string
   ): Promise<CourseContent[]> {
     try {
       console.log('RAGService - getRelevantContent:', { query, courseId, studentProfile });
@@ -129,13 +136,29 @@ export class RAGService {
       console.log('RAGService - Course data loaded:', courseData);
 
       // Buscar en materiales adicionales (si existen)
-      const { data: materialsData } = await supabase
-        .from('course_materials')
-        .select('id, title, content, type, difficulty')
-        .eq('course_id', courseIdInt)
-        .limit(10);
+      let materialsData: any[] | null = null;
+      try {
+        const { data, error } = await supabase
+          .from('course_materials')
+          .select('*')
+          .eq('course_id', courseIdInt)
+          .limit(50);
+        if (error) {
+          console.warn('RAGService - course_materials query warning:', error);
+          materialsData = [];
+        } else {
+          materialsData = data || [];
+        }
+      } catch (matErr) {
+        console.warn('RAGService - course_materials query failed, continuando sin materiales:', matErr);
+        materialsData = [];
+      }
 
-      const materials = materialsData || [];
+      let materials = materialsData || [];
+      // Filtro por módulo (si columna existe en datos)
+      if (moduleId) {
+        materials = materials.filter((m: any) => 'module_id' in m ? String(m.module_id) === String(moduleId) : true);
+      }
 
       // Simular búsqueda semántica simple (en producción usar embeddings)
       const allContent: CourseContent[] = [
@@ -257,17 +280,19 @@ Configuración pedagógica:
     const courseTitle = courseInfo?.title || 'este curso';
     const courseDescription = courseInfo?.content || '';
 
-    // Contenido relevante
+    // Contenido relevante (reducido para evitar MAX_TOKENS)
+    const maxItems = 3;
     const contentInfo = relevantContent.length > 0 
-      ? `\nINFORMACIÓN DEL CURSO:
-- Título: ${courseTitle}
-- Descripción: ${courseDescription}
-
-CONTENIDO RELEVANTE DEL CURSO:
-${relevantContent.filter(item => item.type !== 'course').map(item => 
-          `- ${item.title}: ${item.content.substring(0, 200)}...`
-        ).join('\n')}`
+      ? `\nINFORMACIÓN DEL CURSO:\n- Título: ${courseTitle}\n- Descripción: ${courseDescription.substring(0, 200)}...\n\nCONTENIDO RELEVANTE DEL CURSO (máx ${maxItems}):\n${relevantContent
+          .filter(item => item.type !== 'course')
+          .slice(0, maxItems)
+          .map(item => `- ${item.title}: ${item.content.substring(0, 120)}...`)
+          .join('\n')}`
       : '\nNo se encontró contenido específico del curso.';
+
+    const moduleHint = context.moduleId 
+      ? `\nContexto del módulo: Prioriza materiales y conceptos del módulo ID ${context.moduleId}. Si hay conflicto, responde solo con lo contenido en dicho módulo y luego, opcionalmente, agrega referencias del curso completo.`
+      : '';
 
     // Historial reciente
     const recentContext = recentMessages.length > 0
@@ -283,6 +308,7 @@ ${studentInfo}
 ${pedagogicalInfo}
 ${contentInfo}
 ${recentContext}
+${moduleHint}
 
 Consulta del estudiante: ${query}
 
@@ -293,8 +319,7 @@ INSTRUCCIONES ESPECÍFICAS:
 4. Referencia materiales, conceptos y temas de ${courseTitle}
 5. Mantén un tono amigable y motivador
 6. Si no tienes información específica del curso, sé honesto pero útil
-7. Máximo 300 palabras
-8. Enfócate en el aprendizaje dentro del contexto de ${courseTitle}
+7. Máximo 120 palabras
 
 Respuesta:
 `;
@@ -364,13 +389,14 @@ Respuesta:
         const candidate = data.candidates?.[0];
         const text = candidate?.content?.parts?.[0]?.text;
         
-        // Verificar si fue bloqueado por safety filters
+        // Verificar finishReason (permitir MAX_TOKENS y STOP)
         if (candidate?.finishReason) {
           console.warn('⚠️ Gemini finish reason:', candidate.finishReason);
-          if (candidate.finishReason !== 'STOP') {
+          if (candidate.finishReason !== 'STOP' && candidate.finishReason !== 'MAX_TOKENS') {
             lastError = new Error(`Gemini bloqueó la respuesta: ${candidate.finishReason}`);
             continue;
           }
+          this.lastFinishReason = candidate.finishReason;
         }
         
         if (!text) {
@@ -401,6 +427,7 @@ Respuesta:
         }
 
         clearTimeout(emergencyTimeout);
+        try { this.lastResponseTail = text.slice(-200); } catch {}
         return text;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
@@ -431,9 +458,14 @@ Respuesta:
         contextUsed: sources.map(s => s.title).join(', '),
         timestamp: new Date().toISOString(),
         confidence: 0.8, // Simulado
-        sources: sources.map(s => s.title)
-      }
-    };
+        sources: (sources || [])
+          .filter((s: any) => s && s.title)
+          .map((s: any) => ({ id: s.id, title: s.title, url: s.file_url || s.source_url || null })),
+        // Nuevos metadatos para UI
+        truncated: (this as any).lastFinishReason === 'MAX_TOKENS',
+        continuationHint: (this as any).lastResponseTail || ''
+      } as any
+    } as any;
   }
 
   /**

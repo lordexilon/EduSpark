@@ -26,6 +26,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const initCompleteRef = React.useRef(false);
+  const pendingSessionRef = React.useRef<any>(null);
 
   const isAuthenticated = !!user;
 
@@ -35,29 +36,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         console.log('🔍 Auth: Iniciando verificación...');
         
-        // Timeout de seguridad: máximo 5 segundos para cargar
+        // Timeout global de seguridad
         const authTimeout = setTimeout(() => {
-          console.warn('⚠️ Auth: Timeout alcanzado, forzando carga');
+          console.warn('⚠️ Auth: Timeout global alcanzado');
           setLoading(false);
-        }, 5000);
+        }, 15000);
 
-        // Intentar obtener sesión con timeout manual
+        // Intentar obtener sesión con timeout y reintento
+        const getSessionWithTimeout = async (ms: number) => {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), ms);
+          try {
+            const { data } = await (supabase.auth.getSession() as any);
+            return data?.session || null;
+          } finally {
+            clearTimeout(timer);
+          }
+        };
+
         let session: any = null;
         try {
-          const sessionPromise = supabase.auth.getSession();
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout')), 4000)
-          );
-          
-          const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
-          session = result?.data?.session || null;
-          
-          clearTimeout(authTimeout);
-          console.log('🔍 Auth: Sesión obtenida:', !!session);
-        } catch (timeoutError) {
-          console.warn('⚠️ Auth: getSession timeout, continuando sin sesión');
-          clearTimeout(authTimeout);
+          session = await getSessionWithTimeout(12000);
+          if (!session) {
+            console.warn('⚠️ Auth: primer intento sin sesión, reintentando...');
+            session = await getSessionWithTimeout(6000);
+          }
+        } catch (e) {
+          console.warn('⚠️ Auth: error/timeout obteniendo sesión');
           session = null;
+        } finally {
+          clearTimeout(authTimeout);
         }
         
         if (session?.user) {
@@ -128,6 +136,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } catch (error) {
         console.error('❌ Auth: Error al inicializar:', error);
       } finally {
+        // Si durante init llegó un SIGNED_IN, reprocesarlo ahora
+        if (!user && pendingSessionRef.current?.user) {
+          const session = pendingSessionRef.current;
+          try {
+            const { data: userData } = await supabase
+              .from('users')
+              .select(`id,email,first_name,last_name,created_at,updated_at,role:roles(id,name)`) 
+              .eq('id', session.user.id)
+              .single();
+            if (userData) {
+              setUser({
+                id: userData.id,
+                email: userData.email,
+                first_name: userData.first_name,
+                last_name: userData.last_name,
+                role: { id: userData.role.id, name: userData.role.name },
+                created_at: userData.created_at || session.user.created_at,
+                updated_at: userData.updated_at || session.user.created_at
+              });
+            } else {
+              setUser({
+                id: session.user.id,
+                email: session.user.email || '',
+                first_name: session.user.user_metadata?.first_name || '',
+                last_name: session.user.user_metadata?.last_name || '',
+                role: { id: 3, name: 'student' },
+                created_at: session.user.created_at,
+                updated_at: session.user.updated_at || session.user.created_at
+              });
+            }
+          } catch {}
+        }
         console.log('✅ Auth: Carga completada');
         setLoading(false);
         initCompleteRef.current = true;
@@ -142,7 +182,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // CRÍTICO: Ignorar completamente el listener hasta que init termine
       if (!initCompleteRef.current) {
-        console.log('⏸️ Auth: Inicialización en curso, IGNORANDO TODO state change');
+        console.log('⏸️ Auth: Inicialización en curso, bufferizando state change');
+        pendingSessionRef.current = session;
         return;
       }
       

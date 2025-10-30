@@ -48,7 +48,7 @@ export const useAgentSystem = (courseId: string) => {
   // Inicialización del Sistema
   // =====================================================
 
-  const initializeAgentSystem = useCallback(async (user: any) => {
+  const initializeAgentSystem = useCallback(async (user: any, moduleId?: string) => {
     if (!courseId || !user) {
       console.warn('Missing courseId or user for agent system initialization');
       return;
@@ -108,7 +108,7 @@ export const useAgentSystem = (courseId: string) => {
       // Inicializar sistema con timeout
       console.log('🔄 Inicializando coordinador...');
       await Promise.race([
-        newCoordinator.initialize(user.id, courseId, user),
+        newCoordinator.initialize(user.id, courseId, user, { moduleId }),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Timeout inicializando coordinador')), 10000) // Reducido a 10s
         )
