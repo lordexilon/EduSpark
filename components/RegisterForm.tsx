@@ -20,14 +20,15 @@ interface Role {
 }
 
 const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin }) => {
-  const { register, loading } = useAuth();
+  const { register, loading, user } = useAuth();
+  const isAdmin = user?.role?.name === 'admin';
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     password: '',
     confirmPassword: '',
-    roleId: '' // Se seleccionará desde el formulario
+    roleId: isAdmin ? '' : '1' // Solo estudiantes por defecto, admin puede elegir (1=student)
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -35,36 +36,47 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
   const [roles, setRoles] = useState<Role[]>([]);
   const [loadingRoles, setLoadingRoles] = useState(true);
 
-          // Cargar roles disponibles
+          // Cargar roles disponibles solo si es administrador
           useEffect(() => {
-            const loadRoles = async () => {
-              try {
-                const result = await rolesAPI.getRoles();
-                
-                if (result.success && result.data) {
-                  setRoles(result.data);
-                } else {
-                  console.error('Error al cargar roles:', result.error);
+            if (isAdmin) {
+              const loadRoles = async () => {
+                try {
+                  const result = await rolesAPI.getRoles();
+                  
+                  if (result.success && result.data) {
+                    setRoles(result.data);
+                  } else {
+                    console.error('Error al cargar roles:', result.error);
+                  }
+                } catch (error) {
+                  console.error('Error al cargar roles:', error);
+                } finally {
+                  setLoadingRoles(false);
                 }
-              } catch (error) {
-                console.error('Error al cargar roles:', error);
-              } finally {
-                setLoadingRoles(false);
-              }
-            };
+              };
 
-            loadRoles();
-          }, []);
+              loadRoles();
+            } else {
+              // Si no es admin, no necesita cargar roles
+              setLoadingRoles(false);
+            }
+          }, [isAdmin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     // Validaciones
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.roleId) {
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
       setError('Todos los campos son requeridos');
       return;
     }
+
+    // ⚠️ SEGURIDAD: Todos los usuarios se crean como estudiantes (role_id: 1)
+    // El rol solo puede ser cambiado DESPUÉS del registro por un administrador
+    // Esto previene que alguien se registre como admin durante el proceso de registro
+    // Mapeo correcto: 1=student, 2=teacher, 3=admin, 4=coordinator
+    const roleIdToUse = 1; // Siempre estudiante, sin excepción
 
     if (formData.password !== formData.confirmPassword) {
       setError('Las contraseñas no coinciden');
@@ -76,18 +88,33 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
       return;
     }
 
-    const result = await register({
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      password: formData.password,
-      roleId: parseInt(formData.roleId)
-    });
-    
-    if (result.success) {
-      onSuccess?.();
-    } else {
-      setError(result.error || 'Error en el registro');
+    try {
+      const result = await register({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email.trim().toLowerCase(), // Normalizar email
+        password: formData.password,
+        roleId: roleIdToUse
+      });
+      
+      if (result.success) {
+        // Limpiar el formulario
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+          roleId: isAdmin ? '' : '1' // Siempre estudiante (1=student) por defecto
+        });
+        setError('');
+        onSuccess?.();
+      } else {
+        setError(result.error || 'Error en el registro. Por favor, verifica los datos e intenta nuevamente.');
+      }
+    } catch (error: any) {
+      console.error('Error inesperado en registro:', error);
+      setError(error?.message || 'Ocurrió un error inesperado. Por favor, intenta nuevamente.');
     }
   };
 
@@ -186,36 +213,49 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
             </div>
           </div>
 
-          <div>
-            <label htmlFor="roleId" className="block text-sm font-medium text-gray-700 mb-1">
-              Tipo de Cuenta
-            </label>
-            <select
-              id="roleId"
-              name="roleId"
-              value={formData.roleId}
-              onChange={handleChange}
-              className="w-full px-3 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/50 backdrop-blur-sm transition-all duration-200"
-              disabled={loadingRoles}
-            >
-              {loadingRoles ? (
-                <option>Cargando roles...</option>
-              ) : roles.length === 0 ? (
-                <option>No hay roles disponibles</option>
-              ) : (
-                <>
-                  <option value="">Selecciona un rol</option>
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      {role.name === 'admin' ? 'Administrador' : 
-                       role.name === 'teacher' ? 'Docente' : 
-                       role.name === 'student' ? 'Estudiante' : role.name}
-                    </option>
-                  ))}
-                </>
-              )}
-            </select>
-          </div>
+          {/* Solo mostrar selector de roles si es administrador */}
+          {isAdmin ? (
+            <div>
+              <label htmlFor="roleId" className="block text-sm font-medium text-gray-700 mb-1">
+                Tipo de Cuenta <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="roleId"
+                name="roleId"
+                value={formData.roleId}
+                onChange={handleChange}
+                className="w-full px-3 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/50 backdrop-blur-sm transition-all duration-200"
+                disabled={loadingRoles}
+                required
+              >
+                {loadingRoles ? (
+                  <option>Cargando roles...</option>
+                ) : roles.length === 0 ? (
+                  <option>No hay roles disponibles</option>
+                ) : (
+                  <>
+                    <option value="">Selecciona un rol</option>
+                    {roles.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.name === 'admin' ? 'Administrador' : 
+                         role.name === 'teacher' ? 'Docente' : 
+                         role.name === 'student' ? 'Estudiante' : role.name}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Como administrador, puedes asignar el rol del nuevo usuario
+              </p>
+            </div>
+           ) : (
+             <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+               <p className="text-sm text-blue-800">
+                 <strong>Nota:</strong> Todas las cuentas nuevas se crean como <strong>Estudiante</strong>. Un administrador puede cambiar tu rol después del registro si es necesario.
+               </p>
+             </div>
+           )}
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">

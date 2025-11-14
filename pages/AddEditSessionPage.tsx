@@ -103,11 +103,14 @@ const AddEditSessionPage: React.FC = () => {
     try {
       if (isEditing && sessionId) {
         await updateSession(sessionId, sessionData); // updateSession takes Partial<CourseSession>
+        // TODO: Obtener courseId de la sesión para navegar a /sessions?courseId=X
+        navigate('/my/courses');
       } else {
         // createSession needs to be adapted if it doesn't expect full CourseSession minus id
         await createSession(sessionData as CourseSession); // Casting as full session, ensure createSession handles it
+        // TODO: Obtener courseId del contexto para navegar a /sessions?courseId=X
+        navigate('/my/courses');
       }
-      navigate('/sessions');
     } catch (err) {
       setError(isEditing ? 'Error al actualizar la sesión.' : 'Error al crear la sesión.');
       console.error(err);
@@ -211,7 +214,7 @@ const AddEditSessionPage: React.FC = () => {
           </fieldset>
 
           <div className="flex justify-end space-x-3 pt-4">
-            <Button type="button" variant="secondary" onClick={() => navigate('/sessions')} disabled={isLoading}>
+            <Button type="button" variant="secondary" onClick={() => navigate('/my/courses')} disabled={isLoading}>
               Cancelar
             </Button>
             <Button type="submit" variant="primary" disabled={isLoading}>

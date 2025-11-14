@@ -48,10 +48,11 @@ export async function getCoursesByTeacher(teacherId: string) {
 }
 
 export async function getEnrollmentsByStudent(userId: string) {
+  // Usar course_enrollments en lugar de enrollments (tabla correcta)
   const { data, error } = await supabase
-    .from('enrollments')
-    .select('course_id, role')
-    .eq('user_id', userId);
+    .from('course_enrollments')
+    .select('course_id, status, enrollment_date, completion_percentage')
+    .eq('student_id', userId);
   if (error) throw error;
   return data || [];
 }

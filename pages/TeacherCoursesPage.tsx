@@ -2,29 +2,90 @@
 // Página principal de gestión de cursos para docentes
 
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { courseService, Course } from '../services/teacherCourses';
+import { subjectService, careerService, Subject, Career } from '../services/academicService';
 import { useAuth } from '../hooks/useAuth';
 import Card from '../components/Card';
 import Button from '../components/Button';
 
+interface CourseWithAcademic extends Course {
+  subject?: Subject | null;
+  career?: Career | null;
+}
+
 export const TeacherCoursesPage: React.FC = () => {
   const { user } = useAuth();
-  const [courses, setCourses] = useState<Course[]>([]);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [courses, setCourses] = useState<CourseWithAcademic[]>([]);
+  const [allCourses, setAllCourses] = useState<CourseWithAcademic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filterByCareer, setFilterByCareer] = useState<number | null>(null);
+  const [filterBySubject, setFilterBySubject] = useState<number | null>(null);
+  const [careers, setCareers] = useState<Career[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [viewMode, setViewMode] = useState<'grid' | 'hierarchy'>('grid');
 
   useEffect(() => {
     if (user?.id) {
       loadCourses();
+      loadAcademicData();
     }
-  }, [user?.id]);
+    
+    // Verificar filtros en URL
+    const subjectIdParam = searchParams.get('subjectId');
+    if (subjectIdParam) {
+      setFilterBySubject(parseInt(subjectIdParam));
+    }
+  }, [user?.id, searchParams]);
+
+  const loadAcademicData = async () => {
+    try {
+      const [careersData, subjectsData] = await Promise.all([
+        careerService.getActiveCareers(),
+        subjectService.getAllSubjects()
+      ]);
+      setCareers(careersData);
+      setSubjects(subjectsData);
+    } catch (err) {
+      console.error('Error loading academic data:', err);
+    }
+  };
 
   const loadCourses = async () => {
     try {
       setLoading(true);
       const data = await courseService.getMyCourses(user!.id);
-      setCourses(data);
+      
+      // Cargar información académica para cada curso
+      const coursesWithAcademic: CourseWithAcademic[] = await Promise.all(
+        data.map(async (course) => {
+          let subject: Subject | null = null;
+          let career: Career | null = null;
+          
+          if (course.subject_id) {
+            try {
+              subject = await subjectService.getSubject(course.subject_id);
+              if (subject?.career_id) {
+                career = await careerService.getCareer(subject.career_id);
+              }
+            } catch (err) {
+              console.error('Error loading academic info for course:', course.id, err);
+            }
+          }
+          
+          return {
+            ...course,
+            subject,
+            career
+          };
+        })
+      );
+      
+      setAllCourses(coursesWithAcademic);
+      applyFilters(coursesWithAcademic);
     } catch (err) {
       setError('Error al cargar los cursos');
       console.error(err);
@@ -32,6 +93,26 @@ export const TeacherCoursesPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const applyFilters = (coursesData: CourseWithAcademic[]) => {
+    let filtered = [...coursesData];
+    
+    if (filterByCareer) {
+      filtered = filtered.filter(c => c.career?.id === filterByCareer);
+    }
+    
+    if (filterBySubject) {
+      filtered = filtered.filter(c => c.subject?.id === filterBySubject);
+    }
+    
+    setCourses(filtered);
+  };
+
+  useEffect(() => {
+    if (allCourses.length > 0) {
+      applyFilters(allCourses);
+    }
+  }, [filterByCareer, filterBySubject]);
 
   const handleDeleteCourse = async (id: number) => {
     if (!confirm('¿Estás seguro de que quieres eliminar este curso?')) return;
@@ -87,17 +168,121 @@ export const TeacherCoursesPage: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Mis Cursos</h1>
-          <p className="text-gray-600">Gestiona tus cursos y contenido</p>
+          <p className="text-gray-600">Gestiona tus cursos y contenido académico</p>
         </div>
-        <Link to="/teacher/courses/new">
-          <Button>
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Nuevo Curso
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link to="/admin/subjects">
+            <Button variant="outline">
+              Ver Materias
+            </Button>
+          </Link>
+          <Link to="/teacher/courses/new">
+            <Button>
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Nuevo Curso
+            </Button>
+          </Link>
+        </div>
       </div>
+
+      {/* Sección explicativa de la jerarquía */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <div className="p-4">
+          <h3 className="text-sm font-semibold text-gray-900 mb-2">📚 Estructura Académica</h3>
+          <div className="text-xs text-gray-700 space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Carrera</span>
+              <span>→</span>
+              <span className="font-medium">Materia</span>
+              <span>→</span>
+              <span className="font-medium">Curso</span>
+              <span>→</span>
+              <span className="font-medium">Unidades/Sesiones/Contenido</span>
+            </div>
+            <p className="text-gray-600 mt-2">
+              Cada curso pertenece a una <strong>Materia</strong> que está dentro de una <strong>Carrera</strong>. 
+              El curso contiene el contenido (unidades, sesiones, materiales) que los estudiantes verán.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={() => navigate('/admin/careers')}
+                className="text-blue-600 hover:text-blue-800 underline text-xs"
+              >
+                Gestionar Carreras →
+              </button>
+              <button
+                onClick={() => navigate('/admin/subjects')}
+                className="text-blue-600 hover:text-blue-800 underline text-xs"
+              >
+                Gestionar Materias →
+              </button>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Filtros */}
+      {(careers.length > 0 || subjects.length > 0) && (
+        <Card>
+          <div className="p-4">
+            <div className="flex flex-wrap gap-4 items-center">
+              <span className="text-sm font-medium text-gray-700">Filtrar por:</span>
+              
+              <select
+                value={filterByCareer || ''}
+                onChange={(e) => {
+                  const value = e.target.value ? parseInt(e.target.value) : null;
+                  setFilterByCareer(value);
+                  // Si hay filtro por carrera, filtrar también las materias
+                  if (value) {
+                    const careerSubjects = subjects.filter(s => s.career_id === value);
+                    // Si el subject actual no pertenece a esta carrera, limpiar filtro
+                    if (filterBySubject && !careerSubjects.find(s => s.id === filterBySubject)) {
+                      setFilterBySubject(null);
+                    }
+                  }
+                }}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              >
+                <option value="">Todas las carreras</option>
+                {careers.map(career => (
+                  <option key={career.id} value={career.id}>{career.name}</option>
+                ))}
+              </select>
+
+              <select
+                value={filterBySubject || ''}
+                onChange={(e) => setFilterBySubject(e.target.value ? parseInt(e.target.value) : null)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                disabled={filterByCareer ? false : false}
+              >
+                <option value="">Todas las materias</option>
+                {(filterByCareer 
+                  ? subjects.filter(s => s.career_id === filterByCareer)
+                  : subjects
+                ).map(subject => (
+                  <option key={subject.id} value={subject.id}>{subject.name}</option>
+                ))}
+              </select>
+
+              {(filterByCareer || filterBySubject) && (
+                <Button
+                  onClick={() => {
+                    setFilterByCareer(null);
+                    setFilterBySubject(null);
+                  }}
+                  variant="outline"
+                  size="sm"
+                >
+                  Limpiar filtros
+                </Button>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
 
       {courses.length === 0 ? (
         <Card>
@@ -129,6 +314,48 @@ export const TeacherCoursesPage: React.FC = () => {
                     <h3 className="text-lg font-semibold text-gray-900">{course.title}</h3>
                     {course.code && (
                       <p className="text-sm text-gray-500 mt-1">Código: {course.code}</p>
+                    )}
+                    {(course as CourseWithAcademic).subject && (
+                      <div className="mt-2 space-y-1">
+                        {(course as CourseWithAcademic).career && (
+                          <div className="flex items-center gap-1 text-xs">
+                            <span className="text-gray-500">Carrera:</span>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                navigate(`/admin/careers?careerId=${(course as CourseWithAcademic).career?.id}`);
+                              }}
+                              className="text-purple-600 hover:text-purple-800 hover:underline font-medium"
+                            >
+                              {(course as CourseWithAcademic).career?.name}
+                            </button>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1 text-xs">
+                          <span className="text-gray-500">Materia:</span>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              navigate(`/admin/subjects?subjectId=${(course as CourseWithAcademic).subject?.id}`);
+                            }}
+                            className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                          >
+                            {(course as CourseWithAcademic).subject?.name}
+                          </button>
+                        </div>
+                        {course.academic_period && (
+                          <p className="text-xs text-gray-500">
+                            Período: {course.academic_period}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {!(course as CourseWithAcademic).subject && (
+                      <div className="mt-2">
+                        <p className="text-xs text-yellow-600 italic">
+                          Sin materia asignada - <Link to={`/teacher/courses/${course.id}/edit`} className="underline">Asignar materia</Link>
+                        </p>
+                      </div>
                     )}
                   </div>
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(course.status)}`}>

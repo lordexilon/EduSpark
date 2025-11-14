@@ -50,43 +50,13 @@ export async function createMaterial(input: CourseMaterialInput) {
     if (typeof v !== 'undefined') payload[k] = v;
   });
 
-  const tryInsert = async (): Promise<any> => {
-    console.debug('[materials.create] inserting payload:', payload);
-    const { data, error } = await supabase
-      .from('course_materials')
-      .insert(payload)
-      .select('*')
-      .single();
-    if (error) throw error;
-    console.debug('[materials.create] inserted row:', data);
-    return data;
-  };
-
-  // Hasta 5 intentos: si una columna no existe, la quitamos y reintentamos
-  for (let i = 0; i < 5; i++) {
-    try {
-      return await tryInsert();
-    } catch (err: any) {
-      const msg = String(err?.message || err);
-      console.warn('[materials.create] insert error:', msg);
-      const notExistMatch = msg.match(/column\s+\"?(\w+)\"?\s+of\s+relation\s+\"course_materials\"\s+does\s+not\s+exist/i);
-      if (notExistMatch) {
-        const col = notExistMatch[1];
-        delete payload[col];
-        continue;
-      }
-      // No ocultar otros errores: propagamos para que el UI muestre el mensaje real
-      throw err;
-    }
-  }
-  // Fallback final: insertar solo lo obligatorio
   const { data, error } = await supabase
     .from('course_materials')
-    .insert(mandatory)
+    .insert(payload)
     .select('*')
     .single();
+  
   if (error) throw error;
-  console.debug('[materials.create] inserted minimal row:', data);
   return data;
 }
 

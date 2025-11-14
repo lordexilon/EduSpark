@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useAgentSystem } from '../audio-tutor/hooks/useAgentSystem';
 import { useCourseContext } from '../audio-tutor/hooks/useCourseContext';
@@ -15,6 +16,7 @@ import { TokenUsageDashboard } from '../audio-tutor/components/TokenUsageDashboa
 import { CourseContentPanel } from '../audio-tutor/components/CourseContentPanel';
 import { tokenMonitoring } from '../audio-tutor/services/tokenMonitoringService';
 import { IconArrowLeft, IconSettings, IconTrash2, IconDownload, IconRefreshCw, IconDollarSign, IconBookOpen } from '../components/Icons';
+import { MarkdownText } from '../components/MarkdownText';
 
 const TutorVirtualPage: React.FC = () => {
   const { user } = useAuth();
@@ -32,8 +34,11 @@ const TutorVirtualPage: React.FC = () => {
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [showSourcesFor, setShowSourcesFor] = useState<string | null>(null);
   const [highlightMaterialId, setHighlightMaterialId] = useState<string | undefined>(undefined);
+  const [highlightType, setHighlightType] = useState<'material' | 'unit' | 'session' | undefined>(undefined);
   const [initializedFromQuery, setInitializedFromQuery] = useState(false);
   const [selectedModuleId, setSelectedModuleId] = useState<string>('');
+  const [useVoiceInput, setUseVoiceInput] = useState(false); // Iniciar con voz
+  const [cancelRequested, setCancelRequested] = useState(false); // Solicitud de cancelación
 
   // Hooks del sistema de agentes
   const capabilities = useAudioCapabilities();
@@ -43,39 +48,173 @@ const TutorVirtualPage: React.FC = () => {
   // Referencias
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const lastInitializedModuleId = useRef<string>('');
 
-  // Inicializar sistema de agentes cuando se selecciona un curso
+  // Inicializar sistema de agentes cuando se selecciona un curso o cambia el módulo
   useEffect(() => {
-    if (selectedCourseId && user && !agentSystem.isInitialized) {
-      const initTimeout = setTimeout(() => {
-        if (!agentSystem.isInitialized && agentSystem.isProcessing) {
-          console.warn('⚠️ Timeout en inicialización del sistema de agentes, reintentando...');
-          agentSystem.initializeAgentSystem(user, selectedModuleId);
-        }
-      }, 8000);
-
-      agentSystem.initializeAgentSystem(user, selectedModuleId);
-
-      return () => clearTimeout(initTimeout);
+    const debugInfo = { 
+      selectedCourseId, 
+      hasUser: !!user,
+      userId: user?.id,
+      isInitialized: agentSystem.isInitialized,
+      isProcessing: agentSystem.isProcessing,
+      selectedModuleId,
+      lastInitializedModuleId: lastInitializedModuleId.current
+    };
+    console.log('🔄 useEffect inicialización:', debugInfo);
+    
+    if (!selectedCourseId) {
+      console.warn('⚠️ No hay curso seleccionado, no se puede inicializar el sistema');
+      return;
     }
-  }, [selectedCourseId, user, agentSystem.isInitialized, agentSystem.isProcessing]);
+    
+    if (!user) {
+      console.warn('⚠️ No hay usuario, no se puede inicializar el sistema');
+      return;
+    }
+    
+    // Solo reinicializar si el módulo cambió realmente
+    const moduleChanged = selectedModuleId !== lastInitializedModuleId.current;
+    console.log('🔍 Verificando condiciones de inicialización:', {
+      isInitialized: agentSystem.isInitialized,
+      isProcessing: agentSystem.isProcessing,
+      moduleChanged,
+      lastModuleId: lastInitializedModuleId.current,
+      currentModuleId: selectedModuleId
+    });
+    
+    // Si ya está inicializado pero cambió el módulo, reinicializar
+    if (agentSystem.isInitialized && selectedModuleId && moduleChanged) {
+      console.log('🔄 Módulo cambió, reinicializando sistema con moduleId:', selectedModuleId);
+      lastInitializedModuleId.current = selectedModuleId;
+      agentSystem.initializeAgentSystem(user, selectedModuleId);
+      return;
+    }
+    
+    // Si no está inicializado Y no está procesando, inicializar
+    if (!agentSystem.isInitialized && !agentSystem.isProcessing) {
+      // Crear una clave única para identificar esta combinación curso+módulo
+      const initKey = `${selectedCourseId}-${selectedModuleId || 'no-module'}`;
+      const lastInitKey = lastInitializedModuleId.current;
+      
+      // Inicializar si:
+      // 1. Nunca se ha inicializado (lastInitKey está vacío)
+      // 2. O el curso/módulo cambió (las claves son diferentes)
+      const shouldInitialize = !lastInitKey || lastInitKey !== initKey;
+      
+      console.log('🔍 Evaluando inicialización:', {
+        shouldInitialize,
+        initKey,
+        lastInitKey,
+        isInitialized: agentSystem.isInitialized,
+        isProcessing: agentSystem.isProcessing
+      });
+      
+      if (shouldInitialize) {
+        console.log('🚀 Iniciando inicialización del sistema de agentes...', {
+          courseId: selectedCourseId,
+          moduleId: selectedModuleId,
+          userId: user.id,
+          initKey
+        });
+        
+        const initTimeout = setTimeout(() => {
+          if (!agentSystem.isInitialized && agentSystem.isProcessing) {
+            console.warn('⚠️ Timeout en inicialización del sistema de agentes, reintentando...');
+            agentSystem.initializeAgentSystem(user, selectedModuleId);
+          }
+        }, 8000);
 
-  // Leer courseId/moduleId desde querystring al cargar
+        // Guardar la clave de inicialización ANTES de llamar
+        lastInitializedModuleId.current = initKey;
+        
+        // Llamar a initializeAgentSystem
+        console.log('📞 Llamando a initializeAgentSystem...');
+        agentSystem.initializeAgentSystem(user, selectedModuleId).catch((error) => {
+          console.error('❌ Error en initializeAgentSystem:', error);
+          // Si falla, resetear la clave para permitir reintentar
+          lastInitializedModuleId.current = '';
+          // Forzar actualización del componente
+          setTimeout(() => {
+            if (!agentSystem.isInitialized) {
+              lastInitializedModuleId.current = '';
+            }
+          }, 1000);
+        });
+
+        return () => {
+          console.log('🧹 Limpiando timeout de inicialización');
+          clearTimeout(initTimeout);
+        };
+      } else {
+        console.log('⏭️ Ya inicializado para esta combinación curso/módulo, saltando:', { initKey, lastInitKey });
+      }
+    } else {
+      console.log('⏸️ Sistema ya inicializado o procesando, no se inicializa:', {
+        isInitialized: agentSystem.isInitialized,
+        isProcessing: agentSystem.isProcessing
+      });
+    }
+  }, [selectedCourseId, selectedModuleId, user, agentSystem.isInitialized, agentSystem.isProcessing, agentSystem]);
+
+  // Usar useSearchParams para leer parámetros de query
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Leer courseId/moduleId desde querystring al cargar y cuando cambie
   useEffect(() => {
-    if (initializedFromQuery) return;
-    const hash = typeof window !== 'undefined' ? window.location.hash : '';
-    const qs = new URLSearchParams(hash.split('?')[1] || '');
-    const courseId = qs.get('courseId') || '';
-    const moduleId = qs.get('moduleId') || '';
-    if (courseId) {
+    // Intentar obtener courseId desde searchParams primero (React Router)
+    let courseId = searchParams.get('courseId') || '';
+    let moduleId = searchParams.get('moduleId') || '';
+    
+    // Si no se encuentra en searchParams, intentar desde hash (fallback para hash routing)
+    if (!courseId && typeof window !== 'undefined') {
+      const hash = window.location.hash;
+      const hashQs = new URLSearchParams(hash.split('?')[1] || '');
+      courseId = hashQs.get('courseId') || '';
+      moduleId = hashQs.get('moduleId') || '';
+    }
+    
+    console.log('🔍 Leyendo courseId desde query params:', { 
+      courseId, 
+      moduleId, 
+      searchParams: searchParams.toString(),
+      currentSelectedCourseId: selectedCourseId,
+      initializedFromQuery 
+    });
+    
+    // Si hay un courseId diferente al actual, actualizarlo
+    if (courseId && courseId !== selectedCourseId) {
+      console.log('✅ Cambiando courseId de', selectedCourseId, 'a', courseId);
+      // Resetear el sistema de inicialización para forzar nueva carga
+      lastInitializedModuleId.current = '';
       setSelectedCourseId(courseId);
       setShowCourseSelector(false);
+      // Resetear initializedFromQuery para permitir que se ejecute el efecto de inicialización
+      setInitializedFromQuery(false);
+    } else if (!courseId && initializedFromQuery) {
+      // Solo marcar como inicializado si ya procesamos la query antes
+      return;
     }
+    
+    if (courseId && !initializedFromQuery) {
+      console.log('✅ Estableciendo courseId inicial:', courseId);
+      setSelectedCourseId(courseId);
+      setShowCourseSelector(false);
+      setInitializedFromQuery(true);
+    } else if (!courseId) {
+      // Si no hay courseId, asegurar que se muestre el selector
+      console.log('⚠️ No hay courseId, mostrando selector');
+      setShowCourseSelector(true);
+      if (!initializedFromQuery) {
+        setInitializedFromQuery(true);
+      }
+    }
+    
     if (moduleId) {
+      console.log('✅ Estableciendo moduleId:', moduleId);
       setSelectedModuleId(moduleId);
     }
-    setInitializedFromQuery(true);
-  }, [initializedFromQuery]);
+  }, [searchParams, selectedCourseId]);
 
   // Auto-scroll del chat
   useEffect(() => {
@@ -98,6 +237,10 @@ const TutorVirtualPage: React.FC = () => {
 
   // Manejar selección de curso
   const handleCourseSelect = useCallback((courseId: string) => {
+    console.log('📚 Curso seleccionado:', courseId);
+    // Resetear el estado de inicialización ANTES de cambiar el curso
+    // para permitir que se inicialice nuevamente
+    lastInitializedModuleId.current = '';
     setSelectedCourseId(courseId);
     setShowCourseSelector(false);
   }, []);
@@ -106,15 +249,66 @@ const TutorVirtualPage: React.FC = () => {
   const handleSubmit = useCallback(async (e: React.FormEvent, directInput?: string) => {
     e.preventDefault();
     const userInput = directInput || inputValue;
-    if (!userInput.trim() || agentSystem.isProcessing) return;
+    
+    console.log('📤 handleSubmit llamado:', { 
+      userInput: userInput?.trim(), 
+      isProcessing: agentSystem.isProcessing,
+      isInitialized: agentSystem.isInitialized,
+      useVoiceInput,
+      hasError: agentSystem.hasError,
+      courseId: selectedCourseId,
+      error: agentSystem.error
+    });
+    
+    if (!userInput.trim()) {
+      console.warn('⚠️ handleSubmit: Input vacío');
+      return;
+    }
+    
+    // Si está procesando, cancelar primero
+    if (agentSystem.isProcessing) {
+      console.log('⚠️ handleSubmit: Cancelando respuesta anterior...');
+      agentSystem.cancelCurrentResponse();
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    
+    if (!agentSystem.isInitialized) {
+      console.error('❌ handleSubmit: Sistema no inicializado');
+      alert('El Tutor Virtual no está inicializado. Por favor, selecciona un curso primero.');
+      return;
+    }
 
+    const messageText = userInput.trim();
     setInputValue('');
-    await agentSystem.sendMessage(userInput);
-  }, [inputValue, agentSystem.isProcessing, agentSystem.sendMessage]);
+    console.log('📨 Enviando mensaje al sistema de agentes...');
+    
+    try {
+      // Si useVoiceInput está activado y hay micrófono disponible, usar voz
+      if (useVoiceInput && capabilities?.hasMicrophone && !isMicrophoneMuted) {
+        console.log('🎤 Usando entrada de voz...');
+        setIsListening(true);
+        try {
+          await agentSystem.sendVoiceMessage();
+        } finally {
+          setIsListening(false);
+        }
+      } else {
+        await agentSystem.sendMessage(messageText);
+      }
+      console.log('✅ Mensaje enviado exitosamente');
+    } catch (error) {
+      console.error('❌ Error al enviar mensaje:', error);
+    }
+  }, [inputValue, agentSystem, selectedCourseId, useVoiceInput, capabilities, isMicrophoneMuted]);
 
   // Manejar mensaje de voz
   const handleVoiceMessage = useCallback(async () => {
-    if (agentSystem.isProcessing) return;
+    // Si hay una respuesta en curso, cancelarla primero
+    if (agentSystem.isProcessing) {
+      agentSystem.cancelCurrentResponse();
+      // Esperar un momento antes de iniciar escucha
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
     
     try {
       setIsListening(true);
@@ -124,7 +318,7 @@ const TutorVirtualPage: React.FC = () => {
     } finally {
       setIsListening(false);
     }
-  }, [agentSystem.isProcessing, agentSystem.sendVoiceMessage]);
+  }, [agentSystem]);
 
   // Toggle microfono mute
   const toggleMicrophoneMute = useCallback(() => {
@@ -136,8 +330,13 @@ const TutorVirtualPage: React.FC = () => {
 
   // Toggle audio mute
   const toggleAudioMute = useCallback(() => {
-    setIsAudioMuted(prev => !prev);
-  }, []);
+    setIsAudioMuted(prev => {
+      const newMuted = !prev;
+      // Actualizar el coordinador para que no genere audio
+      agentSystem.setAudioMuted(newMuted);
+      return newMuted;
+    });
+  }, [agentSystem]);
 
   // Manejar archivo adjunto
   const handleAttachFile = () => {
@@ -249,24 +448,25 @@ const TutorVirtualPage: React.FC = () => {
 
   // Renderizar interfaz principal del tutor
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col">
+      <div className="flex-1 flex flex-col max-w-7xl mx-auto w-full p-3 sm:p-4 md:p-6">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col h-full min-h-0">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 sm:p-4 md:p-6 flex-shrink-0">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+              <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
                 <button
                   onClick={() => window.history.back()}
-                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors flex-shrink-0"
+                  aria-label="Volver"
                 >
                   <IconArrowLeft className="w-5 h-5" />
                 </button>
-                <div>
-                  <h1 className="text-2xl font-bold">Tutor Virtual IA</h1>
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-lg sm:text-xl md:text-2xl font-bold truncate">Tutor Virtual IA</h1>
                   {selectedCourseId && (
-                    <p className="text-blue-100 text-sm">
-                      Curso: {courseContext.courseContext?.title || 'Cargando...'}
+                    <p className="text-blue-100 text-xs sm:text-sm truncate">
+                      {courseContext.courseContext?.title || 'Cargando...'}
                     </p>
                   )}
                   <div className="flex items-center gap-2 mt-1">
@@ -278,55 +478,16 @@ const TutorVirtualPage: React.FC = () => {
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
-                {/* Botón de configuración pedagógica (solo para docentes) */}
-                {user?.role?.name === 'teacher' && (
-                  <button
-                    onClick={() => setShowPedagogicalSettings(!showPedagogicalSettings)}
-                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                    title="Configuración pedagógica"
-                  >
-                    <IconSettings className="w-5 h-5" />
-                  </button>
-                )}
-
-                {/* Botón de exportar chat */}
-                <button
-                  onClick={agentSystem.exportConversation}
-                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                  title="Exportar chat"
-                >
-                  <IconDownload className="w-5 h-5" />
-                </button>
-
-                {/* Botón de limpiar chat */}
-                <button
-                  onClick={agentSystem.clearConversation}
-                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                  title="Limpiar chat"
-                >
-                  <IconTrash2 className="w-5 h-5" />
-                </button>
-
-                {/* Botón de cambiar curso */}
-                <button
-                  onClick={() => setShowCourseSelector(true)}
-                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                  title="Cambiar curso"
-                >
-                  <IconRefreshCw className="w-5 h-5" />
-                </button>
-
-                {/* Botón de contenido del curso */}
+              <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                {/* Botones principales - siempre visibles */}
                 <button
                   onClick={() => setShowCourseContent(true)}
                   className="p-2 hover:bg-blue-500/20 rounded-lg transition-colors"
                   title="Ver contenido del curso"
                 >
-                  <IconBookOpen className="w-5 h-5" />
+                  <IconBookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
 
-                {/* Botón de silenciar audio */}
                 <button
                   onClick={toggleAudioMute}
                   className={`p-2 rounded-lg transition-colors ${
@@ -336,19 +497,56 @@ const TutorVirtualPage: React.FC = () => {
                   }`}
                   title={isAudioMuted ? 'Activar audio' : 'Silenciar audio'}
                 >
-                  {isAudioMuted ? '🔇' : '🔊'}
+                  <span className="text-sm sm:text-base">{isAudioMuted ? '🔇' : '🔊'}</span>
                 </button>
 
-                {/* Botón de monitoreo de tokens */}
+                {/* Botones secundarios - ocultos en mobile */}
+                {user?.role?.name === 'teacher' && (
+                  <button
+                    onClick={() => setShowPedagogicalSettings(!showPedagogicalSettings)}
+                    className="hidden sm:block p-2 hover:bg-white/20 rounded-lg transition-colors"
+                    title="Configuración pedagógica"
+                  >
+                    <IconSettings className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setShowCourseSelector(true)}
+                  className="hidden sm:block p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  title="Cambiar curso"
+                >
+                  <IconRefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+
                 <button
                   onClick={() => setShowTokenDashboard(true)}
-                  className="p-2 hover:bg-green-500/20 rounded-lg transition-colors"
+                  className="hidden sm:block p-2 hover:bg-green-500/20 rounded-lg transition-colors"
                   title="Monitoreo de tokens y costos"
                 >
-                  <IconDollarSign className="w-5 h-5" />
+                  <IconDollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
 
-                {/* Botón de recarga de emergencia */}
+                {/* Botones de acciones - menú móvil */}
+                <div className="hidden sm:flex items-center gap-1 sm:gap-2">
+                  <button
+                    onClick={agentSystem.exportConversation}
+                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                    title="Exportar chat"
+                  >
+                    <IconDownload className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
+
+                  <button
+                    onClick={agentSystem.clearConversation}
+                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                    title="Limpiar chat"
+                  >
+                    <IconTrash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
+                </div>
+
+                {/* Botón de recarga - solo en emergencias */}
                 <button
                   onClick={() => {
                     console.log('🚨 Recarga de emergencia del Tutor Virtual...');
@@ -358,10 +556,10 @@ const TutorVirtualPage: React.FC = () => {
                       window.location.reload();
                     }
                   }}
-                  className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
+                  className="hidden md:block p-2 hover:bg-red-500/20 rounded-lg transition-colors"
                   title="Recarga de emergencia"
                 >
-                  🔄
+                  <span className="text-sm">🔄</span>
                 </button>
               </div>
             </div>
@@ -369,7 +567,7 @@ const TutorVirtualPage: React.FC = () => {
 
           {/* Panel de configuración pedagógica */}
           {showPedagogicalSettings && user?.role?.name === 'teacher' && (
-            <div className="p-6 border-b border-gray-200">
+            <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 flex-shrink-0 max-h-96 overflow-y-auto">
               <PedagogicalSettings
                 courseId={selectedCourseId}
                 initialSettings={courseContext.pedagogicalSettings}
@@ -379,16 +577,40 @@ const TutorVirtualPage: React.FC = () => {
             </div>
           )}
 
-          {/* Chat Container */}
-          <div className="h-96 overflow-y-auto p-6 space-y-4" ref={chatContainerRef}>
+          {/* Chat Container - Área principal flexible */}
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 min-h-0" ref={chatContainerRef}>
+            {/* Mensaje de advertencia si no hay curso seleccionado */}
+            {!selectedCourseId && (
+              <div className="flex justify-center px-2">
+                <div className="max-w-xl w-full p-3 sm:p-4 rounded-2xl bg-yellow-50 border border-yellow-200">
+                  <p className="text-yellow-800 font-medium text-sm sm:text-base">⚠️ Por favor, selecciona un curso para comenzar</p>
+                  <p className="text-yellow-600 text-xs sm:text-sm mt-1">Usa el botón de contenido del curso (📖) en la parte superior para seleccionar un curso.</p>
+                </div>
+              </div>
+            )}
+            
+            {/* Mensaje de advertencia si el sistema no está inicializado */}
+            {selectedCourseId && !agentSystem.isInitialized && !agentSystem.isProcessing && (
+              <div className="flex justify-center px-2">
+                <div className="max-w-xl w-full p-3 sm:p-4 rounded-2xl bg-blue-50 border border-blue-200">
+                  <p className="text-blue-800 font-medium text-sm sm:text-base">⏳ Inicializando Tutor Virtual...</p>
+                  <p className="text-blue-600 text-xs sm:text-sm mt-1">Por favor espera mientras se carga el sistema. Esto puede tomar unos segundos.</p>
+                </div>
+              </div>
+            )}
+            
             {agentSystem.messages.map((message) => (
-              <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-xl p-4 rounded-2xl ${
+              <div key={message.id} className={`flex gap-2 sm:gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] sm:max-w-xl p-3 sm:p-4 rounded-2xl ${
                   message.role === 'user' 
                     ? 'bg-blue-600 text-white rounded-br-none' 
                     : 'bg-gray-100 text-gray-900 rounded-bl-none'
                 }`}>
-                  <p className="whitespace-pre-wrap">{message.text}</p>
+                  {message.role === 'user' ? (
+                    <p className="whitespace-pre-wrap text-sm sm:text-base break-words">{message.text}</p>
+                  ) : (
+                    <MarkdownText text={message.text} className="prose prose-sm sm:prose-base max-w-none text-sm sm:text-base" />
+                  )}
                   {/* Fuentes */}
                   {message.role === 'assistant' && Array.isArray(message.metadata?.sources) && message.metadata.sources.length > 0 && (
                     <div className="mt-2">
@@ -396,29 +618,68 @@ const TutorVirtualPage: React.FC = () => {
                         className="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded"
                         onClick={() => setShowSourcesFor(showSourcesFor === message.id ? null : message.id)}
                       >
-                        Fuentes
+                        Fuentes ({message.metadata.sources.length})
                       </button>
                       {showSourcesFor === message.id && (
                         <div className="mt-2 bg-white rounded border p-2 text-xs text-gray-700">
-                          <ul className="space-y-1">
-                            {message.metadata.sources.map((s: any) => (
-                              <li key={s.id} className="flex items-center justify-between gap-2">
-                                <span className="truncate">{s.title || `Material #${s.id}`}</span>
-                                {s.url ? (
-                                  <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Abrir</a>
-                                ) : (
-                                  <button
-                                    className="text-blue-600 hover:underline"
-                                    onClick={() => {
-                                      setShowCourseContent(true);
-                                      setHighlightMaterialId(String(s.id));
-                                    }}
-                                  >
-                                    Ver en panel
-                                  </button>
-                                )}
-                              </li>
-                            ))}
+                          <ul className="space-y-2">
+                            {message.metadata.sources.map((s: any) => {
+                              const getTypeLabel = (type: string) => {
+                                switch (type) {
+                                  case 'unit': return '📚 Unidad';
+                                  case 'session': return '📹 Sesión';
+                                  case 'material': return '📄 Material';
+                                  case 'course': return '🎓 Curso';
+                                  default: return '📋 Recurso';
+                                }
+                              };
+
+                              return (
+                                <li key={s.id} className="flex items-start justify-between gap-2 p-2 bg-gray-50 rounded">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1 mb-1">
+                                      <span className="text-gray-500">{getTypeLabel(s.type || 'material')}</span>
+                                    </div>
+                                    <span className="font-medium text-gray-900 block truncate">{s.title || `Recurso #${s.id}`}</span>
+                                    {s.unitId && (
+                                      <span className="text-gray-500 text-xs">Unidad relacionada</span>
+                                    )}
+                                    {s.sessionId && (
+                                      <span className="text-gray-500 text-xs ml-2">Sesión relacionada</span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-1 flex-shrink-0">
+                                    {s.url ? (
+                                      <a 
+                                        href={s.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="text-blue-600 hover:underline px-2 py-1 rounded hover:bg-blue-50"
+                                        title="Abrir enlace externo"
+                                      >
+                                        Abrir
+                                      </a>
+                                    ) : (
+                                      <button
+                                        className="text-blue-600 hover:underline px-2 py-1 rounded hover:bg-blue-50"
+                                        onClick={() => {
+                                          setShowCourseContent(true);
+                                          // Extraer el ID original si está en formato "type-id"
+                                          const contentId = s.id?.includes('-') ? s.id.split('-')[1] : s.id;
+                                          setHighlightMaterialId(contentId);
+                                          // Establecer el tipo de contenido
+                                          const contentType = s.type === 'unit' ? 'unit' : s.type === 'session' ? 'session' : 'material';
+                                          setHighlightType(contentType);
+                                        }}
+                                        title="Ver en panel de contenido"
+                                      >
+                                        Ver
+                                      </button>
+                                    )}
+                                  </div>
+                                </li>
+                              );
+                            })}
                           </ul>
                         </div>
                       )}
@@ -454,19 +715,19 @@ const TutorVirtualPage: React.FC = () => {
 
             {/* Indicador de inicialización del sistema */}
             {!agentSystem.isInitialized && agentSystem.isProcessing && (
-              <div className="flex justify-center gap-3">
-                <div className="max-w-xl p-6 rounded-2xl bg-blue-50 border border-blue-200 flex items-center gap-3">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                  <div className="flex-1">
-                    <p className="text-blue-800 font-semibold">Inicializando Tutor Virtual...</p>
-                    <p className="text-blue-600 text-sm">Cargando agentes y conectando con el curso (máx. 8s)</p>
+              <div className="flex justify-center px-2">
+                <div className="max-w-xl w-full p-4 sm:p-6 rounded-2xl bg-blue-50 border border-blue-200 flex flex-col sm:flex-row items-center gap-3">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 flex-shrink-0"></div>
+                  <div className="flex-1 text-center sm:text-left">
+                    <p className="text-blue-800 font-semibold text-sm sm:text-base">Inicializando Tutor Virtual...</p>
+                    <p className="text-blue-600 text-xs sm:text-sm">Cargando agentes y conectando con el curso</p>
                   </div>
                   <button
                     onClick={() => {
                       console.log('🔄 Forzando recarga...');
                       window.location.reload();
                     }}
-                    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs"
+                    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs flex-shrink-0"
                   >
                     Recargar
                   </button>
@@ -476,19 +737,19 @@ const TutorVirtualPage: React.FC = () => {
 
             {/* Indicador de error de inicialización */}
             {agentSystem.error && !agentSystem.isInitialized && (
-              <div className="flex justify-center gap-3">
-                <div className="max-w-xl p-6 rounded-2xl bg-red-50 border border-red-200 flex items-center gap-3">
-                  <div className="text-red-600 text-2xl">⚠️</div>
-                  <div>
-                    <p className="text-red-800 font-semibold">Error de inicialización</p>
-                    <p className="text-red-600 text-sm">{agentSystem.error}</p>
-                    <div className="flex gap-2 mt-2">
+              <div className="flex justify-center px-2">
+                <div className="max-w-xl w-full p-4 sm:p-6 rounded-2xl bg-red-50 border border-red-200 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  <div className="text-red-600 text-2xl flex-shrink-0">⚠️</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-red-800 font-semibold text-sm sm:text-base">Error de inicialización</p>
+                    <p className="text-red-600 text-xs sm:text-sm break-words">{agentSystem.error}</p>
+                    <div className="flex flex-col sm:flex-row gap-2 mt-2">
                       <button
                         onClick={() => {
                           console.log('🔄 Reintentando inicialización...');
                           agentSystem.initializeAgentSystem(user);
                         }}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                        className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs sm:text-sm"
                       >
                         Reintentar
                       </button>
@@ -497,9 +758,9 @@ const TutorVirtualPage: React.FC = () => {
                           console.log('🔄 Recargando página...');
                           window.location.reload();
                         }}
-                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
+                        className="px-3 sm:px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-xs sm:text-sm"
                       >
-                        Recargar Página
+                        Recargar
                       </button>
                     </div>
                   </div>
@@ -509,12 +770,12 @@ const TutorVirtualPage: React.FC = () => {
 
             {/* Indicador de procesamiento */}
             {agentSystem.isProcessing && agentSystem.isInitialized && (
-              <div className="flex justify-start gap-3">
-                <div className="max-w-xl p-4 rounded-2xl bg-gray-100 rounded-bl-none flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  <div>
-                    <p className="text-gray-600">Procesando tu consulta...</p>
-                    <p className="text-gray-500 text-xs">Generando respuesta con IA (máx. 15s)</p>
+              <div className="flex justify-start gap-2 sm:gap-3 px-2">
+                <div className="max-w-[85%] sm:max-w-xl p-3 sm:p-4 rounded-2xl bg-gray-100 rounded-bl-none flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 flex-shrink-0"></div>
+                  <div className="min-w-0">
+                    <p className="text-gray-600 text-sm sm:text-base">Procesando tu consulta...</p>
+                    <p className="text-gray-500 text-xs">Generando respuesta con IA</p>
                   </div>
                 </div>
               </div>
@@ -573,17 +834,67 @@ const TutorVirtualPage: React.FC = () => {
             )}
           </div>
 
-          {/* Input Area */}
-          <div className="p-6 border-t border-gray-200">
-            <form onSubmit={handleSubmit} className="flex items-center gap-3">
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder={isListening ? 'Escuchando...' : 'Escribe tu pregunta...'}
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                disabled={agentSystem.isProcessing || isListening || isProcessingFile}
-              />
+          {/* Input Area - Fijo en la parte inferior */}
+          <div className="p-3 sm:p-4 md:p-6 border-t border-gray-200 bg-white flex-shrink-0">
+            {/* Botón de cancelar respuesta si está procesando */}
+            {agentSystem.isProcessing && (
+              <div className="mb-2 flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    agentSystem.cancelCurrentResponse();
+                    setCancelRequested(true);
+                    setTimeout(() => setCancelRequested(false), 1000);
+                  }}
+                  className="px-3 py-1.5 bg-red-500 text-white text-xs sm:text-sm rounded-lg hover:bg-red-600 transition-colors flex items-center gap-1.5"
+                >
+                  <span>✕</span>
+                  <span>Cancelar respuesta</span>
+                </button>
+              </div>
+            )}
+            
+            {/* Opción para iniciar con voz */}
+            {capabilities?.hasMicrophone && agentSystem.isInitialized && !agentSystem.isProcessing && (
+              <div className="mb-2 flex items-center gap-2">
+                <label className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useVoiceInput}
+                    onChange={(e) => setUseVoiceInput(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span>🎤 Iniciar con voz (respuestas más rápidas)</span>
+                </label>
+              </div>
+            )}
+            
+            <form onSubmit={handleSubmit} className="flex items-end gap-2 sm:gap-3">
+              <div className="flex-1 min-w-0">
+                <input
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => {
+                    setInputValue(e.target.value);
+                    // Si el usuario empieza a escribir mientras procesa, cancelar
+                    if (agentSystem.isProcessing && e.target.value.trim().length > 0) {
+                      agentSystem.cancelCurrentResponse();
+                    }
+                  }}
+                  placeholder={
+                    !agentSystem.isInitialized 
+                      ? 'Esperando inicialización...' 
+                      : isListening 
+                      ? 'Escuchando...' 
+                      : useVoiceInput && capabilities?.hasMicrophone
+                      ? 'Presiona Enter o habla...'
+                      : 'Escribe tu pregunta...'
+                  }
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                  disabled={agentSystem.isProcessing || isListening || isProcessingFile || !agentSystem.isInitialized}
+                  title={!agentSystem.isInitialized ? 'El sistema no está inicializado. Por favor, selecciona un curso primero.' : undefined}
+                />
+              </div>
               
               <input
                 type="file"
@@ -593,22 +904,24 @@ const TutorVirtualPage: React.FC = () => {
                 accept=".txt,.md,.pdf"
               />
               
+              {/* Botón adjuntar - oculto en mobile pequeño */}
               <button
                 type="button"
                 onClick={handleAttachFile}
-                className="p-3 text-gray-400 hover:text-blue-600 rounded-lg transition-colors"
+                className="hidden sm:block p-2 sm:p-3 text-gray-400 hover:text-blue-600 rounded-lg transition-colors flex-shrink-0"
                 disabled={agentSystem.isProcessing || isProcessingFile}
                 title="Adjuntar archivo"
               >
-                📎
+                <span className="text-base sm:text-lg">📎</span>
               </button>
               
+              {/* Controles de voz */}
               {capabilities?.hasMicrophone && (
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={handleVoiceMessage}
-                    className={`p-3 rounded-lg transition-colors ${
+                    className={`p-2 sm:p-3 rounded-lg transition-colors flex-shrink-0 ${
                       isListening 
                         ? 'bg-red-500 text-white animate-pulse' 
                         : isMicrophoneMuted
@@ -618,12 +931,13 @@ const TutorVirtualPage: React.FC = () => {
                     disabled={agentSystem.isProcessing || isMicrophoneMuted}
                     title={isMicrophoneMuted ? 'Micrófono silenciado' : isListening ? 'Dejar de escuchar' : 'Empezar a escuchar'}
                   >
-                    🎤
+                    <span className="text-sm sm:text-base">🎤</span>
                   </button>
+                  {/* Botón mute mic - oculto en mobile */}
                   <button
                     type="button"
                     onClick={toggleMicrophoneMute}
-                    className={`p-2 rounded-lg transition-colors ${
+                    className={`hidden sm:block p-2 rounded-lg transition-colors ${
                       isMicrophoneMuted
                         ? 'bg-orange-500 text-white'
                         : 'bg-gray-200 hover:bg-gray-300 text-gray-600'
@@ -631,20 +945,23 @@ const TutorVirtualPage: React.FC = () => {
                     disabled={agentSystem.isProcessing}
                     title={isMicrophoneMuted ? 'Activar micrófono' : 'Silenciar micrófono'}
                   >
-                    🔇
+                    <span className="text-xs">🔇</span>
                   </button>
                 </div>
               )}
               
               <button
                 type="submit"
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex-shrink-0 text-sm sm:text-base"
                 disabled={!inputValue.trim() || agentSystem.isProcessing || isProcessingFile}
               >
                 {agentSystem.isProcessing ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
                 ) : (
-                  'Enviar'
+                  <>
+                    <span className="hidden sm:inline">Enviar</span>
+                    <span className="sm:hidden">→</span>
+                  </>
                 )}
               </button>
             </form>
@@ -661,10 +978,16 @@ const TutorVirtualPage: React.FC = () => {
       {/* Panel de contenido del curso */}
       <CourseContentPanel 
         isOpen={showCourseContent} 
-        onClose={() => setShowCourseContent(false)}
+        onClose={() => {
+          setShowCourseContent(false);
+          setHighlightMaterialId(undefined);
+          setHighlightType(undefined);
+        }}
         courseId={selectedCourseId}
         filterMaterialId={highlightMaterialId}
         moduleId={selectedModuleId}
+        highlightId={highlightMaterialId}
+        highlightType={highlightType}
       />
     </div>
   );

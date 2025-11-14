@@ -176,12 +176,49 @@ export class VoiceAgent {
         return;
       }
 
-      // Generar audio con Gemini
-      const audioContent = await synthesizeSpeech(text);
+      // Generar audio con Gemini usando voces expresivas
+      // Mapear configuración de voz a estilos expresivos
+      const expressiveStyles: Array<'friendly' | 'professional' | 'energetic' | 'calm' | 'excited' | 'empathetic' | 'authoritative' | 'warm' | 'clear'> = [];
+      
+      // Determinar estilos basados en la voz seleccionada
+      switch (voiceConfig.voiceName) {
+        case 'Kore':
+          expressiveStyles.push('professional', 'clear');
+          break;
+        case 'Charon':
+          expressiveStyles.push('authoritative', 'professional');
+          break;
+        case 'Fenrir':
+          expressiveStyles.push('energetic', 'excited');
+          break;
+        case 'Aoede':
+          expressiveStyles.push('warm', 'empathetic');
+          break;
+        case 'Puck':
+          expressiveStyles.push('friendly', 'calm');
+          break;
+      }
+
+      console.log('🎤 VoiceAgent: Generando audio con voces expresivas de Gemini 2.5 Flash', {
+        voiceName: voiceConfig.voiceName,
+        speed: voiceConfig.speed,
+        styles: expressiveStyles,
+        model: 'gemini-2.5-flash', // Modelo correcto con Modality.AUDIO
+        expressivePrompts: true, // Indicaciones expresivas activadas
+      });
+
+      const audioContent = await synthesizeSpeech(text, {
+        voiceName: voiceConfig.voiceName,
+        speed: voiceConfig.speed,
+        styles: expressiveStyles,
+        useNaturalPrompts: true, // Activar indicaciones naturales para voces expresivas
+      });
       
       if (!audioContent) {
         throw new Error('Failed to generate speech');
       }
+
+      console.log('✅ VoiceAgent: Audio expresivo generado exitosamente');
 
       // Reproducir audio
       await this.playAudio(audioContent, voiceConfig);
@@ -194,19 +231,37 @@ export class VoiceAgent {
   }
 
   /**
-   * Reproduce el audio generado
+   * Reproduce el audio generado con voces expresivas de Gemini 2.5 Flash
    */
   private async playAudio(base64Audio: string, voiceConfig: VoiceConfig): Promise<void> {
     try {
+      console.log('🔊 VoiceAgent: Iniciando reproducción de audio expresivo', {
+        audioLength: base64Audio.length,
+        voiceName: voiceConfig.voiceName,
+        speed: voiceConfig.speed,
+      });
+
       // Crear contexto de audio si no existe
       if (!this.audioContext) {
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        console.log('✅ VoiceAgent: AudioContext creado');
+      }
+
+      // Reanudar contexto si está suspendido (requerido por navegadores modernos)
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+        console.log('✅ VoiceAgent: AudioContext reanudado');
       }
 
       const audioContext = this.audioContext;
 
       // Decodificar audio base64
       const audioData = this.decodeBase64(base64Audio);
+      console.log('✅ VoiceAgent: Audio base64 decodificado', {
+        dataLength: audioData.length,
+        expectedSamples: audioData.length / 2, // 16-bit = 2 bytes por muestra
+      });
+      
       const buffer = await this.decodeAudioData(audioData, audioContext);
 
       // Crear fuente de audio
@@ -246,9 +301,16 @@ export class VoiceAgent {
       // Reproducir
       source.start();
       this.audioSource = source;
+      
+      console.log('✅ VoiceAgent: Audio expresivo iniciado', {
+        duration: `${(buffer.duration).toFixed(2)}s`,
+        sampleRate: buffer.sampleRate,
+        channels: buffer.numberOfChannels,
+        playbackRate: speed,
+      });
 
     } catch (error) {
-      console.error('Error playing audio:', error);
+      console.error('❌ VoiceAgent: Error reproduciendo audio expresivo:', error);
       this.isSpeaking = false;
       this.isPaused = false;
       throw error;
@@ -338,21 +400,50 @@ export class VoiceAgent {
 
   /**
    * Decodifica datos de audio para AudioContext
+   * Gemini 2.5 Flash devuelve audio en formato PCM lineal (16-bit, mono, 24kHz)
    */
   private async decodeAudioData(
     data: Uint8Array,
     ctx: AudioContext
   ): Promise<AudioBuffer> {
-    const dataInt16 = new Int16Array(data.buffer);
-    const frameCount = dataInt16.length;
-    const buffer = ctx.createBuffer(1, frameCount, 24000);
-    const channelData = buffer.getChannelData(0);
-    
-    for (let i = 0; i < frameCount; i++) {
-      channelData[i] = dataInt16[i] / 32768.0;
+    try {
+      // Gemini TTS devuelve audio PCM lineal de 16-bit
+      // Formato: PCM 16-bit, mono, 24kHz (según documentación de Gemini)
+      const sampleRate = 24000; // Tasa de muestreo estándar de Gemini TTS
+      
+      // Convertir bytes a Int16Array (little-endian)
+      const int16Array = new Int16Array(data.length / 2);
+      for (let i = 0; i < int16Array.length; i++) {
+        const byte1 = data[i * 2];
+        const byte2 = data[i * 2 + 1];
+        // Little-endian: byte bajo primero, byte alto segundo
+        int16Array[i] = (byte2 << 8) | byte1;
+        // Convertir de signed 16-bit a float32 (-32768 a 32767 -> -1.0 a 1.0)
+        if (int16Array[i] >= 32768) {
+          int16Array[i] -= 65536; // Convertir unsigned a signed
+        }
+      }
+      
+      const frameCount = int16Array.length;
+      const buffer = ctx.createBuffer(1, frameCount, sampleRate);
+      const channelData = buffer.getChannelData(0);
+      
+      // Normalizar a rango [-1.0, 1.0]
+      for (let i = 0; i < frameCount; i++) {
+        channelData[i] = int16Array[i] / 32768.0;
+      }
+      
+      console.log('✅ VoiceAgent: Audio decodificado correctamente', {
+        samples: frameCount,
+        duration: `${(frameCount / sampleRate).toFixed(2)}s`,
+        sampleRate,
+      });
+      
+      return buffer;
+    } catch (error) {
+      console.error('❌ VoiceAgent: Error decodificando audio:', error);
+      throw new Error(`Error decodificando audio: ${error instanceof Error ? error.message : String(error)}`);
     }
-    
-    return buffer;
   }
 
   /**

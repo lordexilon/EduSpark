@@ -40,26 +40,63 @@ export class ContextAgent {
     courseId: string
   ): Promise<Conversation> {
     try {
-      // Crear nueva conversación en Supabase
-      const response = await saveConversation(studentId, courseId, {
+      console.log('💬 ContextAgent.initConversation - Iniciando...', { studentId, courseId });
+      
+      // Crear nueva conversación en Supabase con timeout
+      const savePromise = saveConversation(studentId, courseId, {
         agentSystem: 'multi-agent-tutor',
         version: '1.0'
       });
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout creando conversación')), 5000)
+      );
+      
+      const response = await Promise.race([savePromise, timeoutPromise]) as any;
 
       if (!response.success || !response.data) {
-        throw new Error(response.error || 'Failed to create conversation');
+        console.warn('⚠️ No se pudo crear conversación, usando conversación temporal');
+        // Crear conversación temporal si falla
+        const tempConversation: Conversation = {
+          id: `temp-${Date.now()}`,
+          studentId,
+          courseId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          metadata: { agentSystem: 'multi-agent-tutor', version: '1.0', temp: true }
+        };
+        this.currentConversation = tempConversation;
+        return tempConversation;
       }
 
+      console.log('✅ Conversación creada:', response.data.id);
       this.currentConversation = response.data;
 
-      // Inicializar memoria para esta conversación
-      await memoryService.initializeConversation(response.data.id);
+      // Inicializar memoria para esta conversación (no crítico)
+      try {
+        await Promise.race([
+          memoryService.initializeConversation(response.data.id),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000))
+        ]);
+      } catch (memoryError) {
+        console.warn('⚠️ Error inicializando memoria (continuando):', memoryError);
+      }
 
       return response.data;
 
     } catch (error) {
-      console.error('Error initializing conversation:', error);
-      throw error;
+      console.error('❌ Error initializing conversation:', error);
+      // Crear conversación temporal para continuar
+      const tempConversation: Conversation = {
+        id: `temp-${Date.now()}`,
+        studentId,
+        courseId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: { agentSystem: 'multi-agent-tutor', version: '1.0', temp: true, error: String(error) }
+      };
+      this.currentConversation = tempConversation;
+      return tempConversation;
     }
   }
 

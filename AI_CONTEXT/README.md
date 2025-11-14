@@ -1,45 +1,109 @@
-# README: Asistente de IA (RAG) en EduSpark
+# 📚 AI_CONTEXT - Documentación Principal
 
-## 1. Resumen Ejecutivo
-Este documento define el alcance para el desarrollo de un Producto Mínimo Viable (MVP) que integrará un Asistente de IA Interactivo dentro de la plataforma EduSpark. El objetivo es evolucionar más allá del frontend simulado, implementando una funcionalidad de backend real que permita a los estudiantes "chatear" con los materiales de un curso específico.
+**Última actualización:** Enero 2025  
+**Estado del Proyecto:** ✅ Sistema Funcional con Evaluación, Mensajería y Tutor AI Mejorado
 
-Utilizaremos una arquitectura basada en RAG (Retrieval-Augmented Generation) con un sistema multi-agente local (A2A) y potenciada por la API de Google Gemini, para proporcionar respuestas precisas y basadas en el contenido oficial del curso.
+---
 
-**⚠️ NOTA IMPORTANTE**: El sistema A2A actual es una implementación **local** en el frontend, no un coordinador externo distribuido.
+## 🎯 Documentos Esenciales (Root)
 
-## 2. Objetivos del MVP
-- **Validar la Arquitectura Técnica**: Probar la viabilidad del sistema multi-agente local (A2A) conectando el frontend de React, una base de datos vectorial y la API de Gemini.
-- **Proporcionar Valor al Usuario Final**: Entregar una primera versión funcional del Asistente de IA que resuelva dudas de los estudiantes basándose en un conjunto de documentos de un curso de prueba.
-- **Establecer una Base Escalable**: Crear los cimientos (sistema multi-agente local, esquema de base de datos) que puedan ser reutilizados y expandidos para todos los cursos de la plataforma en el futuro.
+### 📊 Schema y Estructura
+- **`schema_actual.md`** - Schema completo de base de datos (35 tablas) ⭐ ACTUALIZADO
+- **`REORGANIZACION_FLUJO_PEDAGOGICO.md`** - Estructura pedagógica
+- **`flujos_criticos.md`** - Flujos críticos del sistema
 
-## 3. Estructura de este Directorio
+### 📈 Estado del Sistema
+- **`ESTADO_PROYECTO_DICIEMBRE_2024.md`** - Estado general del proyecto ⭐ ACTUALIZADO
+- **`ESTADO_INTEGRACION_COMPLETA.md`** - Estado de integración
+- **`MIGRACION_COMPLETADA_EXITOSAMENTE.md`** - Migración course_modules → course_units
+- **`RESUMEN_SISTEMA_EVALUACION.md`** - 📊 Sistema completo de evaluación ⭐ ACTUALIZADO
 
-Este directorio contiene la documentación central para el desarrollo e integración de la funcionalidad de IA en EduSpark.
+### 🎓 Implementaciones
+- **`IMPLEMENTACION_BREADCRUMBS.md`** - Sistema de navegación
+- **`FLUJO_EVALUACION_MEJORADO.md`** - 📊 **NUEVO** - Flujo de evaluación para estudiantes
+- **`PLAN_IMPLEMENTACION_QUIZZES.md`** - 📊 **NUEVO** - Plan completo de quizzes
+- **`MEJORAS_SISTEMA_MENSAJERIA_TUTOR.md`** - 💬🤖 **NUEVO** - Sistema de mensajería y tutor AI mejorados
 
-- **`agent.md`**: Define las reglas, el alcance y las directrices que el asistente de desarrollo de IA debe seguir. Actúa como la "constitución" del proyecto.
-- **`project_status.md`**: Es nuestro documento de control. Proporciona un resumen en tiempo real del progreso del proyecto, detallando las fases y tareas completadas y pendientes.
-- **`flujos_criticos.md`**: Describe la arquitectura del sistema, incluyendo el flujo del Tutor Virtual con sistema multi-agente local.
-- (Deprecado) `workflow_ingesta.md` y `workflow_consulta.md`: Referencias históricas del diseño con n8n.
-- **`nomenclatura_standar.md`**: Establece las convenciones de nombres para componentes, servicios, tablas y workflows para mantener la consistencia del código.
-- **`schema_actual.md`**: Detalla el esquema de la base de datos en Supabase, incluyendo tablas, columnas y funciones necesarias para el almacenamiento y búsqueda de vectores.
+---
 
-## 4. Notas Operativas Actualizadas
-- Puerto de desarrollo del frontend: **5173** (Vite)
-- Backend directo con **Supabase** (sin servidor Express intermedio)
-- Roles del sistema: **admin**, **teacher**, **student** — actualizados y operativos
+## 📁 Subfolders
 
-## 5. A2A local y anclaje por módulo (NUEVO)
-- El Tutor Virtual A2A se ancla a curso y módulo mediante parámetros de URL:
-  - Tutor: `/teacher/tutor?courseId=<id>&moduleId=<id>`
-  - Admin: `/admin/modules` (abrir Tutor por módulo)
-  - Docente: `/teacher/courses`
-  - Estudiante: `/my/courses`
-- El contexto incluye `moduleId`; el RAG filtra/prioriza materiales del módulo cuando esté disponible, con fallback a contenido del curso.
+### `/analisis/`
+Analizas y comparaciones:
+- `DIFERENCIA_MODULOS_UNIDADES.md` - Comparativa
+- `RESUMEN_MIGRACION.md` - Resumen migración
 
-## 6. Cambios de esquema relevantes (NUEVO)
-- Tablas agregadas: `course_modules`, `enrollments`.
-- Vistas: `vw_admin_course_overview`, `vw_admin_modules_by_teacher`.
-- Ver detalle en `schema_actual.md`.
+### `/historico/`
+Documentos históricos archivados
 
-## 7. Plan del MVP
-Revisa la carpeta `MVP_PLAN/` en la raíz del repositorio para alcance, datos, flujos y métricas.
+### `/verificaciones/`
+Verificaciones de integridad y consistencia
+
+### `/planes/`
+Planes de desarrollo y mejoras
+
+### `/mejoras/`
+Propuestas de mejoras futuras
+
+---
+
+## 🎯 Sistema Completo Implementado
+
+### ✅ Tracking de Progreso:
+- `unit_progress` - Progreso por unidad
+- `session_progress` - Progreso por sesión
+- Botón "Entendido ✓" en unidades
+- Cálculo automático de completitud
+
+### ✅ Sistema de Quizzes:
+- `assessments` - Evaluaciones
+- `questions` - Preguntas
+- `assessment_attempts` - Intentos
+- `question_responses` - Respuestas
+- Calificación automática
+
+### ✅ Sistema de Ponderación de Evaluaciones ⭐ NUEVO:
+- `course_grading_weights` - Configuración de ponderación por curso
+- Ponderación configurable: Quizzes (30%), Exámenes Parciales (20% cada uno), Final (30%)
+- Cálculo automático de notas finales
+- Interfaz de configuración para docentes/coordinadores
+
+### ✅ UX Implementadas:
+- Breadcrumbs de navegación
+- Filtros avanzados
+- Indicadores de progreso
+
+---
+
+## 📊 Estadísticas del Proyecto
+
+**Tablas:** 37 (28 originales + 4 de quizzes + 1 de ponderación + 2 de tracking + 2 de mensajería)  
+**Políticas RLS:** 80+  
+**Funciones:** 132+  
+**Triggers:** 10  
+
+---
+
+## 🚀 Scripts SQL Importantes
+
+| Script | Descripción |
+|--------|-------------|
+| `97_enable_realtime_messaging.sql` | ✅ Realtime para mensajería ⭐ NUEVO |
+| `96_create_messaging_system.sql` | ✅ Sistema de mensajería ⭐ NUEVO |
+| `94_course_grading_weights.sql` | ✅ Ponderación de evaluaciones |
+| `87_create_unit_session_progress.sql` | ✅ Tracking de progreso |
+| `88_create_quizzes_assessments.sql` | ✅ Quizzes y trivias |
+| `82_add_student_content_rls.sql` | ✅ RLS para estudiantes |
+| `81_migracion_SIMPLE.sql` | ✅ Migración de módulos |
+
+---
+
+## 📝 Guías Rápidas
+
+**Ver:** `INSTRUCCIONES_SISTEMA_TRACKING.md`  
+**Leer:** `RESUMEN_SISTEMA_EVALUACION.md`  
+**Plan:** `PLAN_IMPLEMENTACION_QUIZZES.md`
+
+---
+
+**🎉 Proyecto en estado avanzado - Listo para producción**

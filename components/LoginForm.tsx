@@ -60,8 +60,48 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              {error}
+            <div className={`border-l-4 px-4 py-3 rounded-lg shadow-sm ${
+              error.includes('conexión') || error.includes('servidor') 
+                ? 'bg-yellow-50 border-yellow-500 text-yellow-800'
+                : error.includes('deshabilitada') || error.includes('prohibido')
+                ? 'bg-orange-50 border-orange-500 text-orange-800'
+                : 'bg-red-50 border-red-500 text-red-700'
+            }`}>
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  {error.includes('conexión') || error.includes('servidor') ? (
+                    <svg className="h-5 w-5 text-yellow-600 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  ) : error.includes('deshabilitada') || error.includes('prohibido') ? (
+                    <svg className="h-5 w-5 text-orange-600 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg className="h-5 w-5 text-red-400 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </div>
+                <div className="ml-3 flex-1">
+                  <p className="text-sm font-medium">{error}</p>
+                  {(error.includes('email no ha sido confirmado') || error.includes('deshabilitada')) && (
+                    <p className="mt-2 text-xs opacity-80">
+                      Si necesitas ayuda, contacta al administrador.
+                    </p>
+                  )}
+                  {error.includes('conexión') && (
+                    <p className="mt-2 text-xs opacity-80">
+                      Verifica tu conexión a internet y vuelve a intentar.
+                    </p>
+                  )}
+                  {error.includes('Demasiados intentos') && (
+                    <p className="mt-2 text-xs opacity-80">
+                      Por seguridad, espera unos minutos antes de volver a intentar.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 

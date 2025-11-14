@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth.tsx';
 import Layout from './components/Layout.tsx';
 import TeacherLayout from './components/TeacherLayout.tsx';
@@ -12,28 +12,65 @@ import SessionDetailPage from './pages/SessionDetailPage.tsx';
 import AddEditSessionPage from './pages/AddEditSessionPage.tsx';
 import AssignmentsPage from './pages/AssignmentsPage.tsx';
 import GradesPage from './pages/GradesPage.tsx';
+import TeacherGradesPage from './pages/TeacherGradesPage.tsx';
+import CourseGradingWeightsPage from './pages/CourseGradingWeightsPage.tsx';
 import ForumsPage from './pages/ForumsPage.tsx';
 import ProfilePage from './pages/ProfilePage.tsx';
 import AdminModulesPage from './pages/AdminModulesPage.tsx';
 import MyCoursesPage from './pages/MyCoursesPage.tsx';
+import { CourseViewPage } from './pages/CourseViewPage.tsx';
 // Teacher pages
 import TeacherDashboardPage from './pages/TeacherDashboardPage.tsx';
+// Fase 1 - Gestión Académica
+import CareersPage from './pages/CareersPage.tsx';
+import SubjectsPage from './pages/SubjectsPage.tsx';
+import SettingsPage from './pages/SettingsPage.tsx';
 import { TeacherCoursesPage } from './pages/TeacherCoursesPage.tsx';
 import { TeacherAssignmentsPage } from './pages/TeacherAssignmentsPage.tsx';
+import { CreateEditAssignmentPage } from './pages/CreateEditAssignmentPage.tsx';
+import AssignmentDetailPage from './pages/AssignmentDetailPage.tsx';
+import AssignmentSubmissionsPage from './pages/AssignmentSubmissionsPage.tsx';
 import { CourseEditorPage } from './pages/CourseEditorPage.tsx';
 import CreateCoursePage from './pages/CreateCoursePage.tsx';
 // Landing page
 import LandingPage from './pages/LandingPage.tsx';
+import PrivacyPage from './pages/PrivacyPage.tsx';
+import TermsPage from './pages/TermsPage.tsx';
 // Tutor Virtual
 import TutorVirtualPage from './pages/TutorVirtualPage.tsx';
 import CourseModulesPage from './pages/CourseModulesPage.tsx';
 import ModuleEditorPage from './pages/ModuleEditorPage.tsx';
+import StudentsManagementPage from './pages/StudentsManagementPage.tsx';
+import UsersManagementPage from './pages/UsersManagementPage.tsx';
+import AdminRoute from './components/AdminRoute.tsx';
+import QuizBuilderPage from './pages/QuizBuilderPage.tsx';
+import TakeQuizPage from './pages/TakeQuizPage.tsx';
+import QuizResultsPage from './pages/QuizResultsPage.tsx';
+import QuizAnalyticsPage from './pages/QuizAnalyticsPage.tsx';
+import { TeacherQuizzesPage } from './pages/TeacherQuizzesPage.tsx';
+import GoogleOAuthCallbackPage from './pages/GoogleOAuthCallbackPage.tsx';
+import MessagingPage from './pages/MessagingPage.tsx';
+import ForumTopicPage from './pages/ForumTopicPage.tsx';
+import AnnouncementsPage from './pages/AnnouncementsPage.tsx';
+import CreateAnnouncementPage from './pages/CreateAnnouncementPage.tsx';
+import AnnouncementStatsPage from './pages/AnnouncementStatsPage.tsx';
 
 // This component handles the conditional rendering of routes based on authentication.
 const AppRoutes: React.FC = () => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
-  console.log('🎨 AppRoutes render:', { user: !!user, loading });
+  // CRÍTICO: Usar window.location para obtener la URL real (no la de React Router)
+  // Esto es necesario porque cuando Google redirige, React Router puede no haber actualizado aún
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : location.pathname;
+
+  console.log('🎨 AppRoutes render:', { user: !!user, loading, pathname: location.pathname, windowPath: currentPath });
+
+  // CRÍTICO: Si estamos en la ruta del callback OAuth, renderizar directamente sin layout
+  if (currentPath === '/auth/google/callback') {
+    console.log('🔗 AppRoutes: Detectada ruta OAuth callback, renderizando directamente');
+    return <GoogleOAuthCallbackPage />;
+  }
 
   // Show loading spinner while checking authentication
   if (loading) {
@@ -55,6 +92,9 @@ const AppRoutes: React.FC = () => {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/auth/google/callback" element={<GoogleOAuthCallbackPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
@@ -67,30 +107,57 @@ const AppRoutes: React.FC = () => {
   if (isTeacher) {
     console.log('👨‍🏫 AppRoutes: Mostrando rutas de teacher');
     return (
-      <TeacherLayout>
-        <Routes>
-          <Route path="/" element={<Navigate to="/teacher/dashboard" replace />} />
-          <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} />
-          <Route path="/teacher/courses" element={<TeacherCoursesPage />} />
-          <Route path="/teacher/courses/new" element={<CreateCoursePage />} />
-          <Route path="/teacher/courses/:id" element={<CourseEditorPage />} />
-          <Route path="/teacher/courses/:id/edit" element={<CreateCoursePage />} />
-          <Route path="/teacher/courses/:id/modules" element={<CourseModulesPage />} />
-          <Route path="/teacher/courses/:courseId/modules/:moduleId" element={<ModuleEditorPage />} />
-          <Route path="/teacher/assignments" element={<TeacherAssignmentsPage />} />
-          <Route path="/teacher/grades" element={<GradesPage />} />
-          <Route path="/teacher/forums" element={<ForumsPage />} />
-          <Route path="/teacher/tutor" element={<TutorVirtualPage />} />
-          <Route path="/teacher/students" element={<div>Estudiantes - En desarrollo</div>} />
-          {/* Admin routes */}
-          <Route path="/admin/modules" element={<AdminModulesPage />} />
-          <Route path="/admin/all-courses" element={<div>Todos los Cursos - En desarrollo</div>} />
-          <Route path="/admin/users" element={<div>Gestión de Usuarios - En desarrollo</div>} />
-          <Route path="/admin/settings" element={<div>Configuración del Sistema - En desarrollo</div>} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="*" element={<Navigate to="/teacher/dashboard" replace />} />
-        </Routes>
-      </TeacherLayout>
+      <Routes>
+        {/* OAuth callback sin layout para evitar interferencias - debe estar primero */}
+        <Route path="/auth/google/callback" element={<GoogleOAuthCallbackPage />} />
+        {/* Todas las demás rutas dentro del layout */}
+        <Route path="/*" element={
+          <TeacherLayout>
+            <Routes>
+              <Route path="/" element={<Navigate to="/teacher/dashboard" replace />} />
+              <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} />
+              <Route path="/teacher/courses" element={<TeacherCoursesPage />} />
+              <Route path="/teacher/courses/new" element={<CreateCoursePage />} />
+              <Route path="/teacher/courses/:id" element={<CourseEditorPage />} />
+              <Route path="/teacher/courses/:id/edit" element={<CreateCoursePage />} />
+              <Route path="/teacher/courses/:id/modules" element={<CourseModulesPage />} />
+              <Route path="/teacher/courses/:courseId/modules/:moduleId" element={<ModuleEditorPage />} />
+              <Route path="/teacher/courses/:courseId/grading-weights" element={<CourseGradingWeightsPage />} />
+              <Route path="/teacher/quizzes" element={<TeacherQuizzesPage />} />
+              <Route path="/teacher/quizzes/new" element={<QuizBuilderPage />} />
+              <Route path="/teacher/quizzes/edit/:quizId" element={<QuizBuilderPage />} />
+              <Route path="/teacher/quizzes/:quizId/analytics" element={<QuizAnalyticsPage />} />
+              <Route path="/quiz/:quizId/results/:attemptId" element={<QuizResultsPage />} />
+              <Route path="/teacher/announcements" element={<AnnouncementsPage />} />
+              <Route path="/teacher/announcements/new" element={<CreateAnnouncementPage />} />
+              <Route path="/teacher/announcements/stats" element={<AnnouncementStatsPage />} />
+              <Route path="/teacher/announcements/:id/edit" element={<CreateAnnouncementPage />} />
+              <Route path="/teacher/assignments" element={<TeacherAssignmentsPage />} />
+              <Route path="/teacher/assignments/new" element={<CreateEditAssignmentPage />} />
+              <Route path="/teacher/assignments/:id/edit" element={<CreateEditAssignmentPage />} />
+              <Route path="/teacher/assignments/:id/submissions" element={<AssignmentSubmissionsPage />} />
+              <Route path="/teacher/assignments/:id" element={<AssignmentDetailPage />} />
+              <Route path="/teacher/grades" element={<TeacherGradesPage />} />
+              <Route path="/teacher/forums" element={<ForumsPage />} />
+              <Route path="/forum/:topicId" element={<ForumTopicPage />} />
+              <Route path="/teacher/tutor" element={<TutorVirtualPage />} />
+              <Route path="/teacher/students" element={<StudentsManagementPage />} />
+              <Route path="/teacher/messages" element={<MessagingPage />} />
+              {/* Admin routes - Solo accesibles para admin y coordinator */}
+              <Route path="/admin/modules" element={<AdminRoute><AdminModulesPage /></AdminRoute>} />
+              <Route path="/admin/all-courses" element={<AdminRoute><div>Todos los Cursos - En desarrollo</div></AdminRoute>} />
+              <Route path="/admin/users" element={<AdminRoute><UsersManagementPage /></AdminRoute>} />
+              <Route path="/admin/settings" element={<AdminRoute><SettingsPage /></AdminRoute>} />
+              <Route path="/admin/settings/system" element={<AdminRoute><div>Configuración del Sistema - En desarrollo</div></AdminRoute>} />
+              {/* Fase 1 - Gestión Académica (Admin/Coordinator) */}
+              <Route path="/admin/careers" element={<AdminRoute><CareersPage /></AdminRoute>} />
+              <Route path="/admin/subjects" element={<AdminRoute><SubjectsPage /></AdminRoute>} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="*" element={<Navigate to="/teacher/dashboard" replace />} />
+            </Routes>
+          </TeacherLayout>
+        } />
+      </Routes>
     );
   }
 
@@ -101,14 +168,20 @@ const AppRoutes: React.FC = () => {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/my/courses" element={<MyCoursesPage />} />
+        <Route path="/courses/:id" element={<CourseViewPage />} />
         <Route path="/sessions" element={<SessionsListPage />} />
         <Route path="/session/nueva" element={<AddEditSessionPage />} />
         <Route path="/session/editar/:sessionId" element={<AddEditSessionPage />} />
         <Route path="/session/:sessionId" element={<SessionDetailPage />} />
         <Route path="/assignments" element={<AssignmentsPage />} />
+        <Route path="/quiz/:quizId" element={<TakeQuizPage />} />
+        <Route path="/quiz/:quizId/results/:attemptId" element={<QuizResultsPage />} />
+        <Route path="/announcements" element={<AnnouncementsPage />} />
         <Route path="/grades" element={<GradesPage />} />
         <Route path="/forums" element={<ForumsPage />} />
+        <Route path="/forum/:topicId" element={<ForumTopicPage />} />
         <Route path="/tutor" element={<TutorVirtualPage />} />
+        <Route path="/messages" element={<MessagingPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

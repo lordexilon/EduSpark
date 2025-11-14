@@ -11,6 +11,22 @@ Start-Sleep -Seconds 2
 # Eliminar directorios de caché
 Write-Host "`n🗑️ Eliminando directorios de caché..." -ForegroundColor Yellow
 
+# Primero, eliminar directorios temporales específicos dentro de .vite-cache
+if (Test-Path ".vite-cache") {
+    Write-Host "  🔍 Buscando directorios temporales en .vite-cache..." -ForegroundColor Gray
+    $tempDirs = Get-ChildItem -Path ".vite-cache" -Directory -Filter "deps_temp_*" -ErrorAction SilentlyContinue
+    foreach ($tempDir in $tempDirs) {
+        try {
+            Remove-Item -Path $tempDir.FullName -Recurse -Force -ErrorAction Stop
+            Write-Host "  ✅ Eliminado directorio temporal: $($tempDir.Name)" -ForegroundColor Green
+        } catch {
+            Write-Host "  ⚠️  No se pudo eliminar $($tempDir.Name), intentando de nuevo después..." -ForegroundColor Yellow
+            Start-Sleep -Seconds 1
+            Remove-Item -Path $tempDir.FullName -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 $directories = @(
     "node_modules\.vite",
     ".vite-cache",
@@ -24,7 +40,14 @@ foreach ($dir in $directories) {
             Remove-Item -Path $dir -Recurse -Force -ErrorAction Stop
             Write-Host "  ✅ Eliminado: $dir" -ForegroundColor Green
         } catch {
-            Write-Host "  ❌ Error eliminando $dir : $_" -ForegroundColor Red
+            Write-Host "  ⚠️  Error eliminando $dir, esperando y reintentando..." -ForegroundColor Yellow
+            Start-Sleep -Seconds 2
+            Remove-Item -Path $dir -Recurse -Force -ErrorAction SilentlyContinue
+            if (-not (Test-Path $dir)) {
+                Write-Host "  ✅ Eliminado en segundo intento: $dir" -ForegroundColor Green
+            } else {
+                Write-Host "  ❌ No se pudo eliminar: $dir" -ForegroundColor Red
+            }
         }
     } else {
         Write-Host "  ⚪ No existe: $dir" -ForegroundColor Gray

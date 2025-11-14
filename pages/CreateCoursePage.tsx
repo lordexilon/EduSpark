@@ -1,20 +1,115 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { courseService } from '../services/teacherCourses';
+import { courseService, Course } from '../services/teacherCourses';
+import { careerService, subjectService, Career, Subject } from '../services/academicService';
 import Card from '../components/Card';
 import Button from '../components/Button';
 
 const CreateCoursePage: React.FC = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id?: string }>();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const isEditing = Boolean(id);
   const [loading, setLoading] = useState(false);
+  const [loadingCourse, setLoadingCourse] = useState(isEditing);
+  const [careers, setCareers] = useState<Career[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
   const [formData, setFormData] = useState({
     title: '',
     code: '',
     description: '',
-    status: 'draft' as 'draft' | 'active'
+    status: 'draft' as 'draft' | 'active',
+    // Campos académicos (opcionales)
+    career_id: '',
+    subject_id: '',
+    academic_period: '',
+    start_date: '',
+    end_date: '',
+    max_students: ''
   });
+
+  useEffect(() => {
+    loadAcademicData();
+    if (isEditing && id) {
+      loadCourse(parseInt(id));
+    }
+    
+    // Si viene desde SubjectsPage con un subjectId, precargarlo
+    const subjectIdParam = searchParams.get('subjectId');
+    if (subjectIdParam && !isEditing) {
+      const subjectId = parseInt(subjectIdParam);
+      // Cargar la materia para obtener su carrera
+      subjectService.getSubject(subjectId).then(subject => {
+        if (subject) {
+          setFormData(prev => ({
+            ...prev,
+            subject_id: subjectId.toString(),
+            career_id: subject.career_id?.toString() || ''
+          }));
+        }
+      }).catch(err => console.error('Error loading subject:', err));
+    }
+  }, [id, isEditing, searchParams]);
+
+  const loadAcademicData = async () => {
+    try {
+      const [careersData, subjectsData] = await Promise.all([
+        careerService.getActiveCareers(),
+        subjectService.getAllSubjects()
+      ]);
+      setCareers(careersData);
+      setSubjects(subjectsData);
+    } catch (error) {
+      console.error('Error loading academic data:', error);
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  const loadCourse = async (courseId: number) => {
+    try {
+      setLoadingCourse(true);
+      const course = await courseService.getCourse(courseId);
+      if (course) {
+        setFormData({
+          title: course.title,
+          code: course.code || '',
+          description: course.description || '',
+          status: course.status,
+          career_id: '',
+          subject_id: course.subject_id?.toString() || '',
+          academic_period: course.academic_period || '',
+          start_date: course.start_date || '',
+          end_date: course.end_date || '',
+          max_students: course.max_students?.toString() || ''
+        });
+
+        // Cargar carrera basada en la materia
+        if (course.subject_id) {
+          try {
+            const subject = await subjectService.getSubject(course.subject_id);
+            if (subject?.career_id) {
+              setFormData(prev => ({ ...prev, career_id: subject.career_id.toString() }));
+            }
+          } catch (err) {
+            console.error('Error loading subject:', err);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading course:', error);
+      alert('Error al cargar el curso.');
+    } finally {
+      setLoadingCourse(false);
+    }
+  };
+
+  const filteredSubjects = formData.career_id
+    ? subjects.filter(s => s.career_id === parseInt(formData.career_id))
+    : [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,19 +118,31 @@ const CreateCoursePage: React.FC = () => {
     
     try {
       setLoading(true);
-      const newCourse = await courseService.createCourse({
+      
+      const courseData = {
         title: formData.title,
         code: formData.code || undefined,
         description: formData.description || undefined,
         teacher_id: user.id,
-        status: formData.status
-      });
-      
-      // Redirigir al editor del curso recién creado
-      navigate(`/teacher/courses/${newCourse.id}`);
+        status: formData.status,
+        // Campos académicos (opcionales)
+        subject_id: formData.subject_id ? parseInt(formData.subject_id) : undefined,
+        academic_period: formData.academic_period || undefined,
+        start_date: formData.start_date || undefined,
+        end_date: formData.end_date || undefined,
+        max_students: formData.max_students ? parseInt(formData.max_students) : undefined
+      };
+
+      if (isEditing && id) {
+        await courseService.updateCourse(parseInt(id), courseData);
+        navigate(`/teacher/courses/${id}`);
+      } else {
+        const newCourse = await courseService.createCourse(courseData);
+        navigate(`/teacher/courses/${newCourse.id}`);
+      }
     } catch (error) {
-      console.error('Error creating course:', error);
-      alert('Error al crear el curso. Por favor, intenta de nuevo.');
+      console.error('Error saving course:', error);
+      alert(isEditing ? 'Error al actualizar el curso.' : 'Error al crear el curso. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -49,11 +156,23 @@ const CreateCoursePage: React.FC = () => {
     }));
   };
 
+  if (loadingCourse) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-text-dark">Crear Nuevo Curso</h1>
-        <p className="text-text-light">Completa la información básica para crear tu curso</p>
+        <h1 className="text-2xl font-bold text-text-dark">
+          {isEditing ? 'Editar Curso' : 'Crear Nuevo Curso'}
+        </h1>
+        <p className="text-text-light">
+          {isEditing ? 'Modifica la información del curso' : 'Completa la información básica para crear tu curso'}
+        </p>
       </div>
 
       <Card className="p-6">
@@ -124,6 +243,123 @@ const CreateCoursePage: React.FC = () => {
             </p>
           </div>
 
+          {/* Sección de Información Académica (Opcional) */}
+          <div className="pt-6 border-t border-border">
+            <h3 className="text-lg font-semibold text-text-dark mb-4">Información Académica (Opcional)</h3>
+            <p className="text-xs text-text-light mb-4">
+              Asocia este curso con una materia para integrarlo con la estructura académica
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="career_id" className="block text-sm font-medium text-text-dark mb-2">
+                  Carrera
+                </label>
+                <select
+                  id="career_id"
+                  name="career_id"
+                  value={formData.career_id}
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, career_id: e.target.value, subject_id: '' }));
+                  }}
+                  className="input-field"
+                >
+                  <option value="">Seleccionar carrera (opcional)</option>
+                  {careers.map(career => (
+                    <option key={career.id} value={career.id}>{career.name} ({career.code})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="subject_id" className="block text-sm font-medium text-text-dark mb-2">
+                  Materia
+                </label>
+                <select
+                  id="subject_id"
+                  name="subject_id"
+                  value={formData.subject_id}
+                  onChange={handleChange}
+                  className="input-field"
+                  disabled={!formData.career_id || filteredSubjects.length === 0}
+                >
+                  <option value="">
+                    {!formData.career_id 
+                      ? 'Primero selecciona una carrera' 
+                      : filteredSubjects.length === 0 
+                        ? 'No hay materias disponibles' 
+                        : 'Seleccionar materia (opcional)'}
+                  </option>
+                  {filteredSubjects.map(subject => (
+                    <option key={subject.id} value={subject.id}>
+                      {subject.name} ({subject.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="academic_period" className="block text-sm font-medium text-text-dark mb-2">
+                  Período Académico
+                </label>
+                <input
+                  type="text"
+                  id="academic_period"
+                  name="academic_period"
+                  value={formData.academic_period}
+                  onChange={handleChange}
+                  className="input-field"
+                  placeholder="Ej: 2024-1, 2024-2"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="max_students" className="block text-sm font-medium text-text-dark mb-2">
+                  Máximo de Estudiantes
+                </label>
+                <input
+                  type="number"
+                  id="max_students"
+                  name="max_students"
+                  min="1"
+                  value={formData.max_students}
+                  onChange={handleChange}
+                  className="input-field"
+                  placeholder="Sin límite"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="start_date" className="block text-sm font-medium text-text-dark mb-2">
+                  Fecha de Inicio
+                </label>
+                <input
+                  type="date"
+                  id="start_date"
+                  name="start_date"
+                  value={formData.start_date}
+                  onChange={handleChange}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="end_date" className="block text-sm font-medium text-text-dark mb-2">
+                  Fecha de Fin
+                </label>
+                <input
+                  type="date"
+                  id="end_date"
+                  name="end_date"
+                  value={formData.end_date}
+                  onChange={handleChange}
+                  className="input-field"
+                  min={formData.start_date || undefined}
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="flex justify-end space-x-3 pt-6 border-t border-border">
             <Button
               type="button"
@@ -140,10 +376,10 @@ const CreateCoursePage: React.FC = () => {
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Creando...
+                  {isEditing ? 'Guardando...' : 'Creando...'}
                 </>
               ) : (
-                'Crear Curso'
+                isEditing ? 'Guardar Cambios' : 'Crear Curso'
               )}
             </Button>
           </div>

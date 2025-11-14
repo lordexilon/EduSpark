@@ -9,6 +9,45 @@ import { useAuth } from '../hooks/useAuth';
 import Card from '../components/Card';
 import Button from '../components/Button';
 
+// Función helper para procesar HTML y convertir expresiones LaTeX básicas
+const processDescription = (html: string): string => {
+  if (!html) return '';
+  
+  let processed = html;
+  
+  // Primero procesar bloques de matemáticas ($$expresión$$)
+  const blockMarkers: string[] = [];
+  processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, (match, expr) => {
+    const marker = `__MATH_BLOCK_${blockMarkers.length}__`;
+    blockMarkers.push(`<div class="math-block font-mono bg-gray-100 px-2 py-1 rounded my-2 text-sm whitespace-pre-wrap">${expr.trim()}</div>`);
+    return marker;
+  });
+  
+  // Luego procesar expresiones matemáticas inline ($expresión$)
+  const inlineMarkers: string[] = [];
+  processed = processed.replace(/\$([^$\n]+?)\$/g, (match, expr) => {
+    if (!expr.trim()) return match;
+    const marker = `__MATH_INLINE_${inlineMarkers.length}__`;
+    inlineMarkers.push(`<span class="math-inline font-mono bg-gray-100 px-1 py-0.5 rounded text-xs inline-block">${expr.trim()}</span>`);
+    return marker;
+  });
+  
+  // Reemplazar marcadores de bloques
+  blockMarkers.forEach((replacement, index) => {
+    processed = processed.replace(`__MATH_BLOCK_${index}__`, replacement);
+  });
+  
+  // Reemplazar marcadores inline
+  inlineMarkers.forEach((replacement, index) => {
+    processed = processed.replace(`__MATH_INLINE_${index}__`, replacement);
+  });
+  
+  // Convertir saltos de línea a <br />
+  processed = processed.replace(/\n/g, '<br />');
+  
+  return processed;
+};
+
 export const TeacherAssignmentsPage: React.FC = () => {
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -173,10 +212,19 @@ export const TeacherAssignmentsPage: React.FC = () => {
               <Card key={assignment.id}>
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
-                    <div>
+                    <div className="flex-1 pr-4">
                       <h3 className="text-lg font-semibold text-gray-900">{assignment.title}</h3>
                       {assignment.description && (
-                        <p className="text-gray-600 text-sm mt-1 line-clamp-2">{assignment.description}</p>
+                        <div 
+                          className="text-gray-600 text-sm mt-2 prose prose-sm max-w-none line-clamp-3 break-words"
+                          style={{ 
+                            wordBreak: 'break-word',
+                            overflowWrap: 'break-word'
+                          }}
+                          dangerouslySetInnerHTML={{ 
+                            __html: processDescription(assignment.description)
+                          }}
+                        />
                       )}
                     </div>
                     <div className="flex space-x-2">

@@ -194,6 +194,9 @@ export class RAGAgent {
     }
 
     prompt += ` Responde basándote ÚNICAMENTE en el contexto del material del curso. Si no encuentras la información, di: "No encuentro esa información en el material del curso."`;
+    
+    // Instrucción de idioma: responder en el mismo idioma que el usuario
+    prompt += ` IMPORTANTE: Responde siempre en el mismo idioma en que el estudiante te pregunta (español o inglés). Si pregunta en inglés, responde en inglés; si pregunta en español, responde en español.`;
 
     return prompt;
   }

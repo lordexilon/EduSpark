@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase';
 export interface CourseModuleInput {
   course_id: number;
   name: string;
+  title?: string;
+  description?: string;
   order?: number;
   is_active?: boolean;
 }
@@ -18,14 +20,20 @@ export async function listModulesByCourse(courseId: number) {
 }
 
 export async function createModule(input: CourseModuleInput) {
+  const insertData: any = {
+    course_id: input.course_id,
+    name: input.name,
+    order: input.order ?? 0,
+    is_active: input.is_active ?? true,
+  };
+  
+  // Agregar campos opcionales
+  if (input.title) insertData.title = input.title;
+  if (input.description) insertData.description = input.description;
+  
   const { data, error } = await supabase
     .from('course_modules')
-    .insert({
-      course_id: input.course_id,
-      name: input.name,
-      order: input.order ?? 0,
-      is_active: input.is_active ?? true,
-    })
+    .insert(insertData)
     .select('*')
     .single();
   if (error) throw error;

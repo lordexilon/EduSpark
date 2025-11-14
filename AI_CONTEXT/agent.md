@@ -37,9 +37,16 @@ Tu misión principal es desarrollar e integrar un Asistente de IA Interactivo (b
 - **VoiceAgent**: manejo de audio y voz.
 
 ### Frontend (React)
-- **Componente `AsistenteIA.tsx`**: chat con historial de sesión y estados de carga/error.
+- **Componente `TutorVirtualPage.tsx`**: chat con historial de sesión y estados de carga/error.
 - **Hook `useAgentSystem`**: Coordina el sistema multi-agente local.
+- **Hook `useCourseContext`**: Gestiona el contexto del curso.
 - **Servicio de Integración (`agentService.ts`)**: Para futura integración con coordinador A2A externo.
+
+### Integración con Contenido del Curso ⭐ ACTUALIZADO
+- **RAGService**: Carga unidades, sesiones y materiales del curso.
+- **Sistema de Fuentes**: Incluye enlaces contextuales a unidades, sesiones y materiales.
+- **Panel de Contenido**: Muestra y resalta contenido relacionado con las respuestas.
+- **Navegación Contextual**: Permite acceso directo al contenido mencionado.
 
 ---
 

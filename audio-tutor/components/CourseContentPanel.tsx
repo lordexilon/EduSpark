@@ -23,6 +23,8 @@ interface CourseContentPanelProps {
   onClose: () => void;
   filterMaterialId?: string;
   moduleId?: string;
+  highlightId?: string; // ID a resaltar (puede ser material, unidad o sesión)
+  highlightType?: 'material' | 'unit' | 'session'; // Tipo de contenido a resaltar
 }
 
 export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({ 
@@ -30,13 +32,17 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
   isOpen, 
   onClose,
   filterMaterialId,
-  moduleId
+  moduleId,
+  highlightId,
+  highlightType
 }) => {
   const [courseInfo, setCourseInfo] = useState<any>(null);
   const [materials, setMaterials] = useState<CourseMaterial[]>([]);
+  const [units, setUnits] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['info', 'materials']));
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['info', 'units', 'sessions', 'materials']));
 
   useEffect(() => {
     if (!isOpen) return;
@@ -61,40 +67,146 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
       setIsLoading(true);
       setError(null);
 
+      // Intentar cargar el curso - usar maybeSingle para evitar errores si no existe
       const { data: courseData, error: courseError } = await supabase
         .from('courses')
         .select('id, title, description, code, created_at')
         .eq('id', parseInt(courseId, 10))
-        .single();
-      if (courseError) throw new Error(`Error cargando curso: ${courseError.message}`);
+        .maybeSingle();
+      
+      if (courseError) {
+        console.error('Error cargando curso:', courseError);
+        // Si es un error 406 (Not Acceptable), probablemente es RLS
+        if (courseError.code === 'PGRST301' || courseError.message?.includes('406')) {
+          throw new Error(`No tienes permisos para acceder a este curso o el curso no existe (Error: ${courseError.message})`);
+        }
+        throw new Error(`Error cargando curso: ${courseError.message}`);
+      }
+      
+      if (!courseData) {
+        throw new Error(`El curso con ID ${courseId} no existe o no tienes acceso a él`);
+      }
+      
       setCourseInfo(courseData);
 
-      // Cargar materiales SIN filtro de módulo (evita 400 si columna no existe)
-      const { data: mats, error: matsErr } = await supabase
-        .from('course_materials')
-        .select('id, title, content, type, file_url, source_url, created_at')
-        .eq('course_id', parseInt(courseId, 10))
-        .order('created_at', { ascending: true });
-      if (matsErr) throw new Error(`Error cargando materiales: ${matsErr.message}`);
+      const courseIdInt = parseInt(courseId, 10);
 
-      // Filtrar por módulo en memoria sólo si el campo existe en la tabla (no seleccionado aquí)
-      let filtered: any[] = mats || [];
-      if (moduleId) {
-        const mid = parseInt(moduleId, 10);
-        filtered = filtered.filter((m: any) => Number(m.module_id) === mid);
+      // Cargar unidades del curso
+      const { data: unitsData, error: unitsErr } = await supabase
+        .from('course_units')
+        .select('id, number, title, description, created_at')
+        .eq('course_id', courseIdInt)
+        .order('number', { ascending: true });
+      
+      if (unitsErr) {
+        console.warn('Error cargando unidades:', unitsErr);
+        setUnits([]);
+      } else {
+        setUnits(unitsData || []);
       }
 
-      const normalized: CourseMaterial[] = filtered.map((m: any) => ({
-        id: String(m.id),
-        title: m.title,
-        content: m.content || '',
-        type: (m.type || 'text') as CourseMaterial['type'],
-        url: m.file_url || m.source_url || undefined,
-        createdAt: m.created_at || new Date().toISOString()
-      }));
-      setMaterials(normalized);
+      // Cargar sesiones del curso
+      let sessionsQuery = supabase
+        .from('sessions')
+        .select('id, title, description, starts_at, ends_at, unit_id, created_at')
+        .eq('course_id', courseIdInt);
+      
+      if (moduleId) {
+        sessionsQuery = sessionsQuery.eq('unit_id', moduleId);
+      }
+      
+      const { data: sessionsData, error: sessionsErr } = await sessionsQuery
+        .order('starts_at', { ascending: true });
+      
+      if (sessionsErr) {
+        console.warn('Error cargando sesiones:', sessionsErr);
+        setSessions([]);
+      } else {
+        setSessions(sessionsData || []);
+      }
 
-      if (filterMaterialId) {
+      // Cargar materiales de la tabla materials
+      let materialsQuery = supabase
+        .from('materials')
+        .select('id, title, kind, url, metadata, unit_id, session_id, created_at')
+        .eq('course_id', courseIdInt);
+      
+      if (moduleId) {
+        materialsQuery = materialsQuery.eq('unit_id', moduleId);
+      }
+      
+      const { data: materialsFromTable, error: materialsTableErr } = await materialsQuery
+        .order('created_at', { ascending: true });
+      
+      const materialsList: CourseMaterial[] = [];
+      
+      if (!materialsTableErr && materialsFromTable) {
+        materialsList.push(...materialsFromTable.map((m: any) => ({
+          id: String(m.id),
+          title: m.title,
+          content: m.metadata ? JSON.stringify(m.metadata) : '',
+          type: (m.kind === 'video' ? 'video' : m.kind === 'pdf' || m.kind === 'document' ? 'document' : 'text') as CourseMaterial['type'],
+          url: m.url || undefined,
+          metadata: m.metadata,
+          createdAt: m.created_at || new Date().toISOString()
+        })));
+      }
+
+      // Cargar materiales de course_materials
+      let query = supabase
+        .from('course_materials')
+        .select('id, title, content, type, file_url, source_url, module_id, created_at')
+        .eq('course_id', courseIdInt);
+      
+      // Filtrar por módulo si se especifica
+      if (moduleId) {
+        const moduleIdInt = parseInt(String(moduleId), 10);
+        if (!isNaN(moduleIdInt)) {
+          query = query.eq('module_id', moduleIdInt);
+        }
+      }
+      
+      const { data: mats, error: matsErr } = await query.order('created_at', { ascending: true });
+      if (matsErr) {
+        console.warn('Error cargando course_materials:', matsErr);
+      } else if (mats) {
+        materialsList.push(...mats.map((m: any) => ({
+          id: String(m.id),
+          title: m.title,
+          content: m.content || '',
+          type: (m.type || 'text') as CourseMaterial['type'],
+          url: m.file_url || m.source_url || undefined,
+          createdAt: m.created_at || new Date().toISOString()
+        })));
+      }
+
+      setMaterials(materialsList);
+
+      // Resaltar elemento si se especifica
+      if (highlightId) {
+        setTimeout(() => {
+          let elementId = '';
+          if (highlightType === 'unit') {
+            elementId = `unit-${highlightId}`;
+          } else if (highlightType === 'session') {
+            elementId = `session-${highlightId}`;
+          } else {
+            elementId = `mat-${highlightId}`;
+          }
+          const el = document.getElementById(elementId);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Expandir la sección correspondiente
+            if (highlightType === 'unit') {
+              setExpandedSections(prev => new Set([...prev, 'units']));
+            } else if (highlightType === 'session') {
+              setExpandedSections(prev => new Set([...prev, 'sessions']));
+            } else {
+              setExpandedSections(prev => new Set([...prev, 'materials']));
+            }
+          }
+        }, 100);
+      } else if (filterMaterialId) {
         setTimeout(() => {
           const el = document.getElementById(`mat-${filterMaterialId}`);
           el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -130,15 +242,15 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-hidden" onClick={(e)=>e.stopPropagation()}>
-        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-hidden flex flex-col" onClick={(e)=>e.stopPropagation()}>
+        <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg md:text-xl font-semibold text-gray-900">Contenido del Curso</h2>
             <button onClick={onClose} className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100" title="Cerrar" aria-label="Cerrar panel de contenido">✕</button>
           </div>
         </div>
-        {/* Alto fijo para que aparezca la barra interna de scroll */}
-        <div className="px-6 py-4 overflow-y-auto h-[calc(90vh-72px)]">
+        {/* Contenedor con scroll vertical */}
+        <div className="px-6 py-4 overflow-y-auto flex-1 min-h-0">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -166,6 +278,77 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
                   </div>
                 )}
               </div>
+
+              {units.length > 0 && (
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <button onClick={() => toggleSection('units')} className="w-full flex items-center justify-between text-left">
+                    <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2"><IconBookOpen className="w-5 h-5" />Unidades del Curso ({units.length})</h3>
+                    {expandedSections.has('units') ? <IconChevronUp className="w-5 h-5" /> : <IconChevronDown className="w-5 h-5" />}
+                  </button>
+                  {expandedSections.has('units') && (
+                    <div className="mt-4 space-y-3">
+                      {units.map((unit) => (
+                        <div 
+                          key={unit.id} 
+                          id={`unit-${unit.id}`}
+                          className={`bg-white rounded-lg p-4 border ${highlightId === unit.id && highlightType === 'unit' ? 'ring-2 ring-blue-500' : ''}`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="text-blue-600 mt-1"><IconBookOpen className="w-5 h-5" /></div>
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900">Unidad {unit.number}: {unit.title}</h4>
+                              {unit.description && (
+                                <p className="text-gray-600 text-sm mt-1">{unit.description}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {sessions.length > 0 && (
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <button onClick={() => toggleSection('sessions')} className="w-full flex items-center justify-between text-left">
+                    <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2"><IconVideo className="w-5 h-5" />Sesiones del Curso ({sessions.length})</h3>
+                    {expandedSections.has('sessions') ? <IconChevronUp className="w-5 h-5" /> : <IconChevronDown className="w-5 h-5" />}
+                  </button>
+                  {expandedSections.has('sessions') && (
+                    <div className="mt-4 space-y-3">
+                      {sessions.map((session) => {
+                        const unit = units.find(u => u.id === session.unit_id);
+                        return (
+                          <div 
+                            key={session.id} 
+                            id={`session-${session.id}`}
+                            className={`bg-white rounded-lg p-4 border ${highlightId === session.id && highlightType === 'session' ? 'ring-2 ring-blue-500' : ''}`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="text-blue-600 mt-1"><IconVideo className="w-5 h-5" /></div>
+                              <div className="flex-1">
+                                <h4 className="font-medium text-gray-900">{session.title}</h4>
+                                {session.description && (
+                                  <p className="text-gray-600 text-sm mt-1">{session.description}</p>
+                                )}
+                                {unit && (
+                                  <p className="text-xs text-gray-500 mt-1">Unidad: {unit.title}</p>
+                                )}
+                                {session.starts_at && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {new Date(session.starts_at).toLocaleString('es-ES')}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="bg-gray-50 rounded-lg p-4">
                 <button onClick={() => toggleSection('materials')} className="w-full flex items-center justify-between text-left">

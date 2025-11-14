@@ -1,6 +1,7 @@
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { handleCacheErrors } from './scripts/vite-plugin-handle-cache-errors';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
@@ -26,7 +27,10 @@ export default defineConfig(({ mode }) => {
         interval: 1000
       }
     },
-    plugins: [react()],
+    plugins: [
+      react(),
+      handleCacheErrors(), // Maneja errores EPERM en Windows
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
@@ -67,7 +71,27 @@ export default defineConfig(({ mode }) => {
     // Configuración de caché
     cacheDir: '.vite-cache',
     optimizeDeps: {
-      force: false
-    }
+      force: false,
+      // Evitar problemas con directorios temporales en Windows
+      holdUntilCrawlEnd: false,
+      // Incluir dependencias de Tiptap para optimización
+      include: [
+        '@tiptap/react',
+        '@tiptap/starter-kit',
+        '@tiptap/extension-image',
+        '@tiptap/extension-link',
+        '@tiptap/extension-text-style',
+        '@tiptap/extension-color',
+        '@tiptap/extension-text-align',
+        '@tiptap/extension-underline',
+      ],
+      // Retrasar la eliminación de archivos temporales
+      esbuildOptions: {
+        // Configuración adicional de esbuild si es necesario
+      }
+    },
+    // Manejar errores de permisos en Windows de manera más silenciosa
+    clearScreen: false,
+    logLevel: 'warn'
   };
 });

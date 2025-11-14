@@ -39,9 +39,15 @@ interface CourseContent {
   id: string;
   title: string;
   content: string;
-  type: 'chapter' | 'lesson' | 'exercise' | 'material';
+  type: 'course' | 'chapter' | 'lesson' | 'exercise' | 'material' | 'unit' | 'session';
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   topics: string[];
+  // Información adicional para enlaces
+  originalId?: string; // ID original de la tabla (UUID)
+  url?: string; // URL del material si existe
+  unitId?: string; // ID de la unidad asociada
+  sessionId?: string; // ID de la sesión asociada
+  courseId?: string; // ID del curso
 }
 
 // =====================================================
@@ -63,6 +69,13 @@ export class RAGService {
     context: ConversationContext
   ): Promise<SupabaseResponse<RAGResponse>> {
     try {
+      console.log('📚 RAGService.processQueryWithContext - Context recibido:', {
+        courseId: context.courseId,
+        moduleId: context.moduleId,
+        studentId: context.studentId,
+        queryLength: query.length
+      });
+      
       // 1. Obtener contenido relevante del curso
       const relevantContent = await this.getRelevantContent(
         query, 
@@ -70,6 +83,11 @@ export class RAGService {
         context.studentProfile,
         context.moduleId
       );
+      
+      console.log('📦 RAGService - Contenido relevante encontrado:', {
+        count: relevantContent.length,
+        titles: relevantContent.map(c => c.title)
+      });
 
       // 2. Construir prompt personalizado
       const personalizedPrompt = this.buildPersonalizedPrompt(
@@ -135,30 +153,111 @@ export class RAGService {
 
       console.log('RAGService - Course data loaded:', courseData);
 
-      // Buscar en materiales adicionales (si existen)
+      // Cargar unidades del curso
+      let unitsData: any[] = [];
+      try {
+        const { data: units, error: unitsError } = await supabase
+          .from('course_units')
+          .select('id, number, title, description')
+          .eq('course_id', courseIdInt)
+          .order('number', { ascending: true });
+        
+        if (unitsError) {
+          console.warn('RAGService - Error cargando unidades:', unitsError);
+        } else {
+          unitsData = units || [];
+          console.log('RAGService - Unidades cargadas:', unitsData.length);
+        }
+      } catch (unitsErr) {
+        console.warn('RAGService - Error cargando unidades:', unitsErr);
+      }
+
+      // Cargar sesiones del curso
+      let sessionsData: any[] = [];
+      try {
+        let sessionsQuery = supabase
+          .from('sessions')
+          .select('id, title, description, starts_at, ends_at, unit_id')
+          .eq('course_id', courseIdInt);
+        
+        // Filtrar por unidad si se especifica moduleId (asumiendo que moduleId es unit_id)
+        if (moduleId) {
+          sessionsQuery = sessionsQuery.eq('unit_id', moduleId);
+        }
+        
+        const { data: sessions, error: sessionsError } = await sessionsQuery
+          .order('starts_at', { ascending: true });
+        
+        if (sessionsError) {
+          console.warn('RAGService - Error cargando sesiones:', sessionsError);
+        } else {
+          sessionsData = sessions || [];
+          console.log('RAGService - Sesiones cargadas:', sessionsData.length);
+        }
+      } catch (sessionsErr) {
+        console.warn('RAGService - Error cargando sesiones:', sessionsErr);
+      }
+
+      // Buscar en materiales de la tabla materials
+      let materialsFromTable: any[] = [];
+      try {
+        let materialsQuery = supabase
+          .from('materials')
+          .select('id, title, kind, url, metadata, unit_id, session_id')
+          .eq('course_id', courseIdInt);
+        
+        // Filtrar por unidad si se especifica
+        if (moduleId) {
+          materialsQuery = materialsQuery.eq('unit_id', moduleId);
+        }
+        
+        const { data: materials, error: materialsError } = await materialsQuery
+          .order('created_at', { ascending: true })
+          .limit(50);
+        
+        if (materialsError) {
+          console.warn('RAGService - Error cargando materials:', materialsError);
+        } else {
+          materialsFromTable = materials || [];
+          console.log('RAGService - Materiales de tabla materials cargados:', materialsFromTable.length);
+        }
+      } catch (materialsErr) {
+        console.warn('RAGService - Error cargando materials:', materialsErr);
+      }
+
+      // Buscar en materiales adicionales de course_materials (si existen)
       let materialsData: any[] | null = null;
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('course_materials')
           .select('*')
-          .eq('course_id', courseIdInt)
-          .limit(50);
+          .eq('course_id', courseIdInt);
+        
+        // Filtrar por módulo si se especifica
+        if (moduleId) {
+          const moduleIdInt = parseInt(String(moduleId), 10);
+          if (!isNaN(moduleIdInt)) {
+            query = query.eq('module_id', moduleIdInt);
+            console.log('RAGService - Filtrando materiales por module_id:', moduleIdInt);
+          }
+        }
+        
+        const { data, error } = await query.limit(50);
+        
         if (error) {
           console.warn('RAGService - course_materials query warning:', error);
           materialsData = [];
         } else {
           materialsData = data || [];
+          console.log('RAGService - Materiales de course_materials cargados:', materialsData.length);
         }
       } catch (matErr) {
         console.warn('RAGService - course_materials query failed, continuando sin materiales:', matErr);
         materialsData = [];
       }
 
+      // Combinar todos los materiales
       let materials = materialsData || [];
-      // Filtro por módulo (si columna existe en datos)
-      if (moduleId) {
-        materials = materials.filter((m: any) => 'module_id' in m ? String(m.module_id) === String(moduleId) : true);
-      }
 
       // Simular búsqueda semántica simple (en producción usar embeddings)
       const allContent: CourseContent[] = [
@@ -170,14 +269,105 @@ export class RAGService {
           difficulty: 'intermediate',
           topics: this.extractTopics(courseData.description || '')
         },
-        ...materials.map((material: any) => ({
-          id: material.id,
-          title: material.title,
-          content: material.content || '',
-          type: material.type || 'material',
-          difficulty: material.difficulty || 'intermediate',
-          topics: this.extractTopics(material.content || '')
-        }))
+        // Agregar unidades como contenido
+        ...unitsData.map((unit: any) => ({
+          id: `unit-${unit.id}`,
+          title: `Unidad ${unit.number}: ${unit.title}`,
+          content: unit.description || unit.title || '',
+          type: 'unit' as const,
+          difficulty: 'intermediate' as const,
+          topics: this.extractTopics(unit.description || unit.title || ''),
+          originalId: unit.id,
+          courseId: courseIdInt.toString()
+        })),
+        // Agregar sesiones como contenido
+        ...sessionsData.map((session: any) => {
+          const unitTitle = unitsData.find(u => u.id === session.unit_id)?.title || '';
+          const sessionContent = `Sesión: ${session.title}. ${session.description || ''}${unitTitle ? ` (Unidad: ${unitTitle})` : ''}`;
+          return {
+            id: `session-${session.id}`,
+            title: session.title,
+            content: sessionContent,
+            type: 'session' as const,
+            difficulty: 'intermediate' as const,
+            topics: this.extractTopics(sessionContent),
+            originalId: session.id,
+            unitId: session.unit_id,
+            courseId: courseIdInt.toString()
+          };
+        }),
+        // Agregar materiales de la tabla materials
+        ...materialsFromTable.map((material: any) => {
+          const unitTitle = unitsData.find(u => u.id === material.unit_id)?.title || '';
+          const sessionTitle = sessionsData.find(s => s.id === material.session_id)?.title || '';
+          let contentText = material.title;
+          
+          if (material.metadata && typeof material.metadata === 'object') {
+            const metadataStr = JSON.stringify(material.metadata);
+            contentText += ` ${metadataStr}`;
+          }
+          
+          if (material.url) {
+            contentText += ` URL: ${material.url}`;
+          }
+          
+          if (unitTitle) {
+            contentText += ` (Unidad: ${unitTitle})`;
+          }
+          
+          if (sessionTitle) {
+            contentText += ` (Sesión: ${sessionTitle})`;
+          }
+          
+          return {
+            id: `material-${material.id}`,
+            title: material.title,
+            content: contentText,
+            type: (material.kind || 'material') as const,
+            difficulty: 'intermediate' as const,
+            topics: this.extractTopics(contentText),
+            originalId: material.id,
+            url: material.url,
+            unitId: material.unit_id,
+            sessionId: material.session_id,
+            courseId: courseIdInt.toString()
+          };
+        }),
+        // Agregar materiales de course_materials
+        ...materials.map((material: any) => {
+          // Si no hay contenido de texto pero hay URL, crear un contenido descriptivo
+          let contentText = material.content || '';
+          
+          if (!contentText && (material.file_url || material.source_url)) {
+            const url = material.file_url || material.source_url;
+            const urlType = this.detectUrlType(url);
+            
+            // Crear contenido descriptivo basado en el tipo de URL
+            if (urlType === 'youtube') {
+              contentText = `Video de YouTube: ${material.title}. URL: ${url}. Este video contiene información relevante sobre el tema.`;
+            } else if (urlType === 'pdf') {
+              contentText = `Documento PDF: ${material.title}. URL: ${url}. Este documento contiene información sobre el tema.`;
+            } else if (urlType === 'document') {
+              contentText = `Documento: ${material.title}. URL: ${url}. Este recurso contiene información relevante sobre el tema.`;
+            } else {
+              contentText = `Recurso externo: ${material.title}. URL: ${url}. Este material contiene información sobre el tema.`;
+            }
+          }
+          
+          // Incluir URL en el contenido si existe y no está ya mencionada
+          if ((material.file_url || material.source_url) && contentText && !contentText.includes(material.file_url || material.source_url || '')) {
+            contentText += ` URL disponible: ${material.file_url || material.source_url}`;
+          }
+          
+          return {
+            id: material.id,
+            title: material.title,
+            content: contentText || material.title || 'Material sin descripción',
+            type: material.type || 'material',
+            difficulty: material.difficulty || 'intermediate',
+            topics: this.extractTopics(contentText || material.title || '')
+          };
+        })
       ];
 
       // Filtrar por relevancia simple (en producción usar embeddings)
@@ -224,6 +414,25 @@ export class RAGService {
     });
     
     return score;
+  }
+
+  /**
+   * Detecta el tipo de URL
+   */
+  private detectUrlType(url: string): 'youtube' | 'pdf' | 'document' | 'other' {
+    if (!url) return 'other';
+    
+    const lowerUrl = url.toLowerCase();
+    if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be')) {
+      return 'youtube';
+    }
+    if (lowerUrl.endsWith('.pdf') || lowerUrl.includes('.pdf')) {
+      return 'pdf';
+    }
+    if (lowerUrl.includes('drive.google.com') || lowerUrl.includes('docs.google.com') || lowerUrl.endsWith('.doc') || lowerUrl.endsWith('.docx')) {
+      return 'document';
+    }
+    return 'other';
   }
 
   /**
@@ -291,7 +500,7 @@ Configuración pedagógica:
       : '\nNo se encontró contenido específico del curso.';
 
     const moduleHint = context.moduleId 
-      ? `\nContexto del módulo: Prioriza materiales y conceptos del módulo ID ${context.moduleId}. Si hay conflicto, responde solo con lo contenido en dicho módulo y luego, opcionalmente, agrega referencias del curso completo.`
+      ? `\n- Módulo específico: Prioriza materiales y conceptos del módulo ID ${context.moduleId}`
       : '';
 
     // Historial reciente
@@ -302,24 +511,52 @@ Configuración pedagógica:
       : '';
 
     return `
-Eres un tutor virtual especializado en ${courseTitle}. Responde la consulta del estudiante de manera clara, educativa y específica para este curso.
+Eres un tutor virtual ESPECIALIZADO EXCLUSIVAMENTE en el curso "${courseTitle}". 
+
+IMPORTANTE: Solo debes responder preguntas y dar información sobre "${courseTitle}". 
+NO debes mencionar, referenciar o involucrar otros cursos, materias o temas que NO pertenezcan a "${courseTitle}".
+Si el estudiante pregunta sobre algo que no está en este curso, di claramente que esa información pertenece a otro curso y enfócate solo en ${courseTitle}.
+
+INFORMACIÓN DEL CURSO ACTUAL:
+- Título del curso: ${courseTitle}
+- Descripción: ${courseDescription.substring(0, 200)}...
+${moduleHint}
 
 ${studentInfo}
 ${pedagogicalInfo}
 ${contentInfo}
 ${recentContext}
-${moduleHint}
 
 Consulta del estudiante: ${query}
 
-INSTRUCCIONES ESPECÍFICAS:
-1. Responde de manera clara y educativa específica para ${courseTitle}
+INSTRUCCIONES ESPECÍFICAS DE FORMATO:
+1. Responde ÚNICAMENTE sobre "${courseTitle}" - NO menciones otros cursos
 2. Adapta tu respuesta al estilo de aprendizaje del estudiante
-3. USA SIEMPRE el contenido específico del curso cuando sea relevante
-4. Referencia materiales, conceptos y temas de ${courseTitle}
-5. Mantén un tono amigable y motivador
-6. Si no tienes información específica del curso, sé honesto pero útil
-7. Máximo 120 palabras
+3. USA SIEMPRE el contenido específico del curso "${courseTitle}" cuando sea relevante
+4. Referencia ÚNICAMENTE materiales, conceptos y temas de "${courseTitle}"
+5. Si el estudiante pregunta sobre otro tema/curso, redirige suavemente hacia ${courseTitle}
+6. Mantén un tono amigable y motivador
+7. IDIOMA: Responde SIEMPRE en el mismo idioma en que el estudiante te pregunta. Si pregunta en inglés, responde en inglés; si pregunta en español, responde en español.
+
+FORMATO DE RESPUESTA (USA MARKDOWN):
+- Usa **negritas** para conceptos clave y términos importantes
+- Usa *cursiva* para énfasis sutil
+- Usa listas con viñetas (-) o numeradas (1., 2., 3.) para organizar información
+- Usa > para citas o llamados importantes
+- Usa ## para títulos de secciones si la respuesta es extensa
+- Usa código entre backticks para fórmulas matemáticas o términos técnicos
+- Separa párrafos con líneas en blanco para mejorar legibilidad
+- Máximo 150 palabras, estructura clara y concisa
+
+EJEMPLO DE BUEN FORMATO:
+**Concepto Principal**
+
+Explicación breve del concepto. Puntos clave:
+- Punto importante 1
+- Punto importante 2
+- Punto importante 3
+
+> Nota importante o consejo práctico
 
 Respuesta:
 `;
@@ -329,7 +566,7 @@ Respuesta:
    * Genera respuesta usando Gemini con reintentos automáticos
    */
   private async generateResponse(prompt: string): Promise<string> {
-    const maxRetries = 1; // Solo 1 reintento para máxima velocidad
+    const maxRetries = 2; // 2 reintentos para manejar mejor MAX_TOKENS
     let lastError: Error | null = null;
 
     // Fallback inmediato si no hay API key
@@ -359,7 +596,7 @@ Respuesta:
                 temperature: 0.7, 
                 topK: 40, 
                 topP: 0.95, 
-                maxOutputTokens: 1024  // Reducido para respuestas más rápidas
+                maxOutputTokens: attempt === 1 ? 2048 : 1024  // Más tokens en el primer intento para evitar MAX_TOKENS
               }
             }),
             signal: controller.signal
@@ -387,21 +624,46 @@ Respuesta:
         console.log('🔍 Gemini response data:', JSON.stringify(data, null, 2));
         
         const candidate = data.candidates?.[0];
-        const text = candidate?.content?.parts?.[0]?.text;
+        
+        // Extraer texto - intentar diferentes estructuras posibles
+        let text = candidate?.content?.parts?.[0]?.text;
+        if (!text && candidate?.content?.parts) {
+          // Buscar en todos los parts
+          for (const part of candidate.content.parts) {
+            if (part.text) {
+              text = part.text;
+              break;
+            }
+          }
+        }
         
         // Verificar finishReason (permitir MAX_TOKENS y STOP)
-        if (candidate?.finishReason) {
-          console.warn('⚠️ Gemini finish reason:', candidate.finishReason);
-          if (candidate.finishReason !== 'STOP' && candidate.finishReason !== 'MAX_TOKENS') {
-            lastError = new Error(`Gemini bloqueó la respuesta: ${candidate.finishReason}`);
+        const finishReason = candidate?.finishReason;
+        if (finishReason) {
+          console.warn('⚠️ Gemini finish reason:', finishReason);
+          if (finishReason !== 'STOP' && finishReason !== 'MAX_TOKENS') {
+            lastError = new Error(`Gemini bloqueó la respuesta: ${finishReason}`);
             continue;
           }
-          this.lastFinishReason = candidate.finishReason;
+          this.lastFinishReason = finishReason;
+          
+          // Si es MAX_TOKENS y no hay texto, intentar usar un mensaje útil
+          if (finishReason === 'MAX_TOKENS' && !text) {
+            console.warn('⚠️ MAX_TOKENS alcanzado sin texto. Intentando reintento con configuración ajustada...');
+            // Si es el primer intento, aumentar maxOutputTokens y reintentar
+            if (attempt === 1) {
+              // No hacer nada, continuar al siguiente intento con la misma config
+              continue;
+            }
+            // Si ya fue el segundo intento, devolver mensaje útil
+            text = 'La respuesta fue demasiado larga. Por favor, intenta hacer una pregunta más específica o divide tu consulta en partes más pequeñas.';
+          }
         }
         
         if (!text) {
-          console.error('❌ Gemini no devolvió texto. Full response:', data);
-          lastError = new Error('No se pudo generar respuesta');
+          console.error('❌ Gemini no devolvió texto. Full response:', JSON.stringify(data, null, 2));
+          console.error('❌ Candidate structure:', JSON.stringify(candidate, null, 2));
+          lastError = new Error('No se pudo generar respuesta - estructura de respuesta inesperada');
           continue;
         }
 
@@ -460,7 +722,15 @@ Respuesta:
         confidence: 0.8, // Simulado
         sources: (sources || [])
           .filter((s: any) => s && s.title)
-          .map((s: any) => ({ id: s.id, title: s.title, url: s.file_url || s.source_url || null })),
+          .map((s: any) => ({
+            id: s.originalId || s.id,
+            title: s.title,
+            url: s.url || s.file_url || s.source_url || null,
+            type: s.type || 'material',
+            unitId: s.unitId || null,
+            sessionId: s.sessionId || null,
+            courseId: s.courseId || null
+          })),
         // Nuevos metadatos para UI
         truncated: (this as any).lastFinishReason === 'MAX_TOKENS',
         continuationHint: (this as any).lastResponseTail || ''
@@ -530,3 +800,4 @@ export const isValidRAGResponse = (response: any): response is RAGResponse => {
     typeof response.metadata.model === 'string'
   );
 };
+

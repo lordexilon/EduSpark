@@ -49,8 +49,17 @@ export const useAgentSystem = (courseId: string) => {
   // =====================================================
 
   const initializeAgentSystem = useCallback(async (user: any, moduleId?: string) => {
+    console.log('🚀 initializeAgentSystem llamado:', { 
+      courseId, 
+      hasUser: !!user,
+      userId: user?.id,
+      moduleId,
+      isProcessing 
+    });
+    
     if (!courseId || !user) {
-      console.warn('Missing courseId or user for agent system initialization');
+      console.error('❌ Missing courseId or user for agent system initialization:', { courseId, hasUser: !!user });
+      setError('No se puede inicializar el sistema: falta curso o usuario');
       return;
     }
 
@@ -105,14 +114,21 @@ export const useAgentSystem = (courseId: string) => {
       newCoordinator.addEventListener(eventListener);
       eventListenerRef.current = eventListener;
 
-      // Inicializar sistema con timeout
+      // Inicializar sistema con timeout aumentado
       console.log('🔄 Inicializando coordinador...');
-      await Promise.race([
-        newCoordinator.initialize(user.id, courseId, user, { moduleId }),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout inicializando coordinador')), 10000) // Reducido a 10s
-        )
-      ]);
+      try {
+        await Promise.race([
+          newCoordinator.initialize(user.id, courseId, user, { moduleId }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout inicializando coordinador (15s)')), 15000) // Aumentado a 15s
+          )
+        ]);
+      } catch (initError) {
+        console.error('❌ Error durante inicialización del coordinador:', initError);
+        // Limpiar coordinador si falla
+        coordinatorRef.current = null;
+        throw initError;
+      }
 
       // Obtener estado inicial
       const status = newCoordinator.getSystemStatus();
@@ -139,6 +155,13 @@ export const useAgentSystem = (courseId: string) => {
       console.error('❌ Error initializing agent system:', error);
       setError(error instanceof Error ? error.message : 'Error desconocido');
       setIsInitialized(false);
+      setCoordinator(null);
+      coordinatorRef.current = null;
+      // Limpiar listeners si existen
+      if (eventListenerRef.current && coordinatorRef.current) {
+        coordinatorRef.current.removeEventListener(eventListenerRef.current);
+        eventListenerRef.current = null;
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -149,7 +172,21 @@ export const useAgentSystem = (courseId: string) => {
   // =====================================================
 
   const sendMessage = useCallback(async (text: string): Promise<void> => {
-    if (!coordinator || !text.trim()) {
+    console.log('🔵 sendMessage llamado:', { 
+      hasCoordinator: !!coordinator, 
+      text: text?.trim(),
+      isInitialized,
+      courseId 
+    });
+    
+    if (!coordinator) {
+      console.error('❌ sendMessage: Coordinator no está disponible');
+      setError('El sistema de agentes no está inicializado. Por favor, espera a que se complete la inicialización.');
+      return;
+    }
+    
+    if (!text.trim()) {
+      console.warn('⚠️ sendMessage: Texto vacío');
       return;
     }
 
@@ -325,6 +362,21 @@ export const useAgentSystem = (courseId: string) => {
     }
   }, [pedagogicalSettings]);
 
+  const setAudioMuted = useCallback((muted: boolean) => {
+    if (coordinator) {
+      coordinator.setAudioMuted(muted);
+      console.log('Audio muted state updated:', muted);
+    }
+  }, [coordinator]);
+
+  const cancelCurrentResponse = useCallback(() => {
+    if (coordinator) {
+      coordinator.cancelCurrentResponse();
+      setIsProcessing(false);
+      console.log('🛑 Respuesta cancelada');
+    }
+  }, [coordinator]);
+
   // =====================================================
   // Utilidades
   // =====================================================
@@ -383,10 +435,12 @@ export const useAgentSystem = (courseId: string) => {
     // Gestión de configuración
     updateVoiceConfig,
     updatePedagogicalSettings,
+    setAudioMuted,
     
     // Utilidades
     getSystemStatus,
     isReady,
+    cancelCurrentResponse,
     
     // Estados de error
     hasError: !!error,

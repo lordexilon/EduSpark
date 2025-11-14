@@ -122,7 +122,7 @@
           "systemInstruction": {
             "parts": [
               {
-                "text": "Eres un tutor virtual muy empático. Si no hay datos de plan/curso/perfil, explícalo brevemente y ofrece pasos/próximos pasos. Mantén el tono pedido."
+                "text": "Eres un tutor virtual muy empático. Si no hay datos de plan/curso/perfil, explícalo brevemente y ofrece pasos/próximos pasos. Mantén el tono pedido. IMPORTANTE: Responde siempre en el mismo idioma en que el estudiante te pregunta (español o inglés). Si pregunta en inglés, responde en inglés; si pregunta en español, responde en español."
               }
             ]
           },

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getAgentAssistantResponse } from '../services/agentService.ts';
 import { IconSparkles, IconX, IconPaperAirplane } from './Icons.tsx';
+import { useAuth } from '../hooks/useAuth';
 
 interface Message {
   id: number;
@@ -13,11 +14,13 @@ interface AssistantIAProps {
 }
 
 const AssistantIA: React.FC<AssistantIAProps> = ({ courseId }) => {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [conversationId, setConversationId] = useState<string | undefined>(undefined);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      text: '¡Hola! Soy tu asistente para el curso de Ética Profesional. ¿Cómo puedo ayudarte con el material de esta clase?',
+      text: '¡Hola! Soy tu asistente para el curso. ¿Cómo puedo ayudarte con el material de esta clase?',
       sender: 'ai',
     },
   ]);
@@ -31,7 +34,17 @@ const AssistantIA: React.FC<AssistantIAProps> = ({ courseId }) => {
 
   useEffect(scrollToBottom, [messages, isLoading]);
 
-  const handleToggle = () => setIsOpen(!isOpen);
+  // Generar conversationId al abrir el chat por primera vez
+  useEffect(() => {
+    if (isOpen && !conversationId) {
+      setConversationId(`conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+    }
+  }, [isOpen, conversationId]);
+
+  const handleToggle = () => {
+    setIsOpen(!isOpen);
+    // Mantener conversationId para mantener contexto
+  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,11 +57,20 @@ const AssistantIA: React.FC<AssistantIAProps> = ({ courseId }) => {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const currentMessage = inputValue;
     setInputValue('');
     setIsLoading(true);
 
     try {
-      const aiResponseText = await getAgentAssistantResponse(inputValue, courseId);
+      // Obtener respuesta con perfil del estudiante y contexto mejorado
+      const aiResponseText = await getAgentAssistantResponse(currentMessage, courseId, {
+        conversationId,
+        studentId: user?.id, // Pasar el ID del estudiante para obtener perfil automáticamente
+        priority: 'normal',
+        messageType: 'question',
+        // skipAutoFetch: false - por defecto obtendrá datos automáticamente
+      });
+
       const aiMessage: Message = {
         id: Date.now() + 1,
         text: aiResponseText,
@@ -56,6 +78,7 @@ const AssistantIA: React.FC<AssistantIAProps> = ({ courseId }) => {
       };
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
+      console.error('Error al obtener respuesta del asistente:', error);
       const errorMessage: Message = {
         id: Date.now() + 1,
         text: 'Lo siento, no pude procesar tu pregunta en este momento. Por favor, inténtalo de nuevo.',

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.tsx';
 import { getAdminCourseOverview, getModulesByCourse, AdminCourseOverview, CourseModuleRow } from '../services/adminCourses.ts';
+import { subjectService, careerService, Subject, Career } from '../services/academicService';
+import { courseService } from '../services/teacherCourses';
 
 const TabButton: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }>=({ active, onClick, children })=> (
   <button
@@ -101,6 +103,28 @@ const AdminModulesPage: React.FC = () => {
 const CourseCard: React.FC<{ course: AdminCourseOverview; tab: 'teachers'|'students' }>=({ course, tab })=>{
   const [modules, setModules] = useState<CourseModuleRow[]>([]);
   const [open, setOpen] = useState(false);
+  const [academicInfo, setAcademicInfo] = useState<{subject?: Subject | null; career?: Career | null}>({});
+  const [courseData, setCourseData] = useState<any>(null);
+
+  useEffect(() => {
+    // Cargar información académica del curso
+    (async () => {
+      try {
+        const data = await courseService.getCourse(course.course_id);
+        setCourseData(data);
+        if (data?.subject_id) {
+          const subject = await subjectService.getSubject(data.subject_id);
+          setAcademicInfo(prev => ({ ...prev, subject }));
+          if (subject?.career_id) {
+            const career = await careerService.getCareer(subject.career_id);
+            setAcademicInfo(prev => ({ ...prev, career }));
+          }
+        }
+      } catch (err) {
+        console.error('Error loading academic info:', err);
+      }
+    })();
+  }, [course.course_id]);
 
   useEffect(()=>{
     if (!open) return;
@@ -115,7 +139,18 @@ const CourseCard: React.FC<{ course: AdminCourseOverview; tab: 'teachers'|'stude
       <div className="p-4 flex items-center justify-between bg-gray-50">
         <div>
           <div className="font-medium">{course.course_title || `Curso #${course.course_id}`}</div>
-          <div className="text-sm text-gray-600">{course.course_code} · {course.module_count} módulos · {course.student_count} estudiantes</div>
+          <div className="text-sm text-gray-600">
+            {course.course_code} · {course.module_count} módulos · {course.student_count} estudiantes
+            {academicInfo.subject && (
+              <span className="ml-2 text-blue-600">
+                · {academicInfo.subject.name}
+                {academicInfo.career && ` (${academicInfo.career.name})`}
+              </span>
+            )}
+            {courseData?.academic_period && (
+              <span className="ml-2 text-gray-500">· {courseData.academic_period}</span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <Link
@@ -138,7 +173,7 @@ const CourseCard: React.FC<{ course: AdminCourseOverview; tab: 'teachers'|'stude
                 <div className="text-xs text-gray-500">Orden {m.order ?? 0}</div>
               </div>
               <Link
-                to={`/teacher/tutor?courseId=${m.course_id}&moduleId=${m.id}`}
+                to={`/#/teacher/tutor?courseId=${m.course_id}&moduleId=${m.id}`}
                 className="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded"
               >
                 Abrir Tutor

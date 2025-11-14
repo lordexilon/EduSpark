@@ -36,11 +36,30 @@ export type DetailLevel =
   | 'avanzado';      // Explicaciones detalladas y técnicas
 
 export type VoiceName = 
-  | 'Kore'           // Voz femenina, clara y profesional
-  | 'Charon'         // Voz masculina, profunda y autoritaria
-  | 'Fenrir'         // Voz masculina, energética y motivadora
-  | 'Aoede'          // Voz femenina, cálida y expresiva
-  | 'Puck';          // Voz neutra, versátil y amigable
+  | 'Kore'           // Voz femenina, clara y profesional (Expresiva)
+  | 'Charon'         // Voz masculina, profunda y autoritaria (Expresiva)
+  | 'Fenrir'         // Voz masculina, energética y motivadora (Expresiva)
+  | 'Aoede'          // Voz femenina, cálida y expresiva (Expresiva)
+  | 'Puck';          // Voz neutra, versátil y amigable (Expresiva)
+
+/**
+ * Estilos expresivos para voces de Gemini 2.5 Flash
+ * Permiten controlar el tono, estilo y emoción del habla
+ */
+export type ExpressiveStyle = 
+  | 'friendly'           // Amigable y cercano
+  | 'professional'       // Profesional y formal
+  | 'energetic'          // Energético y motivador
+  | 'calm'               // Calmado y relajante
+  | 'excited'            // Emocionado y entusiasta
+  | 'empathetic'         // Empático y comprensivo
+  | 'authoritative'      // Autoritario y confiable
+  | 'warm'               // Cálido y acogedor
+  | 'clear'              // Claro y preciso
+  | 'amused'             // Divertido y alegre
+  | 'fast'               // Rápido
+  | 'slow'               // Lento
+  | 'normal';            // Normal (sin estilo específico)
 
 // =====================================================
 // Sistema de Calificaciones

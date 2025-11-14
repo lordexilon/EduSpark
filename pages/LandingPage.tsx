@@ -13,7 +13,7 @@ const LandingPage: React.FC = () => {
               <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                 <IconSparkles className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">EduSpark</span>
+              <span className="text-xl font-bold text-gray-900">EduSpark-AI</span>
             </div>
             <div className="flex items-center space-x-4">
               <Link to="/login" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
@@ -37,8 +37,13 @@ const LandingPage: React.FC = () => {
                 está aquí
               </span>
             </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              EduSpark combina inteligencia artificial con pedagogía moderna para crear experiencias de aprendizaje únicas y personalizadas.
+            <p className="text-xl text-gray-600 mb-4 max-w-3xl mx-auto">
+              EduSpark-AI es la plataforma Elearning con Inteligencia Artificial pensada en instituciones, docentes y estudiantes que necesitan una retroalimentación dinámica para alcanzar con mayor eficiencia las metas académicas.
+            </p>
+            <p className="text-base text-gray-500 mb-8 max-w-3xl mx-auto">
+              <span className="inline-block bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
+                MVP en etapa de validación
+              </span>
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/login" className="bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors inline-flex items-center justify-center">
@@ -262,10 +267,13 @@ const LandingPage: React.FC = () => {
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                   <IconSparkles className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-bold">EduSpark</span>
+                <span className="text-xl font-bold">EduSpark-AI</span>
               </div>
               <p className="text-gray-400 mb-4">
-                Revolucionando la educación con inteligencia artificial y pedagogía moderna.
+                Plataforma Elearning con Inteligencia Artificial pensada en instituciones, docentes y estudiantes que necesitan una retroalimentación dinámica para alcanzar con mayor eficiencia las metas académicas.
+              </p>
+              <p className="text-gray-500 text-sm">
+                MVP en etapa de validación
               </p>
             </div>
             
@@ -274,6 +282,8 @@ const LandingPage: React.FC = () => {
               <ul className="space-y-2">
                 <li><Link to="/login" className="text-gray-400 hover:text-white">Iniciar Sesión</Link></li>
                 <li><Link to="/login" className="text-gray-400 hover:text-white">Registrarse</Link></li>
+                <li><Link to="/privacy" className="text-gray-400 hover:text-white">Política de Privacidad</Link></li>
+                <li><Link to="/terms" className="text-gray-400 hover:text-white">Términos y Condiciones</Link></li>
                 <li><a href="#" className="text-gray-400 hover:text-white">Soporte</a></li>
                 <li><a href="#" className="text-gray-400 hover:text-white">Documentación</a></li>
               </ul>
@@ -282,15 +292,26 @@ const LandingPage: React.FC = () => {
             <div>
               <h3 className="text-lg font-semibold mb-4">Contacto</h3>
               <ul className="space-y-2 text-gray-400">
-                <li>contacto@eduspark.com</li>
-                <li>+1 (555) 123-4567</li>
+                <li><a href="mailto:albertovillalba@gmail.com" className="hover:text-white">albertovillalba@gmail.com</a></li>
+                <li><a href="tel:+595981226970" className="hover:text-white">+595 981 226970</a></li>
                 <li>Soporte 24/7</li>
               </ul>
             </div>
           </div>
           
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 EduSpark. Todos los derechos reservados.</p>
+            <p>&copy; 2025 EduSpark-AI. Todos los derechos reservados.</p>
+            <p className="mt-2">
+              Desarrollado por{' '}
+              <a
+                href="https://applicandola.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300"
+              >
+                ApplicandoLA
+              </a>
+            </p>
           </div>
         </div>
       </footer>

@@ -78,14 +78,33 @@ export const assignmentService = {
 
   // Crear nueva tarea
   async createAssignment(assignment: Omit<Assignment, 'id' | 'created_at'>): Promise<Assignment> {
-    const { data, error } = await supabase
-      .from('assignments')
-      .insert([assignment])
-      .select()
-      .single();
+    console.log('🔵 assignmentService.createAssignment - Datos recibidos:', assignment);
+    
+    try {
+      const { data, error } = await supabase
+        .from('assignments')
+        .insert([assignment])
+        .select()
+        .single();
 
-    if (error) throw error;
-    return data;
+      console.log('🔵 assignmentService.createAssignment - Respuesta de Supabase:', { data, error });
+
+      if (error) {
+        console.error('🔴 assignmentService.createAssignment - Error:', error);
+        throw error;
+      }
+
+      if (!data) {
+        console.error('🔴 assignmentService.createAssignment - No data returned');
+        throw new Error('No se recibió datos de la base de datos');
+      }
+
+      console.log('✅ assignmentService.createAssignment - Tarea creada exitosamente:', data);
+      return data;
+    } catch (err: any) {
+      console.error('🔴 assignmentService.createAssignment - Excepción capturada:', err);
+      throw err;
+    }
   },
 
   // Actualizar tarea
@@ -124,6 +143,61 @@ export const assignmentService = {
       throw error;
     }
     return data;
+  },
+
+  // Obtener tareas de todos los cursos de un estudiante (basado en sus inscripciones)
+  async getStudentAssignments(studentId: string, courseId?: number): Promise<Assignment[]> {
+    console.log('🔵 getStudentAssignments - Iniciando', { studentId, courseId });
+    
+    let query = supabase
+      .from('assignments')
+      .select('*');
+
+    if (courseId) {
+      // Si se especifica un curso, solo obtener assignments de ese curso
+      console.log('🔵 getStudentAssignments - Filtrando por curso específico:', courseId);
+      query = query.eq('course_id', courseId);
+    } else {
+      // Obtener assignments de todos los cursos en los que el estudiante está inscrito
+      console.log('🔵 getStudentAssignments - Buscando inscripciones del estudiante:', studentId);
+      const { data: enrollments, error: enrollmentsError } = await supabase
+        .from('course_enrollments')
+        .select('course_id')
+        .eq('student_id', studentId)
+        .eq('status', 'active');
+
+      console.log('🔵 getStudentAssignments - Resultado de inscripciones:', { enrollments, enrollmentsError });
+
+      if (enrollmentsError) {
+        console.error('🔴 getStudentAssignments - Error al obtener inscripciones:', enrollmentsError);
+        throw enrollmentsError;
+      }
+      
+      if (!enrollments || enrollments.length === 0) {
+        console.warn('⚠️ getStudentAssignments - El estudiante no tiene inscripciones activas');
+        return [];
+      }
+
+      const courseIds = enrollments.map(e => e.course_id);
+      console.log('🔵 getStudentAssignments - IDs de cursos inscritos:', courseIds);
+      query = query.in('course_id', courseIds);
+    }
+
+    console.log('🔵 getStudentAssignments - Ejecutando consulta de assignments...');
+    const { data, error } = await query.order('due_at', { ascending: true });
+
+    console.log('🔵 getStudentAssignments - Resultado de assignments:', { 
+      count: data?.length || 0, 
+      error,
+      assignments: data?.map(a => ({ id: a.id, title: a.title, course_id: a.course_id }))
+    });
+
+    if (error) {
+      console.error('🔴 getStudentAssignments - Error al obtener assignments:', error);
+      throw error;
+    }
+    
+    return data || [];
   }
 };
 
@@ -156,7 +230,9 @@ export const submissionService = {
       .select('*')
       .eq('assignment_id', assignmentId)
       .eq('student_id', studentId)
-      .single();
+      .order('submitted_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
       if (error.code === 'PGRST116') return null;

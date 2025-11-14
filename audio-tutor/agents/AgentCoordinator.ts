@@ -30,6 +30,7 @@ export class AgentCoordinator {
   private eventListeners: AgentEventListener[] = [];
   private isProcessing: boolean = false;
   private currentContext: FullContext | null = null;
+  private audioMuted: boolean = false;
 
   constructor(
     voiceAgent?: VoiceAgent,
@@ -51,12 +52,74 @@ export class AgentCoordinator {
     options?: { moduleId?: string }
   ): Promise<void> {
     try {
-      // Inicializar contexto de conversación
-      const conversation = await this.contextAgent.initConversation(studentId, courseId);
+      console.log('🔄 AgentCoordinator.initialize - Paso 1: Creando conversación...');
+      // Inicializar contexto de conversación (con timeout y fallback)
+      const conversation = await Promise.race([
+        this.contextAgent.initConversation(studentId, courseId),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout en initConversation')), 8000)
+        )
+      ]) as any;
       
-      // Obtener contexto pedagógico y del estudiante
-      const pedagogicalSettings = await this.contextAgent.getPedagogicalContext(courseId);
-      const studentProfile = await this.contextAgent.getStudentContext(studentId, courseId);
+      console.log('🔄 AgentCoordinator.initialize - Paso 2: Obteniendo contexto pedagógico...');
+      
+      // Valores por defecto
+      const defaultPedagogicalSettings = {
+        id: 'default',
+        courseId,
+        teacherId: 'unknown',
+        teachingStyle: 'constructivista' as const,
+        tonePreference: 'amigable' as const,
+        detailLevel: 'medio' as const,
+        useExamples: true,
+        encourageQuestions: true,
+        voiceName: 'Kore',
+        voiceSpeed: 1.0,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      const defaultStudentProfile = {
+        id: 'default',
+        studentId,
+        courseId,
+        preferredLearningStyle: 'lectoescritor' as const,
+        interactionCount: 0,
+        avgSessionDuration: 0,
+        topicsStruggled: [],
+        topicsMastered: [],
+        lastUpdated: new Date()
+      };
+      
+      // Obtener contexto pedagógico y del estudiante (con timeouts individuales)
+      let pedagogicalSettings: any;
+      let studentProfile: any;
+      
+      try {
+        pedagogicalSettings = await Promise.race([
+          this.contextAgent.getPedagogicalContext(courseId),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout en getPedagogicalContext')), 5000)
+          )
+        ]);
+      } catch (error) {
+        console.warn('⚠️ Error obteniendo contexto pedagógico, usando valores por defecto:', error);
+        pedagogicalSettings = defaultPedagogicalSettings;
+      }
+      
+      try {
+        studentProfile = await Promise.race([
+          this.contextAgent.getStudentContext(studentId, courseId),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout en getStudentContext')), 5000)
+          )
+        ]);
+      } catch (error) {
+        console.warn('⚠️ Error obteniendo perfil de estudiante, usando valores por defecto:', error);
+        studentProfile = defaultStudentProfile;
+      }
+      
+      console.log('🔄 AgentCoordinator.initialize - Paso 3: Creando contexto completo...');
       
       // Crear contexto completo
       this.currentContext = {
@@ -99,14 +162,32 @@ export class AgentCoordinator {
   /**
    * Maneja la entrada del usuario (texto o audio)
    */
+  private cancelCurrentRequest: boolean = false;
+
+  /**
+   * Cancela la solicitud actual en curso
+   */
+  cancelCurrentResponse(): void {
+    this.cancelCurrentRequest = true;
+    this.isProcessing = false;
+    
+    // Detener audio si está reproduciendo
+    if (this.voiceAgent) {
+      this.voiceAgent.stopSpeech();
+    }
+    
+    console.log('🛑 Solicitud cancelada por el usuario');
+  }
+
   async handleUserInput(input: string | AudioBlob): Promise<AgentResponse> {
+    // Resetear flag de cancelación
+    this.cancelCurrentRequest = false;
+    
     if (this.isProcessing) {
-      return {
-        success: false,
-        message: 'El sistema está procesando otra solicitud. Por favor, espera un momento.',
-        metadata: { error: 'System busy' },
-        agentUsed: 'coordinator'
-      };
+      // Si ya hay una solicitud en curso, cancelarla primero
+      this.cancelCurrentResponse();
+      // Esperar un momento antes de procesar la nueva
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
 
     this.isProcessing = true;
@@ -173,14 +254,45 @@ export class AgentCoordinator {
         recentMessages: contextWindow.messages
       };
 
+      console.log('🔗 AgentCoordinator - Enviando consulta al RAG:', {
+        userMessage: userMessage.substring(0, 50),
+        courseId: conversationContext.courseId,
+        moduleId: conversationContext.moduleId,
+        studentId: conversationContext.studentId
+      });
+
+      // Verificar si se canceló antes de obtener respuesta
+      if (this.cancelCurrentRequest) {
+        this.isProcessing = false;
+        throw new Error('Respuesta cancelada por el usuario');
+      }
+
       // Obtener respuesta del RAG
       const ragResponse = await this.ragAgent.query(userMessage, conversationContext);
+      
+      // Verificar cancelación después de obtener respuesta
+      if (this.cancelCurrentRequest) {
+        this.isProcessing = false;
+        throw new Error('Respuesta cancelada por el usuario');
+      }
+      
+      console.log('📥 AgentCoordinator - Respuesta del RAG recibida:', {
+        answerLength: ragResponse.answer?.length,
+        confidence: ragResponse.confidence,
+        sourcesCount: ragResponse.sources?.length
+      });
 
       // Aplicar personalización del estudiante
       const personalizedResponse = this.ragAgent.applyStudentProfile(
         ragResponse.answer,
         this.currentContext!.student
       );
+      
+      // Verificar cancelación antes de generar audio
+      if (this.cancelCurrentRequest) {
+        this.isProcessing = false;
+        throw new Error('Respuesta cancelada por el usuario');
+      }
 
       // Crear mensaje de respuesta
       const assistantMessage = {
@@ -198,16 +310,28 @@ export class AgentCoordinator {
       // Agregar respuesta a la conversación
       await this.contextAgent.addMessage(assistantMessage);
 
-      // Generar audio si está habilitado
+      // Generar audio de forma asíncrona y NO bloqueante - solo si está habilitado y NO está silenciado
+      // La respuesta de texto ya está disponible, no esperamos el audio
       let audioUrl: string | undefined;
-      if (this.voiceAgent.isReady()) {
-        try {
-          await this.voiceAgent.speak(personalizedResponse);
-          // En un sistema real, aquí se guardaría la URL del audio generado
+      if (this.voiceAgent.isReady() && !this.audioMuted) {
+        console.log('🎤 AgentCoordinator: Iniciando síntesis de voz expresiva', {
+          textLength: personalizedResponse.length,
+          voiceReady: this.voiceAgent.isReady(),
+          audioMuted: this.audioMuted,
+        });
+        
+        // Ejecutar síntesis de voz en background sin bloquear
+        this.voiceAgent.speak(personalizedResponse).then(() => {
           audioUrl = 'generated-audio-url';
-        } catch (audioError) {
-          console.warn('Error generating audio:', audioError);
-        }
+          console.log('✅ AgentCoordinator: Audio expresivo generado y reproducido exitosamente');
+        }).catch((audioError) => {
+          console.error('❌ AgentCoordinator: Error generando audio expresivo:', audioError);
+        });
+      } else {
+        console.warn('⚠️ AgentCoordinator: Audio deshabilitado', {
+          voiceReady: this.voiceAgent.isReady(),
+          audioMuted: this.audioMuted,
+        });
       }
 
       // Actualizar progreso del estudiante
@@ -455,6 +579,17 @@ export class AgentCoordinator {
         console.error('Error in event listener:', error);
       }
     });
+  }
+
+  /**
+   * Actualiza el estado de sileninnitus del audio
+   */
+  setAudioMuted(muted: boolean): void {
+    this.audioMuted = muted;
+    if (muted) {
+      // Detener cualquier audio en reproducción
+      this.voiceAgent.stopSpeech();
+    }
   }
 
   /**
