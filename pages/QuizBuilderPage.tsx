@@ -4,8 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { quizService, Assessment, Question } from '../services/quizService';
-import { courseService } from '../services/teacherCourses';
-import { unitService } from '../services/teacherCourses';
+import { courseService, unitService, sessionService } from '../services/teacherCourses';
 import { useAuth } from '../hooks/useAuth';
 import Button from '../components/Button';
 import Card from '../components/Card';
@@ -34,11 +33,17 @@ export const QuizBuilderPage: React.FC = () => {
   const [finalUnitId, setFinalUnitId] = useState<string | undefined>(() => {
     return unitId || searchParams.get('unitId') || undefined;
   });
+  const [finalSessionId, setFinalSessionId] = useState<string | undefined>(() => {
+    return searchParams.get('sessionId') || undefined;
+  });
 
   const [loading, setLoading] = useState(true);
   const [course, setCourse] = useState<any>(null);
   const [unit, setUnit] = useState<any>(null);
+  const [session, setSession] = useState<any>(null);
   const [availableCourses, setAvailableCourses] = useState<any[]>([]);
+  const [availableUnits, setAvailableUnits] = useState<any[]>([]);
+  const [availableSessions, setAvailableSessions] = useState<any[]>([]);
   
   // Datos del quiz
   const [title, setTitle] = useState('');
@@ -49,6 +54,7 @@ export const QuizBuilderPage: React.FC = () => {
   const [maxAttempts, setMaxAttempts] = useState<number>(3);
   const [passingScore, setPassingScore] = useState<number>(70);
   const [isPublished, setIsPublished] = useState(false);
+  const [isFinalExam, setIsFinalExam] = useState(false);
   
   // Preguntas
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -112,11 +118,32 @@ export const QuizBuilderPage: React.FC = () => {
       if (finalCourseId) {
         const courseData = await courseService.getCourse(Number(finalCourseId));
         setCourse(courseData);
+        
+        // Cargar unidades y sesiones del curso
+        try {
+          const [unitsData, sessionsData] = await Promise.all([
+            unitService.getCourseUnits(Number(finalCourseId)),
+            sessionService.getCourseSessions(Number(finalCourseId))
+          ]);
+          setAvailableUnits(unitsData);
+          setAvailableSessions(sessionsData);
+        } catch (err) {
+          console.error('Error cargando unidades/sesiones:', err);
+        }
       }
       
       if (finalUnitId) {
         const unitData = await unitService.getUnit(finalUnitId);
         setUnit(unitData);
+      }
+      
+      if (finalSessionId) {
+        try {
+          const sessionData = await sessionService.getSession(finalSessionId);
+          setSession(sessionData);
+        } catch (err) {
+          console.error('Error cargando sesión:', err);
+        }
       }
       
       if (quizId) {
@@ -129,6 +156,7 @@ export const QuizBuilderPage: React.FC = () => {
         setMaxAttempts(assessment.max_attempts || 3);
         setPassingScore(assessment.passing_score || 70);
         setIsPublished(assessment.is_published || false);
+        setIsFinalExam(assessment.is_final_exam || false);
         setQuestions(loadedQuestions || []);
         
         // Si no hay courseId en la URL, obtenerlo del assessment
@@ -165,6 +193,16 @@ export const QuizBuilderPage: React.FC = () => {
               return newUnitId;
             }
             return prev;
+          });
+        }
+        
+        // Si hay session_id en el assessment, cargarlo
+        if (assessment.session_id) {
+          setFinalSessionId(assessment.session_id);
+          sessionService.getSession(assessment.session_id).then(sessionData => {
+            setSession(sessionData);
+          }).catch(err => {
+            console.error('Error cargando sesión:', err);
           });
         }
       }
@@ -257,7 +295,8 @@ export const QuizBuilderPage: React.FC = () => {
       console.log('📝 Preparando datos del quiz...');
       const quizData: Partial<Assessment> = {
         course_id: Number(finalCourseId),
-        unit_id: finalUnitId,
+        unit_id: finalUnitId || undefined,
+        session_id: finalSessionId || undefined,
         title: title.trim(),
         description: description.trim() || undefined,
         assessment_type: assessmentType,
@@ -266,6 +305,7 @@ export const QuizBuilderPage: React.FC = () => {
         max_attempts: maxAttempts || undefined,
         passing_score: passingScore,
         is_published: publish,
+        is_final_exam: isFinalExam && assessmentType === 'exam', // Solo permitir si es tipo 'exam'
         created_by: user.id
       };
 
@@ -324,9 +364,11 @@ export const QuizBuilderPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">
             {quizId ? 'Editar Quiz' : 'Crear Nuevo Quiz'}
           </h1>
-          {course && unit && (
+          {course && (unit || session) && (
             <p className="text-gray-600 mt-1">
-              {course.title} • {unit.title}
+              {course.title}
+              {unit && ` • Unidad ${unit.number}: ${unit.title}`}
+              {session && ` • Sesión: ${session.title}`}
             </p>
           )}
         </div>
@@ -364,9 +406,29 @@ export const QuizBuilderPage: React.FC = () => {
               {availableCourses.length > 0 ? (
                 <select
                   value={finalCourseId || ''}
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const selectedCourseId = e.target.value;
                     setFinalCourseId(selectedCourseId);
+                    // Limpiar unidad y sesión cuando cambia el curso
+                    setFinalUnitId(undefined);
+                    setFinalSessionId(undefined);
+                    setUnit(null);
+                    setSession(null);
+                    
+                    // Cargar unidades y sesiones del curso seleccionado
+                    if (selectedCourseId) {
+                      try {
+                        const [unitsData, sessionsData] = await Promise.all([
+                          unitService.getCourseUnits(Number(selectedCourseId)),
+                          sessionService.getCourseSessions(Number(selectedCourseId))
+                        ]);
+                        setAvailableUnits(unitsData);
+                        setAvailableSessions(sessionsData);
+                      } catch (err) {
+                        console.error('Error cargando unidades/sesiones:', err);
+                      }
+                    }
+                    
                     // Actualizar URL con el courseId seleccionado
                     const newSearchParams = new URLSearchParams(searchParams);
                     if (selectedCourseId) {
@@ -393,6 +455,87 @@ export const QuizBuilderPage: React.FC = () => {
                   </p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Selectores de Unidad y Sesión */}
+          {finalCourseId && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Selector de Unidad */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Asignar a Unidad (Opcional)
+                </label>
+                <select
+                  value={finalUnitId || ''}
+                  onChange={(e) => {
+                    const selectedUnitId = e.target.value || undefined;
+                    setFinalUnitId(selectedUnitId);
+                    // Si se selecciona una unidad, limpiar la sesión
+                    if (selectedUnitId) {
+                      setFinalSessionId(undefined);
+                      setSession(null);
+                      // Cargar la unidad seleccionada
+                      unitService.getUnit(selectedUnitId).then(unitData => {
+                        setUnit(unitData);
+                      }).catch(err => {
+                        console.error('Error cargando unidad:', err);
+                      });
+                    } else {
+                      setUnit(null);
+                    }
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                >
+                  <option value="">Sin unidad específica</option>
+                  {availableUnits.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      Unidad {u.number}: {u.title}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  El quiz aparecerá en la vista de la unidad
+                </p>
+              </div>
+
+              {/* Selector de Sesión */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Asignar a Sesión (Opcional)
+                </label>
+                <select
+                  value={finalSessionId || ''}
+                  onChange={(e) => {
+                    const selectedSessionId = e.target.value || undefined;
+                    setFinalSessionId(selectedSessionId);
+                    // Si se selecciona una sesión, limpiar la unidad
+                    if (selectedSessionId) {
+                      setFinalUnitId(undefined);
+                      setUnit(null);
+                      // Cargar la sesión seleccionada
+                      sessionService.getSession(selectedSessionId).then(sessionData => {
+                        setSession(sessionData);
+                      }).catch(err => {
+                        console.error('Error cargando sesión:', err);
+                      });
+                    } else {
+                      setSession(null);
+                    }
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                >
+                  <option value="">Sin sesión específica</option>
+                  {availableSessions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.title}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  El quiz aparecerá al finalizar la sesión
+                </p>
+              </div>
             </div>
           )}
 
@@ -433,7 +576,14 @@ export const QuizBuilderPage: React.FC = () => {
               </label>
               <select
                 value={assessmentType}
-                onChange={(e) => setAssessmentType(e.target.value as any)}
+                onChange={(e) => {
+                  const newType = e.target.value as any;
+                  setAssessmentType(newType);
+                  // Si cambia de 'exam' a otro tipo, desmarcar examen final
+                  if (newType !== 'exam' && isFinalExam) {
+                    setIsFinalExam(false);
+                  }
+                }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
               >
                 <option value="quiz">Quiz</option>
@@ -500,6 +650,29 @@ export const QuizBuilderPage: React.FC = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
             />
           </div>
+
+          {/* Marcar como Examen Final (solo para tipo 'exam') */}
+          {assessmentType === 'exam' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isFinalExam}
+                  onChange={(e) => setIsFinalExam(e.target.checked)}
+                  className="w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary"
+                />
+                <div>
+                  <span className="block text-sm font-semibold text-blue-900">
+                    Marcar como Examen Final
+                  </span>
+                  <span className="block text-xs text-blue-700 mt-1">
+                    El examen final aparecerá antes de "Materiales del Curso" en la vista del estudiante. 
+                    Solo puede haber un examen final por curso.
+                  </span>
+                </div>
+              </label>
+            </div>
+          )}
         </div>
       </Card>
 

@@ -109,6 +109,17 @@ export const courseService = {
     return data || [];
   },
 
+  // Obtener todos los cursos (para admin y coordinadores)
+  async getAllCourses(): Promise<Course[]> {
+    const { data, error } = await supabase
+      .from('courses')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
   // Obtener cursos por materia (subject_id)
   async getCoursesBySubject(subjectId: number): Promise<Course[]> {
     const { data, error } = await supabase

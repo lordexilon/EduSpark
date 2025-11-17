@@ -474,6 +474,109 @@ export const courseEnrollmentService = {
 };
 
 // ============================================
+// SERVICIOS DE RESETEO DE PROGRESO
+// ============================================
+
+export interface ResetProgressResult {
+  success: boolean;
+  student_id?: string;
+  course_id?: number;
+  deleted?: {
+    unit_progress: number;
+    session_progress: number;
+    flashcard_progress: number;
+    assessment_attempts: number;
+    assignment_submissions: number;
+  };
+  updated_enrollments?: number;
+  message?: string;
+  error?: string;
+}
+
+export interface ResetMultipleProgressResult {
+  success: boolean;
+  course_id: number;
+  total_students: number;
+  successful_resets: number;
+  failed_resets: number;
+  results: Array<{
+    student_id: string;
+    result: ResetProgressResult;
+  }>;
+}
+
+export const studentProgressResetService = {
+  /**
+   * Resetea el progreso de un estudiante en un curso específico
+   * Elimina: unit_progress, session_progress, flashcard_progress, assessment_attempts, assignment_submissions
+   * Resetea: course_enrollments (completion_percentage, time_spent_minutes, etc.)
+   */
+  async resetStudentCourseProgress(
+    studentId: string,
+    courseId: number
+  ): Promise<ResetProgressResult> {
+    try {
+      const { data, error } = await supabase.rpc('reset_student_course_progress', {
+        p_student_id: studentId,
+        p_course_id: courseId,
+      });
+
+      if (error) throw error;
+
+      return data as ResetProgressResult;
+    } catch (error: any) {
+      console.error('Error al resetear progreso del estudiante:', error);
+      return {
+        success: false,
+        error: error.message || 'Error desconocido al resetear el progreso',
+        message: 'No se pudo resetear el progreso del estudiante',
+      };
+    }
+  },
+
+  /**
+   * Resetea el progreso de múltiples estudiantes en un curso
+   */
+  async resetMultipleStudentsProgress(
+    studentIds: string[],
+    courseId: number
+  ): Promise<ResetMultipleProgressResult> {
+    try {
+      const { data, error } = await supabase.rpc('reset_multiple_students_course_progress', {
+        p_student_ids: studentIds,
+        p_course_id: courseId,
+      });
+
+      if (error) throw error;
+
+      return data as ResetMultipleProgressResult;
+    } catch (error: any) {
+      console.error('Error al resetear progreso de múltiples estudiantes:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Resetea el progreso de todos los estudiantes activos en un curso
+   * Útil para reiniciar un curso completo
+   */
+  async resetAllStudentsProgress(courseId: number): Promise<ResetMultipleProgressResult> {
+    try {
+      const { data, error } = await supabase.rpc('reset_all_students_course_progress', {
+        p_course_id: courseId,
+      });
+
+      if (error) throw error;
+
+      return data as ResetMultipleProgressResult;
+    } catch (error: any) {
+      console.error('Error al resetear progreso de todos los estudiantes:', error);
+      throw error;
+    }
+  },
+};
+
+// ============================================
 // SERVICIOS DE ASIGNACIÓN DOCENTE-MATERIA
 // ============================================
 

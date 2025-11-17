@@ -12,13 +12,14 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import Breadcrumbs from '../components/Breadcrumbs';
 import ProgressIndicator from '../components/ProgressIndicator';
-import { IconBookOpen, IconChevronRight, IconCalendar, IconEye, IconRobot, IconClipboardList, IconClipboardCheck, IconClock } from '../components/Icons';
+import { IconBookOpen, IconChevronRight, IconCalendar, IconEye, IconRobot, IconClipboardList, IconClipboardCheck, IconClock, IconCards, IconCheck } from '../components/Icons';
 import { MaterialDisplay } from '../components/MaterialDisplay';
 import { useAuth } from '../hooks/useAuth';
 import { courseEnrollmentService, CourseEnrollment } from '../services/academicService';
 import { progressService } from '../services/progressService';
 import { quizService, Assessment } from '../services/quizService';
 import { VideoTranscriptService } from '../services/videoTranscriptService';
+import { supabase } from '../lib/supabase';
 
 export const CourseViewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +36,9 @@ export const CourseViewPage: React.FC = () => {
   const [enrollment, setEnrollment] = useState<CourseEnrollment | null>(null);
   const [quizzesByUnit, setQuizzesByUnit] = useState<Record<string, Assessment[]>>({});
   const [generalQuizzes, setGeneralQuizzes] = useState<Assessment[]>([]);
+  const [finalExam, setFinalExam] = useState<Assessment | null>(null);
+  const [completedUnits, setCompletedUnits] = useState<Set<string>>(new Set());
+  const [markingUnit, setMarkingUnit] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -105,26 +109,50 @@ export const CourseViewPage: React.FC = () => {
       try {
         const courseQuizzes = await quizService.getCourseAssessments(courseId, ['quiz', 'trivia', 'exam']);
         
-        // Separar quizzes por unidad y generales (sin unidad)
+        // Separar quizzes por unidad, generales (sin unidad) y examen final
         const grouped: Record<string, Assessment[]> = {};
         const general: Assessment[] = [];
+        let finalExam: Assessment | null = null;
         
         courseQuizzes.forEach(quiz => {
-          if (quiz.unit_id) {
+          // Si es examen final, guardarlo por separado
+          if (quiz.is_final_exam && quiz.assessment_type === 'exam') {
+            finalExam = quiz;
+          } else if (quiz.unit_id) {
             if (!grouped[quiz.unit_id]) {
               grouped[quiz.unit_id] = [];
             }
             grouped[quiz.unit_id].push(quiz);
           } else {
-            // Quizzes generales del curso (sin unidad específica)
+            // Quizzes generales del curso (sin unidad específica y que no sean examen final)
             general.push(quiz);
           }
         });
         
         setQuizzesByUnit(grouped);
         setGeneralQuizzes(general);
+        setFinalExam(finalExam);
       } catch (err) {
         console.error('Error loading quizzes:', err);
+      }
+
+      // Cargar progreso de unidades completadas
+      if (user?.id) {
+        try {
+          const { data: unitProgressData } = await supabase
+            .from('unit_progress')
+            .select('unit_id')
+            .eq('student_id', user.id)
+            .eq('course_id', courseId)
+            .eq('is_completed', true);
+          
+          if (unitProgressData) {
+            const completedUnitIds = new Set(unitProgressData.map(up => up.unit_id));
+            setCompletedUnits(completedUnitIds);
+          }
+        } catch (err) {
+          console.error('Error loading unit progress:', err);
+        }
       }
     } catch (error) {
       console.error('Error loading course data:', error);
@@ -250,79 +278,14 @@ export const CourseViewPage: React.FC = () => {
                 Abrir Tutor
               </Button>
             </Link>
+            <Link to={`/courses/${course.id}/flashcards`}>
+              <Button variant="secondary" leftIcon={<IconCards className="w-5 h-5" />}>
+                Estudiar Flashcards
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
-
-      {/* Evaluaciones Generales del Curso (sin unidad específica) */}
-      {generalQuizzes.length > 0 && (
-        <Card className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Evaluaciones Generales</h2>
-          <div className="space-y-2">
-            {generalQuizzes.map((quiz) => {
-              const typeLabels: Record<string, string> = {
-                'quiz': 'Quiz',
-                'trivia': 'Trivia',
-                'exam': 'Examen',
-                'project': 'Proyecto',
-                'assignment': 'Tarea'
-              };
-              const typeColors: Record<string, string> = {
-                'quiz': 'bg-blue-100 text-blue-700',
-                'trivia': 'bg-purple-100 text-purple-700',
-                'exam': 'bg-red-100 text-red-700',
-                'project': 'bg-green-100 text-green-700',
-                'assignment': 'bg-yellow-100 text-yellow-700'
-              };
-
-              return (
-                <Link
-                  key={quiz.id}
-                  to={`/quiz/${quiz.id}`}
-                  className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-primary hover:bg-primary/5 transition-all group"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <IconClipboardCheck className="w-5 h-5 text-primary flex-shrink-0" />
-                        <h4 className="text-base font-semibold text-gray-900 group-hover:text-primary">
-                          {quiz.title}
-                        </h4>
-                        <span className={`text-xs font-medium px-2 py-1 rounded ${typeColors[quiz.assessment_type] || 'bg-gray-100 text-gray-700'}`}>
-                          {typeLabels[quiz.assessment_type] || quiz.assessment_type}
-                        </span>
-                      </div>
-                      {quiz.description && (
-                        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-                          {quiz.description}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
-                        {quiz.time_limit && (
-                          <div className="flex items-center gap-1">
-                            <IconClock className="w-3 h-3" />
-                            <span>{quiz.time_limit} minutos</span>
-                          </div>
-                        )}
-                        {quiz.max_attempts && (
-                          <span>{quiz.max_attempts} intento{quiz.max_attempts > 1 ? 's' : ''}</span>
-                        )}
-                        {!quiz.max_attempts && (
-                          <span className="text-green-600 font-medium">Intentos ilimitados</span>
-                        )}
-                        {quiz.passing_score && (
-                          <span>Aprobar: {quiz.passing_score}%</span>
-                        )}
-                      </div>
-                    </div>
-                    <IconChevronRight className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors flex-shrink-0 ml-3" />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </Card>
-      )}
 
       {/* Módulos y Sesiones */}
       <div className="space-y-4">
@@ -420,40 +383,85 @@ export const CourseViewPage: React.FC = () => {
                     )}
 
                     {/* Botón de "Entendido" */}
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h4 className="text-sm font-semibold text-green-900 mb-1">
-                            ¡Contenido Leído!
-                          </h4>
-                          <p className="text-xs text-green-700">
-                            Marca esta unidad como leída. Tu comprensión se evaluará en las actividades y tareas del curso.
-                          </p>
+                    {(() => {
+                      const isCompleted = completedUnits.has(unit.id);
+                      const isMarking = markingUnit === unit.id;
+                      
+                      return (
+                        <div className={`border rounded-lg p-4 transition-colors ${
+                          isCompleted 
+                            ? 'bg-green-100 border-green-300' 
+                            : 'bg-green-50 border-green-200'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <h4 className={`text-sm font-semibold mb-1 flex items-center gap-2 ${
+                                isCompleted ? 'text-green-800' : 'text-green-900'
+                              }`}>
+                                {isCompleted && <IconCheck className="w-5 h-5 text-green-600" />}
+                                {isCompleted ? '¡Contenido Leído!' : '¡Contenido Leído!'}
+                              </h4>
+                              <p className={`text-xs ${
+                                isCompleted ? 'text-green-800' : 'text-green-700'
+                              }`}>
+                                {isCompleted 
+                                  ? 'Esta unidad ya fue marcada como leída. Tu comprensión se evaluará en las actividades y tareas del curso.'
+                                  : 'Marca esta unidad como leída. Tu comprensión se evaluará en las actividades y tareas del curso.'
+                                }
+                              </p>
+                            </div>
+                            <button
+                              onClick={async () => {
+                                if (!user?.id || isCompleted || isMarking) return;
+                                setMarkingUnit(unit.id);
+                                try {
+                                  // Marcar unidad como accedida (método simplificado)
+                                  await progressService.completeSession(
+                                    user.id,
+                                    unit.id,
+                                    parseInt(id!),
+                                    unit.id,
+                                    { timeSpentMinutes: 15 }
+                                  );
+                                  // Actualizar estado local inmediatamente
+                                  setCompletedUnits(prev => new Set(prev).add(unit.id));
+                                } catch (err) {
+                                  console.error('Error:', err);
+                                  alert('Error al marcar la unidad como leída');
+                                } finally {
+                                  setMarkingUnit(null);
+                                }
+                              }}
+                              disabled={isCompleted || isMarking}
+                              className={`ml-4 px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                                isCompleted
+                                  ? 'bg-green-500 text-white cursor-not-allowed opacity-75'
+                                  : isMarking
+                                  ? 'bg-green-400 text-white cursor-wait'
+                                  : 'bg-green-600 hover:bg-green-700 text-white'
+                              }`}
+                            >
+                              {isMarking ? (
+                                <>
+                                  <span className="animate-spin">⏳</span>
+                                  Procesando...
+                                </>
+                              ) : isCompleted ? (
+                                <>
+                                  <IconCheck className="w-4 h-4" />
+                                  Leído ✓
+                                </>
+                              ) : (
+                                <>
+                                  <IconCheck className="w-4 h-4" />
+                                  Entendido ✓
+                                </>
+                              )}
+                            </button>
+                          </div>
                         </div>
-                        <button
-                          onClick={async () => {
-                            if (!user?.id) return;
-                            try {
-                              // Marcar unidad como accedida (método simplificado)
-                              await progressService.completeSession(
-                                user.id,
-                                unit.id,
-                                parseInt(id!),
-                                unit.id,
-                                { timeSpentMinutes: 15 }
-                              );
-                              alert('✅ Unidad marcada como leída');
-                            } catch (err) {
-                              console.error('Error:', err);
-                              alert('Ya has marcado esta unidad como leída');
-                            }
-                          }}
-                          className="ml-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-                        >
-                          Entendido ✓
-                        </button>
-                      </div>
-                    </div>
+                      );
+                    })()}
 
                     {/* Quizzes/Evaluaciones */}
                     {(() => {
@@ -666,6 +674,150 @@ export const CourseViewPage: React.FC = () => {
           </Card>
         )}
       </div>
+
+      {/* Evaluaciones Generales del Curso (sin unidad específica) */}
+      {generalQuizzes.length > 0 && (
+        <Card className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Evaluaciones Generales</h2>
+          <div className="space-y-2">
+            {generalQuizzes.map((quiz) => {
+              const typeLabels: Record<string, string> = {
+                'quiz': 'Quiz',
+                'trivia': 'Trivia',
+                'exam': 'Examen',
+                'project': 'Proyecto',
+                'assignment': 'Tarea'
+              };
+              const typeColors: Record<string, string> = {
+                'quiz': 'bg-blue-100 text-blue-700',
+                'trivia': 'bg-purple-100 text-purple-700',
+                'exam': 'bg-red-100 text-red-700',
+                'project': 'bg-green-100 text-green-700',
+                'assignment': 'bg-yellow-100 text-yellow-700'
+              };
+
+              return (
+                <Link
+                  key={quiz.id}
+                  to={`/quiz/${quiz.id}`}
+                  className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-primary hover:bg-primary/5 transition-all group"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <IconClipboardCheck className="w-5 h-5 text-primary flex-shrink-0" />
+                        <h4 className="text-base font-semibold text-gray-900 group-hover:text-primary">
+                          {quiz.title}
+                        </h4>
+                        <span className={`text-xs font-medium px-2 py-1 rounded ${typeColors[quiz.assessment_type] || 'bg-gray-100 text-gray-700'}`}>
+                          {typeLabels[quiz.assessment_type] || quiz.assessment_type}
+                        </span>
+                      </div>
+                      {quiz.description && (
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                          {quiz.description}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+                        {quiz.time_limit && (
+                          <div className="flex items-center gap-1">
+                            <IconClock className="w-3 h-3" />
+                            <span>{quiz.time_limit} minutos</span>
+                          </div>
+                        )}
+                        {quiz.max_attempts && (
+                          <span>{quiz.max_attempts} intento{quiz.max_attempts > 1 ? 's' : ''}</span>
+                        )}
+                        {!quiz.max_attempts && (
+                          <span className="text-green-600 font-medium">Intentos ilimitados</span>
+                        )}
+                        {quiz.passing_score && (
+                          <span>Aprobar: {quiz.passing_score}%</span>
+                        )}
+                      </div>
+                    </div>
+                    <IconChevronRight className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors flex-shrink-0 ml-3" />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {/* Examen Final */}
+      {finalExam && finalExam.is_published && finalExam.is_active && (
+        <Card className="mb-6 border-2 border-red-200 bg-red-50">
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <IconClipboardCheck className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-red-900">Examen Final</h2>
+                <p className="text-sm text-red-700 mt-1">
+                  Evaluación final del curso
+                </p>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg p-4 border border-red-200 mb-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    {finalExam.title}
+                  </h3>
+                  {finalExam.description && (
+                    <p className="text-sm text-gray-600 mb-3">
+                      {finalExam.description}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                    {finalExam.time_limit && (
+                      <span className="flex items-center gap-1">
+                        <IconClock className="w-4 h-4" />
+                        {finalExam.time_limit} minutos
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1">
+                      <IconClipboardList className="w-4 h-4" />
+                      {finalExam.total_points} puntos
+                    </span>
+                    {finalExam.passing_score && (
+                      <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                        Aprobación: {finalExam.passing_score}%
+                      </span>
+                    )}
+                    {finalExam.max_attempts && (
+                      <span className="text-xs text-gray-500">
+                        Máximo {finalExam.max_attempts} {finalExam.max_attempts === 1 ? 'intento' : 'intentos'}
+                      </span>
+                    )}
+                  </div>
+                  {finalExam.instructions && (
+                    <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200">
+                      <p className="text-xs font-medium text-gray-700 mb-1">Instrucciones:</p>
+                      <p className="text-xs text-gray-600 whitespace-pre-wrap">
+                        {finalExam.instructions}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <Link to={`/quiz/${finalExam.id}`}>
+              <Button 
+                variant="primary" 
+                className="w-full"
+                leftIcon={<IconClipboardCheck className="w-5 h-5" />}
+              >
+                Realizar Examen Final
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      )}
 
       {/* Materiales generales del curso (sin unidad y sin sesión) */}
       {materials.filter((material) => !material.unit_id && !material.session_id).length > 0 && (

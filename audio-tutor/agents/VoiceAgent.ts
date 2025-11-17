@@ -21,9 +21,30 @@ export class VoiceAgent {
   private audioSource: AudioBufferSourceNode | null = null;
   private capabilities: AudioCapabilities | null = null;
 
-  constructor(initialVoice: VoiceConfig = { voiceName: 'Kore', speed: 1.0 }) {
+  constructor(initialVoice: VoiceConfig = { voiceName: 'Kore', speed: 1.2 }) {
+    // Velocidad por defecto aumentada a 1.2 para respuestas más rápidas
     this.currentVoice = initialVoice;
     this.initializeCapabilities();
+    // Pre-inicializar AudioContext para mejorar velocidad de respuesta
+    this.preInitializeAudioContext();
+  }
+
+  /**
+   * Pre-inicializa el AudioContext para mejorar la velocidad de respuesta
+   */
+  private preInitializeAudioContext(): void {
+    try {
+      if (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)) {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        // Suspender inmediatamente para no consumir recursos hasta que se necesite
+        if (this.audioContext.state === 'running') {
+          this.audioContext.suspend();
+        }
+        console.log('✅ VoiceAgent: AudioContext pre-inicializado para mejor rendimiento');
+      }
+    } catch (error) {
+      console.warn('⚠️ VoiceAgent: No se pudo pre-inicializar AudioContext:', error);
+    }
   }
 
   /**
@@ -215,7 +236,11 @@ export class VoiceAgent {
       });
       
       if (!audioContent) {
-        throw new Error('Failed to generate speech');
+        // Si no hay audio (porque el modelo no lo soporta o está desactivado), simplemente retornar
+        console.warn('⚠️ VoiceAgent: No se pudo generar audio - síntesis desactivada o no disponible');
+        this.isSpeaking = false;
+        this.isPaused = false;
+        return;
       }
 
       console.log('✅ VoiceAgent: Audio expresivo generado exitosamente');

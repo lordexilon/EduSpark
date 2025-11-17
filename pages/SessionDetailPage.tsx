@@ -4,7 +4,7 @@ import { ACTIVITY_TYPE_DETAILS } from '../constants.ts';
 import { ActivityType } from '../types.ts';
 import Card from '../components/Card.tsx';
 import Breadcrumbs from '../components/Breadcrumbs.tsx';
-import { IconClock, IconChevronRight, IconBookOpen, IconCalendar, IconVideoCamera, IconPencil, IconChevronLeft, IconClipboardList, IconCheck } from '../components/Icons.tsx';
+import { IconClock, IconChevronRight, IconBookOpen, IconCalendar, IconVideoCamera, IconPencil, IconChevronLeft, IconClipboardList, IconCheck, IconCards } from '../components/Icons.tsx';
 import Button from '../components/Button.tsx';
 import { useAuth } from '../hooks/useAuth.tsx';
 import ProgressBar from '../components/ProgressBar.tsx';
@@ -15,6 +15,8 @@ import { RichTextDisplay } from '../components/RichTextDisplay.tsx';
 import { progressService } from '../services/progressService';
 import { VideoPlayer } from '../components/VideoPlayer.tsx';
 import { VideoTranscriptService } from '../services/videoTranscriptService.ts';
+import { quizService, Assessment } from '../services/quizService';
+import { getFlashcardsBySession } from '../services/flashcardService';
 
 const ActivityIcon: React.FC<{ type: ActivityType }> = ({ type }) => {
     const details = ACTIVITY_TYPE_DETAILS[type] || ACTIVITY_TYPE_DETAILS[ActivityType.ACTIVITY];
@@ -68,6 +70,8 @@ const SessionDetailPage: React.FC = () => {
     const [progressMessage, setProgressMessage] = useState<string | null>(null);
     const [savingCompletion, setSavingCompletion] = useState(false);
     const [sessionMaterials, setSessionMaterials] = useState<Material[]>([]);
+    const [sessionAssessments, setSessionAssessments] = useState<Assessment[]>([]);
+    const [sessionFlashcards, setSessionFlashcards] = useState<any[]>([]);
     const isTeacher = user?.role?.name === 'teacher' || user?.role?.name === 'admin';
     const isStudent = user?.role?.name === 'student';
 
@@ -120,6 +124,20 @@ const SessionDetailPage: React.FC = () => {
                     // Filtrar materiales de esta sesión
                     const sessionMats = courseMaterials.filter(m => m.session_id === sessionData.id);
                     setSessionMaterials(sessionMats);
+
+                    // Cargar evaluaciones y flashcards de la sesión
+                    if (sessionData.id) {
+                        try {
+                            const [assessments, flashcards] = await Promise.all([
+                                quizService.getSessionAssessments(sessionData.id),
+                                getFlashcardsBySession(sessionData.id).catch(() => [])
+                            ]);
+                            setSessionAssessments(assessments);
+                            setSessionFlashcards(flashcards);
+                        } catch (err) {
+                            console.error('Error cargando evaluaciones de sesión:', err);
+                        }
+                    }
                 }
             } catch (err: any) {
                 console.error('Error cargando sesión:', err);
@@ -699,15 +717,26 @@ const SessionDetailPage: React.FC = () => {
 
             {/* Acción de completar sesión */}
             {isStudent && (
-                <Card className="mb-6 bg-green-50 border border-green-200">
+                <Card className={`mb-6 border transition-colors ${
+                    isSessionCompleted 
+                        ? 'bg-green-100 border-green-300' 
+                        : 'bg-green-50 border-green-200'
+                }`}>
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
-                            <h3 className="text-md font-semibold text-green-800 flex items-center gap-2">
-                                <IconCheck className="w-5 h-5" />
-                                ¿Terminaste de revisar esta sesión?
+                            <h3 className={`text-md font-semibold flex items-center gap-2 ${
+                                isSessionCompleted ? 'text-green-800' : 'text-green-800'
+                            }`}>
+                                {isSessionCompleted && <IconCheck className="w-5 h-5 text-green-600" />}
+                                {isSessionCompleted ? '¡Sesión Completada!' : '¿Terminaste de revisar esta sesión?'}
                             </h3>
-                            <p className="text-sm text-green-700 mt-1">
-                                Marca la sesión como completada para registrar tu avance en el curso.
+                            <p className={`text-sm mt-1 ${
+                                isSessionCompleted ? 'text-green-800' : 'text-green-700'
+                            }`}>
+                                {isSessionCompleted 
+                                    ? 'Esta sesión ya fue marcada como completada. Tu avance ha sido registrado en el curso.'
+                                    : 'Marca la sesión como completada para registrar tu avance en el curso.'
+                                }
                             </p>
                             {sessionProgress?.completed_at && (
                                 <p className="text-xs text-green-700 mt-2">
@@ -725,10 +754,104 @@ const SessionDetailPage: React.FC = () => {
                                 leftIcon={<IconCheck className="w-4 h-4" />}
                                 onClick={handleCompleteSession}
                                 disabled={savingCompletion || isSessionCompleted}
+                                className={isSessionCompleted ? 'opacity-75 cursor-not-allowed' : ''}
                             >
-                                {isSessionCompleted ? 'Sesión completada' : 'Marcar como completada'}
+                                {savingCompletion ? (
+                                    <>
+                                        <span className="animate-spin mr-2">⏳</span>
+                                        Procesando...
+                                    </>
+                                ) : isSessionCompleted ? (
+                                    'Sesión completada ✓'
+                                ) : (
+                                    'Marcar como completada'
+                                )}
                             </Button>
                         </div>
+                    </div>
+                </Card>
+            )}
+
+            {/* Evaluaciones al finalizar la sesión */}
+            {isStudent && isSessionCompleted && (sessionAssessments.length > 0 || sessionFlashcards.length > 0) && (
+                <Card className="mb-6 bg-blue-50 border border-blue-200">
+                    <div className="mb-4">
+                        <h3 className="text-lg font-semibold text-blue-900 flex items-center gap-2">
+                            <IconClipboardCheck className="w-5 h-5" />
+                            Evaluaciones de la Sesión
+                        </h3>
+                        <p className="text-sm text-blue-700 mt-1">
+                            Ahora puedes realizar las siguientes evaluaciones para medir tu comprensión del contenido de esta sesión.
+                        </p>
+                    </div>
+
+                    <div className="space-y-4">
+                        {/* Quizzes y Trivias */}
+                        {sessionAssessments.length > 0 && (
+                            <div>
+                                <h4 className="text-md font-semibold text-blue-800 mb-2">
+                                    Quizzes y Trivias ({sessionAssessments.length})
+                                </h4>
+                                <div className="space-y-2">
+                                    {sessionAssessments.map((assessment) => (
+                                        <Link
+                                            key={assessment.id}
+                                            to={`/quiz/${assessment.id}`}
+                                            className="block p-4 bg-white border border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex-1">
+                                                    <h5 className="font-semibold text-gray-900">{assessment.title}</h5>
+                                                    {assessment.description && (
+                                                        <p className="text-sm text-gray-600 mt-1">{assessment.description}</p>
+                                                    )}
+                                                    <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                                        <span className="flex items-center gap-1">
+                                                            <IconClock className="w-4 h-4" />
+                                                            {assessment.time_limit ? `${assessment.time_limit} min` : 'Sin límite'}
+                                                        </span>
+                                                        <span className="flex items-center gap-1">
+                                                            <IconClipboardList className="w-4 h-4" />
+                                                            {assessment.total_points} puntos
+                                                        </span>
+                                                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                                            {assessment.assessment_type === 'quiz' ? 'Quiz' : assessment.assessment_type === 'trivia' ? 'Trivia' : assessment.assessment_type}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <IconChevronRight className="w-5 h-5 text-blue-600 flex-shrink-0 ml-4" />
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Flashcards */}
+                        {sessionFlashcards.length > 0 && (
+                            <div>
+                                <h4 className="text-md font-semibold text-blue-800 mb-2">
+                                    Flashcards ({sessionFlashcards.length})
+                                </h4>
+                                <Link
+                                    to={`/courses/${session?.course_id}/flashcards?sessionId=${sessionId}`}
+                                    className="block p-4 bg-white border border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex-1">
+                                            <h5 className="font-semibold text-gray-900 flex items-center gap-2">
+                                                <IconCards className="w-5 h-5 text-blue-600" />
+                                                Estudiar Flashcards de esta Sesión
+                                            </h5>
+                                            <p className="text-sm text-gray-600 mt-1">
+                                                Practica con {sessionFlashcards.length} {sessionFlashcards.length === 1 ? 'flashcard' : 'flashcards'} relacionadas con esta sesión
+                                            </p>
+                                        </div>
+                                        <IconChevronRight className="w-5 h-5 text-blue-600 flex-shrink-0 ml-4" />
+                                    </div>
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 </Card>
             )}
@@ -757,9 +880,14 @@ const SessionDetailPage: React.FC = () => {
             </Link>
 
             {/* Asistente IA */}
-            <div className="mt-8">
-                <AssistantIA courseId={session.course_id?.toString() || 'general'} />
-            </div>
+            {sessionId && (
+                <div className="mt-8">
+                    <AssistantIA 
+                        courseId={session.course_id?.toString() || 'general'} 
+                        sessionId={sessionId}
+                    />
+                </div>
+            )}
         </div>
     );
 };

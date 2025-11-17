@@ -65,8 +65,20 @@ export const progressService = {
       if (assignmentsError) throw assignmentsError;
       const totalAssignments = courseAssignments?.length || 0;
 
+      // 5. Obtener todas las flashcards del curso
+      const { data: flashcards, error: flashcardsError } = await supabase
+        .from('flashcards')
+        .select('id')
+        .eq('course_id', courseId)
+        .eq('is_active', true);
+
+      if (flashcardsError) {
+        console.warn('Error al obtener flashcards:', flashcardsError);
+      }
+      const totalFlashcards = flashcards?.length || 0;
+
       // Si no hay contenido, el progreso es 0
-      const totalItems = totalUnits + totalSessions + totalAssessments + totalAssignments;
+      const totalItems = totalUnits + totalSessions + totalAssessments + totalAssignments + totalFlashcards;
       if (totalItems === 0) return 0;
 
       let completedItems = 0;
@@ -176,6 +188,22 @@ export const progressService = {
         if (!assignmentsCompletedError && completedAssignments) {
           const uniqueCompleted = new Set(completedAssignments.map(a => a.assignment_id));
           completedItems += uniqueCompleted.size;
+        }
+      }
+
+      // 9. Contar flashcards dominadas (mastery_level >= 4)
+      if (totalFlashcards > 0) {
+        const flashcardIds = (flashcards || []).map(f => f.id);
+        const { data: flashcardProgress, error: flashcardProgressError } = await supabase
+          .from('flashcard_progress')
+          .select('flashcard_id')
+          .eq('student_id', studentId)
+          .in('flashcard_id', flashcardIds)
+          .gte('mastery_level', 4); // Dominadas (nivel 4 o 5)
+
+        if (!flashcardProgressError && flashcardProgress) {
+          const uniqueMastered = new Set(flashcardProgress.map(p => p.flashcard_id));
+          completedItems += uniqueMastered.size;
         }
       }
 

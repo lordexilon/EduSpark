@@ -19,6 +19,7 @@ export interface Assessment {
   is_published: boolean;
   is_active: boolean;
   allow_late_submission: boolean;
+  is_final_exam?: boolean; // Indica si es un examen final del curso
   available_from?: string;
   available_until?: string;
   due_date?: string;
@@ -106,6 +107,22 @@ export const quizService = {
       .from('assessments')
       .select('*')
       .eq('unit_id', unitId)
+      .eq('is_published', true)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  /**
+   * Obtener assessments de una sesión específica
+   */
+  async getSessionAssessments(sessionId: string): Promise<Assessment[]> {
+    const { data, error } = await supabase
+      .from('assessments')
+      .select('*')
+      .eq('session_id', sessionId)
       .eq('is_published', true)
       .eq('is_active', true)
       .order('created_at', { ascending: false });

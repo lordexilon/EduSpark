@@ -15,8 +15,10 @@ import { PedagogicalSettings } from '../audio-tutor/components/PedagogicalSettin
 import { TokenUsageDashboard } from '../audio-tutor/components/TokenUsageDashboard';
 import { CourseContentPanel } from '../audio-tutor/components/CourseContentPanel';
 import { tokenMonitoring } from '../audio-tutor/services/tokenMonitoringService';
+import { trackTutorInteraction } from '../services/tutorTrackingService';
 import { IconArrowLeft, IconSettings, IconTrash2, IconDownload, IconRefreshCw, IconDollarSign, IconBookOpen } from '../components/Icons';
 import { MarkdownText } from '../components/MarkdownText';
+import { AudioEnableModal } from '../components/AudioEnableModal';
 
 const TutorVirtualPage: React.FC = () => {
   const { user } = useAuth();
@@ -31,14 +33,16 @@ const TutorVirtualPage: React.FC = () => {
   const [documentPreview, setDocumentPreview] = useState<{content: string, id: string} | null>(null);
   const [todayCost, setTodayCost] = useState(0);
   const [isMicrophoneMuted, setIsMicrophoneMuted] = useState(false);
-  const [isAudioMuted, setIsAudioMuted] = useState(false);
+  const [isAudioMuted, setIsAudioMuted] = useState(true); // Audio desactivado por defecto
   const [showSourcesFor, setShowSourcesFor] = useState<string | null>(null);
   const [highlightMaterialId, setHighlightMaterialId] = useState<string | undefined>(undefined);
   const [highlightType, setHighlightType] = useState<'material' | 'unit' | 'session' | undefined>(undefined);
   const [initializedFromQuery, setInitializedFromQuery] = useState(false);
   const [selectedModuleId, setSelectedModuleId] = useState<string>('');
-  const [useVoiceInput, setUseVoiceInput] = useState(false); // Iniciar con voz
+  const [useVoiceInput, setUseVoiceInput] = useState(false); // Audio desactivado por defecto
   const [cancelRequested, setCancelRequested] = useState(false); // Solicitud de cancelación
+  const [showAudioEnableModal, setShowAudioEnableModal] = useState(false);
+  const [audioEnabledOnce, setAudioEnabledOnce] = useState(false); // Rastrear si el usuario ya habilitó audio alguna vez
 
   // Hooks del sistema de agentes
   const capabilities = useAudioCapabilities();
@@ -219,9 +223,123 @@ const TutorVirtualPage: React.FC = () => {
   // Auto-scroll del chat
   useEffect(() => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      // Usar setTimeout para asegurar que el DOM se haya actualizado
+      setTimeout(() => {
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+          console.log('📜 Auto-scroll ejecutado:', {
+            scrollTop: chatContainerRef.current.scrollTop,
+            scrollHeight: chatContainerRef.current.scrollHeight,
+            messagesCount: agentSystem.messages.length
+          });
+        }
+      }, 100);
     }
   }, [agentSystem.messages, documentPreview]);
+
+  // Registrar interacciones del tutor en la base de datos
+  // Usar useRef para evitar registrar la misma interacción múltiples veces
+  const trackedMessagesRef = useRef<Set<string>>(new Set());
+  
+  useEffect(() => {
+    const trackInteraction = async () => {
+      // Solo registrar si hay mensajes y el último es del asistente
+      if (
+        agentSystem.messages.length === 0 ||
+        !user?.id ||
+        !selectedCourseId ||
+        agentSystem.isProcessing
+      ) {
+        return;
+      }
+
+      const messages = agentSystem.messages;
+      const lastMessage = messages[messages.length - 1];
+
+      // Solo registrar si el último mensaje es del asistente y hay un mensaje previo del usuario
+      if (lastMessage.role !== 'assistant' || messages.length < 2) {
+        return;
+      }
+
+      const userMessage = messages[messages.length - 2];
+      if (userMessage.role !== 'user') {
+        return;
+      }
+
+      // Crear una clave única para esta interacción (basada en IDs de mensajes)
+      const interactionKey = `${userMessage.id}-${lastMessage.id}`;
+      
+      // Evitar registrar la misma interacción múltiples veces
+      if (trackedMessagesRef.current.has(interactionKey)) {
+        return;
+      }
+
+      // Marcar como registrada antes de intentar guardar
+      trackedMessagesRef.current.add(interactionKey);
+      
+      // Obtener información de tokens del último uso registrado
+      const todayUsage = tokenMonitoring.getTodayUsage();
+      const usageHistory = tokenMonitoring.getUsageHistory(1);
+      
+      // Calcular tokens y costo aproximados
+      // Nota: Esto es una aproximación, idealmente deberíamos obtener los tokens reales del response
+      const estimatedTokens = {
+        inputTokens: Math.ceil(userMessage.text.length / 4), // Aproximación: 1 token ≈ 4 caracteres
+        outputTokens: Math.ceil(lastMessage.text.length / 4),
+        totalTokens: Math.ceil((userMessage.text.length + lastMessage.text.length) / 4),
+        cost: 0, // Se calculará basado en el modelo
+        model: 'gemini-1.5-flash', // Modelo por defecto
+      };
+
+      // Calcular costo
+      const pricing = {
+        input: 0.075,
+        output: 0.30,
+      };
+      estimatedTokens.cost =
+        (estimatedTokens.inputTokens / 1000000) * pricing.input +
+        (estimatedTokens.outputTokens / 1000000) * pricing.output;
+
+      // Calcular tiempo de respuesta (aproximado)
+      const responseTime =
+        lastMessage.timestamp && userMessage.timestamp
+          ? lastMessage.timestamp.getTime() - userMessage.timestamp.getTime()
+          : 0;
+
+      try {
+        // Obtener conversation_id si existe
+        const conversationId = agentSystem.conversation?.id || undefined;
+
+        console.log('📊 Registrando interacción del tutor:', {
+          studentId: user.id,
+          courseId: selectedCourseId,
+          questionLength: userMessage.text.length,
+          answerLength: lastMessage.text.length,
+        });
+
+        await trackTutorInteraction(
+          user.id,
+          selectedCourseId,
+          userMessage.text,
+          lastMessage.text,
+          estimatedTokens,
+          responseTime,
+          conversationId
+        );
+
+        console.log('✅ Interacción registrada exitosamente');
+      } catch (error) {
+        // Si falla, remover de la lista para permitir reintentos
+        trackedMessagesRef.current.delete(interactionKey);
+        console.error('❌ Error tracking tutor interaction:', error);
+        // No interrumpir el flujo si falla el tracking
+      }
+    };
+
+    // Esperar un poco para asegurar que el mensaje se haya procesado completamente
+    const timeoutId = setTimeout(trackInteraction, 1500);
+    return () => clearTimeout(timeoutId);
+  }, [agentSystem.messages, user?.id, selectedCourseId, agentSystem.isProcessing, agentSystem.conversation]);
 
   // Actualizar costo del día
   useEffect(() => {
@@ -280,24 +398,41 @@ const TutorVirtualPage: React.FC = () => {
 
     const messageText = userInput.trim();
     setInputValue('');
-    console.log('📨 Enviando mensaje al sistema de agentes...');
+    console.log('📨 Enviando mensaje al sistema de agentes...', { 
+      messageText, 
+      useVoiceInput, 
+      hasMicrophone: capabilities?.hasMicrophone,
+      isMicrophoneMuted 
+    });
     
     try {
-      // Si useVoiceInput está activado y hay micrófono disponible, usar voz
-      if (useVoiceInput && capabilities?.hasMicrophone && !isMicrophoneMuted) {
-        console.log('🎤 Usando entrada de voz...');
+      // Si hay texto en el input, siempre usar ese texto (incluso si useVoiceInput está activado)
+      // useVoiceInput solo se usa cuando NO hay texto (solo voz)
+      if (messageText && messageText.trim()) {
+        console.log('📝 Enviando mensaje de texto:', messageText.substring(0, 50));
+        await agentSystem.sendMessage(messageText);
+      } else if (useVoiceInput && capabilities?.hasMicrophone && !isMicrophoneMuted) {
+        // Solo usar voz si NO hay texto en el input
+        console.log('🎤 Usando entrada de voz (sin texto en input)...');
         setIsListening(true);
         try {
           await agentSystem.sendVoiceMessage();
+        } catch (voiceError) {
+          console.error('❌ Error en reconocimiento de voz:', voiceError);
+          // Si falla el reconocimiento de voz, mostrar error pero no bloquear
+          alert('Error en el reconocimiento de voz. Por favor, escribe tu mensaje en el campo de texto.');
         } finally {
           setIsListening(false);
         }
       } else {
-        await agentSystem.sendMessage(messageText);
+        // Si no hay texto ni voz disponible, no hacer nada
+        console.warn('⚠️ No hay texto ni voz disponible para enviar');
+        return;
       }
       console.log('✅ Mensaje enviado exitosamente');
     } catch (error) {
       console.error('❌ Error al enviar mensaje:', error);
+      alert('Error al enviar el mensaje. Por favor, inténtalo de nuevo.');
     }
   }, [inputValue, agentSystem, selectedCourseId, useVoiceInput, capabilities, isMicrophoneMuted]);
 
@@ -489,7 +624,14 @@ const TutorVirtualPage: React.FC = () => {
                 </button>
 
                 <button
-                  onClick={toggleAudioMute}
+                  onClick={() => {
+                    // Si el usuario intenta activar el audio y no lo ha habilitado antes, mostrar modal
+                    if (isAudioMuted && !audioEnabledOnce) {
+                      setShowAudioEnableModal(true);
+                    } else {
+                      toggleAudioMute();
+                    }
+                  }}
                   className={`p-2 rounded-lg transition-colors ${
                     isAudioMuted
                       ? 'bg-orange-500 text-white hover:bg-orange-600'
@@ -599,119 +741,172 @@ const TutorVirtualPage: React.FC = () => {
               </div>
             )}
             
-            {agentSystem.messages.map((message) => (
-              <div key={message.id} className={`flex gap-2 sm:gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] sm:max-w-xl p-3 sm:p-4 rounded-2xl ${
-                  message.role === 'user' 
-                    ? 'bg-blue-600 text-white rounded-br-none' 
-                    : 'bg-gray-100 text-gray-900 rounded-bl-none'
-                }`}>
-                  {message.role === 'user' ? (
-                    <p className="whitespace-pre-wrap text-sm sm:text-base break-words">{message.text}</p>
-                  ) : (
-                    <MarkdownText text={message.text} className="prose prose-sm sm:prose-base max-w-none text-sm sm:text-base" />
-                  )}
-                  {/* Fuentes */}
-                  {message.role === 'assistant' && Array.isArray(message.metadata?.sources) && message.metadata.sources.length > 0 && (
-                    <div className="mt-2">
-                      <button
-                        className="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded"
-                        onClick={() => setShowSourcesFor(showSourcesFor === message.id ? null : message.id)}
-                      >
-                        Fuentes ({message.metadata.sources.length})
-                      </button>
-                      {showSourcesFor === message.id && (
-                        <div className="mt-2 bg-white rounded border p-2 text-xs text-gray-700">
-                          <ul className="space-y-2">
-                            {message.metadata.sources.map((s: any) => {
-                              const getTypeLabel = (type: string) => {
-                                switch (type) {
-                                  case 'unit': return '📚 Unidad';
-                                  case 'session': return '📹 Sesión';
-                                  case 'material': return '📄 Material';
-                                  case 'course': return '🎓 Curso';
-                                  default: return '📋 Recurso';
-                                }
-                              };
-
-                              return (
-                                <li key={s.id} className="flex items-start justify-between gap-2 p-2 bg-gray-50 rounded">
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-1 mb-1">
-                                      <span className="text-gray-500">{getTypeLabel(s.type || 'material')}</span>
-                                    </div>
-                                    <span className="font-medium text-gray-900 block truncate">{s.title || `Recurso #${s.id}`}</span>
-                                    {s.unitId && (
-                                      <span className="text-gray-500 text-xs">Unidad relacionada</span>
-                                    )}
-                                    {s.sessionId && (
-                                      <span className="text-gray-500 text-xs ml-2">Sesión relacionada</span>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-1 flex-shrink-0">
-                                    {s.url ? (
-                                      <a 
-                                        href={s.url} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer" 
-                                        className="text-blue-600 hover:underline px-2 py-1 rounded hover:bg-blue-50"
-                                        title="Abrir enlace externo"
-                                      >
-                                        Abrir
-                                      </a>
-                                    ) : (
-                                      <button
-                                        className="text-blue-600 hover:underline px-2 py-1 rounded hover:bg-blue-50"
-                                        onClick={() => {
-                                          setShowCourseContent(true);
-                                          // Extraer el ID original si está en formato "type-id"
-                                          const contentId = s.id?.includes('-') ? s.id.split('-')[1] : s.id;
-                                          setHighlightMaterialId(contentId);
-                                          // Establecer el tipo de contenido
-                                          const contentType = s.type === 'unit' ? 'unit' : s.type === 'session' ? 'session' : 'material';
-                                          setHighlightType(contentType);
-                                        }}
-                                        title="Ver en panel de contenido"
-                                      >
-                                        Ver
-                                      </button>
-                                    )}
-                                  </div>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Metadatos de confianza */}
-                  {message.metadata?.confidence && (
-                    <div className="mt-2 text-xs opacity-75">
-                      Confianza: {Math.round(message.metadata.confidence * 100)}%
-                    </div>
-                  )}
-
-                  {/* Truncado: permitir continuar */}
-                  {message.role === 'assistant' && message.metadata?.truncated && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          const hint = message.metadata?.continuationHint || '';
-                          const continuePrompt = `continúa desde: ${hint}`;
-                          agentSystem.sendMessage(continuePrompt);
-                        }}
-                        className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                      >
-                        Continuar
-                      </button>
-                      <span className="text-xs text-gray-500">La respuesta se cortó por límite de tokens</span>
-                    </div>
-                  )}
+            {agentSystem.messages.length === 0 && (
+              <div className="flex justify-center px-2">
+                <div className="max-w-xl w-full p-3 sm:p-4 rounded-2xl bg-gray-50 border border-gray-200">
+                  <p className="text-gray-600 font-medium text-sm sm:text-base text-center">
+                    👋 ¡Hola! Soy tu Tutor Virtual. ¿En qué puedo ayudarte hoy?
+                  </p>
                 </div>
               </div>
-            ))}
+            )}
+            
+            {agentSystem.messages.map((message) => {
+              // Debug: verificar que los mensajes se están renderizando
+              if (message.role === 'user') {
+                console.log('👤 Renderizando mensaje del usuario:', { id: message.id, text: message.text.substring(0, 50) });
+              }
+              
+              return (
+                <div 
+                  key={message.id} 
+                  className={`flex gap-2 sm:gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  style={{ minHeight: 'auto' }} // Asegurar que el mensaje tenga altura
+                >
+                  <div 
+                    className={`max-w-[85%] sm:max-w-xl p-3 sm:p-4 rounded-2xl ${
+                      message.role === 'user' 
+                        ? 'bg-blue-600 text-white rounded-br-none' 
+                        : 'bg-gray-100 text-gray-900 rounded-bl-none'
+                    }`}
+                    style={{ 
+                      display: 'block', // Asegurar que sea visible
+                      visibility: 'visible', // Asegurar visibilidad
+                      opacity: 1 // Asegurar opacidad completa
+                    }}
+                  >
+                    {message.role === 'user' ? (
+                      <p 
+                        className="whitespace-pre-wrap text-sm sm:text-base break-words"
+                        style={{ 
+                          color: 'white', // Asegurar color blanco para mensajes del usuario
+                          fontWeight: 'normal'
+                        }}
+                      >
+                        {message.text || '(mensaje vacío)'}
+                      </p>
+                    ) : (
+                      <MarkdownText text={message.text} className="prose prose-sm sm:prose-base max-w-none text-sm sm:text-base" />
+                    )}
+                    {/* Timestamp para debug - solo en desarrollo y con menor opacidad */}
+                    {process.env.NODE_ENV === 'development' && message.timestamp && (
+                      <div className={`text-xs mt-1 ${message.role === 'user' ? 'text-blue-100' : 'text-gray-500'}`} style={{ opacity: 0.6 }}>
+                        {new Date(message.timestamp).toLocaleTimeString()}
+                      </div>
+                    )}
+                    {/* Fuentes */}
+                    {message.role === 'assistant' && Array.isArray(message.metadata?.sources) && message.metadata.sources.length > 0 && (
+                      <div className="mt-2">
+                        <button
+                          className="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded"
+                          onClick={() => setShowSourcesFor(showSourcesFor === message.id ? null : message.id)}
+                        >
+                          Fuentes ({message.metadata.sources.length})
+                        </button>
+                        {showSourcesFor === message.id && (
+                          <div className="mt-2 bg-white rounded border p-2 text-xs text-gray-700">
+                            <ul className="space-y-2">
+                              {message.metadata.sources.map((s: any) => {
+                                const getTypeLabel = (type: string) => {
+                                  switch (type) {
+                                    case 'unit': return '📚 Unidad';
+                                    case 'session': return '📹 Sesión';
+                                    case 'material': return '📄 Material';
+                                    case 'course': return '🎓 Curso';
+                                    default: return '📋 Recurso';
+                                  }
+                                };
+
+                                return (
+                                  <li key={s.id} className="flex items-start justify-between gap-2 p-2 bg-gray-50 rounded">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-1 mb-1">
+                                        <span className="text-gray-500">{getTypeLabel(s.type || 'material')}</span>
+                                      </div>
+                                      <span className="font-medium text-gray-900 block truncate">{s.title || `Recurso #${s.id}`}</span>
+                                      {s.unitId && (
+                                        <span className="text-gray-500 text-xs">Unidad relacionada</span>
+                                      )}
+                                      {s.sessionId && (
+                                        <span className="text-gray-500 text-xs ml-2">Sesión relacionada</span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-1 flex-shrink-0">
+                                      {s.url ? (
+                                        <a 
+                                          href={s.url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 hover:underline px-2 py-1 rounded hover:bg-blue-50"
+                                          title="Abrir enlace externo"
+                                        >
+                                          Abrir
+                                        </a>
+                                      ) : (
+                                        <button
+                                          className="text-blue-600 hover:underline px-2 py-1 rounded hover:bg-blue-50"
+                                          onClick={() => {
+                                            setShowCourseContent(true);
+                                            // Extraer el ID original si está en formato "type-id"
+                                            const contentId = s.id?.includes('-') ? s.id.split('-')[1] : s.id;
+                                            setHighlightMaterialId(contentId);
+                                            // Establecer el tipo de contenido
+                                            const contentType = s.type === 'unit' ? 'unit' : s.type === 'session' ? 'session' : 'material';
+                                            setHighlightType(contentType);
+                                          }}
+                                          title="Ver en panel de contenido"
+                                        >
+                                          Ver
+                                        </button>
+                                      )}
+                                    </div>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Metadatos de confianza */}
+                    {message.metadata?.confidence && (
+                      <div className="mt-2 text-xs opacity-75">
+                        Confianza: {Math.round(message.metadata.confidence * 100)}%
+                      </div>
+                    )}
+
+                    {/* Truncado: permitir continuar */}
+                    {message.role === 'assistant' && message.metadata?.truncated && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            const hint = message.metadata?.continuationHint || '';
+                            const continuePrompt = `continúa desde: ${hint}`;
+                            agentSystem.sendMessage(continuePrompt);
+                          }}
+                          className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                        >
+                          Continuar
+                        </button>
+                        <span className="text-xs text-gray-500">La respuesta se cortó por límite de tokens</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Debug: mostrar información de mensajes en desarrollo */}
+            {process.env.NODE_ENV === 'development' && agentSystem.messages.length > 0 && (
+              <div className="text-xs text-gray-400 p-2 border-t border-gray-200 mt-4 bg-gray-50 rounded">
+                <p className="font-semibold">Debug Info:</p>
+                <p>Total mensajes: {agentSystem.messages.length}</p>
+                <p>Mensajes usuario: {agentSystem.messages.filter(m => m.role === 'user').length}</p>
+                <p>Mensajes asistente: {agentSystem.messages.filter(m => m.role === 'assistant').length}</p>
+                <p>Último mensaje: {agentSystem.messages[agentSystem.messages.length - 1]?.role || 'N/A'}</p>
+              </div>
+            )}
 
             {/* Indicador de inicialización del sistema */}
             {!agentSystem.isInitialized && agentSystem.isProcessing && (
@@ -861,7 +1056,14 @@ const TutorVirtualPage: React.FC = () => {
                   <input
                     type="checkbox"
                     checked={useVoiceInput}
-                    onChange={(e) => setUseVoiceInput(e.target.checked)}
+                    onChange={(e) => {
+                      // Si el usuario intenta activar el audio y no lo ha habilitado antes, mostrar modal
+                      if (e.target.checked && !audioEnabledOnce) {
+                        setShowAudioEnableModal(true);
+                      } else {
+                        setUseVoiceInput(e.target.checked);
+                      }
+                    }}
                     className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
                   <span>🎤 Iniciar con voz (respuestas más rápidas)</span>
@@ -988,6 +1190,22 @@ const TutorVirtualPage: React.FC = () => {
         moduleId={selectedModuleId}
         highlightId={highlightMaterialId}
         highlightType={highlightType}
+      />
+
+      {/* Modal de habilitación de audio */}
+      <AudioEnableModal
+        isOpen={showAudioEnableModal}
+        onConfirm={() => {
+          setShowAudioEnableModal(false);
+          setUseVoiceInput(true);
+          setIsAudioMuted(false);
+          setAudioEnabledOnce(true);
+          // Habilitar audio en el sistema de agentes
+          agentSystem.setAudioMuted(false);
+        }}
+        onCancel={() => {
+          setShowAudioEnableModal(false);
+        }}
       />
     </div>
   );

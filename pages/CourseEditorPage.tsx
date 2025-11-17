@@ -10,7 +10,7 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import { UnitEditorModal } from '../components/UnitEditorModal';
 import { SessionEditorModal } from '../components/SessionEditorModal';
-import { IconEye } from '../components/Icons';
+import { IconEye, IconCards, IconChevronDown, IconChevronUp } from '../components/Icons';
 import { uploadCourseMedia, uploadCourseDocument, UploadResult } from '../services/storageService';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { VideoTranscriptService } from '../services/videoTranscriptService';
@@ -36,6 +36,7 @@ export const CourseEditorPage: React.FC = () => {
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [uploadingMaterial, setUploadingMaterial] = useState(false);
   const [materialUploadInfo, setMaterialUploadInfo] = useState<string | null>(null);
+  const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
   const materialFileInputRef = useRef<HTMLInputElement | null>(null);
   const materialUploadAbortController = useRef<AbortController | null>(null);
   const MAX_FILE_SIZE = 35 * 1024 * 1024;
@@ -593,60 +594,97 @@ export const CourseEditorPage: React.FC = () => {
             </Card>
           ) : (
             <div className="space-y-3">
-              {units.map((unit) => (
-                <Card key={unit.id}>
-                  <div className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold">Unidad {unit.number}: {unit.title}</h3>
-                          {unit.thumbnail_url && (
-                            <img src={unit.thumbnail_url} alt={unit.title} className="w-16 h-16 object-cover rounded" />
+              {units.map((unit) => {
+                const isExpanded = expandedUnits.has(unit.id);
+                const toggleUnit = () => {
+                  setExpandedUnits(prev => {
+                    const newSet = new Set(prev);
+                    if (newSet.has(unit.id)) {
+                      newSet.delete(unit.id);
+                    } else {
+                      newSet.add(unit.id);
+                    }
+                    return newSet;
+                  });
+                };
+
+                return (
+                  <Card key={unit.id}>
+                    <div className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <button
+                              onClick={toggleUnit}
+                              className="flex items-center gap-2 hover:bg-gray-100 rounded px-2 py-1 transition-colors"
+                              title={isExpanded ? "Plegar unidad" : "Desplegar unidad"}
+                            >
+                              {isExpanded ? (
+                                <IconChevronUp className="w-5 h-5 text-gray-600" />
+                              ) : (
+                                <IconChevronDown className="w-5 h-5 text-gray-600" />
+                              )}
+                              <h3 className="font-semibold">Unidad {unit.number}: {unit.title}</h3>
+                            </button>
+                            {unit.thumbnail_url && (
+                              <img src={unit.thumbnail_url} alt={unit.title} className="w-16 h-16 object-cover rounded" />
+                            )}
+                          </div>
+                          {isExpanded && (
+                            <>
+                              {unit.description && (
+                                <p className="text-gray-600 text-sm mt-1">{unit.description}</p>
+                              )}
+                              {unit.content_html && (
+                                <div 
+                                  className="mt-2 text-sm prose prose-sm max-w-none"
+                                  dangerouslySetInnerHTML={{ __html: unit.content_html }}
+                                />
+                              )}
+                              {unit.learning_objectives && unit.learning_objectives.length > 0 && (
+                                <div className="mt-2">
+                                  <p className="text-xs font-medium text-gray-700 mb-1">Objetivos:</p>
+                                  <ul className="text-xs text-gray-600 list-disc list-inside">
+                                    {unit.learning_objectives.map((obj, idx) => (
+                                      <li key={idx}>{obj}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              {unit.duration_hours && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Duración: {unit.duration_hours} horas
+                                </p>
+                              )}
+                            </>
                           )}
                         </div>
-                        {unit.description && (
-                          <p className="text-gray-600 text-sm mt-1">{unit.description}</p>
-                        )}
-                        {unit.content_html && (
-                          <div 
-                            className="mt-2 text-sm prose prose-sm max-w-none"
-                            dangerouslySetInnerHTML={{ __html: unit.content_html }}
-                          />
-                        )}
-                        {unit.learning_objectives && unit.learning_objectives.length > 0 && (
-                          <div className="mt-2">
-                            <p className="text-xs font-medium text-gray-700 mb-1">Objetivos:</p>
-                            <ul className="text-xs text-gray-600 list-disc list-inside">
-                              {unit.learning_objectives.map((obj, idx) => (
-                                <li key={idx}>{obj}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {unit.duration_hours && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            Duración: {unit.duration_hours} horas
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex space-x-2 ml-4">
-                        <Link 
-                          to={`/teacher/courses/${id}/modules/${unit.id}`}
-                          className="px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm font-medium"
-                        >
-                          🎥 Editar Unidad (con Videos)
-                        </Link>
-                        <Button size="sm" variant="secondary" onClick={() => handleEditUnit(unit)}>
-                          Editar
-                        </Button>
-                        <Button size="sm" variant="danger" onClick={() => handleDeleteUnit(unit.id)}>
-                          Eliminar
-                        </Button>
+                        <div className="flex space-x-2 ml-4">
+                          <Link 
+                            to={`/teacher/courses/${id}/modules/${unit.id}`}
+                            className="px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm font-medium"
+                          >
+                            🎥 Editar Unidad (con Videos)
+                          </Link>
+                          <Link
+                            to={`/teacher/courses/${id}/flashcards?unitId=${unit.id}`}
+                          >
+                            <Button size="sm" variant="secondary" leftIcon={<IconCards className="w-4 h-4" />}>
+                              Flashcards
+                            </Button>
+                          </Link>
+                          <Button size="sm" variant="secondary" onClick={() => handleEditUnit(unit)}>
+                            Editar
+                          </Button>
+                          <Button size="sm" variant="danger" onClick={() => handleDeleteUnit(unit.id)}>
+                            Eliminar
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
@@ -729,6 +767,13 @@ export const CourseEditorPage: React.FC = () => {
                           <Link to={`/session/${session.id}`} target="_blank">
                             <Button size="sm" variant="secondary" leftIcon={<IconEye className="w-4 h-4" />}>
                               Ver como Estudiante
+                            </Button>
+                          </Link>
+                          <Link
+                            to={`/teacher/courses/${id}/flashcards?sessionId=${session.id}${session.unit_id ? `&unitId=${session.unit_id}` : ''}`}
+                          >
+                            <Button size="sm" variant="secondary" leftIcon={<IconCards className="w-4 h-4" />}>
+                              Flashcards
                             </Button>
                           </Link>
                           <Button size="sm" variant="secondary" onClick={() => handleEditSession(session)}>

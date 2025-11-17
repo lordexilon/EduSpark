@@ -14,6 +14,7 @@ import type {
 import { supabase } from '../lib/supabase-shared';
 import { resolveGeminiApiKey } from '../utils/env';
 import { tokenMonitoring } from './tokenMonitoringService';
+import { aiUsageService } from '../../services/aiUsageService';
 
 // =====================================================
 // Tipos y Interfaces
@@ -64,10 +65,15 @@ export class RAGService {
   /**
    * Procesa una consulta RAG con contexto personalizado
    */
+  private currentContext: ConversationContext | null = null;
+
   async processQueryWithContext(
     query: string,
     context: ConversationContext
   ): Promise<SupabaseResponse<RAGResponse>> {
+    // Guardar contexto para uso posterior en registro de tokens
+    this.currentContext = context;
+    
     try {
       console.log('📚 RAGService.processQueryWithContext - Context recibido:', {
         courseId: context.courseId,
@@ -667,25 +673,50 @@ Respuesta:
           continue;
         }
 
-        // Registrar uso de tokens
+        // Registrar uso de tokens (localStorage + BD)
         const usageMetadata = data.usageMetadata;
+        let inputTokens = 0;
+        let outputTokens = 0;
+        
         if (usageMetadata) {
-          tokenMonitoring.recordTokenUsage(
-            usageMetadata.promptTokenCount || 0,
-            usageMetadata.candidatesTokenCount || 0,
-            this.model,
-            `rag_${Date.now()}`
-          );
+          inputTokens = usageMetadata.promptTokenCount || 0;
+          outputTokens = usageMetadata.candidatesTokenCount || 0;
         } else {
           // Estimación si no hay metadata
-          const estimatedInputTokens = Math.ceil(prompt.length / 4);
-          const estimatedOutputTokens = Math.ceil((text?.length || 100) / 4);
-          tokenMonitoring.recordTokenUsage(
-            estimatedInputTokens,
-            estimatedOutputTokens,
-            this.model,
-            `rag_${Date.now()}`
-          );
+          inputTokens = Math.ceil(prompt.length / 4);
+          outputTokens = Math.ceil((text?.length || 100) / 4);
+        }
+        
+        // Registrar en localStorage (sistema existente)
+        tokenMonitoring.recordTokenUsage(
+          inputTokens,
+          outputTokens,
+          this.model,
+          `rag_${Date.now()}`
+        );
+        
+        // Registrar en BD para reportes de administración
+        try {
+          if (this.currentContext?.studentId) {
+            await aiUsageService.recordUsage({
+              userId: this.currentContext.studentId,
+              courseId: this.currentContext.courseId ? parseInt(this.currentContext.courseId) : undefined,
+              sessionId: this.currentContext.sessionId,
+              model: this.model,
+              requestType: 'chat',
+              conversationId: this.currentContext.conversationId,
+              inputTokens,
+              outputTokens,
+              requestId: `rag_${Date.now()}`,
+              metadata: {
+                promptLength: prompt.length,
+                responseLength: text?.length || 0
+              }
+            });
+          }
+        } catch (error) {
+          // No fallar si no se puede guardar en BD
+          console.warn('⚠️ No se pudo registrar uso en BD:', error);
         }
 
         clearTimeout(emergencyTimeout);

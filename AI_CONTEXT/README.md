@@ -5,6 +5,13 @@
 
 ---
 
+## 🎯 Presentaciones
+
+- **`PRESENTACION_SIMPLE_EDUSPARK.md`** - 🎓 Presentación simple: ¿Qué es EduSpark y qué lo diferencia? ⭐ NUEVO - FÁCIL DE ENTENDER
+- **`PRESENTACION_EJECUTIVA_ENERO_2025.md`** - 📊 Presentación ejecutiva completa del proyecto (técnica)
+
+---
+
 ## 🎯 Documentos Esenciales (Root)
 
 ### 📊 Schema y Estructura
@@ -20,6 +27,11 @@
 
 ### 🎓 Implementaciones
 - **`IMPLEMENTACION_BREADCRUMBS.md`** - Sistema de navegación
+- **`SISTEMA_ANALYTICS_TUTOR_IA.md`** - 📊 Sistema completo de analytics y evaluación de participación ⭐ ACTUALIZADO
+- **`METODOLOGIA_EVALUACION_PARTICIPACION.md`** - 📐 Metodología detallada de evaluación y validación ⭐ NUEVO
+- **`MEJORAS_ANALYTICS_COORDINADORES.md`** - 🚀 Mejoras recientes: Analytics para coordinadores y administradores ⭐ NUEVO
+- **`ANALISIS_FLASHCARDS_INTERACTIVAS.md`** - 🎴 Análisis y recomendación: Flashcards interactivas con imágenes ⭐ NUEVO
+- **`PLAN_IMPLEMENTACION_FLASHCARDS.md`** - 📋 Plan técnico detallado de implementación de flashcards ⭐ NUEVO
 - **`FLUJO_EVALUACION_MEJORADO.md`** - 📊 **NUEVO** - Flujo de evaluación para estudiantes
 - **`PLAN_IMPLEMENTACION_QUIZZES.md`** - 📊 **NUEVO** - Plan completo de quizzes
 - **`MEJORAS_SISTEMA_MENSAJERIA_TUTOR.md`** - 💬🤖 **NUEVO** - Sistema de mensajería y tutor AI mejorados

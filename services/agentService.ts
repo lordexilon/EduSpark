@@ -36,6 +36,7 @@ type AgentRequest = {
     title?: string;
     teacherId?: string;
     moduleId?: string;
+    sessionId?: string;
   };
 };
 
@@ -262,6 +263,7 @@ export async function getAgentAssistantResponse(
   options: {
     conversationId?: string;
     studentId?: string;
+    sessionId?: string;
     studentProfile?: StudentProfileData | null;
     studentProgress?: StudentProgressData | null;
     priority?: 'low' | 'normal' | 'high';
@@ -269,10 +271,12 @@ export async function getAgentAssistantResponse(
     skipAutoFetch?: boolean;
   } = {}
 ): Promise<string> {
-  // Validación de configuración
+  // ⚠️ DEPRECADO: Este servicio está diseñado para una futura integración externa
+  // Actualmente el sistema usa A2A LOCAL (audio-tutor/hooks/useAgentSystem)
+  // Este servicio se mantiene solo para compatibilidad futura
   if (!A2A_COORDINATOR_URL) {
-    console.error('❌ AgentService: VITE_A2A_COORDINATOR_URL no está configurada');
-    throw new Error('El coordinador A2A no está configurado. Define VITE_A2A_COORDINATOR_URL.');
+    console.warn('⚠️ AgentService: VITE_A2A_COORDINATOR_URL no está configurada. Este servicio está deprecado. Usa el sistema A2A local (useAgentSystem) en su lugar.');
+    throw new Error('Este servicio está deprecado. Por favor, usa el sistema A2A local (useAgentSystem hook) que funciona completamente en el frontend.');
   }
 
   // Validación de parámetros
@@ -337,7 +341,12 @@ export async function getAgentAssistantResponse(
     priority: options.priority || 'normal',
     messageType: options.messageType || 'question',
     expectsResponse: true,
-    courseContext,
+    courseContext: courseContext ? {
+      ...courseContext,
+      sessionId: options.sessionId,
+    } : options.sessionId ? {
+      sessionId: options.sessionId,
+    } : undefined,
   };
 
   // Logging estructurado (inspirado en AOIGO)

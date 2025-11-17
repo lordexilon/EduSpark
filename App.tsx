@@ -38,6 +38,7 @@ import PrivacyPage from './pages/PrivacyPage.tsx';
 import TermsPage from './pages/TermsPage.tsx';
 // Tutor Virtual
 import TutorVirtualPage from './pages/TutorVirtualPage.tsx';
+import TeacherTutorAnalyticsPage from './pages/TeacherTutorAnalyticsPage.tsx';
 import CourseModulesPage from './pages/CourseModulesPage.tsx';
 import ModuleEditorPage from './pages/ModuleEditorPage.tsx';
 import StudentsManagementPage from './pages/StudentsManagementPage.tsx';
@@ -54,6 +55,11 @@ import ForumTopicPage from './pages/ForumTopicPage.tsx';
 import AnnouncementsPage from './pages/AnnouncementsPage.tsx';
 import CreateAnnouncementPage from './pages/CreateAnnouncementPage.tsx';
 import AnnouncementStatsPage from './pages/AnnouncementStatsPage.tsx';
+import AIUsageReportPage from './pages/AIUsageReportPage.tsx';
+import { FlashcardBuilderPage } from './pages/FlashcardBuilderPage.tsx';
+import { FlashcardStudyPage } from './pages/FlashcardStudyPage.tsx';
+import { TeacherFlashcardsPage } from './pages/TeacherFlashcardsPage.tsx';
+import { StudentFlashcardsPage } from './pages/StudentFlashcardsPage.tsx';
 
 // This component handles the conditional rendering of routes based on authentication.
 const AppRoutes: React.FC = () => {
@@ -116,6 +122,7 @@ const AppRoutes: React.FC = () => {
             <Routes>
               <Route path="/" element={<Navigate to="/teacher/dashboard" replace />} />
               <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} />
+              <Route path="/teacher/flashcards" element={<TeacherFlashcardsPage />} />
               <Route path="/teacher/courses" element={<TeacherCoursesPage />} />
               <Route path="/teacher/courses/new" element={<CreateCoursePage />} />
               <Route path="/teacher/courses/:id" element={<CourseEditorPage />} />
@@ -141,12 +148,15 @@ const AppRoutes: React.FC = () => {
               <Route path="/teacher/forums" element={<ForumsPage />} />
               <Route path="/forum/:topicId" element={<ForumTopicPage />} />
               <Route path="/teacher/tutor" element={<TutorVirtualPage />} />
+              <Route path="/teacher/tutor-analytics" element={<TeacherTutorAnalyticsPage />} />
+              <Route path="/teacher/courses/:courseId/flashcards" element={<FlashcardBuilderPage />} />
               <Route path="/teacher/students" element={<StudentsManagementPage />} />
               <Route path="/teacher/messages" element={<MessagingPage />} />
               {/* Admin routes - Solo accesibles para admin y coordinator */}
               <Route path="/admin/modules" element={<AdminRoute><AdminModulesPage /></AdminRoute>} />
               <Route path="/admin/all-courses" element={<AdminRoute><div>Todos los Cursos - En desarrollo</div></AdminRoute>} />
               <Route path="/admin/users" element={<AdminRoute><UsersManagementPage /></AdminRoute>} />
+              <Route path="/admin/ai-usage" element={<AdminRoute><AIUsageReportPage /></AdminRoute>} />
               <Route path="/admin/settings" element={<AdminRoute><SettingsPage /></AdminRoute>} />
               <Route path="/admin/settings/system" element={<AdminRoute><div>Configuración del Sistema - En desarrollo</div></AdminRoute>} />
               {/* Fase 1 - Gestión Académica (Admin/Coordinator) */}
@@ -181,6 +191,8 @@ const AppRoutes: React.FC = () => {
         <Route path="/forums" element={<ForumsPage />} />
         <Route path="/forum/:topicId" element={<ForumTopicPage />} />
         <Route path="/tutor" element={<TutorVirtualPage />} />
+        <Route path="/flashcards" element={<StudentFlashcardsPage />} />
+        <Route path="/courses/:courseId/flashcards" element={<FlashcardStudyPage />} />
         <Route path="/messages" element={<MessagingPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

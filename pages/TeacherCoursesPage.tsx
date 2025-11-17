@@ -3,15 +3,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { courseService, Course } from '../services/teacherCourses';
+import { courseService, unitService, sessionService, Course, CourseUnit, Session } from '../services/teacherCourses';
 import { subjectService, careerService, Subject, Career } from '../services/academicService';
 import { useAuth } from '../hooks/useAuth';
 import Card from '../components/Card';
 import Button from '../components/Button';
+import { IconBookOpen, IconChevronRight } from '../components/Icons';
 
 interface CourseWithAcademic extends Course {
   subject?: Subject | null;
   career?: Career | null;
+  units?: CourseUnit[];
+  sessions?: Session[];
 }
 
 export const TeacherCoursesPage: React.FC = () => {
@@ -27,6 +30,8 @@ export const TeacherCoursesPage: React.FC = () => {
   const [careers, setCareers] = useState<Career[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'hierarchy'>('grid');
+  const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
+  const [expandedCourses, setExpandedCourses] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (user?.id) {
@@ -59,11 +64,13 @@ export const TeacherCoursesPage: React.FC = () => {
       setLoading(true);
       const data = await courseService.getMyCourses(user!.id);
       
-      // Cargar información académica para cada curso
+      // Cargar información académica y unidades para cada curso
       const coursesWithAcademic: CourseWithAcademic[] = await Promise.all(
         data.map(async (course) => {
           let subject: Subject | null = null;
           let career: Career | null = null;
+          let units: CourseUnit[] = [];
+          let sessions: Session[] = [];
           
           if (course.subject_id) {
             try {
@@ -76,10 +83,22 @@ export const TeacherCoursesPage: React.FC = () => {
             }
           }
           
+          // Cargar unidades y sesiones del curso
+          try {
+            [units, sessions] = await Promise.all([
+              unitService.getCourseUnits(course.id),
+              sessionService.getCourseSessions(course.id)
+            ]);
+          } catch (err) {
+            console.error('Error loading units/sessions for course:', course.id, err);
+          }
+          
           return {
             ...course,
             subject,
-            career
+            career,
+            units,
+            sessions
           };
         })
       );
@@ -305,101 +324,265 @@ export const TeacherCoursesPage: React.FC = () => {
           </div>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((course) => (
-            <Card key={course.id} className="hover:shadow-lg transition-shadow">
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{course.title}</h3>
-                    {course.code && (
-                      <p className="text-sm text-gray-500 mt-1">Código: {course.code}</p>
-                    )}
-                    {(course as CourseWithAcademic).subject && (
-                      <div className="mt-2 space-y-1">
-                        {(course as CourseWithAcademic).career && (
+        <div className="space-y-6">
+          {courses.map((course) => {
+            const courseWithData = course as CourseWithAcademic;
+            const courseUnits = courseWithData.units || [];
+            const courseSessions = courseWithData.sessions || [];
+            const isCourseExpanded = expandedCourses.has(course.id);
+            const sessionsByUnit: Record<string, Session[]> = {};
+            
+            // Agrupar sesiones por unidad
+            courseSessions.forEach(session => {
+              const unitId = session.unit_id || 'sin-unidad';
+              if (!sessionsByUnit[unitId]) {
+                sessionsByUnit[unitId] = [];
+              }
+              sessionsByUnit[unitId].push(session);
+            });
+
+            const toggleCourse = () => {
+              setExpandedCourses(prev => {
+                const newSet = new Set(prev);
+                if (newSet.has(course.id)) {
+                  newSet.delete(course.id);
+                } else {
+                  newSet.add(course.id);
+                }
+                return newSet;
+              });
+            };
+
+            const toggleUnit = (unitId: string) => {
+              setExpandedUnits(prev => {
+                const newSet = new Set(prev);
+                if (newSet.has(unitId)) {
+                  newSet.delete(unitId);
+                } else {
+                  newSet.add(unitId);
+                }
+                return newSet;
+              });
+            };
+
+            return (
+              <Card key={course.id} className="hover:shadow-lg transition-shadow">
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <button
+                          onClick={toggleCourse}
+                          className="flex items-center gap-2 hover:bg-gray-100 rounded px-2 py-1 transition-colors"
+                          title={isCourseExpanded ? "Ocultar unidades" : "Mostrar unidades"}
+                        >
+                          <IconChevronRight
+                            className={`w-5 h-5 text-gray-600 transition-transform ${
+                              isCourseExpanded ? 'transform rotate-90' : ''
+                            }`}
+                          />
+                          <h3 className="text-lg font-semibold text-gray-900">{course.title}</h3>
+                        </button>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(course.status)}`}>
+                          {getStatusText(course.status)}
+                        </span>
+                      </div>
+                      {course.code && (
+                        <p className="text-sm text-gray-500 ml-7">Código: {course.code}</p>
+                      )}
+                      {courseWithData.subject && (
+                        <div className="mt-2 ml-7 space-y-1">
+                          {courseWithData.career && (
+                            <div className="flex items-center gap-1 text-xs">
+                              <span className="text-gray-500">Carrera:</span>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  navigate(`/admin/careers?careerId=${courseWithData.career?.id}`);
+                                }}
+                                className="text-purple-600 hover:text-purple-800 hover:underline font-medium"
+                              >
+                                {courseWithData.career?.name}
+                              </button>
+                            </div>
+                          )}
                           <div className="flex items-center gap-1 text-xs">
-                            <span className="text-gray-500">Carrera:</span>
+                            <span className="text-gray-500">Materia:</span>
                             <button
                               onClick={(e) => {
                                 e.preventDefault();
-                                navigate(`/admin/careers?careerId=${(course as CourseWithAcademic).career?.id}`);
+                                navigate(`/admin/subjects?subjectId=${courseWithData.subject?.id}`);
                               }}
-                              className="text-purple-600 hover:text-purple-800 hover:underline font-medium"
+                              className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
                             >
-                              {(course as CourseWithAcademic).career?.name}
+                              {courseWithData.subject?.name}
                             </button>
                           </div>
-                        )}
-                        <div className="flex items-center gap-1 text-xs">
-                          <span className="text-gray-500">Materia:</span>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              navigate(`/admin/subjects?subjectId=${(course as CourseWithAcademic).subject?.id}`);
-                            }}
-                            className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
-                          >
-                            {(course as CourseWithAcademic).subject?.name}
-                          </button>
+                          {course.academic_period && (
+                            <p className="text-xs text-gray-500">
+                              Período: {course.academic_period}
+                            </p>
+                          )}
                         </div>
-                        {course.academic_period && (
-                          <p className="text-xs text-gray-500">
-                            Período: {course.academic_period}
+                      )}
+                      {!courseWithData.subject && (
+                        <div className="mt-2 ml-7">
+                          <p className="text-xs text-yellow-600 italic">
+                            Sin materia asignada - <Link to={`/teacher/courses/${course.id}/edit`} className="underline">Asignar materia</Link>
                           </p>
-                        )}
-                      </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {course.description && (
+                    <p className="text-gray-600 text-sm mb-4 ml-7 line-clamp-2">{course.description}</p>
+                  )}
+
+                  <div className="text-xs text-gray-500 mb-4 ml-7">
+                    Creado: {new Date(course.created_at).toLocaleDateString()}
+                    {courseUnits.length > 0 && (
+                      <span className="ml-2">• {courseUnits.length} {courseUnits.length === 1 ? 'unidad' : 'unidades'}</span>
                     )}
-                    {!(course as CourseWithAcademic).subject && (
-                      <div className="mt-2">
-                        <p className="text-xs text-yellow-600 italic">
-                          Sin materia asignada - <Link to={`/teacher/courses/${course.id}/edit`} className="underline">Asignar materia</Link>
-                        </p>
-                      </div>
+                    {courseSessions.length > 0 && (
+                      <span className="ml-2">• {courseSessions.length} {courseSessions.length === 1 ? 'sesión' : 'sesiones'}</span>
                     )}
                   </div>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(course.status)}`}>
-                    {getStatusText(course.status)}
-                  </span>
-                </div>
 
-                {course.description && (
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{course.description}</p>
-                )}
+                  {/* Unidades del curso (formato similar a CourseViewPage) */}
+                  {isCourseExpanded && courseUnits.length > 0 && (
+                    <div className="mt-4 ml-7 space-y-4 border-t border-gray-200 pt-4">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                        Unidades del Curso ({courseUnits.length})
+                      </h4>
+                      {courseUnits.map((unit) => {
+                        const unitSessions = sessionsByUnit[unit.id] || [];
+                        const isExpanded = expandedUnits.has(unit.id);
+                        
+                        return (
+                          <Card key={unit.id} className="overflow-hidden">
+                            <div
+                              className="cursor-pointer p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+                              onClick={() => toggleUnit(unit.id)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                                    <span className="text-primary font-semibold text-sm">
+                                      {unit.number}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <h5 className="text-lg font-semibold text-gray-900">
+                                      {unit.title}
+                                    </h5>
+                                    {unit.description && (
+                                      <p className="text-sm text-gray-600 mt-1">{unit.description}</p>
+                                    )}
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      {unitSessions.length} {unitSessions.length === 1 ? 'sesión' : 'sesiones'}
+                                    </p>
+                                  </div>
+                                </div>
+                                <IconChevronRight
+                                  className={`w-5 h-5 text-gray-400 transition-transform ${
+                                    isExpanded ? 'transform rotate-90' : ''
+                                  }`}
+                                />
+                              </div>
+                            </div>
 
-                <div className="text-xs text-gray-500 mb-4">
-                  Creado: {new Date(course.created_at).toLocaleDateString()}
-                </div>
+                            {isExpanded && (
+                              <div className="border-t border-gray-200 p-4 space-y-4">
+                                {/* Contenido de la Unidad */}
+                                {unit.content_html && (
+                                  <div className="prose prose-sm max-w-none">
+                                    <div 
+                                      className="unit-content"
+                                      dangerouslySetInnerHTML={{ __html: unit.content_html }}
+                                    />
+                                  </div>
+                                )}
+                                {!unit.content_html && unit.content_markdown && (
+                                  <div className="prose prose-sm max-w-none">
+                                    <div 
+                                      className="unit-content whitespace-pre-wrap"
+                                    >
+                                      {unit.content_markdown}
+                                    </div>
+                                  </div>
+                                )}
+                                {!unit.content_html && !unit.content_markdown && unit.description && (
+                                  <div className="prose prose-sm max-w-none">
+                                    <p className="text-gray-700">{unit.description}</p>
+                                  </div>
+                                )}
+                                
+                                {/* Objetivos de Aprendizaje */}
+                                {unit.learning_objectives && unit.learning_objectives.length > 0 && (
+                                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <h4 className="text-sm font-semibold text-blue-900 mb-2">
+                                      Objetivos de Aprendizaje
+                                    </h4>
+                                    <ul className="list-disc list-inside space-y-1">
+                                      {unit.learning_objectives.map((objective, idx) => (
+                                        <li key={idx} className="text-sm text-blue-800">{objective}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
 
-                <div className="flex space-x-2">
-                  <Link 
-                    to={`/teacher/courses/${course.id}`}
-                    className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors text-center"
-                  >
-                    Ver Curso
-                  </Link>
-                  <Link 
-                    to={`/teacher/courses/${course.id}/modules`}
-                    className="flex-1 bg-indigo-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors text-center"
-                  >
-                    Módulos
-                  </Link>
-                  <Link 
-                    to={`/teacher/courses/${course.id}/edit`}
-                    className="flex-1 bg-gray-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors text-center"
-                  >
-                    Editar
-                  </Link>
-                  <button
-                    onClick={() => handleDeleteCourse(course.id)}
-                    className="bg-red-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-red-700 transition-colors"
-                  >
-                    Eliminar
-                  </button>
+                                {unit.duration_hours && (
+                                  <p className="text-xs text-gray-500">
+                                    Duración: {unit.duration_hours} horas
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {isCourseExpanded && courseUnits.length === 0 && (
+                    <div className="mt-4 ml-7 border-t border-gray-200 pt-4">
+                      <p className="text-sm text-gray-500 text-center py-4">
+                        Este curso aún no tiene unidades definidas.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex space-x-2 mt-4">
+                    <Link 
+                      to={`/teacher/courses/${course.id}`}
+                      className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors text-center"
+                    >
+                      Ver Curso
+                    </Link>
+                    <Link 
+                      to={`/teacher/courses/${course.id}/modules`}
+                      className="flex-1 bg-indigo-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors text-center"
+                    >
+                      Módulos
+                    </Link>
+                    <Link 
+                      to={`/teacher/courses/${course.id}/edit`}
+                      className="flex-1 bg-gray-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors text-center"
+                    >
+                      Editar
+                    </Link>
+                    <button
+                      onClick={() => handleDeleteCourse(course.id)}
+                      className="bg-red-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-red-700 transition-colors"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

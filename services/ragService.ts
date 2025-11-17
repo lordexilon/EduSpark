@@ -1,11 +1,13 @@
 // services/ragService.ts
-// Servicio RAG optimizado con caché inteligente y agendamiento
-// Inspirado en la arquitectura A2A de AOIGO, adaptado para contexto educativo
+// ⚠️ DEPRECADO: Este servicio usa n8n y está siendo reemplazado por agentService.ts (A2A)
+// Por favor, usa getAgentAssistantResponse de agentService.ts en su lugar
+// Este archivo se mantiene solo para compatibilidad temporal
 
 // =====================================================
 // CONFIGURACIÓN Y CONSTANTES
 // =====================================================
 
+// DEPRECADO: Usar VITE_A2A_COORDINATOR_URL en agentService.ts
 const N8N_WEBHOOK_URL = (import.meta as any).env?.VITE_N8N_WEBHOOK_URL || 'https://applicandola.auto.hostybee.com/webhook/tutor-chat';
 
 // Configuración de caché (inspirada en AOIGO)
@@ -50,6 +52,7 @@ interface RAGRequest {
     title?: string;
     teacherId?: string;
     moduleId?: string;
+    sessionId?: string;
   };
   priority?: 'high' | 'normal' | 'low';
   skipCache?: boolean;
@@ -430,8 +433,9 @@ async function fetchWithRetry(
 async function executeRAGQuery(request: RAGRequest): Promise<RAGResponse> {
   const startTime = Date.now();
 
+  // DEPRECADO: Este servicio está siendo reemplazado por agentService.ts
   if (!N8N_WEBHOOK_URL || N8N_WEBHOOK_URL.includes('YOUR_N8N_INSTANCE_URL')) {
-    throw new Error('La conexión con el asistente de IA no está configurada. Configura VITE_N8N_WEBHOOK_URL.');
+    throw new Error('⚠️ DEPRECADO: Este servicio usa n8n. Por favor, usa agentService.ts con VITE_A2A_COORDINATOR_URL configurado.');
   }
 
   // Construir payload optimizado con datos del sistema
@@ -446,7 +450,10 @@ async function executeRAGQuery(request: RAGRequest): Promise<RAGResponse> {
     courseContext: request.courseContext,
     // Metadata adicional
     conversationId: request.conversationId,
-    metadata: request.metadata,
+    metadata: {
+      ...request.metadata,
+      sessionId: request.courseContext?.sessionId,
+    },
     timestamp: new Date().toISOString(),
   };
 
@@ -473,7 +480,7 @@ async function executeRAGQuery(request: RAGRequest): Promise<RAGResponse> {
 
   if (!response.ok) {
     const errorBody = await response.text();
-    console.error('❌ RAGService: Error en respuesta de n8n:', response.status, errorBody);
+    console.error('❌ RAGService (DEPRECADO - usar agentService): Error en respuesta de n8n:', response.status, errorBody);
     throw new Error(`El servidor respondió con un error: ${response.status}`);
   }
 
@@ -537,6 +544,7 @@ export async function getAiAssistantResponse(
     studentId?: string;
     conversationId?: string;
     moduleId?: string;
+    sessionId?: string;
     studentProfile?: RAGRequest['studentProfile'];
     studentProgress?: RAGRequest['studentProgress'];
     courseContext?: RAGRequest['courseContext'];
@@ -593,10 +601,18 @@ export async function getAiAssistantResponse(
     moduleId: options.moduleId,
     studentProfile: finalStudentProfile,
     studentProgress: finalStudentProgress,
-    courseContext: finalCourseContext,
+    courseContext: finalCourseContext ? {
+      ...finalCourseContext,
+      sessionId: options.sessionId,
+    } : options.sessionId ? {
+      sessionId: options.sessionId,
+    } : undefined,
     priority: options.priority || 'normal',
     skipCache: options.skipCache,
-    metadata: options.metadata,
+    metadata: {
+      ...options.metadata,
+      sessionId: options.sessionId,
+    },
   };
 
   // Verificar caché si no se omite

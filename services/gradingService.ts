@@ -10,6 +10,7 @@ export interface SubjectGradingWeights {
   exam1_weight: number;
   exam2_weight: number;
   final_exam_weight: number;
+  flashcards_weight?: number; // Opcional: ponderación de flashcards
   allow_custom_weights: boolean;
   created_at: string;
   updated_at: string;
@@ -23,6 +24,7 @@ export interface StudentFinalGrade {
   exam1Score: number | null;
   exam2Score: number | null;
   finalExamScore: number | null;
+  flashcardsScore: number | null; // Porcentaje de flashcards dominadas
   finalGrade: number | null;
   weights: SubjectGradingWeights | null;
   breakdown: {
@@ -30,6 +32,7 @@ export interface StudentFinalGrade {
     exam1Contribution: number;
     exam2Contribution: number;
     finalExamContribution: number;
+    flashcardsContribution: number; // Contribución de flashcards
   };
 }
 
@@ -181,7 +184,8 @@ export const gradingService = {
           quizzesContribution: 0,
           exam1Contribution: 0,
           exam2Contribution: 0,
-          finalExamContribution: 0
+          finalExamContribution: 0,
+          flashcardsContribution: 0
         }
       };
     }
@@ -210,13 +214,15 @@ export const gradingService = {
         exam1Score: null,
         exam2Score: null,
         finalExamScore: null,
+        flashcardsScore: null,
         finalGrade: null,
         weights,
         breakdown: {
           quizzesContribution: 0,
           exam1Contribution: 0,
           exam2Contribution: 0,
-          finalExamContribution: 0
+          finalExamContribution: 0,
+          flashcardsContribution: 0
         }
       };
     }
@@ -320,25 +326,40 @@ export const gradingService = {
     const exam2Score = regularExams[1]?.percentage || null;
     const finalExamScore = finalExams[0]?.percentage || null;
 
+    // Calcular score de flashcards (porcentaje de dominio)
+    let flashcardsScore: number | null = null;
+    if (weights.flashcards_weight && weights.flashcards_weight > 0) {
+      try {
+        const { getFlashcardMasteryPercentage } = await import('./flashcardService');
+        flashcardsScore = await getFlashcardMasteryPercentage(studentId, courseId);
+      } catch (error) {
+        console.warn('Error calculando score de flashcards:', error);
+        flashcardsScore = null;
+      }
+    }
+
     // Calcular nota final ponderada
     let finalGrade: number | null = null;
     const breakdown = {
       quizzesContribution: 0,
       exam1Contribution: 0,
       exam2Contribution: 0,
-      finalExamContribution: 0
+      finalExamContribution: 0,
+      flashcardsContribution: 0
     };
 
-    if (quizzesAverage !== null || exam1Score !== null || exam2Score !== null || finalExamScore !== null) {
+    if (quizzesAverage !== null || exam1Score !== null || exam2Score !== null || finalExamScore !== null || flashcardsScore !== null) {
       breakdown.quizzesContribution = (quizzesAverage || 0) * (weights.quizzes_weight / 100);
       breakdown.exam1Contribution = (exam1Score || 0) * (weights.exam1_weight / 100);
       breakdown.exam2Contribution = (exam2Score || 0) * (weights.exam2_weight / 100);
       breakdown.finalExamContribution = (finalExamScore || 0) * (weights.final_exam_weight / 100);
+      breakdown.flashcardsContribution = (flashcardsScore || 0) * ((weights.flashcards_weight || 0) / 100);
       
       finalGrade = breakdown.quizzesContribution + 
                    breakdown.exam1Contribution + 
                    breakdown.exam2Contribution + 
-                   breakdown.finalExamContribution;
+                   breakdown.finalExamContribution +
+                   breakdown.flashcardsContribution;
       
       // Redondear a 2 decimales
       finalGrade = Math.round(finalGrade * 100) / 100;
@@ -352,6 +373,7 @@ export const gradingService = {
       exam1Score,
       exam2Score,
       finalExamScore,
+      flashcardsScore,
       finalGrade,
       weights,
       breakdown

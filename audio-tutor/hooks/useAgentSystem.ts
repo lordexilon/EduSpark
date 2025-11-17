@@ -203,7 +203,21 @@ export const useAgentSystem = (courseId: string) => {
         metadata: {}
       };
 
-      setMessages(prev => [...prev, userMessage]);
+      console.log('📤 useAgentSystem: Agregando mensaje del usuario:', { 
+        id: userMessage.id, 
+        text: userMessage.text.substring(0, 50),
+        role: userMessage.role 
+      });
+
+      setMessages(prev => {
+        const newMessages = [...prev, userMessage];
+        console.log('📋 useAgentSystem: Total mensajes después de agregar:', {
+          total: newMessages.length,
+          usuarios: newMessages.filter(m => m.role === 'user').length,
+          asistentes: newMessages.filter(m => m.role === 'assistant').length
+        });
+        return newMessages;
+      });
 
       // Procesar con el coordinador
       const response: AgentResponse = await coordinator.handleUserInput(text);
@@ -255,27 +269,101 @@ export const useAgentSystem = (courseId: string) => {
 
       // Crear un Blob de audio vacío para indicar que es entrada de voz
       const audioBlob = new Blob([], { type: 'audio/wav' });
-      const response: AgentResponse = await coordinator.handleUserInput(audioBlob);
-
-      if (response.success) {
-        const assistantMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          text: response.message,
-          timestamp: new Date(),
-          metadata: {
-            confidence: response.metadata?.confidence,
-            sources: response.metadata?.sources,
-            audioUrl: response.audioUrl
+      
+      // Obtener el mensaje reconocido ANTES de procesar (necesitamos el texto para mostrarlo)
+      // El coordinador procesará el reconocimiento de voz internamente
+      let recognizedText: string | null = null;
+      
+      try {
+        // Intentar obtener el texto reconocido del coordinador antes de procesar
+        // Nota: Esto es una aproximación - el coordinador procesará el reconocimiento internamente
+        // Necesitamos obtener el texto después de que se reconozca
+        const response: AgentResponse = await coordinator.handleUserInput(audioBlob);
+        
+        // El coordinador ya procesó el reconocimiento, pero no tenemos acceso directo al texto
+        // Necesitamos obtenerlo de otra manera o modificar el AgentResponse para incluirlo
+        
+        // Por ahora, agregar un mensaje placeholder que se actualizará
+        // O mejor: modificar el flujo para que el coordinador devuelva el texto reconocido
+        
+        if (response.success) {
+          // Intentar obtener el texto del mensaje del usuario desde los metadatos si está disponible
+          recognizedText = (response.metadata as any)?.userMessage || null;
+          
+          // Si no está en los metadatos, usar un placeholder temporal
+          if (!recognizedText) {
+            recognizedText = '[Mensaje de voz]'; // Placeholder
           }
-        };
+          
+          // Agregar mensaje del usuario
+          const userMessage: ChatMessage = {
+            id: Date.now().toString(),
+            role: 'user',
+            text: recognizedText,
+            timestamp: new Date(),
+            metadata: { voiceInput: true }
+          };
 
-        setMessages(prev => [...prev, assistantMessage]);
+          console.log('📤 useAgentSystem (voz): Agregando mensaje del usuario:', { 
+            id: userMessage.id, 
+            text: userMessage.text.substring(0, 50),
+            role: userMessage.role 
+          });
+
+          setMessages(prev => {
+            const newMessages = [...prev, userMessage];
+            console.log('📋 useAgentSystem (voz): Total mensajes después de agregar usuario:', {
+              total: newMessages.length,
+              usuarios: newMessages.filter(m => m.role === 'user').length,
+              asistentes: newMessages.filter(m => m.role === 'assistant').length
+            });
+            return newMessages;
+          });
+
+          // Agregar respuesta del asistente
+          const assistantMessage: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            text: response.message,
+            timestamp: new Date(),
+            metadata: {
+              confidence: response.metadata?.confidence,
+              sources: response.metadata?.sources,
+              audioUrl: response.audioUrl
+            }
+          };
+
+          setMessages(prev => [...prev, assistantMessage]);
+        } else {
+          // Si falla, agregar mensaje de error del asistente
+          const errorMessage: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            text: response.message || 'Error al procesar el mensaje de voz',
+            timestamp: new Date(),
+            metadata: { error: true }
+          };
+
+          setMessages(prev => [...prev, errorMessage]);
+        }
+      } catch (voiceError) {
+        throw voiceError;
       }
 
     } catch (error) {
       console.error('Error sending voice message:', error);
       setError(error instanceof Error ? error.message : 'Error al procesar audio');
+      
+      // Agregar mensaje de error
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        text: 'Error al procesar el mensaje de voz. Por favor, intenta escribir tu mensaje.',
+        timestamp: new Date(),
+        metadata: { error: true }
+      };
+
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsProcessing(false);
     }

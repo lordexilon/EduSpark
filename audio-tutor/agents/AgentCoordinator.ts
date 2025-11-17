@@ -30,7 +30,7 @@ export class AgentCoordinator {
   private eventListeners: AgentEventListener[] = [];
   private isProcessing: boolean = false;
   private currentContext: FullContext | null = null;
-  private audioMuted: boolean = false;
+  private audioMuted: boolean = true; // Audio desactivado por defecto
 
   constructor(
     voiceAgent?: VoiceAgent,
@@ -179,7 +179,7 @@ export class AgentCoordinator {
     console.log('🛑 Solicitud cancelada por el usuario');
   }
 
-  async handleUserInput(input: string | AudioBlob): Promise<AgentResponse> {
+  async handleUserInput(input: string | Blob): Promise<AgentResponse> {
     // Resetear flag de cancelación
     this.cancelCurrentRequest = false;
     
@@ -199,18 +199,32 @@ export class AgentCoordinator {
       if (input instanceof Blob && input.type.startsWith('audio/')) {
         try {
           userMessage = await this.voiceAgent.startListening();
+          console.log('🎤 Mensaje de voz reconocido:', userMessage?.substring(0, 50));
         } catch (error) {
-          console.error('Error en reconocimiento de voz:', error);
+          console.error('❌ Error en reconocimiento de voz:', error);
           this.isProcessing = false;
+          // No agregar mensaje del usuario si falla el reconocimiento de voz
+          // porque no tenemos el texto del mensaje
           return {
             success: false,
-            message: 'Error en el reconocimiento de voz. Por favor, inténtalo de nuevo.',
-            metadata: { error: error instanceof Error ? error.message : 'Unknown error' },
+            message: 'Error en el reconocimiento de voz. Por favor, escribe tu mensaje en el campo de texto.',
+            metadata: { 
+              error: error instanceof Error ? error.message : 'Unknown error',
+              userMessage: null // No hay mensaje reconocido
+            },
             agentUsed: 'voice'
           };
         }
       } else {
-        userMessage = input;
+        // Si es string, usarlo directamente
+        if (typeof input === 'string') {
+          userMessage = input;
+          console.log('📝 Mensaje de texto recibido:', userMessage?.substring(0, 50));
+        } else {
+          // Si es Blob pero no es audio, convertir a string (no debería pasar normalmente)
+          console.warn('⚠️ AgentCoordinator: Blob recibido pero no es audio, intentando procesar como texto');
+          userMessage = '';
+        }
       }
 
       // Asegurar que userMessage sea una cadena
@@ -223,7 +237,10 @@ export class AgentCoordinator {
         return {
           success: false,
           message: 'No se pudo procesar tu mensaje. Por favor, inténtalo de nuevo.',
-          metadata: { error: 'Empty input' },
+          metadata: { 
+            error: 'Empty input',
+            userMessage: null // No hay mensaje
+          },
           agentUsed: 'voice'
         };
       }
@@ -325,7 +342,8 @@ export class AgentCoordinator {
           audioUrl = 'generated-audio-url';
           console.log('✅ AgentCoordinator: Audio expresivo generado y reproducido exitosamente');
         }).catch((audioError) => {
-          console.error('❌ AgentCoordinator: Error generando audio expresivo:', audioError);
+          // No es crítico si falla el audio - el sistema continúa funcionando
+          console.warn('⚠️ AgentCoordinator: Audio no disponible - continuando sin audio', audioError?.message || audioError);
         });
       } else {
         console.warn('⚠️ AgentCoordinator: Audio deshabilitado', {
@@ -358,7 +376,8 @@ export class AgentCoordinator {
           confidence: ragResponse.confidence,
           sources: ragResponse.sources,
           contextUsed: ragResponse.context,
-          agentUsed: 'rag'
+          agentUsed: 'rag',
+          userMessage: userMessage // Incluir el texto del mensaje del usuario para mostrarlo en el chat
         },
         agentUsed: 'rag'
       };
