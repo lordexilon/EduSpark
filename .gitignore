@@ -89,3 +89,7 @@ jspm_packages/
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
+
+# Vite cache and temp directories
+.vite-cache/
+.vite-temp/
