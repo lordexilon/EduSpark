@@ -1,0 +1,277 @@
+/* Estilos para el editor de texto enriquecido con Tiptap */
+.rich-text-editor {
+  background: white;
+  border-radius: 0.375rem;
+  border: 1px solid #d1d5db;
+  position: relative;
+}
+
+.rich-text-editor .toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  border-top-left-radius: 0.375rem;
+  border-top-right-radius: 0.375rem;
+}
+
+.rich-text-editor .toolbar-btn {
+  padding: 0.375rem 0.5rem;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+}
+
+.rich-text-editor .toolbar-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.rich-text-editor .toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rich-text-editor .toolbar-btn.is-active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.rich-text-editor .divider {
+  width: 1px;
+  height: 1.5rem;
+  background: #d1d5db;
+  margin: 0 0.25rem;
+}
+
+.rich-text-editor .editor-content {
+  position: relative;
+}
+
+.rich-text-editor .ProseMirror {
+  outline: none;
+  min-height: 200px;
+  padding: 0.75rem;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.rich-text-editor .ProseMirror p {
+  margin: 0.5rem 0;
+}
+
+.rich-text-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #9ca3af;
+  pointer-events: none;
+  height: 0;
+}
+
+.rich-text-editor .ProseMirror h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 0.67em 0;
+}
+
+.rich-text-editor .ProseMirror h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 0.75em 0;
+}
+
+.rich-text-editor .ProseMirror h3 {
+  font-size: 1.17em;
+  font-weight: bold;
+  margin: 0.83em 0;
+}
+
+.rich-text-editor .ProseMirror ul,
+.rich-text-editor .ProseMirror ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.rich-text-editor .ProseMirror blockquote {
+  border-left: 3px solid #3b82f6;
+  padding-left: 1em;
+  margin: 1em 0;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.rich-text-editor .ProseMirror hr {
+  border: none;
+  border-top: 2px solid #e5e7eb;
+  margin: 1em 0;
+}
+
+.rich-text-editor .ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.25rem;
+  margin: 0.5em 0;
+  cursor: pointer;
+  display: block;
+  transition: all 0.2s ease;
+}
+
+.rich-text-editor .ProseMirror img:hover {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.rich-text-editor .ProseMirror img.ProseMirror-selectednode {
+  outline: 4px solid #3b82f6 !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.rich-text-editor .ProseMirror a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.rich-text-editor .editor-placeholder {
+  position: absolute;
+  top: 3.5rem;
+  left: 0.75rem;
+  color: #9ca3af;
+  pointer-events: none;
+  font-size: 14px;
+  line-height: 1.6;
+  z-index: 0;
+}
+
+.rich-text-editor .ProseMirror:focus {
+  outline: none;
+}
+
+/* Estilos para listas */
+.rich-text-editor .ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding: 0;
+}
+
+.rich-text-editor .ProseMirror li[data-type="taskItem"] {
+  display: flex;
+  align-items: flex-start;
+  margin: 0.25em 0;
+}
+
+.rich-text-editor .ProseMirror li[data-type="taskItem"]>label {
+  margin-right: 0.5em;
+  user-select: none;
+}
+
+.rich-text-editor .ProseMirror li[data-type="taskItem"]>div {
+  flex: 1;
+}
+
+/* ==========================================================================
+   Estilos para la visualización de contenido (RichTextDisplay)
+   Estos estilos replican los del editor para asegurar consistencia en la vista
+   ========================================================================== */
+
+.rich-text-content {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #374151;
+  /* text-gray-700 */
+}
+
+.rich-text-content p {
+  margin: 0.5rem 0;
+}
+
+.rich-text-content h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 0.67em 0;
+  color: #111827;
+  /* text-gray-900 */
+}
+
+.rich-text-content h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 0.75em 0;
+  color: #1f2937;
+  /* text-gray-800 */
+}
+
+.rich-text-content h3 {
+  font-size: 1.17em;
+  font-weight: bold;
+  margin: 0.83em 0;
+  color: #374151;
+  /* text-gray-700 */
+}
+
+.rich-text-content ul {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+  list-style-type: disc;
+}
+
+.rich-text-content ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+  list-style-type: decimal;
+}
+
+.rich-text-content blockquote {
+  border-left: 3px solid #3b82f6;
+  padding-left: 1em;
+  margin: 1em 0;
+  color: #6b7280;
+  font-style: italic;
+  background-color: #f9fafb;
+  padding: 0.5rem 0.5rem 0.5rem 1rem;
+  border-radius: 0.25rem;
+}
+
+.rich-text-content hr {
+  border: none;
+  border-top: 2px solid #e5e7eb;
+  margin: 1em 0;
+}
+
+.rich-text-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.25rem;
+  margin: 0.5em 0;
+  display: block;
+}
+
+.rich-text-content a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.rich-text-content strong,
+.rich-text-content b {
+  font-weight: 700;
+  color: #111827;
+}
+
+.rich-text-content em,
+.rich-text-content i {
+  font-style: italic;
+}
+
+/* Soporte para LaTeX/KaTeX si se usa */
+.rich-text-content .katex {
+  font-size: 1.1em;
+}

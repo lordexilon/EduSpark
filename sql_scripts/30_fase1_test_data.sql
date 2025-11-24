@@ -61,7 +61,7 @@ BEGIN
     duration_months, total_credits, degree_type, is_active
   ) VALUES (
     'Ingeniería en Sistemas',
-    'ING-SIST-2024',
+    'ING-SIST-2025',
     'Carrera de prueba para validar funcionalidad de gestión académica',
     coordinator_user_id,
     48,
@@ -73,7 +73,7 @@ BEGIN
   RETURNING id INTO test_career_id;
 
   IF test_career_id IS NULL THEN
-    SELECT id INTO test_career_id FROM careers WHERE code = 'ING-SIST-2024';
+    SELECT id INTO test_career_id FROM careers WHERE code = 'ING-SIST-2025';
   END IF;
 
   RAISE NOTICE '✓ Carrera de prueba creada/obtenida: ID %', test_career_id;
@@ -181,7 +181,7 @@ BEGIN
     ) VALUES (
       test_subject_id,
       teacher_user_id,
-      '2024-1',
+      '2025-1',
       CURRENT_DATE,
       CURRENT_DATE + INTERVAL '6 months',
       'active'
@@ -193,7 +193,7 @@ BEGIN
 
   RAISE NOTICE '=== Datos de prueba creados exitosamente ===';
   RAISE NOTICE 'Para probar:';
-  RAISE NOTICE '1. Carrera: ID % (ING-SIST-2024)', test_career_id;
+  RAISE NOTICE '1. Carrera: ID % (ING-SIST-2025)', test_career_id;
   RAISE NOTICE '2. Materia: ID % (PROG-101)', test_subject_id;
   IF test_course_id IS NOT NULL THEN
     RAISE NOTICE '3. Curso: ID %', test_course_id;
@@ -206,7 +206,7 @@ SELECT
   'Carreras' as tipo,
   COUNT(*) as cantidad
 FROM careers
-WHERE code = 'ING-SIST-2024'
+WHERE code = 'ING-SIST-2025'
 UNION ALL
 SELECT 
   'Materias',

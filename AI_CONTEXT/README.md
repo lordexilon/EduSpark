@@ -1,7 +1,7 @@
 # 📚 AI_CONTEXT - Documentación Principal
 
 **Última actualización:** Enero 2025  
-**Estado del Proyecto:** ✅ Sistema Funcional con Evaluación, Mensajería y Tutor AI Mejorado
+**Estado del Proyecto:** ✅ Sistema Funcional con Evaluación, Mensajería, Tutor AI Mejorado y Sistema de Instituciones Multi-tenant
 
 ---
 
@@ -19,8 +19,15 @@
 - **`REORGANIZACION_FLUJO_PEDAGOGICO.md`** - Estructura pedagógica
 - **`flujos_criticos.md`** - Flujos críticos del sistema
 
+### 🏛️ Sistema de Instituciones y Roles ⭐ NUEVO
+- **`RESUMEN_SISTEMA_INSTITUCIONES.md`** - Resumen ejecutivo del sistema de instituciones ⭐ NUEVO
+- **`SISTEMA_ROLES_INSTITUCIONES.md`** - Sistema completo de roles basado en instituciones ⭐ ACTUALIZADO
+- **`PERMISOS_ADMIN_CAMPUS.md`** - Permisos y acceso del rol admin-campus ⭐ ACTUALIZADO
+- **`REQUISITO_INSTITUCIONES_USUARIOS.md`** - Requisito: todos los usuarios deben tener institución ⭐ ACTUALIZADO
+- **`COMO_IDENTIFICA_INSTITUCION_USUARIO.md`** - Cómo identifica el sistema la institución de un usuario ⭐ NUEVO
+
 ### 📈 Estado del Sistema
-- **`ESTADO_PROYECTO_DICIEMBRE_2024.md`** - Estado general del proyecto ⭐ ACTUALIZADO
+- **`ESTADO_PROYECTO_NOVIEMBRE_2025.md`** - Estado general del proyecto ⭐ ACTUALIZADO
 - **`ESTADO_INTEGRACION_COMPLETA.md`** - Estado de integración
 - **`MIGRACION_COMPLETADA_EXITOSAMENTE.md`** - Migración course_modules → course_units
 - **`RESUMEN_SISTEMA_EVALUACION.md`** - 📊 Sistema completo de evaluación ⭐ ACTUALIZADO
@@ -35,6 +42,7 @@
 - **`FLUJO_EVALUACION_MEJORADO.md`** - 📊 **NUEVO** - Flujo de evaluación para estudiantes
 - **`PLAN_IMPLEMENTACION_QUIZZES.md`** - 📊 **NUEVO** - Plan completo de quizzes
 - **`MEJORAS_SISTEMA_MENSAJERIA_TUTOR.md`** - 💬🤖 **NUEVO** - Sistema de mensajería y tutor AI mejorados
+- **`CORRECCIONES_ERRORES_SISTEMA_ENERO_2025.md`** - 🔧 **NUEVO** - Correcciones críticas de errores del sistema (RPC, TTS, RLS, Tracking, Vinculación Chunks - ✅ SQL ejecutado)
 
 ---
 
@@ -85,14 +93,36 @@ Propuestas de mejoras futuras
 - Filtros avanzados
 - Indicadores de progreso
 
+### ✅ Sistema de Procesamiento de Archivos y Costos ⭐ NUEVO:
+- `SISTEMA_PROCESAMIENTO_ARCHIVOS_COSTOS.md` - Sistema completo de procesamiento de archivos grandes (900 MB+), control de costos y dashboard de administración
+- `OPTIMIZACIONES_COSTOS_BUSQUEDAS.md` - Optimizaciones de costos y búsquedas RAG ⭐ ACTUALIZADO
+- `ESTRUCTURA_COSTOS_ACTUALIZADA.md` - Estructura detallada de costos del sistema RAG ⭐ NUEVO
+- `SOLUCION_PROBLEMA_BUSQUEDA_DEDEKIND.md` - Solución para búsqueda con ruido OCR ⭐ ACTUALIZADO
+- Procesamiento optimizado por lotes (20 chunks)
+- Auto-continuación para archivos que toman más de 1 hora
+- Cálculo y tracking de costos reales
+- Dashboard de administración para monitoreo de gastos
+- Visualización en tiempo real con barra de progreso y temporizador
+- **Limpieza OCR mejorada** (elimina ruido preservando contenido válido)
+- **Extracción de contenido relevante** (busca palabras clave en chunks)
+
+### ✅ Migración Google Drive a Supabase Storage ⭐ NUEVO:
+- `CORRECCIONES_MIGRACION_GOOGLE_DRIVE_NOVIEMBRE_2025.md` - Correcciones críticas en migración de archivos desde Google Drive ⭐ NUEVO
+- Manejo de errores 401/403/413 en Edge Function
+- Verificación previa de tamaño de archivo
+- Fallback automático a Google Drive para archivos grandes (>50MB)
+- Reutilización de carpetas existentes al reconectar
+- Actualización de scopes OAuth de Google Drive
+
 ---
 
 ## 📊 Estadísticas del Proyecto
 
-**Tablas:** 37 (28 originales + 4 de quizzes + 1 de ponderación + 2 de tracking + 2 de mensajería)  
+**Tablas:** 38 (28 originales + 4 de quizzes + 1 de ponderación + 2 de tracking + 2 de mensajería + 1 de costos)  
 **Políticas RLS:** 80+  
 **Funciones:** 132+  
 **Triggers:** 10  
+**Cloud Functions:** 4 (analyzeFile, createFileProcessingJob, processFileJob, cancelFileProcessingJob)  
 
 ---
 
@@ -100,8 +130,20 @@ Propuestas de mejoras futuras
 
 | Script | Descripción |
 |--------|-------------|
-| `97_enable_realtime_messaging.sql` | ✅ Realtime para mensajería ⭐ NUEVO |
-| `96_create_messaging_system.sql` | ✅ Sistema de mensajería ⭐ NUEVO |
+| `148_get_course_materials_including_assigned.sql` | ✅ Función para obtener materiales incluyendo asignados ⭐ NUEVO |
+| `147_fix_material_course_assignments_ambiguous.sql` | ✅ Corrección crítica: Ambigüedad en RLS de asignaciones ⭐ NUEVO |
+| `145_add_unit_session_to_chunks.sql` | ✅ Vinculación de chunks con unidades y sesiones ⭐ EJECUTADO |
+| `144_fix_to_tsvector_regconfig.sql` | ✅ Corrección función RPC: to_tsvector(text, text) does not exist ⭐ NUEVO |
+| `143_fix_tutor_rls_policies.sql` | ✅ Políticas RLS para tutor_interactions y student_tutor_performance ⭐ NUEVO |
+| `implement_institution_based_roles.sql` | ✅ Sistema de roles basado en instituciones ⭐ NUEVO |
+| `fix_enrollments_rls_for_institutions.sql` | ✅ Políticas RLS para enrollments por institución ⭐ NUEVO |
+| `fix_users_rls_policies.sql` | ✅ Corrección de políticas RLS de usuarios ⭐ NUEVO |
+| `ensure_users_have_institution.sql` | ✅ Verificación de usuarios con institución ⭐ NUEVO |
+| `ensure_admin_campus_rls_complete.sql` | ✅ Verificación completa de políticas admin-campus ⭐ NUEVO |
+| `verify_and_fix_institution_relationships.sql` | ✅ Verificación de relaciones con instituciones ⭐ NUEVO |
+| `crear_tabla_processing_costs.sql` | ✅ Tabla de costos de procesamiento |
+| `97_enable_realtime_messaging.sql` | ✅ Realtime para mensajería |
+| `96_create_messaging_system.sql` | ✅ Sistema de mensajería |
 | `94_course_grading_weights.sql` | ✅ Ponderación de evaluaciones |
 | `87_create_unit_session_progress.sql` | ✅ Tracking de progreso |
 | `88_create_quizzes_assessments.sql` | ✅ Quizzes y trivias |
@@ -115,6 +157,16 @@ Propuestas de mejoras futuras
 **Ver:** `INSTRUCCIONES_SISTEMA_TRACKING.md`  
 **Leer:** `RESUMEN_SISTEMA_EVALUACION.md`  
 **Plan:** `PLAN_IMPLEMENTACION_QUIZZES.md`
+**Procesamiento:** `SISTEMA_PROCESAMIENTO_ARCHIVOS_COSTOS.md`
+**Costos:** `ESTRUCTURA_COSTOS_ACTUALIZADA.md`
+**Optimizaciones:** `OPTIMIZACIONES_COSTOS_BUSQUEDAS.md`
+**Instituciones:** `SISTEMA_ROLES_INSTITUCIONES.md` ⭐ NUEVO
+**Admin-Campus:** `PERMISOS_ADMIN_CAMPUS.md` ⭐ NUEVO
+**Identificación:** `COMO_IDENTIFICA_INSTITUCION_USUARIO.md` ⭐ NUEVO
+**Corrección RLS:** `CORRECCION_RLS_MATERIAL_COURSE_ASSIGNMENTS.md` ⭐ NUEVO
+**Visualización Materiales:** `VISUALIZACION_MATERIALES_EN_CURSOS.md` ⭐ NUEVO
+**Resumen Correcciones:** `RESUMEN_CORRECCIONES_MATERIALES_ENERO_2025.md` ⭐ NUEVO
+**Correcciones Errores Sistema:** `CORRECCIONES_ERRORES_SISTEMA_ENERO_2025.md` ⭐ NUEVO
 
 ---
 

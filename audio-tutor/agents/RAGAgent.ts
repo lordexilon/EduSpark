@@ -284,17 +284,36 @@ export class RAGAgent {
     ragResponse: any,
     context: ConversationContext
   ): RAGResponse {
+    // Extraer citas de las fuentes con metadata
+    const sourcesWithCitations = (ragResponse.metadata.sources || []).map((source: any) => {
+      // Si source es un string, verificar si hay metadata en el contexto
+      if (typeof source === 'string') {
+        return source;
+      }
+      
+      // Si source tiene metadata, formatear como cita
+      const metadata = source.metadata || {};
+      if (metadata.sourceFileName) {
+        const pageInfo = metadata.pageStart ? ` - Página ${metadata.pageStart}${metadata.pageEnd && metadata.pageEnd !== metadata.pageStart ? `-${metadata.pageEnd}` : ''}` : '';
+        return `📄 ${metadata.sourceFileName}${pageInfo}`;
+      }
+      
+      return source.title || source.content || 'Material del curso';
+    });
+
     return {
       answer: ragResponse.message,
       context: ragResponse.metadata.contextUsed || '',
-      sources: ragResponse.metadata.sources || [],
+      sources: sourcesWithCitations,
       confidence: ragResponse.metadata.confidence || 0.8,
       metadata: {
         model: ragResponse.metadata.model,
         source: ragResponse.metadata.source,
         timestamp: ragResponse.metadata.timestamp,
         pedagogicalSettings: context.pedagogicalSettings,
-        studentProfile: context.studentProfile
+        studentProfile: context.studentProfile,
+        // Incluir metadata completa de las fuentes para mostrar citas
+        sourceMetadata: ragResponse.metadata.sourceMetadata || []
       }
     };
   }

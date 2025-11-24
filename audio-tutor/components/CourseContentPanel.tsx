@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase-shared';
-import { IconBookOpen, IconFileText, IconVideo, IconImage, IconDownload, IconEye, IconChevronDown, IconChevronUp } from '../../components/Icons';
+import { IconBookOpen, IconFileText, IconVideo, IconImage, IconDownload, IconEye, IconChevronDown, IconChevronUp, IconEdit } from '../../src/components/Icons';
 
 interface CourseMaterial {
   id: string;
@@ -27,9 +27,9 @@ interface CourseContentPanelProps {
   highlightType?: 'material' | 'unit' | 'session'; // Tipo de contenido a resaltar
 }
 
-export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({ 
-  courseId, 
-  isOpen, 
+export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
+  courseId,
+  isOpen,
   onClose,
   filterMaterialId,
   moduleId,
@@ -73,7 +73,7 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
         .select('id, title, description, code, created_at')
         .eq('id', parseInt(courseId, 10))
         .maybeSingle();
-      
+
       if (courseError) {
         console.error('Error cargando curso:', courseError);
         // Si es un error 406 (Not Acceptable), probablemente es RLS
@@ -82,11 +82,11 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
         }
         throw new Error(`Error cargando curso: ${courseError.message}`);
       }
-      
+
       if (!courseData) {
         throw new Error(`El curso con ID ${courseId} no existe o no tienes acceso a él`);
       }
-      
+
       setCourseInfo(courseData);
 
       const courseIdInt = parseInt(courseId, 10);
@@ -97,7 +97,7 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
         .select('id, number, title, description, created_at')
         .eq('course_id', courseIdInt)
         .order('number', { ascending: true });
-      
+
       if (unitsErr) {
         console.warn('Error cargando unidades:', unitsErr);
         setUnits([]);
@@ -110,14 +110,14 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
         .from('sessions')
         .select('id, title, description, starts_at, ends_at, unit_id, created_at')
         .eq('course_id', courseIdInt);
-      
+
       if (moduleId) {
         sessionsQuery = sessionsQuery.eq('unit_id', moduleId);
       }
-      
+
       const { data: sessionsData, error: sessionsErr } = await sessionsQuery
         .order('starts_at', { ascending: true });
-      
+
       if (sessionsErr) {
         console.warn('Error cargando sesiones:', sessionsErr);
         setSessions([]);
@@ -130,16 +130,16 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
         .from('materials')
         .select('id, title, kind, url, metadata, unit_id, session_id, created_at')
         .eq('course_id', courseIdInt);
-      
+
       if (moduleId) {
         materialsQuery = materialsQuery.eq('unit_id', moduleId);
       }
-      
+
       const { data: materialsFromTable, error: materialsTableErr } = await materialsQuery
         .order('created_at', { ascending: true });
-      
+
       const materialsList: CourseMaterial[] = [];
-      
+
       if (!materialsTableErr && materialsFromTable) {
         materialsList.push(...materialsFromTable.map((m: any) => ({
           id: String(m.id),
@@ -147,7 +147,11 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
           content: m.metadata ? JSON.stringify(m.metadata) : '',
           type: (m.kind === 'video' ? 'video' : m.kind === 'pdf' || m.kind === 'document' ? 'document' : 'text') as CourseMaterial['type'],
           url: m.url || undefined,
-          metadata: m.metadata,
+          metadata: {
+            ...m.metadata,
+            unit_id: m.unit_id, // Agregar unit_id al metadata
+            session_id: m.session_id // Agregar session_id al metadata
+          },
           createdAt: m.created_at || new Date().toISOString()
         })));
       }
@@ -157,7 +161,7 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
         .from('course_materials')
         .select('id, title, content, type, file_url, source_url, module_id, created_at')
         .eq('course_id', courseIdInt);
-      
+
       // Filtrar por módulo si se especifica
       if (moduleId) {
         const moduleIdInt = parseInt(String(moduleId), 10);
@@ -165,7 +169,7 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
           query = query.eq('module_id', moduleIdInt);
         }
       }
-      
+
       const { data: mats, error: matsErr } = await query.order('created_at', { ascending: true });
       if (matsErr) {
         console.warn('Error cargando course_materials:', matsErr);
@@ -242,7 +246,7 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-hidden flex flex-col" onClick={(e)=>e.stopPropagation()}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg md:text-xl font-semibold text-gray-900">Contenido del Curso</h2>
@@ -288,8 +292,8 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
                   {expandedSections.has('units') && (
                     <div className="mt-4 space-y-3">
                       {units.map((unit) => (
-                        <div 
-                          key={unit.id} 
+                        <div
+                          key={unit.id}
                           id={`unit-${unit.id}`}
                           className={`bg-white rounded-lg p-4 border ${highlightId === unit.id && highlightType === 'unit' ? 'ring-2 ring-blue-500' : ''}`}
                         >
@@ -320,8 +324,8 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
                       {sessions.map((session) => {
                         const unit = units.find(u => u.id === session.unit_id);
                         return (
-                          <div 
-                            key={session.id} 
+                          <div
+                            key={session.id}
                             id={`session-${session.id}`}
                             className={`bg-white rounded-lg p-4 border ${highlightId === session.id && highlightType === 'session' ? 'ring-2 ring-blue-500' : ''}`}
                           >
@@ -356,31 +360,189 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
                   {expandedSections.has('materials') ? <IconChevronUp className="w-5 h-5" /> : <IconChevronDown className="w-5 h-5" />}
                 </button>
                 {expandedSections.has('materials') && (
-                  <div className="mt-4 space-y-3">
+                  <div className="mt-4 space-y-4">
                     {materials.length === 0 ? (
                       <p className="text-gray-500 text-center py-4">No hay materiales disponibles para este curso</p>
                     ) : (
-                      materials.map((material) => (
-                        <div key={material.id} className={`bg-white rounded-lg p-4 border ${filterMaterialId===material.id ? 'ring-2 ring-blue-500' : ''}`} id={`mat-${material.id}`}>
-                          <div className="flex items-start gap-3">
-                            <div className="text-blue-600 mt-1">{getMaterialIcon(material.type)}</div>
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900">{material.title}</h4>
-                              <p className="text-gray-600 text-sm mt-1 line-clamp-2">{material.content}</p>
-                              <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                                <span>{formatDate(material.createdAt)}</span>
-                                <span className="capitalize">{material.type}</span>
-                                {material.url && (
-                                  <a className="text-blue-600 hover:text-blue-800 flex items-center gap-1" href={material.url} target="_blank" rel="noopener noreferrer">
-                                    <IconEye className="w-3 h-3" />
-                                    Ver
-                                  </a>
-                                )}
+                      <>
+                        {/* Materiales agrupados por unidad */}
+                        {units.map((unit) => {
+                          const unitMaterials = materials.filter(m => {
+                            const materialMetadata = m.metadata as any;
+                            const unitId = materialMetadata?.unit_id || (m as any).unit_id;
+                            return unitId === unit.id || unitId === String(unit.id);
+                          });
+
+                          if (unitMaterials.length === 0) return null;
+
+                          return (
+                            <div key={`unit-${unit.id}-materials`} className="bg-white rounded-lg p-4 border border-blue-200">
+                              <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                <IconBookOpen className="w-4 h-4 text-blue-600" />
+                                Unidad {unit.number}: {unit.title}
+                                <span className="text-sm font-normal text-gray-500">({unitMaterials.length} material{unitMaterials.length !== 1 ? 'es' : ''})</span>
+                              </h4>
+                              <div className="ml-6 space-y-2">
+                                {unitMaterials.map((material) => (
+                                  <div
+                                    key={material.id}
+                                    className={`bg-gray-50 rounded-lg p-3 border ${filterMaterialId === material.id ? 'ring-2 ring-blue-500' : ''}`}
+                                    id={`mat-${material.id}`}
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <div className="text-blue-600 mt-1">{getMaterialIcon(material.type)}</div>
+                                      <div className="flex-1">
+                                        <h5 className="font-medium text-gray-900 text-sm">{material.title}</h5>
+                                        <p className="text-gray-600 text-xs mt-1 line-clamp-2">{material.content}</p>
+                                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                                          <span>{formatDate(material.createdAt)}</span>
+                                          <span className="capitalize">{material.type}</span>
+                                          {material.url && (
+                                            <a className="text-blue-600 hover:text-blue-800 flex items-center gap-1" href={material.url} target="_blank" rel="noopener noreferrer">
+                                              <IconEye className="w-3 h-3" />
+                                              Ver
+                                            </a>
+                                          )}
+                                          <a
+                                            href={`/teacher/materials?courseId=${courseId}&materialId=${material.id}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                            title="Editar material"
+                                          >
+                                            <IconEdit className="w-3 h-3" />
+                                            Editar
+                                          </a>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
                             </div>
-                          </div>
-                        </div>
-                      ))
+                          );
+                        })}
+
+                        {/* Materiales agrupados por sesión */}
+                        {sessions.map((session) => {
+                          const sessionMaterials = materials.filter(m => {
+                            const materialMetadata = m.metadata as any;
+                            const sessionId = materialMetadata?.session_id || (m as any).session_id;
+                            return sessionId === session.id || sessionId === String(session.id);
+                          });
+
+                          if (sessionMaterials.length === 0) return null;
+
+                          const unit = units.find(u => u.id === session.unit_id);
+
+                          return (
+                            <div key={`session-${session.id}-materials`} className="bg-white rounded-lg p-4 border border-green-200">
+                              <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                <IconVideo className="w-4 h-4 text-green-600" />
+                                {session.title}
+                                {unit && <span className="text-sm font-normal text-gray-500">(Unidad {unit.number})</span>}
+                                <span className="text-sm font-normal text-gray-500">({sessionMaterials.length} material{sessionMaterials.length !== 1 ? 'es' : ''})</span>
+                              </h4>
+                              <div className="ml-6 space-y-2">
+                                {sessionMaterials.map((material) => (
+                                  <div
+                                    key={material.id}
+                                    className={`bg-gray-50 rounded-lg p-3 border ${filterMaterialId === material.id ? 'ring-2 ring-blue-500' : ''}`}
+                                    id={`mat-${material.id}`}
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <div className="text-green-600 mt-1">{getMaterialIcon(material.type)}</div>
+                                      <div className="flex-1">
+                                        <h5 className="font-medium text-gray-900 text-sm">{material.title}</h5>
+                                        <p className="text-gray-600 text-xs mt-1 line-clamp-2">{material.content}</p>
+                                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                                          <span>{formatDate(material.createdAt)}</span>
+                                          <span className="capitalize">{material.type}</span>
+                                          {material.url && (
+                                            <a className="text-blue-600 hover:text-blue-800 flex items-center gap-1" href={material.url} target="_blank" rel="noopener noreferrer">
+                                              <IconEye className="w-3 h-3" />
+                                              Ver
+                                            </a>
+                                          )}
+                                          <a
+                                            href={`/teacher/materials?courseId=${courseId}&materialId=${material.id}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                            title="Editar material"
+                                          >
+                                            <IconEdit className="w-3 h-3" />
+                                            Editar
+                                          </a>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* Materiales sin unidad ni sesión */}
+                        {(() => {
+                          const unassignedMaterials = materials.filter(m => {
+                            const materialMetadata = m.metadata as any;
+                            const hasUnit = materialMetadata?.unit_id || (m as any).unit_id;
+                            const hasSession = materialMetadata?.session_id || (m as any).session_id;
+                            return !hasUnit && !hasSession;
+                          });
+
+                          if (unassignedMaterials.length === 0) return null;
+
+                          return (
+                            <div className="bg-white rounded-lg p-4 border border-yellow-200">
+                              <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                <IconFileText className="w-4 h-4 text-yellow-600" />
+                                Materiales sin asignar
+                                <span className="text-sm font-normal text-gray-500">({unassignedMaterials.length})</span>
+                              </h4>
+                              <div className="ml-6 space-y-2">
+                                {unassignedMaterials.map((material) => (
+                                  <div
+                                    key={material.id}
+                                    className={`bg-gray-50 rounded-lg p-3 border ${filterMaterialId === material.id ? 'ring-2 ring-blue-500' : ''}`}
+                                    id={`mat-${material.id}`}
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <div className="text-yellow-600 mt-1">{getMaterialIcon(material.type)}</div>
+                                      <div className="flex-1">
+                                        <h5 className="font-medium text-gray-900 text-sm">{material.title}</h5>
+                                        <p className="text-gray-600 text-xs mt-1 line-clamp-2">{material.content}</p>
+                                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                                          <span>{formatDate(material.createdAt)}</span>
+                                          <span className="capitalize">{material.type}</span>
+                                          {material.url && (
+                                            <a className="text-blue-600 hover:text-blue-800 flex items-center gap-1" href={material.url} target="_blank" rel="noopener noreferrer">
+                                              <IconEye className="w-3 h-3" />
+                                              Ver
+                                            </a>
+                                          )}
+                                          <a
+                                            href={`/teacher/materials?courseId=${courseId}&materialId=${material.id}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                            title="Editar material"
+                                          >
+                                            <IconEdit className="w-3 h-3" />
+                                            Editar
+                                          </a>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </>
                     )}
                   </div>
                 )}

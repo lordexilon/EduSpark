@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { tokenMonitoring } from '../services/tokenMonitoringService';
-import { IconDollarSign, IconTrendingUp, IconAlertTriangle, IconDownload, IconRefreshCw } from '../../components/Icons';
+import { IconDollarSign, IconTrendingUp, IconAlertTriangle, IconDownload, IconRefreshCw } from '../../src/components/Icons';
 
 interface TokenUsageDashboardProps {
   isOpen: boolean;
@@ -102,11 +102,10 @@ export const TokenUsageDashboard: React.FC<TokenUsageDashboardProps> = ({ isOpen
                 {alerts.map((alert, index) => (
                   <div
                     key={index}
-                    className={`p-3 rounded-lg border-l-4 ${
-                      alert.severity === 'critical'
+                    className={`p-3 rounded-lg border-l-4 ${alert.severity === 'critical'
                         ? 'bg-red-50 border-red-500 text-red-800'
                         : 'bg-yellow-50 border-yellow-500 text-yellow-800'
-                    }`}
+                      }`}
                   >
                     <div className="font-medium">{alert.message}</div>
                     <div className="text-sm opacity-75">
@@ -182,10 +181,10 @@ export const TokenUsageDashboard: React.FC<TokenUsageDashboardProps> = ({ isOpen
                   <div key={day.date} className="flex items-center justify-between bg-white p-3 rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="text-sm font-medium text-gray-900">
-                        {new Date(day.date).toLocaleDateString('es-ES', { 
-                          weekday: 'short', 
-                          month: 'short', 
-                          day: 'numeric' 
+                        {new Date(day.date).toLocaleDateString('es-ES', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric'
                         })}
                       </div>
                       <div className="text-xs text-gray-500">

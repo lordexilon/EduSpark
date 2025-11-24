@@ -343,7 +343,7 @@ Tutor IA: [Explica el concepto] + [Enlace a la unidad 3, sesión 5 donde se expl
 
 **Documentación Técnica:** `AI_CONTEXT/`  
 **Presentación Ejecutiva:** `AI_CONTEXT/PRESENTACION_EJECUTIVA_ENERO_2025.md`  
-**Estado del Proyecto:** `AI_CONTEXT/ESTADO_PROYECTO_DICIEMBRE_2024.md`
+**Estado del Proyecto:** `AI_CONTEXT/ESTADO_PROYECTO_NOVIEMBRE_2025.md`
 
 ---
 

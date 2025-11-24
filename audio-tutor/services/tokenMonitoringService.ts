@@ -30,7 +30,7 @@ interface MonthlyUsage {
   dailyBreakdown: DailyUsage[];
 }
 
-// Precios de Gemini API (por 1M tokens) - Actualizado 2024
+// Precios de Gemini API (por 1M tokens) - Actualizado 2025
 const GEMINI_PRICING = {
   'gemini-1.5-flash': {
     input: 0.075,   // $0.075 por 1M tokens de entrada
@@ -73,7 +73,7 @@ export class TokenMonitoringService {
     requestId: string = this.generateRequestId()
   ): TokenUsage {
     const pricing = GEMINI_PRICING[model as keyof typeof GEMINI_PRICING] || GEMINI_PRICING['gemini-1.5-flash'];
-    
+
     const inputCost = (inputTokens / 1000000) * pricing.input;
     const outputCost = (outputTokens / 1000000) * pricing.output;
     const totalCost = inputCost + outputCost;
@@ -124,7 +124,7 @@ export class TokenMonitoringService {
   getCurrentMonthUsage(): MonthlyUsage {
     const now = new Date();
     const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    
+
     return this.monthlyUsage.get(monthKey) || {
       month: monthKey,
       totalInputTokens: 0,
@@ -141,12 +141,12 @@ export class TokenMonitoringService {
   getUsageHistory(days: number = 30): DailyUsage[] {
     const history: DailyUsage[] = [];
     const today = new Date();
-    
+
     for (let i = 0; i < days; i++) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       const dateKey = date.toISOString().split('T')[0];
-      
+
       const dailyUsage = this.dailyUsage.get(dateKey) || {
         date: dateKey,
         totalInputTokens: 0,
@@ -154,10 +154,10 @@ export class TokenMonitoringService {
         totalCost: 0,
         requestCount: 0
       };
-      
+
       history.unshift(dailyUsage);
     }
-    
+
     return history;
   }
 
@@ -166,17 +166,17 @@ export class TokenMonitoringService {
    */
   getUsageByModel(): Record<string, { totalTokens: number; totalCost: number; requestCount: number }> {
     const modelStats: Record<string, { totalTokens: number; totalCost: number; requestCount: number }> = {};
-    
+
     this.usageHistory.forEach(usage => {
       if (!modelStats[usage.model]) {
         modelStats[usage.model] = { totalTokens: 0, totalCost: 0, requestCount: 0 };
       }
-      
+
       modelStats[usage.model].totalTokens += usage.totalTokens;
       modelStats[usage.model].totalCost += usage.cost;
       modelStats[usage.model].requestCount += 1;
     });
-    
+
     return modelStats;
   }
 
@@ -189,15 +189,15 @@ export class TokenMonitoringService {
     pricing: { input: number; output: number };
   } {
     const pricing = GEMINI_PRICING[model as keyof typeof GEMINI_PRICING] || GEMINI_PRICING['gemini-1.5-flash'];
-    
+
     // Estimación aproximada: 1 token ≈ 4 caracteres en español
     const estimatedInputTokens = Math.ceil(inputText.length / 4);
     const estimatedOutputTokens = 1000; // Estimación conservadora
-    
+
     const estimatedInputCost = (estimatedInputTokens / 1000000) * pricing.input;
     const estimatedOutputCost = (estimatedOutputTokens / 1000000) * pricing.output;
     const estimatedCost = estimatedInputCost + estimatedOutputCost;
-    
+
     return {
       estimatedInputTokens,
       estimatedCost,
@@ -210,10 +210,10 @@ export class TokenMonitoringService {
    */
   getUsageAlerts(): Array<{ type: 'daily' | 'monthly'; message: string; severity: 'warning' | 'critical' }> {
     const alerts: Array<{ type: 'daily' | 'monthly'; message: string; severity: 'warning' | 'critical' }> = [];
-    
+
     const todayUsage = this.getTodayUsage();
     const monthUsage = this.getCurrentMonthUsage();
-    
+
     // Alertas diarias
     if (todayUsage.totalCost > 5) { // $5 por día
       alerts.push({
@@ -222,7 +222,7 @@ export class TokenMonitoringService {
         severity: todayUsage.totalCost > 10 ? 'critical' : 'warning'
       });
     }
-    
+
     // Alertas mensuales
     if (monthUsage.totalCost > 100) { // $100 por mes
       alerts.push({
@@ -231,7 +231,7 @@ export class TokenMonitoringService {
         severity: monthUsage.totalCost > 200 ? 'critical' : 'warning'
       });
     }
-    
+
     return alerts;
   }
 
@@ -241,9 +241,9 @@ export class TokenMonitoringService {
   cleanupOldData(): void {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - 90);
-    
+
     this.usageHistory = this.usageHistory.filter(usage => usage.timestamp > cutoffDate);
-    
+
     // Limpiar datos diarios antiguos
     for (const [dateKey, _] of this.dailyUsage) {
       const date = new Date(dateKey);
@@ -251,7 +251,7 @@ export class TokenMonitoringService {
         this.dailyUsage.delete(dateKey);
       }
     }
-    
+
     this.saveData();
   }
 
@@ -265,7 +265,7 @@ export class TokenMonitoringService {
       monthlyUsage: Object.fromEntries(this.monthlyUsage),
       exportDate: new Date().toISOString()
     };
-    
+
     return JSON.stringify(data, null, 2);
   }
 
@@ -280,12 +280,12 @@ export class TokenMonitoringService {
       totalCost: 0,
       requestCount: 0
     };
-    
+
     existing.totalInputTokens += usage.inputTokens;
     existing.totalOutputTokens += usage.outputTokens;
     existing.totalCost += usage.cost;
     existing.requestCount += 1;
-    
+
     this.dailyUsage.set(dateKey, existing);
   }
 
@@ -299,12 +299,12 @@ export class TokenMonitoringService {
       requestCount: 0,
       dailyBreakdown: []
     };
-    
+
     existing.totalInputTokens += usage.inputTokens;
     existing.totalOutputTokens += usage.outputTokens;
     existing.totalCost += usage.cost;
     existing.requestCount += 1;
-    
+
     this.monthlyUsage.set(monthKey, existing);
   }
 

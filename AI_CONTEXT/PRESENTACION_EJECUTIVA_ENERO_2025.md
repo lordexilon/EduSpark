@@ -394,7 +394,7 @@ Carrera (careers)
 ## 📞 Información de Contacto
 
 **Documentación Completa:** `AI_CONTEXT/`  
-**Estado del Proyecto:** `AI_CONTEXT/ESTADO_PROYECTO_DICIEMBRE_2024.md`  
+**Estado del Proyecto:** `AI_CONTEXT/ESTADO_PROYECTO_NOVIEMBRE_2025.md`  
 **Mejoras Recientes:** `AI_CONTEXT/MEJORAS_RECIENTES_ENERO_2025.md`
 
 ---

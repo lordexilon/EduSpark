@@ -337,7 +337,7 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 **Versión:** 3.1 - Flujo Pedagógico Completo con UX Mejorada  
 **Estado:** ✅ **FUNCIONAL Y OPERATIVO**  
 
-### ✅ Funcionalidades Recientes (Diciembre 2024)
+### ✅ Funcionalidades Recientes (Noviembre 2025)
 - **Breadcrumbs**: Navegación contextual en todas las páginas principales
 - **Filtros Avanzados**: Sistema completo de filtrado en AssignmentsPage y SessionsListPage
 - **Indicadores de Progreso**: Componentes visuales de progreso en CourseViewPage y MyCoursesPage
@@ -348,7 +348,7 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 - Navegación bidireccional contextual
 - Todos los componentes usando datos reales de Supabase
 
-### 📅 Última actualización: Diciembre 2024
+### 📅 Última actualización: Noviembre 2025
 
 ---
 

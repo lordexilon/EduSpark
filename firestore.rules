@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Reglas para file_processing_jobs
+    match /file_processing_jobs/{jobId} {
+      // Permitir lectura sin autenticación (el filtrado por userId se hace en el cliente)
+      // Nota: Esto es necesario porque el frontend usa Supabase Auth, no Firebase Auth
+      // El filtrado por userId se hace en el cliente en subscribeToAllJobs
+      allow read: if true;
+      
+      // Permitir escritura solo desde Cloud Functions (que usan Admin SDK)
+      // Las Cloud Functions tienen acceso completo, así que estas reglas solo aplican
+      // para escrituras directas desde el cliente (que no deberían ocurrir)
+      allow create: if false; // Solo Cloud Functions pueden crear
+      allow update: if false; // Solo Cloud Functions pueden actualizar
+      allow delete: if false; // Solo Cloud Functions pueden eliminar
+    }
+  }
+}
+

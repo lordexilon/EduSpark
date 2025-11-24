@@ -5,7 +5,7 @@ import { handleCacheErrors } from './scripts/vite-plugin-handle-cache-errors';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
-  
+
   return {
     server: {
       port: 5173,
@@ -29,28 +29,28 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       react(),
-      handleCacheErrors(), // Maneja errores EPERM en Windows
+      // handleCacheErrors(), // Maneja errores EPERM en Windows
     ],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(__dirname, './src'),
       }
     },
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(
-        env.GEMINI_API_KEY 
-        || env.VITE_GEMINI_API_KEY 
-        || process.env?.VITE_GEMINI_API_KEY 
-        || process.env?.GEMINI_API_KEY 
+        env.GEMINI_API_KEY
+        || env.VITE_GEMINI_API_KEY
+        || process.env?.VITE_GEMINI_API_KEY
+        || process.env?.GEMINI_API_KEY
         || ''
       ),
       'process.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL || process.env?.VITE_SUPABASE_URL || 'https://mckfscukxcqwntpjagar.supabase.co'),
       'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY || process.env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZzY3VreGNxd250cGphZ2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3NDU0MzQsImV4cCI6MjA3NjMyMTQzNH0.4j8Pf2_xZRitw-MkrNKC0MqrzTHRYtnQmrSquTO5zu8'),
       'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(
-        env.VITE_GEMINI_API_KEY 
-        || env.GEMINI_API_KEY 
-        || process.env?.VITE_GEMINI_API_KEY 
-        || process.env?.GEMINI_API_KEY 
+        env.VITE_GEMINI_API_KEY
+        || env.GEMINI_API_KEY
+        || process.env?.VITE_GEMINI_API_KEY
+        || process.env?.GEMINI_API_KEY
         || ''
       ),
       'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL || process.env?.VITE_SUPABASE_URL || 'https://mckfscukxcqwntpjagar.supabase.co'),
@@ -69,7 +69,7 @@ export default defineConfig(({ mode }) => {
       }
     },
     // Configuración de caché
-    cacheDir: '.vite-cache',
+    cacheDir: '.vite-temp',
     optimizeDeps: {
       force: false,
       // Evitar problemas con directorios temporales en Windows

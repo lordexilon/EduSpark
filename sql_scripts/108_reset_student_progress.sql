@@ -18,8 +18,34 @@ DECLARE
     v_deleted_flashcard_progress INTEGER := 0;
     v_deleted_assessment_attempts INTEGER := 0;
     v_deleted_assignment_submissions INTEGER := 0;
+    v_deleted_tutor_messages INTEGER := 0;
+    v_deleted_tutor_interactions INTEGER := 0;
+    v_deleted_tutor_conversations INTEGER := 0;
+    v_deleted_tutor_performance INTEGER := 0;
     v_updated_enrollments INTEGER := 0;
+    v_user_role TEXT;
 BEGIN
+    -- Verificar permisos: solo admin, coordinator, admin-campus o teacher del curso pueden resetear
+    SELECT r.name INTO v_user_role
+    FROM public.users u
+    JOIN public.roles r ON r.id = u.role_id
+    WHERE u.id = auth.uid();
+    
+    IF v_user_role IS NULL THEN
+        RAISE EXCEPTION 'Usuario no autenticado';
+    END IF;
+    
+    -- Si no es admin, coordinator o admin-campus, verificar que sea teacher del curso
+    IF v_user_role NOT IN ('admin', 'coordinator', 'admin-campus') THEN
+        IF v_user_role != 'teacher' OR NOT EXISTS (
+            SELECT 1 FROM public.courses
+            WHERE id = p_course_id
+              AND teacher_id = auth.uid()
+        ) THEN
+            RAISE EXCEPTION 'No tienes permisos para resetear el progreso en este curso';
+        END IF;
+    END IF;
+    
     -- Verificar que el estudiante esté inscrito en el curso
     IF NOT EXISTS (
         SELECT 1 FROM public.course_enrollments
@@ -69,7 +95,34 @@ BEGIN
       );
     GET DIAGNOSTICS v_deleted_assignment_submissions = ROW_COUNT;
 
-    -- 6. Resetear datos de inscripción en course_enrollments
+    -- 6. Eliminar mensajes del tutor (antes de eliminar conversaciones)
+    DELETE FROM public.tutor_messages
+    WHERE conversation_id IN (
+        SELECT id FROM public.tutor_conversations
+        WHERE student_id = p_student_id
+          AND course_id = p_course_id
+    );
+    GET DIAGNOSTICS v_deleted_tutor_messages = ROW_COUNT;
+
+    -- 7. Eliminar interacciones del tutor
+    DELETE FROM public.tutor_interactions
+    WHERE student_id = p_student_id
+      AND course_id = p_course_id;
+    GET DIAGNOSTICS v_deleted_tutor_interactions = ROW_COUNT;
+
+    -- 8. Eliminar conversaciones del tutor
+    DELETE FROM public.tutor_conversations
+    WHERE student_id = p_student_id
+      AND course_id = p_course_id;
+    GET DIAGNOSTICS v_deleted_tutor_conversations = ROW_COUNT;
+
+    -- 9. Eliminar métricas de rendimiento del tutor
+    DELETE FROM public.student_tutor_performance
+    WHERE student_id = p_student_id
+      AND course_id = p_course_id;
+    GET DIAGNOSTICS v_deleted_tutor_performance = ROW_COUNT;
+
+    -- 10. Resetear datos de inscripción en course_enrollments
     UPDATE public.course_enrollments
     SET 
         completion_percentage = 0.00,
@@ -95,7 +148,11 @@ BEGIN
             'session_progress', v_deleted_session_progress,
             'flashcard_progress', v_deleted_flashcard_progress,
             'assessment_attempts', v_deleted_assessment_attempts,
-            'assignment_submissions', v_deleted_assignment_submissions
+            'assignment_submissions', v_deleted_assignment_submissions,
+            'tutor_messages', v_deleted_tutor_messages,
+            'tutor_interactions', v_deleted_tutor_interactions,
+            'tutor_conversations', v_deleted_tutor_conversations,
+            'tutor_performance', v_deleted_tutor_performance
         ),
         'updated_enrollments', v_updated_enrollments,
         'message', 'Progreso del estudiante reseteado exitosamente'
@@ -212,7 +269,8 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 COMMENT ON FUNCTION reset_student_course_progress(UUID, INTEGER) IS 
 'Resetea completamente el progreso de un estudiante en un curso específico.
-Elimina: unit_progress, session_progress, flashcard_progress, assessment_attempts, assignment_submissions.
+Elimina: unit_progress, session_progress, flashcard_progress, assessment_attempts, assignment_submissions,
+tutor_messages, tutor_interactions, tutor_conversations, student_tutor_performance.
 Resetea: course_enrollments (completion_percentage, time_spent_minutes, etc.).';
 
 COMMENT ON FUNCTION reset_multiple_students_course_progress(UUID[], INTEGER) IS 

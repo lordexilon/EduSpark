@@ -324,8 +324,10 @@ export class AgentCoordinator {
         }
       };
 
-      // Agregar respuesta a la conversación
-      await this.contextAgent.addMessage(assistantMessage);
+      // Agregar respuesta a la conversación (no bloqueante)
+      this.contextAgent.addMessage(assistantMessage).catch(err => {
+        console.warn('Error agregando mensaje a conversación:', err);
+      });
 
       // Generar audio de forma asíncrona y NO bloqueante - solo si está habilitado y NO está silenciado
       // La respuesta de texto ya está disponible, no esperamos el audio
@@ -352,8 +354,11 @@ export class AgentCoordinator {
         });
       }
 
-      // Actualizar progreso del estudiante
-      await this.updateStudentProgress(userMessage, personalizedResponse);
+      // Actualizar progreso del estudiante en background (NO bloqueante)
+      // Esto no debe retrasar la respuesta al usuario
+      this.updateStudentProgress(userMessage, personalizedResponse).catch(err => {
+        console.warn('Error actualizando progreso del estudiante:', err);
+      });
 
       this.emitEvent({
         type: 'message_received',

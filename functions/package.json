@@ -1,0 +1,13 @@
+{
+  "name": "eduspark-functions",
+  "version": "1.0.0",
+  "description": "Cloud Functions para EduSpark",
+  "scripts": {
+    "build": "npm run build --prefix analyzeFile && npm run build --prefix createFileProcessingJob && npm run build --prefix processFileJob",
+    "deploy": "firebase deploy --only functions"
+  },
+  "engines": {
+    "node": "20"
+  }
+}
+

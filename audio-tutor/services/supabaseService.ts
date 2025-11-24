@@ -208,9 +208,18 @@ export const getPedagogicalSettings = async (courseId: string): Promise<Supabase
       .from('course_pedagogical_settings')
       .select('*')
       .eq('course_id', courseId)
-      .single();
+      .maybeSingle(); // Cambiado de .single() a .maybeSingle() para manejar casos sin datos
 
     if (error) throw error;
+
+    // Si no hay datos, retornar null sin error
+    if (!data) {
+      return {
+        data: null,
+        error: null,
+        success: true
+      };
+    }
 
     return {
       data: {
@@ -464,9 +473,18 @@ export const getGradingScale = async (courseId: string): Promise<SupabaseRespons
       .from('course_grading_scales')
       .select('*')
       .eq('course_id', courseId)
-      .single();
+      .maybeSingle(); // Cambiado de .single() a .maybeSingle() para manejar casos sin datos
 
     if (error) throw error;
+
+    // Si no hay datos, retornar null sin error
+    if (!data) {
+      return {
+        data: null,
+        error: null,
+        success: true
+      };
+    }
 
     return {
       data: {

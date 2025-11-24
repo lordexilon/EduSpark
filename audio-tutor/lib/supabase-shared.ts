@@ -3,5 +3,5 @@
 // Re-exporta la instancia principal para evitar duplicaciones
 // =====================================================
 
-export { supabase } from '../../lib/supabase';
-export type { User, AuthUser, Role } from '../../lib/supabase';
+export { supabase } from '../../src/lib/supabase';
+export type { User, AuthUser, Role } from '../../src/lib/supabase';
