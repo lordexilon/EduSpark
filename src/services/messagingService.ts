@@ -109,7 +109,7 @@ export const messagingService = {
     // Manejar errores silenciosamente (puede ser que un usuario no exista o no sea accesible)
     const participant1Data = participant1Response.data;
     const participant2Data = participant2Response.data;
-    
+
     if (participant1Response.error && participant1Response.error.code !== 'PGRST116') {
       console.warn('Error obteniendo participant1:', participant1Response.error);
     }
@@ -118,7 +118,7 @@ export const messagingService = {
     }
 
     // Determinar quién es el otro usuario (puede ser null si no existe o no es accesible)
-    const otherUser = data.participant1_id === user.id 
+    const otherUser = data.participant1_id === user.id
       ? (participant2Data ? { ...participant2Data, role: participant2Data?.roles } : null)
       : (participant1Data ? { ...participant1Data, role: participant1Data?.roles } : null);
 
@@ -144,8 +144,8 @@ export const messagingService = {
     // Procesar conversaciones para determinar el otro usuario y contar no leídos
     const conversations = await Promise.all(
       (data || []).map(async (conv) => {
-        const otherUserId = conv.participant1_id === user.id 
-          ? conv.participant2_id 
+        const otherUserId = conv.participant1_id === user.id
+          ? conv.participant2_id
           : conv.participant1_id;
 
         // Obtener información del otro usuario
@@ -183,7 +183,7 @@ export const messagingService = {
             .eq('conversation_id', conv.id)
             .eq('is_read', false)
             .neq('sender_id', user.id);
-          
+
           if (countError) {
             console.warn('Error contando mensajes no leídos:', countError);
             // Si falla el conteo con HEAD, intentar con una consulta normal
@@ -209,7 +209,7 @@ export const messagingService = {
           .eq('conversation_id', conv.id)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         let lastMessage = undefined;
         if (lastMessageData) {
@@ -283,7 +283,7 @@ export const messagingService = {
         content: content.trim()
       })
       .select('*')
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 
@@ -307,7 +307,7 @@ export const messagingService = {
 
     const { error } = await supabase
       .from('messages')
-      .update({ 
+      .update({
         is_read: true,
         read_at: new Date().toISOString()
       })
@@ -427,7 +427,7 @@ export const messagingService = {
               .from('conversations')
               .select('*')
               .eq('id', payload.new.conversation_id)
-              .single();
+              .maybeSingle();
 
             if (conversationData) {
               // Verificar si el usuario actual es participante

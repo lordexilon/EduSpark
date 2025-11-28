@@ -2,6 +2,7 @@
 import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth.tsx';
+import { ThemeProvider } from './context/ThemeContext.tsx';
 import Layout from './components/Layout.tsx';
 import TeacherLayout from './components/TeacherLayout.tsx';
 import RouterWrapper from './components/RouterWrapper.tsx';
@@ -39,6 +40,7 @@ import { CourseEditorPage } from './pages/CourseEditorPage.tsx';
 import CreateCoursePage from './pages/CreateCoursePage.tsx';
 // Landing page
 import LandingPage from './pages/LandingPage.tsx';
+import InstitutionLandingPage from './pages/InstitutionLandingPage.tsx';
 import PrivacyPage from './pages/PrivacyPage.tsx';
 import TermsPage from './pages/TermsPage.tsx';
 // Tutor Virtual
@@ -76,6 +78,7 @@ import { StudentFlashcardsPage } from './pages/StudentFlashcardsPage.tsx';
 import { DocumentLibraryPage } from './pages/DocumentLibraryPage.tsx';
 import ResetStudentProgressPage from './pages/ResetStudentProgressPage.tsx';
 import { UserDevicesPage } from './pages/UserDevicesPage.tsx';
+import LandingPageConfigPage from './pages/LandingPageConfigPage.tsx';
 
 // This component handles the conditional rendering of routes based on authentication.
 const AppRoutes: React.FC = () => {
@@ -117,6 +120,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/auth/google/callback" element={<GoogleOAuthCallbackPage />} />
+        <Route path="/:slug" element={<InstitutionLandingPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
@@ -196,6 +200,7 @@ const AppRoutes: React.FC = () => {
               <Route path="/admin/institutions" element={<AdminRoute><InstitutionManagementPage /></AdminRoute>} />
               <Route path="/admin/documents" element={<AdminRoute><DocumentLibraryPage /></AdminRoute>} />
               <Route path="/admin/devices-report" element={<AdminRoute><AdminDevicesReportPage /></AdminRoute>} />
+              <Route path="/admin/settings/landing-page" element={<AdminRoute><LandingPageConfigPage /></AdminRoute>} />
               <Route path="/devices" element={<UserDevicesPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="*" element={<Navigate to="/teacher/dashboard" replace />} />
@@ -293,9 +298,11 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <RouterWrapper>
-          <AppRoutes />
-        </RouterWrapper>
+        <ThemeProvider>
+          <RouterWrapper>
+            <AppRoutes />
+          </RouterWrapper>
+        </ThemeProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

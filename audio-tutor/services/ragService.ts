@@ -380,7 +380,7 @@ export class RAGService {
 
           if (result.error) {
             // Detectar si la función no existe (404 o error de función no encontrada)
-            const isFunctionNotFound = 
+            const isFunctionNotFound =
               result.error.code === '42883' || // function does not exist
               result.error.code === 'PGRST116' || // Not found
               result.error.message?.includes('does not exist') ||
@@ -399,7 +399,7 @@ export class RAGService {
           }
         } catch (rpcError: any) {
           // Detectar si la función no existe en el catch también
-          const isFunctionNotFound = 
+          const isFunctionNotFound =
             rpcError?.code === '42883' ||
             rpcError?.code === 'PGRST116' ||
             rpcError?.message?.includes('does not exist') ||
@@ -530,6 +530,49 @@ export class RAGService {
       }
 
       // 2. SOLO si no encontramos suficientes resultados, usar embeddings (COSTO: ~$0.00001)
+      // PERO PRIMERO: Si estamos en una sesión específica, buscar chunks de esa sesión directamente
+      if (vectorChunks.length < 2 && moduleId) {
+        try {
+          console.log(`🔍 RAGService - Buscando chunks de sesión ${moduleId} DIRECTAMENTE...`);
+
+          const { data: sessionChunks, error: sessionError } = await supabase
+            .from('course_content_chunks')
+            .select('*')
+            .eq('metadata->>sessionId', moduleId)
+            .limit(5);
+
+          if (!sessionError && sessionChunks && sessionChunks.length > 0) {
+            console.log(`✅ RAGService - Encontrados ${sessionChunks.length} chunks directos de la sesión`);
+
+            // Convertir a formato CourseContent
+            const sessionContent: CourseContent[] = sessionChunks.map((chunk: any) => ({
+              id: `chunk-${chunk.id}`,
+              title: chunk.metadata?.sourceFileName || 'Contenido de sesión',
+              content: chunk.content,
+              type: 'material' as const,
+              difficulty: 'intermediate' as const,
+              topics: this.extractTopics(chunk.content),
+              originalId: chunk.id,
+              courseId: courseId,
+              metadata: {
+                sourceFileName: chunk.metadata?.sourceFileName,
+                sessionId: chunk.metadata?.sessionId,
+              },
+            }));
+
+            vectorChunks = [...vectorChunks, ...sessionContent];
+            console.log(`📦 RAGService - Total chunks después de agregar sesión: ${vectorChunks.length}`);
+          } else if (sessionError) {
+            console.warn('⚠️ RAGService - Error buscando chunks de sesión:', sessionError);
+          } else {
+            console.warn(`⚠️ RAGService - No se encontraron chunks para sessionId ${moduleId}`);
+          }
+        } catch (sessionQueryError) {
+          console.error('❌ RAGService - Error en query directa de sesión:', sessionQueryError);
+        }
+      }
+
+      // 3. Si aún no hay suficientes resultados, usar embeddings vectoriales
       if (vectorChunks.length < 2) {
         try {
           console.log('🔍 RAGService - Búsqueda de texto completo insuficiente, usando embeddings...');

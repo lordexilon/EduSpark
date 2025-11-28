@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Card from '../components/Card.tsx';
 import ProgressBar from '../components/ProgressBar.tsx';
 import Button from '../components/Button.tsx';
-import { IconChevronRight, IconChevronLeft, IconPlusCircle, IconFilter, IconMessage, IconCalendar, IconBookOpen, IconClipboardList, IconVideoCamera, IconClock } from '../components/Icons.tsx';
+import { IconChevronRight, IconChevronLeft, IconPlusCircle, IconFilter, IconMessage, IconCalendar, IconBookOpen, IconClipboardList, IconVideoCamera, IconClock, IconGraduationCap } from '../components/Icons.tsx';
 import { useAuth } from '../hooks/useAuth.tsx';
 import { careerEnrollmentService, courseEnrollmentService } from '../services/academicService';
 import { courseService, unitService, sessionService } from '../services/teacherCourses';
@@ -25,12 +25,12 @@ const WelcomeHeader = ({ name }: { name: string }) => (
 );
 
 const CourseCard = ({ imageUrl, title, tags, progress }: { imageUrl: string, title: string, tags: string[], progress: number }) => (
-    <div 
+    <div
         className={`relative p-6 rounded-2xl text-white w-full h-full hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-end min-h-[220px] overflow-hidden group`}
     >
-        <div 
-          className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
-          style={{ backgroundImage: `url(${imageUrl})` }}
+        <div
+            className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+            style={{ backgroundImage: `url(${imageUrl})` }}
         ></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent rounded-2xl"></div>
         <div className="relative z-10">
@@ -40,7 +40,7 @@ const CourseCard = ({ imageUrl, title, tags, progress }: { imageUrl: string, tit
             </div>
             <p className="text-sm font-medium mb-1 opacity-80">En Progreso</p>
             <div className="flex items-center gap-3">
-                <ProgressBar value={progress} color="white" height="6px" className="bg-white/30" />
+                <ProgressBar value={progress} color="white" height="8px" className="bg-white/30" />
                 <span className="text-sm font-semibold">{progress}%</span>
             </div>
         </div>
@@ -48,17 +48,17 @@ const CourseCard = ({ imageUrl, title, tags, progress }: { imageUrl: string, tit
 );
 
 interface CourseEnrollment {
-  id: string;
-  course_id: number;
-  status: string;
-  completion_percentage: number;
-  course?: {
-    id: number;
-    title: string;
-    code?: string;
-    description?: string;
-    thumbnail_url?: string;
-  };
+    id: string;
+    course_id: number;
+    status: string;
+    completion_percentage: number;
+    course?: {
+        id: number;
+        title: string;
+        code?: string;
+        description?: string;
+        thumbnail_url?: string;
+    };
 }
 
 const CurrentClasses = ({ userId }: { userId: string }) => {
@@ -70,11 +70,11 @@ const CurrentClasses = ({ userId }: { userId: string }) => {
             try {
                 setLoading(true);
                 console.log('📚 CurrentClasses - Cargando inscripciones para userId:', userId);
-                
+
                 // Obtener inscripciones del estudiante
                 const enrollments = await courseEnrollmentService.getStudentEnrollments(userId);
                 console.log('📚 CurrentClasses - Inscripciones obtenidas:', enrollments.length);
-                
+
                 // Obtener detalles de cada curso y recalcular progreso
                 const coursesWithDetails = await Promise.all(
                     enrollments
@@ -163,23 +163,23 @@ const CurrentClasses = ({ userId }: { userId: string }) => {
 
     return (
         <Card className="col-span-12 lg:col-span-7 !p-0 overflow-hidden">
-             <div className="p-4 sm:p-6 pb-2">
+            <div className="p-4 sm:p-6 pb-2">
                 <div className="flex items-center justify-between">
                     <h2 className="text-base sm:text-lg font-bold">Clases en Curso</h2>
                     <div className="flex items-center gap-2">
-                        <Button variant="secondary" size="sm" className="!p-2 text-text-light"><IconChevronLeft className="w-4 h-4 sm:w-5 sm:h-5"/></Button>
-                        <Button variant="secondary" size="sm" className="!p-2 text-text-light"><IconChevronRight className="w-4 h-4 sm:w-5 sm:h-5"/></Button>
+                        <Button variant="secondary" size="sm" className="!p-2 text-text-light"><IconChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" /></Button>
+                        <Button variant="secondary" size="sm" className="!p-2 text-text-light"><IconChevronRight className="w-4 h-4 sm:w-5 sm:h-5" /></Button>
                     </div>
                 </div>
             </div>
             <div className="flex flex-col md:flex-row gap-4 sm:gap-6 p-4 sm:p-6 pt-2 sm:pt-4">
                 {courses.map((enrollment) => (
-                    <Link 
-                        key={enrollment.id} 
-                        to={`/courses/${enrollment.course_id}`} 
+                    <Link
+                        key={enrollment.id}
+                        to={`/courses/${enrollment.course_id}`}
                         className="block w-full md:w-1/2"
                     >
-                        <CourseCard 
+                        <CourseCard
                             imageUrl={enrollment.course?.thumbnail_url || "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=800&auto=format&fit=crop"}
                             title={enrollment.course?.title || `Curso #${enrollment.course_id}`}
                             tags={enrollment.course?.code ? [enrollment.course.code] : []}
@@ -210,17 +210,17 @@ const LearningHours = ({ userId }: { userId: string }) => {
                 setLoading(true);
                 const hoursData = await progressService.getLearningHours(userId, timeframe);
                 const categoryData = await progressService.getLearningHoursByCategory(userId);
-                
+
                 console.log('📊 LearningHours Component - Datos recibidos:', {
                     hoursData,
                     categoryData,
                     hoursDataLength: hoursData.length,
                     categoryDataLength: categoryData.length
                 });
-                
+
                 setData(hoursData);
                 setCategories(categoryData);
-                
+
                 // Calcular maxHours basado en los datos
                 if (hoursData.length > 0) {
                     const max = Math.max(...hoursData.map(d => d.hours));
@@ -241,7 +241,7 @@ const LearningHours = ({ userId }: { userId: string }) => {
 
         loadLearningHours();
     }, [userId, timeframe]);
-    
+
     if (loading) {
         return (
             <Card className="col-span-12 lg:col-span-5">
@@ -259,7 +259,7 @@ const LearningHours = ({ userId }: { userId: string }) => {
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-bold">Horas de Aprendizaje</h2>
                     <div className="flex items-center gap-2">
-                        <select 
+                        <select
                             value={timeframe}
                             onChange={(e) => setTimeframe(e.target.value as 'monthly' | 'weekly')}
                             className="text-sm border-none bg-gray-100 rounded-md p-1 focus:ring-0 cursor-pointer"
@@ -267,7 +267,7 @@ const LearningHours = ({ userId }: { userId: string }) => {
                             <option value="monthly">Mensual</option>
                             <option value="weekly">Semanal</option>
                         </select>
-                        <Button variant="secondary" size="sm" className="!p-2 text-text-light"><IconFilter className="w-5 h-5"/></Button>
+                        <Button variant="secondary" size="sm" className="!p-2 text-text-light"><IconFilter className="w-5 h-5" /></Button>
                     </div>
                 </div>
                 <div className="p-6 text-center text-gray-600">
@@ -283,7 +283,7 @@ const LearningHours = ({ userId }: { userId: string }) => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 mb-4">
                 <h2 className="text-base sm:text-lg font-bold">Horas de Aprendizaje</h2>
                 <div className="flex items-center gap-2">
-                    <select 
+                    <select
                         value={timeframe}
                         onChange={(e) => setTimeframe(e.target.value as 'monthly' | 'weekly')}
                         className="text-xs sm:text-sm border-none bg-gray-100 rounded-md p-1 focus:ring-0 cursor-pointer"
@@ -291,7 +291,7 @@ const LearningHours = ({ userId }: { userId: string }) => {
                         <option value="monthly">Mensual</option>
                         <option value="weekly">Semanal</option>
                     </select>
-                    <Button variant="secondary" size="sm" className="!p-2 text-text-light"><IconFilter className="w-4 h-4 sm:w-5 sm:h-5"/></Button>
+                    <Button variant="secondary" size="sm" className="!p-2 text-text-light"><IconFilter className="w-4 h-4 sm:w-5 sm:h-5" /></Button>
                 </div>
             </div>
             <div className="flex justify-around items-end h-32 mb-4 gap-3 px-2">
@@ -305,7 +305,7 @@ const LearningHours = ({ userId }: { userId: string }) => {
                                     {d.hours.toFixed(1)} hrs
                                 </div>
                                 <div className="w-5 bg-gray-200 rounded-md flex-grow flex items-end">
-                                    <div className="w-full bg-primary rounded-md transition-all duration-300" style={{height: `${heightPercent}%`}}></div>
+                                    <div className="w-full bg-primary rounded-md transition-all duration-300" style={{ height: `${heightPercent}%` }}></div>
                                 </div>
                                 <span className="text-xs text-text-light mt-2">{d.day}</span>
                             </div>
@@ -352,21 +352,21 @@ const PendingTasks = ({ userId }: { userId: string }) => {
                 setLoading(true);
                 // Obtener el curso "Matemática para Empresas 1" (course_id = 1)
                 const courseId = 1;
-                
+
                 // Obtener todas las tareas del curso
                 const assignments = await assignmentService.getStudentAssignments(userId, courseId);
-                
+
                 // Obtener las entregas del estudiante para cada tarea
                 const tasksWithStatus = await Promise.all(
                     assignments.map(async (assignment: Assignment) => {
                         // Verificar si el estudiante tiene una entrega
                         const submission = await submissionService.getStudentSubmission(assignment.id, userId);
-                        
+
                         const today = new Date();
                         const dueDate = assignment.due_at ? new Date(assignment.due_at) : null;
                         const isCompleted = submission !== null && submission.grade !== null;
                         const isOverdue = dueDate && dueDate < today && !isCompleted;
-                        
+
                         return {
                             id: assignment.id,
                             title: assignment.title,
@@ -472,7 +472,7 @@ const PendingTasks = ({ userId }: { userId: string }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                 {tasks.map(task => (
                     <Link key={task.id} to={`/assignments?assignmentId=${task.id}`} className="block">
-                        <div 
+                        <div
                             className="bg-background p-4 rounded-lg border border-border hover:bg-gray-100 hover:border-primary/50 transition-all h-full"
                         >
                             <h3 className="font-semibold text-sm text-text-dark">{task.title}</h3>
@@ -507,7 +507,7 @@ const StudentProgress = ({ userId }: { userId: string }) => {
                 // Obtener cursos inscritos
                 const enrollments = await courseEnrollmentService.getStudentEnrollments(userId);
                 const activeEnrollment = enrollments.find(e => e.status === 'active');
-                
+
                 if (!activeEnrollment) {
                     setProgressData([]);
                     setLoading(false);
@@ -516,10 +516,10 @@ const StudentProgress = ({ userId }: { userId: string }) => {
 
                 // Obtener unidades del curso
                 const units = await unitService.getCourseUnits(activeEnrollment.course_id);
-                
+
                 // Obtener todas las sesiones del curso una vez
                 const allCourseSessions = await sessionService.getCourseSessions(activeEnrollment.course_id);
-                
+
                 // Agrupar sesiones por unidad
                 const sessionsByUnit = new Map<string, typeof allCourseSessions>();
                 allCourseSessions.forEach(session => {
@@ -536,8 +536,8 @@ const StudentProgress = ({ userId }: { userId: string }) => {
                     const unitSessions = sessionsByUnit.get(unit.id) || [];
                     return unitSessions.map((session, index) => {
                         // Usar order_index si existe, sino usar el índice + 1
-                        const sessionNumber = session.order_index !== null 
-                            ? session.order_index 
+                        const sessionNumber = session.order_index !== null
+                            ? session.order_index
                             : index + 1;
                         return {
                             id: session.id,
@@ -583,7 +583,7 @@ const StudentProgress = ({ userId }: { userId: string }) => {
                     const percentage = item.total > 0 ? Math.round((item.completed / item.total) * 100) : 0;
                     return (
                         <li key={item.id}>
-                            <Link 
+                            <Link
                                 to={`/session/${item.id}`}
                                 className="block p-2 -mx-2 rounded-lg hover:bg-gray-100 transition-colors"
                             >
@@ -932,17 +932,17 @@ const Calendar = ({ userId }: { userId: string }) => {
         const lastDay = new Date(year, month + 1, 0);
         const daysInMonth = lastDay.getDate();
         const startingDayOfWeek = firstDay.getDay();
-        
+
         // Ajustar para que lunes sea 0
         const adjustedStartingDay = (startingDayOfWeek + 6) % 7;
 
         const days: Array<{ day: number | null; date: Date | null; events: CalendarEvent[] }> = [];
-        
+
         // Días vacíos al inicio
         for (let i = 0; i < adjustedStartingDay; i++) {
             days.push({ day: null, date: null, events: [] });
         }
-        
+
         // Días del mes
         for (let day = 1; day <= daysInMonth; day++) {
             const dayDate = new Date(year, month, day);
@@ -952,7 +952,7 @@ const Calendar = ({ userId }: { userId: string }) => {
             });
             days.push({ day, date: dayDate, events: dayEvents });
         }
-        
+
         return days;
     };
 
@@ -1016,15 +1016,13 @@ const Calendar = ({ userId }: { userId: string }) => {
                 {days.map((dayData, index) => {
                     const isToday = dayData.date && dayData.date.toDateString() === new Date().toDateString();
                     const isSelected = selectedDate && dayData.date && dayData.date.toDateString() === selectedDate.toDateString();
-                    
+
                     return (
                         <div
                             key={index}
-                            className={`min-h-[50px] sm:min-h-[60px] p-0.5 sm:p-1 border border-transparent rounded-md ${
-                                dayData.day === null ? 'opacity-0' : 'cursor-pointer hover:bg-gray-50'
-                            } ${isToday ? 'border-primary bg-primary/5' : ''} ${
-                                isSelected ? 'bg-primary/10 border-primary' : ''
-                            }`}
+                            className={`min-h-[50px] sm:min-h-[60px] p-0.5 sm:p-1 border border-transparent rounded-md ${dayData.day === null ? 'opacity-0' : 'cursor-pointer hover:bg-gray-50'
+                                } ${isToday ? 'border-primary bg-primary/5' : ''} ${isSelected ? 'bg-primary/10 border-primary' : ''
+                                }`}
                             onClick={() => dayData.date && setSelectedDate(dayData.date)}
                         >
                             {dayData.day && (
@@ -1139,12 +1137,12 @@ const ClassPlanner = ({ userId }: { userId: string }) => {
                 for (const enrollment of activeEnrollments) {
                     try {
                         const sessions = await sessionService.getCourseSessions(enrollment.course_id);
-                        
+
                         for (const session of sessions) {
                             if (session.starts_at) {
                                 const startDate = new Date(session.starts_at);
                                 const now = new Date();
-                                
+
                                 // Solo mostrar sesiones futuras o del día actual
                                 const today = new Date(now);
                                 today.setHours(0, 0, 0, 0);
@@ -1159,11 +1157,11 @@ const ClassPlanner = ({ userId }: { userId: string }) => {
                                             .eq('session_id', session.id)
                                             .eq('user_id', userId)
                                             .maybeSingle();
-                                        
+
                                         if (accessData) {
                                             // Si el estudiante ha visitado la sesión, consideramos un progreso mínimo
                                             progress = 10;
-                                            
+
                                             // Si hay actividades, calcular progreso basado en actividades completadas
                                             if (session.activities && session.activities.length > 0) {
                                                 // Por ahora, asumimos que si hay acceso, hay algún progreso
@@ -1176,19 +1174,19 @@ const ClassPlanner = ({ userId }: { userId: string }) => {
                                     }
 
                                     // Formatear hora de inicio y fin
-                                    const startTime = startDate.toLocaleTimeString('es-ES', { 
-                                        hour: '2-digit', 
+                                    const startTime = startDate.toLocaleTimeString('es-ES', {
+                                        hour: '2-digit',
                                         minute: '2-digit',
-                                        hour12: true 
+                                        hour12: true
                                     });
-                                    
+
                                     let endTime: string | null = null;
                                     if (session.ends_at) {
                                         const endDate = new Date(session.ends_at);
-                                        endTime = endDate.toLocaleTimeString('es-ES', { 
-                                            hour: '2-digit', 
+                                        endTime = endDate.toLocaleTimeString('es-ES', {
+                                            hour: '2-digit',
                                             minute: '2-digit',
-                                            hour12: true 
+                                            hour12: true
                                         });
                                     }
 
@@ -1236,7 +1234,7 @@ const ClassPlanner = ({ userId }: { userId: string }) => {
         const weekStart = new Date(now);
         weekStart.setDate(now.getDate() - now.getDay() + 1 + (currentWeek * 7)); // Lunes de la semana
         weekStart.setHours(0, 0, 0, 0);
-        
+
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 6);
         weekEnd.setHours(23, 59, 59, 999);
@@ -1288,31 +1286,31 @@ const ClassPlanner = ({ userId }: { userId: string }) => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 mb-4">
                 <h2 className="text-base sm:text-lg font-bold">Planificador de Clases</h2>
                 <div className="flex items-center gap-2">
-                    <Button 
-                        variant="secondary" 
-                        size="sm" 
+                    <Button
+                        variant="secondary"
+                        size="sm"
                         className="!p-1.5 sm:!p-2 text-text-light"
                         onClick={goToPreviousWeek}
                     >
-                        <IconChevronLeft className="w-4 h-4 sm:w-5 sm:h-5"/>
+                        <IconChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                     </Button>
                     {currentWeek !== 0 && (
-                        <Button 
-                            variant="secondary" 
-                            size="sm" 
+                        <Button
+                            variant="secondary"
+                            size="sm"
                             onClick={goToCurrentWeek}
                             className="text-xs"
                         >
                             Hoy
                         </Button>
                     )}
-                    <Button 
-                        variant="secondary" 
-                        size="sm" 
+                    <Button
+                        variant="secondary"
+                        size="sm"
                         className="!p-1.5 sm:!p-2 text-text-light"
                         onClick={goToNextWeek}
                     >
-                        <IconChevronRight className="w-4 h-4 sm:w-5 sm:h-5"/>
+                        <IconChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                     </Button>
                 </div>
             </div>
@@ -1326,7 +1324,7 @@ const ClassPlanner = ({ userId }: { userId: string }) => {
                     {filteredClasses.map(c => {
                         const { day, month } = formatDate(c.date);
                         const timeDisplay = c.endTime ? `${c.startTime} - ${c.endTime}` : c.startTime;
-                        
+
                         return (
                             <li key={c.id}>
                                 <Link
@@ -1359,15 +1357,15 @@ const ClassPlanner = ({ userId }: { userId: string }) => {
 
 
 interface CareerEnrollment {
-  id: string;
-  career_id: number;
-  status: string;
-  current_semester: number;
-  career?: {
-    id: number;
-    name: string;
-    code?: string;
-  };
+    id: string;
+    career_id: number;
+    status: string;
+    current_semester: number;
+    career?: {
+        id: number;
+        name: string;
+        code?: string;
+    };
 }
 
 const MyCareers = ({ userId }: { userId: string }) => {
@@ -1379,11 +1377,11 @@ const MyCareers = ({ userId }: { userId: string }) => {
             try {
                 setLoading(true);
                 console.log('🎓 MyCareers - Cargando inscripciones en carreras para userId:', userId);
-                
+
                 // Obtener inscripciones en carreras del estudiante
                 const enrollments = await careerEnrollmentService.getStudentEnrollments(userId);
                 console.log('🎓 MyCareers - Inscripciones en carreras obtenidas:', enrollments.length);
-                
+
                 // Obtener detalles de cada carrera
                 const careersWithDetails = await Promise.all(
                     enrollments
@@ -1444,25 +1442,31 @@ const MyCareers = ({ userId }: { userId: string }) => {
             <h2 className="text-lg font-bold mb-4">Mis Carreras</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {careers.map((enrollment) => (
-                    <div key={enrollment.id} className="p-4 border border-gray-200 rounded-lg hover:border-primary/50 transition-colors">
-                        <h3 className="font-semibold text-gray-900 mb-1">
-                            {enrollment.career?.name || `Carrera #${enrollment.career_id}`}
-                        </h3>
-                        {enrollment.career?.code && (
-                            <p className="text-sm text-gray-600 mb-2">{enrollment.career.code}</p>
-                        )}
-                        <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Semestre:</span>
-                            <span className="font-medium">{enrollment.current_semester}</span>
+                    <div key={enrollment.id} className="p-4 border border-gray-200 rounded-lg hover:border-primary/50 transition-colors flex gap-4">
+                        <div className="flex-shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                <IconGraduationCap className="w-5 h-5" />
+                            </div>
                         </div>
-                        <div className="mt-2">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                enrollment.status === 'active'
-                                    ? 'bg-green-100 text-green-800' 
+                        <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900 mb-1">
+                                {enrollment.career?.name || `Carrera #${enrollment.career_id}`}
+                            </h3>
+                            {enrollment.career?.code && (
+                                <p className="text-sm text-gray-600 mb-2">{enrollment.career.code}</p>
+                            )}
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-600">Semestre:</span>
+                                <span className="font-medium">{enrollment.current_semester}</span>
+                            </div>
+                            <div className="mt-2">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${enrollment.status === 'active'
+                                    ? 'bg-green-100 text-green-800'
                                     : 'bg-gray-100 text-gray-800'
-                            }`}>
-                                {enrollment.status === 'active' ? 'Activo' : enrollment.status}
-                            </span>
+                                    }`}>
+                                    {enrollment.status === 'active' ? 'Activo' : enrollment.status}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -1474,7 +1478,7 @@ const MyCareers = ({ userId }: { userId: string }) => {
 // --- MAIN DASHBOARD APP ---
 const DashboardPage: React.FC = () => {
     const { user } = useAuth();
-    
+
     useEffect(() => {
         console.log('📊 DashboardPage - Usuario actual:', {
             id: user?.id,
@@ -1483,22 +1487,22 @@ const DashboardPage: React.FC = () => {
             isAuthenticated: !!user
         });
     }, [user]);
-  
-  return (
-    <div>
-        <WelcomeHeader name={user?.first_name || 'Estudiante'} />
-        <main className="grid grid-cols-12 gap-4 sm:gap-6">
-            <CurrentClasses userId={user?.id || ''} />
-            <LearningHours userId={user?.id || ''} />
-            <MyCareers userId={user?.id || ''} />
-            <PendingTasks userId={user?.id || ''} />
-            <StudentProgress userId={user?.id || ''} />
-            <Messages userId={user?.id || ''} />
-            <Calendar userId={user?.id || ''} />
-            <ClassPlanner userId={user?.id || ''} />
-        </main>
-    </div>
-  );
+
+    return (
+        <div>
+            <WelcomeHeader name={user?.first_name || 'Estudiante'} />
+            <main className="grid grid-cols-12 gap-4 sm:gap-6">
+                <CurrentClasses userId={user?.id || ''} />
+                <LearningHours userId={user?.id || ''} />
+                <MyCareers userId={user?.id || ''} />
+                <PendingTasks userId={user?.id || ''} />
+                <StudentProgress userId={user?.id || ''} />
+                <Messages userId={user?.id || ''} />
+                <Calendar userId={user?.id || ''} />
+                <ClassPlanner userId={user?.id || ''} />
+            </main>
+        </div>
+    );
 };
 
 export default DashboardPage;

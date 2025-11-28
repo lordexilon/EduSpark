@@ -16,12 +16,12 @@ import { CourseMaterialSelector } from '../components/CourseMaterialSelector';
 import { ProcessingNotification } from '../components/ProcessingNotification';
 import Card from '../components/Card';
 import Button from '../components/Button';
-import { 
-  FileText, 
-  Loader2, 
-  AlertCircle, 
-  Bell, 
-  ExternalLink, 
+import {
+  FileText,
+  Loader2,
+  AlertCircle,
+  Bell,
+  ExternalLink,
   FolderTree,
   Image as ImageIcon,
   File,
@@ -70,6 +70,7 @@ export const FileProcessingPage: React.FC = () => {
   const [processedFileIds, setProcessedFileIds] = useState<string[]>([]);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [diagnosticInfo, setDiagnosticInfo] = useState<any>(null);
+  const [hiddenFileIds, setHiddenFileIds] = useState<Set<string>>(new Set());
 
   // Función de diagnóstico de tokens
   const diagnosticarTokens = async () => {
@@ -77,7 +78,7 @@ export const FileProcessingPage: React.FC = () => {
 
     try {
       console.log('🔍 Iniciando diagnóstico de tokens...');
-      
+
       // Verificar tokens del usuario
       const { data: tokens, error: tokensError } = await supabase
         .from('user_google_tokens')
@@ -95,7 +96,7 @@ export const FileProcessingPage: React.FC = () => {
 
       // Verificar token de Drive específicamente
       const driveToken = await googleOAuthService.getAccessToken(user.id, 'drive');
-      
+
       const info = {
         userId: user.id,
         tokens: tokens || [],
@@ -149,10 +150,10 @@ export const FileProcessingPage: React.FC = () => {
     }
   };
 
-  // Cargar notificaciones cerradas desde localStorage
+  // Cargar notificaciones cerradas y archivos ocultos desde localStorage
   useEffect(() => {
     if (!user) return;
-    
+
     const storageKey = `dismissed_notifications_${user.id}`;
     try {
       const stored = localStorage.getItem(storageKey);
@@ -162,6 +163,18 @@ export const FileProcessingPage: React.FC = () => {
       }
     } catch (err) {
       console.warn('Error cargando notificaciones cerradas:', err);
+    }
+
+    // Cargar archivos ocultos
+    const hiddenFilesKey = `hidden_files_${user.id}`;
+    try {
+      const storedHidden = localStorage.getItem(hiddenFilesKey);
+      if (storedHidden) {
+        const hiddenIds = JSON.parse(storedHidden) as string[];
+        setHiddenFileIds(new Set(hiddenIds));
+      }
+    } catch (err) {
+      console.warn('Error cargando archivos ocultos:', err);
     }
   }, [user]);
 
@@ -176,11 +189,11 @@ export const FileProcessingPage: React.FC = () => {
 
         // Obtener carpeta del usuario
         let folder = await googleDriveService.getUserFolder(user.id);
-        
+
         if (!folder) {
           // Verificar si tiene Google Drive conectado
           const hasDriveToken = await googleOAuthService.hasValidToken(user.id, 'drive');
-          
+
           if (hasDriveToken) {
             // Si tiene Drive conectado pero no tiene carpeta, intentar crearla
             try {
@@ -203,7 +216,7 @@ export const FileProcessingPage: React.FC = () => {
             return;
           }
         }
-        
+
         if (!folder) {
           // No establecer error aquí, mostrar mensaje informativo con botón
           setLoading(false);
@@ -228,7 +241,7 @@ export const FileProcessingPage: React.FC = () => {
         ]);
 
         setFiles(driveFiles);
-        
+
         // Obtener IDs de archivos ya procesados desde Firestore (jobs completados)
         const processedIds = jobs
           .filter(job => job.status === 'completed')
@@ -248,7 +261,7 @@ export const FileProcessingPage: React.FC = () => {
             const materialFileIds = materialsWithChunks
               .map(m => m.metadata?.sourceFileId)
               .filter(Boolean) as string[];
-            
+
             // Combinar con los IDs de Firestore
             const allProcessedIds = [...new Set([...processedIds, ...materialFileIds])];
             setProcessedFileIds(allProcessedIds);
@@ -306,7 +319,7 @@ export const FileProcessingPage: React.FC = () => {
             try {
               let newStatus: string;
               const updateData: any = {};
-              
+
               if (job.status === 'completed') {
                 newStatus = 'completed';
                 updateData.rag_status = newStatus;
@@ -369,7 +382,7 @@ export const FileProcessingPage: React.FC = () => {
   // Analizar archivo
   const handleAnalyze = async (file: DriveFile) => {
     console.log('[FileProcessing] Iniciando análisis de archivo:', file.name);
-    
+
     if (!user) {
       const errorMsg = 'No hay usuario autenticado';
       console.error('[FileProcessing]', errorMsg);
@@ -440,7 +453,7 @@ export const FileProcessingPage: React.FC = () => {
 
       const data = await response.json();
       console.log('[FileProcessing] Datos recibidos:', data);
-      
+
       if (data.success && data.analysis) {
         const fileAnalysis: FileAnalysis = {
           fileId: file.id,
@@ -488,6 +501,22 @@ export const FileProcessingPage: React.FC = () => {
     }
   };
 
+  // Ocultar archivo de la vista
+  const handleHideFile = (fileId: string) => {
+    setHiddenFileIds(prev => {
+      const newSet = new Set(prev);
+      newSet.add(fileId);
+      if (user) {
+        try {
+          localStorage.setItem(`hidden_files_${user.id}`, JSON.stringify(Array.from(newSet)));
+        } catch (err) {
+          console.warn('Error guardando archivos ocultos:', err);
+        }
+      }
+      return newSet;
+    });
+  };
+
   // Procesar archivo
   const handleProcess = async (ragProcessingType: 'full' | 'readonly' = 'full') => {
     if (!user || !analysis || !CREATE_JOB_URL) {
@@ -515,7 +544,7 @@ export const FileProcessingPage: React.FC = () => {
 
         // Determinar rag_status según el tipo de procesamiento
         const ragStatus = ragProcessingType === 'readonly' ? 'readonly' : 'pending';
-        
+
         const { data: material, error: materialError } = await supabase
           .from('materials')
           .insert({
@@ -673,7 +702,7 @@ export const FileProcessingPage: React.FC = () => {
                       const newDismissed = new Set(dismissedNotifications);
                       newDismissed.add(job.id);
                       setDismissedNotifications(newDismissed);
-                      
+
                       // Guardar en localStorage (mantener solo los últimos 100 para no crecer demasiado)
                       const dismissedArray = Array.from(newDismissed);
                       const toStore = dismissedArray.slice(-100); // Solo los últimos 100
@@ -682,7 +711,7 @@ export const FileProcessingPage: React.FC = () => {
                       console.warn('Error guardando notificación cerrada:', err);
                     }
                   }
-                  
+
                   // Remover de notificaciones visibles
                   setNotifications(prev => prev.filter(n => n.id !== job.id));
                 }}
@@ -763,7 +792,7 @@ export const FileProcessingPage: React.FC = () => {
                 Google Drive no vinculado
               </h3>
               <p className="text-yellow-700 mb-4">
-                Para procesar materiales, necesitas vincular una carpeta de Google Drive. 
+                Para procesar materiales, necesitas vincular una carpeta de Google Drive.
                 Esto te permitirá acceder a tus archivos PDF y PPT para procesarlos con el Tutor RAG.
               </p>
               <Button
@@ -853,7 +882,28 @@ export const FileProcessingPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Lista de archivos */}
           <Card>
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Archivos Disponibles</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-800">Archivos Disponibles</h2>
+              {hiddenFileIds.size > 0 && (
+                <button
+                  onClick={() => {
+                    setHiddenFileIds(new Set());
+                    if (user) {
+                      try {
+                        localStorage.removeItem(`hidden_files_${user.id}`);
+                      } catch (err) {
+                        console.warn('Error limpiando archivos ocultos:', err);
+                      }
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center space-x-2"
+                  title="Mostrar todos los archivos ocultos"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Mostrar {hiddenFileIds.size} oculto{hiddenFileIds.size > 1 ? 's' : ''}</span>
+                </button>
+              )}
+            </div>
 
             {loading ? (
               <div className="flex items-center justify-center py-8">
@@ -866,206 +916,255 @@ export const FileProcessingPage: React.FC = () => {
                 <p>No se encontraron archivos PDF, PPT o imágenes en tu carpeta de Google Drive</p>
               </div>
             ) : (
-            <div className="space-y-3">
-              {files.map((file) => {
-                const isAnalyzing = analyzing === file.id;
-                const fileJobs = jobs.filter(j => j.sourceFileId === file.id);
-                const hasJobs = fileJobs.length > 0;
-                const isCompleted = fileJobs.length > 0 && fileJobs.every(j => j.status === 'completed');
-                const isAlreadyProcessed = processedFileIds.includes(file.id);
-                const canReanalyze = isCompleted || isAlreadyProcessed; // Permitir re-análisis solo si está completado
+              <div className="space-y-3">
+                {files.filter(file => !hiddenFileIds.has(file.id)).map((file) => {
+                  const isAnalyzing = analyzing === file.id;
+                  const fileJobs = jobs.filter(j => j.sourceFileId === file.id);
+                  const hasJobs = fileJobs.length > 0;
+                  const isCompleted = fileJobs.length > 0 && fileJobs.every(j => j.status === 'completed');
+                  const isAlreadyProcessed = processedFileIds.includes(file.id);
+                  const canReanalyze = isCompleted || isAlreadyProcessed; // Permitir re-análisis solo si está completado
 
-                const thumbnailUrl = getThumbnailUrl(file.id, file.mimeType);
-                const isImage = file.mimeType.startsWith('image/');
-                const fileTypeLabel = getFileTypeLabel(file.mimeType);
-                const isProcessing = fileJobs.some(j => j.status === 'processing');
-                const hasFailed = fileJobs.some(j => j.status === 'failed');
+                  const thumbnailUrl = getThumbnailUrl(file.id, file.mimeType);
+                  const isImage = file.mimeType.startsWith('image/');
+                  const fileTypeLabel = getFileTypeLabel(file.mimeType);
+                  // Mejorar detección de procesamiento para evitar jobs "colgados"
+                  const isProcessing = fileJobs.some(j => {
+                    if (j.status !== 'processing') return false;
+                    // Verificar si el job lleva más de 2 horas sin actualizar
+                    const updatedAt = j.updatedAt ? new Date(j.updatedAt) : new Date(j.createdAt);
+                    const now = new Date();
+                    const hoursSinceUpdate = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60);
+                    if (hoursSinceUpdate > 2) {
+                      console.warn(`Job ${j.id} lleva ${hoursSinceUpdate.toFixed(1)} horas sin actualizar`);
+                      return false;
+                    }
+                    return true;
+                  });
+                  const hasFailed = fileJobs.some(j => j.status === 'failed');
 
-                return (
-                  <div
-                    key={file.id}
-                    className={`border rounded-lg p-4 transition-all ${
-                      isCompleted 
-                        ? 'border-green-300 bg-green-50' 
+                  return (
+                    <div
+                      key={file.id}
+                      className={`border rounded-lg p-4 transition-all ${isCompleted
+                        ? 'border-green-300 bg-green-50'
                         : isProcessing
-                        ? 'border-blue-300 bg-blue-50'
-                        : hasFailed
-                        ? 'border-red-300 bg-red-50'
-                        : 'border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-start gap-4">
-                      {/* Thumbnail o Icono */}
-                      <div className="flex-shrink-0">
-                        {thumbnailUrl && isImage ? (
-                          <div className="relative">
-                            <img
-                              src={thumbnailUrl}
-                              alt={file.name}
-                              className="w-20 h-20 object-cover rounded border border-gray-200"
-                              onError={(e) => {
-                                // Si falla la carga del thumbnail, mostrar icono
-                                (e.target as HTMLImageElement).style.display = 'none';
-                                const parent = (e.target as HTMLImageElement).parentElement;
-                                if (parent) {
-                                  parent.innerHTML = '<div class="w-20 h-20 flex items-center justify-center bg-gray-100 rounded border">' + 
-                                    getFileIcon(file.mimeType).props.children + '</div>';
-                                }
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-20 h-20 flex items-center justify-center bg-gray-100 rounded border">
-                            {getFileIcon(file.mimeType)}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Información del archivo */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-800 mb-1 truncate" title={file.name}>
-                              {file.name}
-                            </h3>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                                {fileTypeLabel}
-                              </span>
-                              {isCompleted && (
-                                <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium flex items-center gap-1">
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  Completado
-                                </span>
-                              )}
-                              {isProcessing && (
-                                <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium flex items-center gap-1">
-                                  <Clock className="w-3 h-3 animate-pulse" />
-                                  Procesando
-                                </span>
-                              )}
-                              {fileJobs.some(j => j.status === 'cancelled') && (
-                                <span className="px-2 py-0.5 bg-gray-100 text-gray-800 rounded text-xs font-medium flex items-center gap-1">
-                                  <XCircle className="w-3 h-3" />
-                                  Cancelado
-                                </span>
-                              )}
-                              {hasFailed && (
-                                <span className="px-2 py-0.5 bg-red-100 text-red-800 rounded text-xs font-medium flex items-center gap-1">
-                                  <XCircle className="w-3 h-3" />
-                                  Fallido
-                                </span>
-                              )}
+                          ? 'border-blue-300 bg-blue-50'
+                          : hasFailed
+                            ? 'border-red-300 bg-red-50'
+                            : 'border-gray-200 hover:bg-gray-50'
+                        }`}
+                    >
+                      <div className="flex items-start gap-4">
+                        {/* Thumbnail o Icono */}
+                        <div className="flex-shrink-0">
+                          {thumbnailUrl && isImage ? (
+                            <div className="relative">
+                              <img
+                                src={thumbnailUrl}
+                                alt={file.name}
+                                className="w-20 h-20 object-cover rounded border border-gray-200"
+                                onError={(e) => {
+                                  // Si falla la carga del thumbnail, mostrar icono
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                  const parent = (e.target as HTMLImageElement).parentElement;
+                                  if (parent) {
+                                    parent.innerHTML = '<div class="w-20 h-20 flex items-center justify-center bg-gray-100 rounded border">' +
+                                      getFileIcon(file.mimeType).props.children + '</div>';
+                                  }
+                                }}
+                              />
                             </div>
-                          </div>
+                          ) : (
+                            <div className="w-20 h-20 flex items-center justify-center bg-gray-100 rounded border">
+                              {getFileIcon(file.mimeType)}
+                            </div>
+                          )}
                         </div>
-                        <div className="text-sm text-gray-600 space-y-1">
-                          <div className="flex items-center gap-4">
-                            <span>Tamaño: {formatFileSize(file.size)}</span>
-                            <span>•</span>
-                            <span>Modificado: {formatDate(file.modifiedTime)}</span>
-                          </div>
-                          {hasJobs && (() => {
-                            const mainJob = fileJobs[0]; // El job principal
-                            const chunksProcessed = mainJob?.chunksProcessed || 0;
-                            const chunksTotal = mainJob?.chunksTotal;
-                            const isProcessing = mainJob?.status === 'processing' || mainJob?.status === 'pending';
-                            // Obtener tiempo estimado de diferentes posibles ubicaciones
-                            const estimatedMinutes = mainJob?.metadata?.estimatedCosts?.processingTime?.estimatedMinutes ||
-                                                     mainJob?.metadata?.estimatedCosts?.estimatedCosts?.processingTime?.estimatedMinutes ||
-                                                     (mainJob?.metadata?.estimatedCosts?.processingTime?.estimatedHours 
-                                                       ? mainJob.metadata.estimatedCosts.processingTime.estimatedHours * 60 
-                                                       : undefined);
-                            
-                            return (
-                              <div className="space-y-2 mt-2">
-                                {/* Estado del job */}
-                                <div className={`flex items-center gap-2 ${isProcessing ? 'text-blue-700' : isCompleted ? 'text-green-700' : 'text-gray-600'}`}>
-                                  <span className="font-medium">
-                                    {mainJob?.status === 'processing' ? 'Procesando...' : 
-                                     mainJob?.status === 'pending' ? 'Pendiente' : 
-                                     mainJob?.status === 'completed' ? 'Completado' :
-                                     mainJob?.status === 'failed' ? 'Error' :
-                                     'Iniciando...'}
-                                  </span>
-                                  {isProcessing && <Loader2 className="w-4 h-4 animate-spin" />}
-                                  {isCompleted && <CheckCircle2 className="w-4 h-4" />}
-                                </div>
-                                
-                                {/* Barra de progreso visual - solo si hay chunksTotal */}
-                                {chunksTotal !== undefined && chunksTotal > 0 && (
-                                  <div>
-                                    <div className="flex justify-between text-sm mb-1">
-                                      <span className={`font-medium ${isProcessing ? 'text-blue-700' : 'text-green-700'}`}>
-                                        {chunksProcessed} de {chunksTotal} chunks completados
-                                      </span>
-                                      <span className={`font-semibold ${isProcessing ? 'text-blue-700' : 'text-green-700'}`}>
-                                        {Math.round((chunksProcessed / chunksTotal) * 100)}%
-                                      </span>
-                                    </div>
-                                    <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                                      <div
-                                        className={`h-2.5 rounded-full transition-all duration-500 ease-out ${
-                                          isProcessing 
-                                            ? 'bg-gradient-to-r from-blue-500 to-blue-600' 
-                                            : 'bg-gradient-to-r from-green-500 to-green-600'
-                                        }`}
-                                        style={{ width: `${Math.round((chunksProcessed / chunksTotal) * 100)}%` }}
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                {/* Temporizador - mostrar siempre si hay tiempo estimado o si está procesando */}
-                                {(estimatedMinutes || (isProcessing && (mainJob.startedAt || mainJob.createdAt))) && (
-                                  <ProcessingTimer 
-                                    startTime={mainJob.startedAt || mainJob.createdAt} 
-                                    isProcessing={isProcessing}
-                                    estimatedMinutes={estimatedMinutes}
-                                    chunksProcessed={chunksProcessed}
-                                    chunksTotal={chunksTotal}
-                                  />
-                                )}
-                                
-                                {/* Mensaje de completado */}
+
+                        {/* Información del archivo */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-gray-800 mb-1 truncate" title={file.name}>
+                                {file.name}
+                              </h3>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                  {fileTypeLabel}
+                                </span>
                                 {isCompleted && (
-                                  <div className="flex items-center gap-2 text-green-700">
-                                    <CheckCircle2 className="w-4 h-4" />
-                                    <span className="font-medium">Procesamiento completado</span>
-                                  </div>
+                                  <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    Completado
+                                  </span>
+                                )}
+                                {isProcessing && (
+                                  <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium flex items-center gap-1">
+                                    <Clock className="w-3 h-3 animate-pulse" />
+                                    Procesando
+                                  </span>
+                                )}
+                                {fileJobs.some(j => j.status === 'cancelled') && (
+                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-800 rounded text-xs font-medium flex items-center gap-1">
+                                    <XCircle className="w-3 h-3" />
+                                    Cancelado
+                                  </span>
+                                )}
+                                {hasFailed && (
+                                  <span className="px-2 py-0.5 bg-red-100 text-red-800 rounded text-xs font-medium flex items-center gap-1">
+                                    <XCircle className="w-3 h-3" />
+                                    Fallido
+                                  </span>
                                 )}
                               </div>
-                            );
-                          })()}
+                            </div>
+                          </div>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            <div className="flex items-center gap-4">
+                              <span>Tamaño: {formatFileSize(file.size)}</span>
+                              <span>•</span>
+                              <span>Modificado: {formatDate(file.modifiedTime)}</span>
+                            </div>
+                            {hasJobs && (() => {
+                              const mainJob = fileJobs[0]; // El job principal
+                              const chunksProcessed = mainJob?.chunksProcessed || 0;
+                              const chunksTotal = mainJob?.chunksTotal;
+                              const isProcessing = mainJob?.status === 'processing' || mainJob?.status === 'pending';
+                              // Obtener tiempo estimado de diferentes posibles ubicaciones
+                              const estimatedMinutes = mainJob?.metadata?.estimatedCosts?.processingTime?.estimatedMinutes ||
+                                mainJob?.metadata?.estimatedCosts?.estimatedCosts?.processingTime?.estimatedMinutes ||
+                                (mainJob?.metadata?.estimatedCosts?.processingTime?.estimatedHours
+                                  ? mainJob.metadata.estimatedCosts.processingTime.estimatedHours * 60
+                                  : undefined);
+
+                              return (
+                                <div className="space-y-2 mt-2">
+                                  {/* Estado del job */}
+                                  <div className={`flex items-center gap-2 ${isProcessing ? 'text-blue-700' : isCompleted ? 'text-green-700' : 'text-gray-600'}`}>
+                                    <span className="font-medium">
+                                      {mainJob?.status === 'processing' ? 'Procesando...' :
+                                        mainJob?.status === 'pending' ? 'Pendiente' :
+                                          mainJob?.status === 'completed' ? 'Completado' :
+                                            mainJob?.status === 'failed' ? 'Error' :
+                                              'Iniciando...'}
+                                    </span>
+                                    {isProcessing && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    {isCompleted && <CheckCircle2 className="w-4 h-4" />}
+                                  </div>
+
+                                  {/* Barra de progreso visual - solo si hay chunksTotal */}
+                                  {chunksTotal !== undefined && chunksTotal > 0 && (
+                                    <div>
+                                      <div className="flex justify-between text-sm mb-1">
+                                        <span className={`font-medium ${isProcessing ? 'text-blue-700' : 'text-green-700'}`}>
+                                          {chunksProcessed} de {chunksTotal} chunks completados
+                                        </span>
+                                        <span className={`font-semibold ${isProcessing ? 'text-blue-700' : 'text-green-700'}`}>
+                                          {Math.round((chunksProcessed / chunksTotal) * 100)}%
+                                        </span>
+                                      </div>
+                                      <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                                        <div
+                                          className={`h-2.5 rounded-full transition-all duration-500 ease-out ${isProcessing
+                                            ? 'bg-gradient-to-r from-blue-500 to-blue-600'
+                                            : 'bg-gradient-to-r from-green-500 to-green-600'
+                                            }`}
+                                          style={{ width: `${Math.round((chunksProcessed / chunksTotal) * 100)}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Temporizador - mostrar siempre si hay tiempo estimado o si está procesando */}
+                                  {(estimatedMinutes || (isProcessing && (mainJob.startedAt || mainJob.createdAt))) && (
+                                    <ProcessingTimer
+                                      startTime={mainJob.startedAt || mainJob.createdAt}
+                                      isProcessing={isProcessing}
+                                      estimatedMinutes={estimatedMinutes}
+                                      chunksProcessed={chunksProcessed}
+                                      chunksTotal={chunksTotal}
+                                    />
+                                  )}
+
+                                  {/* Mensaje de completado */}
+                                  {isCompleted && (
+                                    <div className="flex items-center gap-2 text-green-700">
+                                      <CheckCircle2 className="w-4 h-4" />
+                                      <span className="font-medium">Procesamiento completado</span>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </div>
                         </div>
-                      </div>
-                      <div className="ml-4 flex flex-col items-end space-y-2">
-                        {!selectedCourseId && (
-                          <p className="text-xs text-red-600">Selecciona un curso primero</p>
-                        )}
-                        {/* Botón de cancelar para jobs en procesamiento */}
-                        {isProcessing && fileJobs.length > 0 && (
-                          <button
-                            onClick={() => {
-                              const processingJob = fileJobs.find(j => j.status === 'processing' || j.status === 'pending');
-                              if (processingJob) {
-                                handleCancel(processingJob.id);
-                              }
-                            }}
-                            className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm flex items-center space-x-1"
-                            title="Cancelar procesamiento"
-                          >
-                            <XCircle className="w-4 h-4" />
-                            <span>Cancelar</span>
-                          </button>
-                        )}
-                        {canReanalyze ? (
-                          <div className="flex flex-col items-end gap-2">
+                        <div className="ml-4 flex flex-col items-end space-y-2">
+                          {!selectedCourseId && (
+                            <p className="text-xs text-red-600">Selecciona un curso primero</p>
+                          )}
+                          {/* Botón de cancelar para jobs en procesamiento */}
+                          {isProcessing && fileJobs.length > 0 && (
                             <button
                               onClick={() => {
-                                if (!confirm(`⚠️ Este archivo ya fue procesado.\n\n¿Deseas procesarlo nuevamente?\n\nEsto creará nuevos chunks y puede duplicar información en el sistema RAG.`)) {
-                                  return;
+                                const processingJob = fileJobs.find(j => j.status === 'processing' || j.status === 'pending');
+                                if (processingJob) {
+                                  handleCancel(processingJob.id);
                                 }
+                              }}
+                              className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm flex items-center space-x-1"
+                              title="Cancelar procesamiento"
+                            >
+                              <XCircle className="w-4 h-4" />
+                              <span>Cancelar</span>
+                            </button>
+                          )}
+                          {/* Botón para ocultar archivos fallados */}
+                          {hasFailed && (
+                            <button
+                              onClick={() => handleHideFile(file.id)}
+                              className="px-3 py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm flex items-center space-x-1"
+                              title="Ocultar este archivo de la lista"
+                            >
+                              <XCircle className="w-4 h-4" />
+                              <span>Ocultar</span>
+                            </button>
+                          )}
+                          {canReanalyze ? (
+                            <div className="flex flex-col items-end gap-2">
+                              <button
+                                onClick={() => {
+                                  if (!confirm(`⚠️ Este archivo ya fue procesado.\n\n¿Deseas procesarlo nuevamente?\n\nEsto creará nuevos chunks y puede duplicar información en el sistema RAG.`)) {
+                                    return;
+                                  }
+                                  if (!selectedCourseId) {
+                                    setError('Por favor, selecciona un curso antes de analizar el archivo');
+                                    return;
+                                  }
+                                  handleAnalyze(file);
+                                }}
+                                disabled={isAnalyzing || processing || !selectedCourseId}
+                                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                                title={!selectedCourseId ? 'Selecciona un curso primero' : 'Re-procesar archivo (ya fue procesado anteriormente)'}
+                              >
+                                {isAnalyzing ? (
+                                  <>
+                                    <Loader2 className="animate-spin" size={16} />
+                                    <span>Re-analizando...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <RefreshCw className="w-4 h-4" />
+                                    <span>Re-procesar</span>
+                                  </>
+                                )}
+                              </button>
+                              <span className="text-xs text-green-700 font-medium">✓ Ya procesado</span>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                console.log('[FileProcessing] Click en Analizar para:', file.name);
                                 if (!selectedCourseId) {
                                   setError('Por favor, selecciona un curso antes de analizar el archivo');
                                   return;
@@ -1073,60 +1172,36 @@ export const FileProcessingPage: React.FC = () => {
                                 handleAnalyze(file);
                               }}
                               disabled={isAnalyzing || processing || !selectedCourseId}
-                              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                              title={!selectedCourseId ? 'Selecciona un curso primero' : 'Re-procesar archivo (ya fue procesado anteriormente)'}
+                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                              title={!selectedCourseId ? 'Selecciona un curso primero' : 'Analizar archivo'}
                             >
                               {isAnalyzing ? (
                                 <>
                                   <Loader2 className="animate-spin" size={16} />
-                                  <span>Re-analizando...</span>
+                                  <span>Analizando...</span>
                                 </>
                               ) : (
-                                <>
-                                  <RefreshCw className="w-4 h-4" />
-                                  <span>Re-procesar</span>
-                                </>
+                                <span>Analizar</span>
                               )}
                             </button>
-                            <span className="text-xs text-green-700 font-medium">✓ Ya procesado</span>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              console.log('[FileProcessing] Click en Analizar para:', file.name);
-                              if (!selectedCourseId) {
-                                setError('Por favor, selecciona un curso antes de analizar el archivo');
-                                return;
-                              }
-                              handleAnalyze(file);
-                            }}
-                            disabled={isAnalyzing || processing || !selectedCourseId}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                            title={!selectedCourseId ? 'Selecciona un curso primero' : 'Analizar archivo'}
-                          >
-                            {isAnalyzing ? (
-                              <>
-                                <Loader2 className="animate-spin" size={16} />
-                                <span>Analizando...</span>
-                              </>
-                            ) : (
-                              <span>Analizar</span>
-                            )}
-                          </button>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
           </Card>
 
           {/* Dashboard de estado */}
           <Card>
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Estado de Procesamiento</h2>
-            <ProcessingProgress jobs={jobs} />
+            <ProcessingProgress
+              jobs={jobs}
+              onHideFile={handleHideFile}
+              hiddenFileIds={hiddenFileIds}
+            />
           </Card>
         </div>
       )}
@@ -1156,7 +1231,7 @@ export const FileProcessingPage: React.FC = () => {
                 <XCircle size={24} />
               </button>
             </div>
-            
+
             {diagnosticInfo.error ? (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <p className="text-red-800 font-semibold">Error:</p>
@@ -1208,9 +1283,8 @@ export const FileProcessingPage: React.FC = () => {
                       {diagnosticInfo.tokensDetails.map((token: any, index: number) => (
                         <div
                           key={index}
-                          className={`border rounded-lg p-3 ${
-                            token.isExpired ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'
-                          }`}
+                          className={`border rounded-lg p-3 ${token.isExpired ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'
+                            }`}
                         >
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-medium text-sm">Tipo: {token.service_type}</span>

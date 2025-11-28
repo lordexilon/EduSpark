@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { VideoTranscriptService } from '../services/videoTranscriptService';
 import { VideoPlayer } from '../components/VideoPlayer';
+import { indexUnitContent } from '../services/contentIndexingService';
 
 type MatType = 'text' | 'video' | 'image' | 'document';
 
@@ -44,7 +45,7 @@ const ModuleEditorPage: React.FC = () => {
         setLoading(true);
         setError(null);
         console.log('📥 Cargando datos de la unidad...', { courseId: cId, unitId: uId });
-        
+
         if (!uId) {
           throw new Error('ID de unidad no proporcionado');
         }
@@ -81,8 +82,8 @@ const ModuleEditorPage: React.FC = () => {
           setUnitDescription(unitData.description || '');
           setUnitNumber(unitData.number || 1);
           setUnitOrderIndex(unitData.order_index ?? 0);
-          console.log('🔄 Estado actualizado:', { 
-            unitTitle: unitData.title || '', 
+          console.log('🔄 Estado actualizado:', {
+            unitTitle: unitData.title || '',
             unitDescription: unitData.description || '',
             unitNumber: unitData.number || 1,
             unitOrderIndex: unitData.order_index ?? 0
@@ -93,7 +94,7 @@ const ModuleEditorPage: React.FC = () => {
         if (mounted) {
           setMaterials(ms);
           console.log('📚 Materiales cargados:', ms.length);
-          
+
           // Cargar estados de transcripción para videos desde la base de datos
           const videoMaterials = ms.filter((mat: Material) => mat.kind === 'video');
           if (videoMaterials.length > 0) {
@@ -101,7 +102,7 @@ const ModuleEditorPage: React.FC = () => {
               .from('materials')
               .select('id, transcription_status')
               .in('id', videoMaterials.map((m: Material) => m.id));
-            
+
             const statuses: Record<string, string> = {};
             materialsWithStatus?.forEach((m: any) => {
               if (m.transcription_status) {
@@ -138,7 +139,7 @@ const ModuleEditorPage: React.FC = () => {
         'document': 'pdf'
       };
       const kind = kindMap[matKind] || 'other';
-      
+
       console.log('➕ Creando material...', { course_id: cId, unit_id: uId, title: finalTitle, kind, url: matUrl });
       const created = await materialService.createMaterial({
         course_id: cId,
@@ -151,13 +152,13 @@ const ModuleEditorPage: React.FC = () => {
       console.log('✅ Material creado', created);
       setMaterials(prev => [created, ...prev]);
       setMatTitle(''); setMatUrl(''); setMatContent(''); setMatKind('other');
-      
+
       // Si es un video, intentar extraer transcripción automáticamente
       if (kind === 'video' && matUrl) {
         const platform = transcriptService.detectPlatform(matUrl);
         if (platform) {
           setTranscriptionStatuses(prev => ({ ...prev, [created.id]: 'processing' }));
-          
+
           // Extraer transcripción en segundo plano
           transcriptService.extractTranscript(created.id, matUrl)
             .then(result => {
@@ -218,7 +219,7 @@ const ModuleEditorPage: React.FC = () => {
     }
     const yt = prompt('Pega la URL de YouTube (https://...)');
     if (!yt) return;
-    
+
     try {
       setSavingMaterial(true);
       const created = await materialService.createMaterial({
@@ -229,10 +230,10 @@ const ModuleEditorPage: React.FC = () => {
         url: yt,
         metadata: {}
       });
-      
+
       setMaterials(prev => [created, ...prev]);
       setMatTitle('');
-      
+
       // Extraer transcripción automáticamente
       setTranscriptionStatuses(prev => ({ ...prev, [created.id]: 'processing' }));
       transcriptService.extractTranscript(created.id, yt)
@@ -308,11 +309,11 @@ const ModuleEditorPage: React.FC = () => {
       };
       const kind = kindMap[t] || 'other';
       console.log('➕ Creando material rápido...', { course_id: cId, unit_id: uId, title: ttitle, kind, url: link });
-      const created = await materialService.createMaterial({ 
-        course_id: cId, 
-        unit_id: uId, 
-        title: ttitle, 
-        kind, 
+      const created = await materialService.createMaterial({
+        course_id: cId,
+        unit_id: uId,
+        title: ttitle,
+        kind,
         url: link,
         metadata: {}
       });
@@ -337,6 +338,14 @@ const ModuleEditorPage: React.FC = () => {
         order_index: unitOrderIndex
       });
       setUnitRow(updated);
+
+      // Indexar contenido para RAG
+      if (user?.id) {
+        indexUnitContent(updated, user.id).catch(err =>
+          console.error('Error indexando unidad:', err)
+        );
+      }
+
       alert('Unidad guardada correctamente');
     } catch (e: any) {
       console.error('Error guardando unidad:', e);
@@ -392,20 +401,20 @@ const ModuleEditorPage: React.FC = () => {
         <div className="space-y-3">
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">Título</label>
-            <input className="px-3 py-2 border rounded" value={unitTitle} onChange={e=>setUnitTitle(e.target.value)} placeholder="Título de la unidad" />
+            <input className="px-3 py-2 border rounded" value={unitTitle} onChange={e => setUnitTitle(e.target.value)} placeholder="Título de la unidad" />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">Descripción</label>
-            <textarea className="px-3 py-2 border rounded" rows={3} value={unitDescription} onChange={e=>setUnitDescription(e.target.value)} placeholder="Descripción de la unidad" />
+            <textarea className="px-3 py-2 border rounded" rows={3} value={unitDescription} onChange={e => setUnitDescription(e.target.value)} placeholder="Descripción de la unidad" />
           </div>
           <div className="flex gap-2">
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700">Número</label>
-              <input className="px-3 py-2 border rounded w-28" type="number" min="1" value={unitNumber} onChange={e=>setUnitNumber(Number(e.target.value))} placeholder="Número" />
+              <input className="px-3 py-2 border rounded w-28" type="number" min="1" value={unitNumber} onChange={e => setUnitNumber(Number(e.target.value))} placeholder="Número" />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700">Orden</label>
-              <input className="px-3 py-2 border rounded w-28" type="number" value={unitOrderIndex} onChange={e=>setUnitOrderIndex(Number(e.target.value))} placeholder="Orden" />
+              <input className="px-3 py-2 border rounded w-28" type="number" value={unitOrderIndex} onChange={e => setUnitOrderIndex(Number(e.target.value))} placeholder="Orden" />
             </div>
           </div>
           <div>
@@ -425,18 +434,18 @@ const ModuleEditorPage: React.FC = () => {
             </div>
           </div>
           <div className="flex flex-wrap gap-3 mt-4">
-            <button 
+            <button
               onClick={() => {
                 console.log('🎥 Clic en botón YouTube');
                 addYouTube();
-              }} 
-              disabled={savingMaterial} 
+              }}
+              disabled={savingMaterial}
               className={`px-6 py-3 rounded-lg font-bold text-lg flex items-center gap-2 transition-all ${savingMaterial ? 'bg-red-400 text-white cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 shadow-lg hover:shadow-xl transform hover:scale-105'}`}
             >
-              <span className="text-2xl">📺</span> 
+              <span className="text-2xl">📺</span>
               <span>Añadir Video de YouTube</span>
             </button>
-            <button 
+            <button
               onClick={() => {
                 console.log('🎥 Clic en botón Video Manual');
                 setMatKind('video');
@@ -444,7 +453,7 @@ const ModuleEditorPage: React.FC = () => {
                 setTimeout(() => {
                   document.getElementById('material-url-input')?.focus();
                 }, 100);
-              }} 
+              }}
               className="px-6 py-3 rounded-lg font-bold text-lg bg-orange-600 text-white hover:bg-orange-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
             >
               <span className="text-2xl">🎬</span>
@@ -455,23 +464,23 @@ const ModuleEditorPage: React.FC = () => {
 
         <h2 className="font-semibold mb-3">Agregar material</h2>
         <div className="flex flex-col md:flex-row gap-2 mb-2">
-          <input className="px-3 py-2 border rounded md:flex-1" value={matTitle} onChange={e=>setMatTitle(e.target.value)} placeholder="Título" />
-          <select className="px-3 py-2 border rounded" value={matKind} onChange={e=>setMatKind(e.target.value)}>
+          <input className="px-3 py-2 border rounded md:flex-1" value={matTitle} onChange={e => setMatTitle(e.target.value)} placeholder="Título" />
+          <select className="px-3 py-2 border rounded" value={matKind} onChange={e => setMatKind(e.target.value)}>
             <option value="markdown">Markdown</option>
             <option value="video">Video</option>
             <option value="pdf">PDF</option>
             <option value="link">Enlace</option>
             <option value="other">Otro</option>
           </select>
-          <input 
+          <input
             id="material-url-input"
-            className="px-3 py-2 border rounded md:flex-1" 
-            value={matUrl} 
-            onChange={e=>setMatUrl(e.target.value)} 
-            placeholder="URL (YouTube, Vimeo, etc.)" 
+            className="px-3 py-2 border rounded md:flex-1"
+            value={matUrl}
+            onChange={e => setMatUrl(e.target.value)}
+            placeholder="URL (YouTube, Vimeo, etc.)"
           />
         </div>
-        <textarea className="w-full px-3 py-2 border rounded mb-2" rows={4} value={matContent} onChange={e=>setMatContent(e.target.value)} placeholder="Contenido (opcional, se guardará en metadata)"></textarea>
+        <textarea className="w-full px-3 py-2 border rounded mb-2" rows={4} value={matContent} onChange={e => setMatContent(e.target.value)} placeholder="Contenido (opcional, se guardará en metadata)"></textarea>
         <div className="flex flex-wrap gap-2">
           <button onClick={addMaterial} disabled={savingMaterial} className={`px-3 py-2 rounded ${savingMaterial ? 'bg-indigo-400 text-white' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>{savingMaterial ? 'Guardando...' : 'Agregar'}</button>
           <button onClick={addYouTube} disabled={savingMaterial} className={`px-3 py-2 rounded ${savingMaterial ? 'bg-red-400 text-white' : 'bg-red-600 text-white hover:bg-red-700'}`}>📺 Añadir YouTube</button>
@@ -482,10 +491,10 @@ const ModuleEditorPage: React.FC = () => {
       <div className="space-y-3">
         <h2 className="font-semibold text-lg mb-3">Materiales de la unidad ({materials.length})</h2>
         {materials.map((mat) => (
-          <MaterialRow 
-            key={mat.id} 
-            mat={mat} 
-            onSave={saveMaterial} 
+          <MaterialRow
+            key={mat.id}
+            mat={mat}
+            onSave={saveMaterial}
             onDelete={removeMaterial}
             transcriptionStatus={transcriptionStatuses[mat.id]}
           />
@@ -496,32 +505,32 @@ const ModuleEditorPage: React.FC = () => {
   );
 };
 
-const MaterialRow: React.FC<{ 
-  mat: Material; 
-  onSave: (m:Material)=>void; 
-  onDelete:(id:string)=>void;
+const MaterialRow: React.FC<{
+  mat: Material;
+  onSave: (m: Material) => void;
+  onDelete: (id: string) => void;
   transcriptionStatus?: string;
 }> = ({ mat, onSave, onDelete, transcriptionStatus }) => {
   const [local, setLocal] = useState<Material>(mat);
-  
+
   // Actualizar estado local cuando cambie el material prop
   useEffect(() => {
     if (mat?.id && mat?.id !== local?.id) {
       setLocal(mat);
     }
   }, [mat?.id, local?.id]);
-  
+
   const materialTitle = local?.title || '';
   const materialKind = local?.kind || 'other';
   const materialUrl = local?.url || '';
   const materialContent = local?.metadata?.content || '';
   const isVideo = materialKind === 'video';
-  
+
   const getTranscriptionStatusBadge = () => {
     if (!isVideo) return null;
-    
+
     const status = transcriptionStatus;
-    
+
     if (status === 'completed') {
       return (
         <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
@@ -549,40 +558,40 @@ const MaterialRow: React.FC<{
       </span>
     );
   };
-  
+
   // Detectar plataforma y video ID para videos
   const transcriptService = new VideoTranscriptService();
-  const platform = isVideo && materialUrl 
+  const platform = isVideo && materialUrl
     ? (mat.video_platform || transcriptService.detectPlatform(materialUrl)?.name || 'other')
     : null;
   const videoId = isVideo && materialUrl && platform
     ? (mat.video_id || transcriptService.detectPlatform(materialUrl)?.extractId(materialUrl) || undefined)
     : undefined;
-  
+
   return (
     <div className="border rounded p-3 space-y-3">
       <div className="flex flex-col md:flex-row md:items-center gap-2">
-      <input className="px-3 py-2 border rounded md:flex-1" value={materialTitle} onChange={e=>setLocal({ ...local, title: e.target.value })} placeholder="Título" />
-      <select className="px-3 py-2 border rounded" value={materialKind} onChange={e=>setLocal({ ...local, kind: e.target.value as Material['kind'] })}>
-        <option value="markdown">Markdown</option>
-        <option value="video">Video</option>
-        <option value="pdf">PDF</option>
-        <option value="link">Enlace</option>
-        <option value="other">Otro</option>
-      </select>
-      <input className="px-3 py-2 border rounded md:flex-1" value={materialUrl} onChange={e=>setLocal({ ...local, url: e.target.value })} placeholder="URL" />
-      <div className="flex gap-2">
-        <button onClick={()=>onSave(local)} className="px-3 py-2 bg-blue-600 text-white rounded">Guardar</button>
-        <button onClick={()=>onDelete(local.id)} className="px-3 py-2 bg-red-600 text-white rounded">Eliminar</button>
-        {materialUrl && <a href={materialUrl} target="_blank" rel="noopener noreferrer" className="px-3 py-2 border rounded">Abrir</a>}
-      </div>
+        <input className="px-3 py-2 border rounded md:flex-1" value={materialTitle} onChange={e => setLocal({ ...local, title: e.target.value })} placeholder="Título" />
+        <select className="px-3 py-2 border rounded" value={materialKind} onChange={e => setLocal({ ...local, kind: e.target.value as Material['kind'] })}>
+          <option value="markdown">Markdown</option>
+          <option value="video">Video</option>
+          <option value="pdf">PDF</option>
+          <option value="link">Enlace</option>
+          <option value="other">Otro</option>
+        </select>
+        <input className="px-3 py-2 border rounded md:flex-1" value={materialUrl} onChange={e => setLocal({ ...local, url: e.target.value })} placeholder="URL" />
+        <div className="flex gap-2">
+          <button onClick={() => onSave(local)} className="px-3 py-2 bg-blue-600 text-white rounded">Guardar</button>
+          <button onClick={() => onDelete(local.id)} className="px-3 py-2 bg-red-600 text-white rounded">Eliminar</button>
+          {materialUrl && <a href={materialUrl} target="_blank" rel="noopener noreferrer" className="px-3 py-2 border rounded">Abrir</a>}
+        </div>
       </div>
       {isVideo && (
         <div className="flex items-center gap-2 mb-2">
           {getTranscriptionStatusBadge()}
         </div>
       )}
-      
+
       {/* Preview del video para el docente */}
       {isVideo && materialUrl && (
         <div className="border-t pt-3 mt-3">
@@ -604,12 +613,12 @@ const MaterialRow: React.FC<{
           </div>
         </div>
       )}
-      
-      <textarea 
-        className="w-full px-3 py-2 border rounded" 
-        rows={3} 
-        value={materialContent} 
-        onChange={e=>setLocal({ ...local, metadata: { ...local.metadata, content: e.target.value } })} 
+
+      <textarea
+        className="w-full px-3 py-2 border rounded"
+        rows={3}
+        value={materialContent}
+        onChange={e => setLocal({ ...local, metadata: { ...local.metadata, content: e.target.value } })}
         placeholder="Contenido del material"
       />
     </div>

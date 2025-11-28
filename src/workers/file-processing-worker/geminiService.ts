@@ -1,41 +1,42 @@
 // workers/file-processing-worker/geminiService.ts
-// Servicio para generar embeddings con Gemini
-
-import { GoogleGenAI } from '@google/genai';
-
-let genAI: GoogleGenAI | null = null;
+// Servicio para generar embeddings con Gemini usando REST API
 
 /**
- * Inicializa cliente de Gemini
+ * Genera embedding para un texto usando la API REST de Gemini
  */
-function initializeGemini(): GoogleGenAI {
-  if (genAI) return genAI;
-
-  const apiKey = process.env.GEMINI_API_KEY;
+export async function generateEmbedding(text: string): Promise<number[]> {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY debe estar configurado');
   }
 
-  genAI = new GoogleGenAI({ apiKey });
-  return genAI;
-}
-
-/**
- * Genera embedding para un texto
- */
-export async function generateEmbedding(text: string): Promise<number[]> {
-  const genAI = initializeGemini();
-  const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${apiKey}`;
 
   try {
-    const result = await model.embedContent({
-      content: { parts: [{ text }] },
-      taskType: 'RETRIEVAL_DOCUMENT',
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'models/text-embedding-004',
+        content: {
+          parts: [{ text }],
+        },
+      }),
     });
 
-    const embedding = result.embedding.values;
-    if (!embedding || embedding.length === 0) {
-      throw new Error('No se pudo generar embedding');
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+    }
+
+    const result = await response.json();
+    const embedding = result?.embedding?.values;
+
+    if (!embedding || !Array.isArray(embedding) || embedding.length === 0) {
+      console.error('Respuesta de Gemini:', JSON.stringify(result, null, 2));
+      throw new Error('No se pudo generar embedding - respuesta inválida');
     }
 
     return embedding;
@@ -50,22 +51,21 @@ export async function generateEmbedding(text: string): Promise<number[]> {
  */
 export async function generateEmbeddingsBatch(texts: string[]): Promise<number[][]> {
   const embeddings: number[][] = [];
-  
+
   // Procesar en lotes para evitar rate limiting
-  const batchSize = 10;
+  const batchSize = 5; // Reducido para evitar rate limits
   for (let i = 0; i < texts.length; i += batchSize) {
     const batch = texts.slice(i, i + batchSize);
     const batchEmbeddings = await Promise.all(
       batch.map(text => generateEmbedding(text))
     );
     embeddings.push(...batchEmbeddings);
-    
+
     // Pequeño delay entre lotes
     if (i + batchSize < texts.length) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
   }
 
   return embeddings;
 }
-

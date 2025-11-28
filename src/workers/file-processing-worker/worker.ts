@@ -22,7 +22,7 @@ async function processSplitJob(job: FileProcessingJob): Promise<void> {
   try {
     // Descargar primeras páginas para análisis
     const fileBuffer = await downloadFile(job.sourceFileId);
-    
+
     // Detectar tipo y contar páginas
     const pdfType = await detectPdfType(fileBuffer);
     const totalPages = await countPdfPages(fileBuffer);
@@ -188,6 +188,98 @@ async function processChunkJob(job: FileProcessingJob): Promise<void> {
 }
 
 /**
+ * Procesa un trabajo de tipo 'index_text_content'
+ */
+export async function processTextContentJob(job: FileProcessingJob): Promise<void> {
+  console.log(`[TextContent] Procesando trabajo ${job.id} para contenido directo`);
+
+  try {
+    if (!job.textContent) {
+      throw new Error('No se proporcionó contenido de texto (textContent)');
+    }
+
+    // Marcar como procesando (opcional para jobs directos)
+    try {
+      await updateJob(job.id, {
+        status: 'processing',
+      });
+    } catch (err) {
+      // Ignorar error si no hay credenciales de Firestore (procesamiento directo)
+      console.log('[TextContent] Skipping Firestore update (direct processing)');
+    }
+
+    // Limpiar HTML si es necesario (simple strip tags)
+    // Nota: Para una limpieza más robusta se podría usar una librería como 'striptags' o 'jsdom'
+    // Por ahora asumimos que el texto puede venir con HTML y lo limpiamos básicamente
+    const cleanText = job.textContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+
+    if (!cleanText || cleanText.length === 0) {
+      throw new Error('El contenido de texto está vacío después de limpiar');
+    }
+
+    // Dividir en chunks
+    const chunks = processTextIntoChunks(cleanText, {
+      sourceFileName: job.sourceFileName || 'Contenido Directo',
+      pageStart: 1,
+      pageEnd: 1,
+    });
+
+    console.log(`[TextContent] Texto procesado: ${cleanText.length} caracteres, dividido en ${chunks.length} chunks`);
+
+    // Generar embeddings
+    const chunkTexts = chunks.map(c => c.content);
+    const embeddings = await generateEmbeddingsBatch(chunkTexts);
+
+    console.log(`[TextContent] Embeddings generados: ${embeddings.length}`);
+
+    // Guardar en Supabase
+    const records = chunks.map((chunk, index) => ({
+      courseId: job.courseId,
+      content: chunk.content,
+      embedding: embeddings[index],
+      metadata: {
+        ...chunk.metadata,
+        pdfType: 'text' as PdfType,
+        ocrUsed: false,
+        category: job.metadata?.category || 'other',
+        unitId: job.metadata?.unitId,
+        sessionId: job.metadata?.sessionId,
+        // Usamos un ID ficticio o el del job como sourceFileId para trazabilidad
+        sourceFileId: job.sourceFileId || `job_${job.id}`,
+      },
+    }));
+
+    await saveChunksBatch(records);
+
+    console.log(`[TextContent] ${records.length} chunks guardados en Supabase`);
+
+    // Marcar como completado (opcional para jobs directos)
+    try {
+      await updateJob(job.id, {
+        status: 'completed',
+      });
+    } catch (err) {
+      // Ignorar error si no hay credenciales de Firestore (procesamiento directo)
+      console.log('[TextContent] Skipping Firestore update (direct processing)');
+    }
+
+    console.log(`[TextContent] Trabajo ${job.id} completado exitosamente`);
+  } catch (error: any) {
+    console.error(`[TextContent] Error procesando trabajo ${job.id}:`, error);
+    try {
+      await updateJob(job.id, {
+        status: 'failed',
+        errorMessage: error.message || 'Error desconocido',
+      });
+    } catch (err) {
+      // Ignorar error si no hay credenciales de Firestore (procesamiento directo)
+      console.log('[TextContent] Skipping Firestore update (direct processing)');
+    }
+    throw error;
+  }
+}
+
+/**
  * Procesa un trabajo
  */
 export async function processJob(job: FileProcessingJob): Promise<void> {
@@ -198,6 +290,8 @@ export async function processJob(job: FileProcessingJob): Promise<void> {
       await processSplitJob(job);
     } else if (job.jobType === 'process_chunk') {
       await processChunkJob(job);
+    } else if (job.jobType === 'index_text_content') {
+      await processTextContentJob(job);
     } else {
       throw new Error(`Tipo de trabajo desconocido: ${job.jobType}`);
     }

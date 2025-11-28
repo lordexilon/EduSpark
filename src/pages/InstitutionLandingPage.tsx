@@ -1,0 +1,429 @@
+import React, { useState, useEffect } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { IconSparkles, IconGraduationCap, IconUsers, IconBookOpen, IconCheckCircle, IconArrowRight, IconStar, IconBrandWhatsapp } from '../components/Icons';
+import { institutionService, Institution } from '../services/institutionService';
+import { landingConfigService, LandingConfig } from '../services/landingConfigService';
+
+const InstitutionLandingPage: React.FC = () => {
+    const { slug } = useParams<{ slug: string }>();
+    const [institutions, setInstitutions] = useState<Institution[]>([]);
+    const [loadingInstitutions, setLoadingInstitutions] = useState(true);
+    const [config, setConfig] = useState<LandingConfig | null>(null);
+    const [loadingConfig, setLoadingConfig] = useState(true);
+
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                // Load institutions
+                const institutionsData = await institutionService.getAllInstitutions();
+                setInstitutions(institutionsData);
+
+                // Load landing page configuration
+                if (slug) {
+                    const configData = await landingConfigService.getBySlug(slug);
+                    setConfig(configData);
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+            } finally {
+                setLoadingInstitutions(false);
+                setLoadingConfig(false);
+            }
+        };
+        loadData();
+    }, [slug]);
+
+    return (
+        <div className="min-h-screen bg-white font-sans">
+            {/* Navigation */}
+            <nav className="bg-white/90 backdrop-blur-sm fixed w-full z-50 transition-all duration-300">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center h-20">
+                        <div className="flex items-center space-x-2">
+                            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/20">
+                                <IconSparkles className="w-6 h-6 text-white" />
+                            </div>
+                            <span className="text-2xl font-bold text-gray-900 tracking-tight">{config?.brand_name || 'CEC'}</span>
+                        </div>
+                        <div className="hidden md:flex items-center space-x-8">
+                            <a href="#inicio" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">Inicio</a>
+                            <a href="#nosotros" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">Nosotros</a>
+                            <a href="#cursos" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">Cursos</a>
+                            <a href="#contacto" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">Contacto</a>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                            <Link to="/login" className="text-gray-700 hover:text-blue-600 font-medium px-4 py-2 transition-colors">
+                                Ingresar
+                            </Link>
+                            <a
+                                href="https://wa.me/595981226970"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/30 flex items-center gap-2"
+                            >
+                                <IconBrandWhatsapp className="w-5 h-5" />
+                                WhatsApp
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            {/* Hero Section */}
+            <section id="inicio" className="relative h-[600px] flex items-center justify-center overflow-hidden">
+                {/* Background Image with Overlay */}
+                <div className="absolute inset-0 z-0">
+                    <img
+                        src={config?.hero_image_url || "https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?q=80&w=2069&auto=format&fit=crop"}
+                        alt="Estudiantes felices en grupo"
+                        className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"></div>
+                </div>
+
+                <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight drop-shadow-lg">
+                        {config?.hero_title || 'Tu puente a la Medicina:'} <br />
+                        <span className="text-blue-400">{config?.hero_subtitle?.split('. ')[0] || 'UCA y CONAREM.'}</span>
+                    </h1>
+                    <p className="text-xl text-gray-200 mb-10 max-w-3xl mx-auto font-light leading-relaxed drop-shadow-md">
+                        {config?.hero_subtitle || 'Formamos al Puesto 1. Excelencia académica 100% presencial con calidad humana.'}
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                        <a
+                            href="#cursos"
+                            className="bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/30 transform hover:-translate-y-1"
+                        >
+                            {config?.hero_button_text || 'Ver Cursos Disponibles'}
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            {/* Notification Bar */}
+            {config?.notification_enabled !== false && (
+                <div className="bg-blue-600 py-4 px-4 shadow-md relative z-20">
+                    <div className="max-w-7xl mx-auto text-center">
+                        <p className="text-white font-semibold text-sm sm:text-base flex items-center justify-center gap-2">
+                            <IconSparkles className="w-5 h-5 text-yellow-300 animate-pulse" />
+                            <span>{config?.notification_text || '¡Inscripciones abiertas para el ciclo 2025! Asegura tu lugar hoy mismo.'}</span>
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Philosophy Section */}
+            <section id="nosotros" className="py-20 bg-white">
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                    <h2 className="text-3xl font-bold text-gray-900 mb-8">{config?.philosophy_title || 'Nuestra Filosofía: El Poder de lo Presencial'}</h2>
+                    <div className="prose prose-lg mx-auto text-gray-600 leading-relaxed">
+                        {config?.philosophy_content ? (
+                            config.philosophy_content.split('\n\n').map((paragraph, index) => (
+                                <p key={index} className={index === 0 ? 'mb-6' : ''}>
+                                    {paragraph}
+                                </p>
+                            ))
+                        ) : (
+                            <>
+                                <p className="mb-6">
+                                    En un mundo cada vez más digital, en CEC reafirmamos nuestra convicción en el valor insustituible de la educación presencial, <strong>entendiendo que la modalidad a distancia es su complemento perfecto</strong>. Creemos que el aprendizaje va más allá de la simple transmisión de información; se trata de la interacción humana, el debate cara a cara y el apoyo mutuo que surge en un aula, respaldado por recursos digitales siempre a tu alcance.
+                                </p>
+                                <p>
+                                    Fomentamos un ambiente de estudio sano, libre de toxicidad, donde cada estudiante es conocido por su nombre. Ofrecemos acompañamiento emocional y espiritual constante, porque entendemos que el bienestar personal es la base del éxito académico. En CEC, no solo te preparamos para un examen, te formamos para los desafíos de la vida.
+                                </p>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </section>
+
+            {/* Felicitaciones Section (Ingresantes) */}
+            <section className="py-20 bg-gray-50">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center mb-16">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-4">¡Orgullo CEC!</h2>
+                        <div className="w-20 h-1 bg-blue-600 mx-auto rounded-full"></div>
+                        <p className="mt-4 text-xl text-gray-600">Felicitamos a nuestros nuevos ingresantes</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                        {[
+                            { name: "María González", career: "Medicina UNA", place: "Puesto 1", image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=2070&auto=format&fit=crop" },
+                            { name: "Juan Pérez", career: "Medicina UCA", place: "Puesto 3", image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=1974&auto=format&fit=crop" },
+                            { name: "Sofía Martínez", career: "Medicina UNA", place: "Puesto 5", image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1974&auto=format&fit=crop" },
+                            { name: "Lucas Ramírez", career: "Medicina UCA", place: "Ingresante", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop" },
+                        ].map((student, index) => (
+                            <div key={index} className="bg-white rounded-xl shadow-lg overflow-hidden transform hover:-translate-y-2 transition-all duration-300">
+                                <div className="h-48 overflow-hidden">
+                                    <img src={student.image} alt={student.name} className="w-full h-full object-cover" />
+                                </div>
+                                <div className="p-6 text-center">
+                                    <h3 className="font-bold text-lg text-gray-900">{student.name}</h3>
+                                    <p className="text-blue-600 font-medium">{student.career}</p>
+                                    <div className="mt-3 inline-block bg-yellow-100 text-yellow-800 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wide">
+                                        {student.place}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Galeria Section */}
+            <section className="py-20 bg-white">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center mb-16">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-4">Nuestra Casa de Estudios</h2>
+                        <p className="mt-4 text-xl text-gray-600">Un ambiente diseñado para el aprendizaje y la convivencia</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="md:col-span-2 h-64 md:h-96 rounded-2xl overflow-hidden shadow-lg relative group">
+                            <img src="https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=2086&auto=format&fit=crop" alt="Aula Magna" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-6">
+                                <span className="text-white font-bold text-xl">Aulas Climatizadas</span>
+                            </div>
+                        </div>
+                        <div className="h-64 md:h-96 rounded-2xl overflow-hidden shadow-lg relative group">
+                            <img src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2070&auto=format&fit=crop" alt="Biblioteca" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-6">
+                                <span className="text-white font-bold text-xl">Espacios de Estudio</span>
+                            </div>
+                        </div>
+                        <div className="h-64 md:h-96 rounded-2xl overflow-hidden shadow-lg relative group">
+                            <img src="https://images.unsplash.com/photo-1571260899304-425eee4c7efc?q=80&w=2070&auto=format&fit=crop" alt="Cafetería" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-6">
+                                <span className="text-white font-bold text-xl">Áreas de Relax</span>
+                            </div>
+                        </div>
+                        <div className="md:col-span-2 h-64 md:h-96 rounded-2xl overflow-hidden shadow-lg relative group">
+                            <img src="https://images.unsplash.com/photo-1523580494863-6f3031224c94?q=80&w=2070&auto=format&fit=crop" alt="Patio" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-6">
+                                <span className="text-white font-bold text-xl">Encuentros y Comunidad</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Calendar Section */}
+            <section className="py-20 bg-blue-50">
+                <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-4">Calendario de Actividades</h2>
+                        <p className="text-gray-600">Mantente al día con nuestras fechas de inicio y eventos importantes.</p>
+                    </div>
+                    <div className="bg-white rounded-2xl shadow-xl p-4 md:p-8">
+                        <div className="aspect-video w-full">
+                            <iframe
+                                src="https://calendar.google.com/calendar/embed?src=es.paraguay%23holiday%40group.v.calendar.google.com&ctz=America%2FAsuncion"
+                                style={{ border: 0 }}
+                                width="100%"
+                                height="100%"
+                                frameBorder="0"
+                                scrolling="no"
+                                title="Calendario Académico"
+                            ></iframe>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Courses Section (Circular Cards) */}
+            <section id="cursos" className="py-24 bg-blue-50/50">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center mb-16">
+                        <h2 className="text-4xl font-bold text-blue-600 mb-4">Nuestros Cursos</h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center">
+                        {/* Course 1: CONAREM */}
+                        <div className="bg-white rounded-full w-[350px] h-[350px] flex flex-col items-center justify-center p-8 shadow-lg hover:shadow-xl transition-all duration-300 border-4 border-white ring-1 ring-gray-100 text-center relative group">
+                            <div className="absolute inset-0 rounded-full border-2 border-blue-100 scale-95 group-hover:scale-100 transition-transform duration-500"></div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-3 relative z-10">CONAREM</h3>
+                            <p className="text-sm text-gray-600 mb-4 leading-tight max-w-[250px] relative z-10">
+                                Preparación de alto rendimiento para médicos que buscan su especialidad.
+                            </p>
+                            <div className="mb-3 relative z-10">
+                                <span className="text-xs font-semibold text-blue-600 block mb-1">Modalidades:</span>
+                                <div className="flex flex-wrap justify-center gap-1">
+                                    <span className="px-2 py-0.5 bg-gray-100 rounded-full text-[10px] text-gray-700">Intensivo Diciembre</span>
+                                    <span className="px-2 py-0.5 bg-gray-100 rounded-full text-[10px] text-gray-700">Extensivo Anual</span>
+                                </div>
+                            </div>
+                            <div className="relative z-10">
+                                <span className="text-xs font-semibold text-blue-600 block mb-1">Enfoque:</span>
+                                <div className="flex flex-wrap justify-center gap-1">
+                                    <span className="px-2 py-0.5 bg-blue-600 text-white rounded-full text-[10px]">Salud Pública</span>
+                                    <span className="px-2 py-0.5 bg-blue-600 text-white rounded-full text-[10px]">Casos Clínicos</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Course 2: CPI (UCA) */}
+                        <div className="bg-white rounded-full w-[380px] h-[380px] flex flex-col items-center justify-center p-8 shadow-xl hover:shadow-2xl transition-all duration-300 border-4 border-white ring-1 ring-gray-100 text-center relative z-10 -mt-4 md:-mt-8 group">
+                            <div className="absolute inset-0 rounded-full border-2 border-blue-100 scale-95 group-hover:scale-100 transition-transform duration-500"></div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-3 relative z-10">CPI (UCA)</h3>
+                            <p className="text-sm text-gray-600 mb-4 leading-tight max-w-[280px] relative z-10">
+                                Curso de Preparación para el Ingreso a la carrera de Medicina en la UCA.
+                            </p>
+                            <div className="relative z-10 w-full max-w-[280px]">
+                                <span className="text-xs font-semibold text-blue-600 block mb-2">Materias:</span>
+                                <div className="flex flex-wrap justify-center gap-2">
+                                    <span className="px-3 py-1 bg-blue-600 text-white rounded-full text-xs">Física</span>
+                                    <span className="px-3 py-1 bg-blue-600 text-white rounded-full text-xs">Química</span>
+                                    <span className="px-3 py-1 bg-blue-600 text-white rounded-full text-xs">Biología</span>
+                                    <span className="px-3 py-1 bg-blue-600 text-white rounded-full text-xs">Anatomía Básica</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Course 3: PRE-CPI */}
+                        <div className="bg-white rounded-full w-[350px] h-[350px] flex flex-col items-center justify-center p-8 shadow-lg hover:shadow-xl transition-all duration-300 border-4 border-white ring-1 ring-gray-100 text-center relative group">
+                            <div className="absolute inset-0 rounded-full border-2 border-blue-100 scale-95 group-hover:scale-100 transition-transform duration-500"></div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-3 relative z-10">PRE-CPI</h3>
+                            <p className="text-sm text-gray-600 mb-4 leading-tight max-w-[250px] relative z-10">
+                                Nivelación y refuerzo para estudiantes de secundaria que aspiran a Medicina.
+                            </p>
+                            <div className="relative z-10">
+                                <span className="text-xs font-semibold text-blue-600 block mb-1">Ideal para:</span>
+                                <div className="flex flex-col gap-1">
+                                    <span className="px-2 py-0.5 bg-gray-100 rounded-full text-[10px] text-gray-700">2° año de la media</span>
+                                    <span className="px-2 py-0.5 bg-gray-100 rounded-full text-[10px] text-gray-700">3° año de la media</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Location Section */}
+            <section id="ubicacion" className="py-20 bg-white">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-4">Nuestra Sede</h2>
+                        <div className="w-20 h-1 bg-blue-600 mx-auto rounded-full"></div>
+                        <p className="mt-4 text-xl text-gray-600">Visítanos en nuestras instalaciones</p>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+                        <div className="grid grid-cols-1 md:grid-cols-3">
+                            <div className="p-8 md:p-12 flex flex-col justify-center bg-gray-50">
+                                <h3 className="text-2xl font-bold text-gray-900 mb-6">CEC Asunción</h3>
+                                <div className="space-y-6">
+                                    <div className="flex items-start space-x-4">
+                                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <span className="text-xl">📍</span>
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-gray-900">Dirección</p>
+                                            <p className="text-gray-600">Gral. Eugenio Alejandrino Garay 798</p>
+                                            <p className="text-gray-600">Asunción 001411, Paraguay</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start space-x-4">
+                                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <IconBrandWhatsapp className="w-6 h-6 text-green-600" />
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-gray-900">WhatsApp</p>
+                                            <a href="https://wa.me/595981226970" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                                +595 981 226970
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start space-x-4">
+                                        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <span className="text-xl">✉️</span>
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-gray-900">Email</p>
+                                            <a href="mailto:info@cec.com.py" className="text-blue-600 hover:underline">
+                                                info@cec.com.py
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="md:col-span-2 h-[400px] md:h-auto relative">
+                                <iframe
+                                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3607.6546477694!2d-57.5866166!3d-25.2817944!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x945da87c06765717%3A0x6c7216371710738!2sGral.%20Eugenio%20A.%20Garay%20798%2C%20Asunci%C3%B3n!5e0!3m2!1ses!2spy!4v1700000000000!5m2!1ses!2spy"
+                                    width="100%"
+                                    height="100%"
+                                    style={{ border: 0 }}
+                                    allowFullScreen
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer-when-downgrade"
+                                    className="absolute inset-0"
+                                ></iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Footer */}
+            <footer id="contacto" className="bg-gray-900 text-white py-12 border-t border-gray-800">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
+                        <div className="col-span-1 md:col-span-2">
+                            <div className="flex items-center space-x-2 mb-6">
+                                <IconSparkles className="w-6 h-6 text-blue-400" />
+                                <span className="text-2xl font-bold">EduSpark</span>
+                            </div>
+                            <p className="text-gray-400 leading-relaxed mb-6 max-w-md">
+                                Transformando la educación con tecnología de vanguardia. Nuestra misión es hacer el aprendizaje accesible, personalizado y efectivo para todos.
+                            </p>
+                            <div className="flex space-x-4">
+                                {/* Social Icons Placeholders */}
+                                <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors cursor-pointer">
+                                    <span className="font-bold">f</span>
+                                </div>
+                                <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-blue-400 transition-colors cursor-pointer">
+                                    <span className="font-bold">t</span>
+                                </div>
+                                <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-pink-600 transition-colors cursor-pointer">
+                                    <span className="font-bold">in</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 className="text-lg font-bold mb-6 text-white">Enlaces Rápidos</h3>
+                            <ul className="space-y-3">
+                                <li><a href="#inicio" className="text-gray-400 hover:text-blue-400 transition-colors">Inicio</a></li>
+                                <li><a href="#cursos" className="text-gray-400 hover:text-blue-400 transition-colors">Cursos</a></li>
+                                <li><Link to="/login" className="text-gray-400 hover:text-blue-400 transition-colors">Portal de Alumnos</Link></li>
+                                <li><Link to="/login" className="text-gray-400 hover:text-blue-400 transition-colors">Portal Docente</Link></li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 className="text-lg font-bold mb-6 text-white">Contacto</h3>
+                            <ul className="space-y-3 text-gray-400">
+                                <li className="flex items-center gap-2">
+                                    <IconBrandWhatsapp className="w-5 h-5 text-green-500" />
+                                    <span>+595 981 226970</span>
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <span>✉️</span>
+                                    <a href="mailto:info@eduspark.com" className="hover:text-white">info@eduspark.com</a>
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <span>📍</span>
+                                    <span>Asunción, Paraguay</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-500 text-sm">
+                        <p>&copy; {new Date().getFullYear()} EduSpark. Todos los derechos reservados.</p>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    );
+};
+
+export default InstitutionLandingPage;

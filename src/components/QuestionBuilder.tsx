@@ -42,9 +42,16 @@ export const QuestionBuilder: React.FC<QuestionBuilderProps> = ({ question, onSa
   };
 
   const updateOption = (index: number, field: 'text' | 'correct', value: any) => {
-    setOptions(prev => prev.map((opt, i) => 
-      i === index ? { ...opt, [field]: value } : opt
-    ));
+    if (field === 'correct') {
+      // Comportamiento de Radio Button: solo una correcta
+      setOptions(prev => prev.map((opt, i) =>
+        ({ ...opt, correct: i === index ? value : false })
+      ));
+    } else {
+      setOptions(prev => prev.map((opt, i) =>
+        i === index ? { ...opt, [field]: value } : opt
+      ));
+    }
   };
 
   const removeOption = (index: number) => {
@@ -63,8 +70,15 @@ export const QuestionBuilder: React.FC<QuestionBuilderProps> = ({ question, onSa
     }
 
     if (questionType === 'multiple_choice' && !options.some(opt => opt.correct)) {
-      alert('Marca al menos una opción como correcta');
+      alert('Marca una opción como correcta');
       return;
+    }
+
+    // Obtener la respuesta correcta para multiple_choice
+    let finalCorrectAnswer = correctAnswer;
+    if (questionType === 'multiple_choice') {
+      const correctOption = options.find(opt => opt.correct);
+      finalCorrectAnswer = correctOption ? correctOption.id : '';
     }
 
     const questionData: Partial<Question> = {
@@ -72,7 +86,7 @@ export const QuestionBuilder: React.FC<QuestionBuilderProps> = ({ question, onSa
       question_type: questionType,
       points: points,
       options: questionType === 'multiple_choice' ? options : undefined,
-      correct_answer: ['true_false', 'short_answer'].includes(questionType) ? correctAnswer : undefined,
+      correct_answer: finalCorrectAnswer,
       explanation: explanation.trim() || undefined,
       order_index: 0
     };
@@ -133,27 +147,28 @@ export const QuestionBuilder: React.FC<QuestionBuilderProps> = ({ question, onSa
             <div className="space-y-2">
               {options.map((option, index) => (
                 <div key={option.id} className="flex items-center gap-2">
+                  <div className="pt-1">
+                    <input
+                      type="radio"
+                      name="correctOption"
+                      checked={option.correct}
+                      onChange={() => updateOption(index, 'correct', true)}
+                      className="w-5 h-5 text-primary border-gray-300 focus:ring-primary cursor-pointer"
+                      title="Marcar como respuesta correcta"
+                    />
+                  </div>
                   <input
                     type="text"
                     value={option.text}
                     onChange={(e) => updateOption(index, 'text', e.target.value)}
                     placeholder={`Opción ${index + 1}`}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                    className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary ${option.correct ? 'border-green-500 bg-green-50' : 'border-gray-300'
+                      }`}
                   />
-                  <button
-                    onClick={() => updateOption(index, 'correct', !option.correct)}
-                    className={`p-2 rounded-lg border-2 transition-colors ${
-                      option.correct 
-                        ? 'border-green-600 bg-green-50 text-green-700' 
-                        : 'border-gray-300 text-gray-400 hover:border-gray-400'
-                    }`}
-                    title={option.correct ? 'Correcta' : 'Marcar como correcta'}
-                  >
-                    {option.correct ? <IconCheck className="w-5 h-5" /> : <IconX className="w-5 h-5" />}
-                  </button>
                   <button
                     onClick={() => removeOption(index)}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Eliminar opción"
                   >
                     <IconTrash className="w-5 h-5" />
                   </button>
@@ -165,6 +180,9 @@ export const QuestionBuilder: React.FC<QuestionBuilderProps> = ({ question, onSa
                 💡 Agrega al menos 2 opciones para opción múltiple
               </p>
             )}
+            <p className="text-xs text-gray-500 mt-2">
+              * Selecciona el círculo (radio button) para marcar la respuesta correcta.
+            </p>
           </div>
         )}
 

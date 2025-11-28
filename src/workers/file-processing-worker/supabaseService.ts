@@ -11,8 +11,8 @@ let supabaseClient: ReturnType<typeof createClient> | null = null;
 function initializeSupabase() {
   if (supabaseClient) return supabaseClient;
 
-  const url = process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceKey) {
     throw new Error('SUPABASE_URL y SUPABASE_SERVICE_KEY deben estar configurados');
@@ -52,7 +52,7 @@ export async function saveChunk(
 
   // Convertir courseId a número si es posible (para compatibilidad con INTEGER)
   const courseIdValue = isNaN(Number(courseId)) ? courseId : Number(courseId);
-  
+
   // Formato correcto para pgvector: array de números directamente
   // Supabase con pgvector acepta arrays de números directamente
 
@@ -114,7 +114,7 @@ export async function saveChunksBatch(
   const records = chunks.map(chunk => {
     // Convertir courseId a número si es posible (para compatibilidad con INTEGER)
     const courseIdValue = isNaN(Number(chunk.courseId)) ? chunk.courseId : Number(chunk.courseId);
-    
+
     const record: any = {
       course_id: courseIdValue,
       content: chunk.content,

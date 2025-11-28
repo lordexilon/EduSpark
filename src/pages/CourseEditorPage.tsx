@@ -18,6 +18,7 @@ import { VideoTranscriptService } from '../services/videoTranscriptService';
 import { RichTextDisplay } from '../components/RichTextDisplay';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
+import { indexUnitContent, indexSessionContent } from '../services/contentIndexingService';
 
 export const CourseEditorPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -206,23 +207,32 @@ export const CourseEditorPage: React.FC = () => {
     try {
       console.log('handleSaveUnit - Datos recibidos:', unitData);
 
+      let savedUnit: CourseUnit;
       if (editingUnit) {
         console.log('Actualizando unidad existente:', editingUnit.id);
-        const updated = await unitService.updateUnit(editingUnit.id, unitData);
-        console.log('Unidad actualizada:', updated);
+        savedUnit = await unitService.updateUnit(editingUnit.id, unitData);
+        console.log('Unidad actualizada:', savedUnit);
         // Actualizar la lista con la unidad actualizada
-        const updatedUnits = units.map(u => u.id === editingUnit.id ? updated : u);
+        const updatedUnits = units.map(u => u.id === editingUnit.id ? savedUnit : u);
         setUnits(updatedUnits);
       } else {
         const unitNumber = units.length + 1;
         console.log('Creando nueva unidad con número:', unitNumber);
-        const newUnit = await unitService.createUnit({
+        savedUnit = await unitService.createUnit({
           ...unitData,
           number: unitNumber
         });
-        console.log('Unidad creada:', newUnit);
-        setUnits([...units, newUnit]);
+        console.log('Unidad creada:', savedUnit);
+        setUnits([...units, savedUnit]);
       }
+
+      // Indexar contenido para RAG
+      if (user?.id) {
+        indexUnitContent(savedUnit, user.id).catch(err =>
+          console.error('Error indexando unidad:', err)
+        );
+      }
+
 
       // Cerrar modal después de una pequeña pausa para asegurar renderizado
       await new Promise(resolve => setTimeout(resolve, 50));
@@ -271,18 +281,30 @@ export const CourseEditorPage: React.FC = () => {
     try {
       console.log('handleSaveSession - Datos recibidos:', sessionData);
 
+      let savedSession: Session;
       if (editingSession) {
         console.log('Actualizando sesión existente:', editingSession.id);
-        const updated = await sessionService.updateSession(editingSession.id, sessionData);
-        console.log('Sesión actualizada:', updated);
+        savedSession = await sessionService.updateSession(editingSession.id, sessionData);
+        console.log('Sesión actualizada:', savedSession);
         // Actualizar la lista con la sesión actualizada
-        const updatedSessions = sessions.map(s => s.id === editingSession.id ? updated : s);
+        const updatedSessions = sessions.map(s => s.id === editingSession.id ? savedSession : s);
         setSessions(updatedSessions);
       } else {
         console.log('Creando nueva sesión');
-        const newSession = await sessionService.createSession(sessionData);
-        console.log('Sesión creada:', newSession);
-        setSessions([...sessions, newSession]);
+        savedSession = await sessionService.createSession(sessionData);
+        console.log('Sesión creada:', savedSession);
+        setSessions([...sessions, savedSession]);
+      }
+
+      // Indexar contenido para RAG
+      console.log('🔍 Verificando indexación - user:', user, 'user.id:', user?.id);
+      if (user?.id) {
+        console.log('✅ Llamando a indexSessionContent para sesión:', savedSession.id);
+        indexSessionContent(savedSession, user.id, savedSession.unit_id).catch(err =>
+          console.error('❌ Error indexando sesión:', err)
+        );
+      } else {
+        console.warn('⚠️ No se puede indexar: usuario no disponible');
       }
 
       // Cerrar modal después de una pequeña pausa para asegurar renderizado

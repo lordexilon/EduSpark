@@ -140,9 +140,10 @@ export const quizService = {
       .from('assessments')
       .select('*')
       .eq('id', assessmentId)
-      .single();
+      .maybeSingle();
 
     if (assessmentError) throw assessmentError;
+    if (!assessment) throw new Error('El quiz no existe o no tienes permiso para verlo (asegúrate de estar inscrito en el curso y que el quiz esté publicado).');
 
     // Obtener preguntas
     const { data: questions, error: questionsError } = await supabase
@@ -420,13 +421,13 @@ export const quizService = {
 
     // Calcular puntos totales basado en las preguntas
     const totalPointsFromQuestions = questions?.reduce((sum, q) => sum + (q.points || 0), 0) || 0;
-    
+
     // Usar el total calculado de preguntas o el del assessment, el que sea más preciso
     const totalPoints = totalPointsFromQuestions > 0 ? totalPointsFromQuestions : assessment.total_points;
 
     // Calcular percentage
-    const percentage = totalPoints > 0 
-      ? (totalScore / totalPoints) * 100 
+    const percentage = totalPoints > 0
+      ? (totalScore / totalPoints) * 100
       : 0;
 
     // Determinar si pasó
@@ -438,8 +439,8 @@ export const quizService = {
 
     if (assessmentFullError) throw assessmentFullError;
 
-    const isPassed = assessmentFull.passing_score 
-      ? percentage >= assessmentFull.passing_score 
+    const isPassed = assessmentFull.passing_score
+      ? percentage >= assessmentFull.passing_score
       : undefined;
 
     // Actualizar intento con score, percentage y status

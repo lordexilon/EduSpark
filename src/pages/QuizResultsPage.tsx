@@ -78,19 +78,19 @@ export const QuizResultsPage: React.FC = () => {
 
   const getScorePercentage = () => {
     if (!attempt || !assessment || results.length === 0) return 0;
-    
+
     // Calcular puntos totales basado en las preguntas reales
     const totalPointsFromQuestions = results.reduce((sum, r) => sum + r.pointsTotal, 0);
-    
+
     // Usar el total calculado de las preguntas (más preciso)
     const totalPoints = totalPointsFromQuestions > 0 ? totalPointsFromQuestions : assessment.total_points;
-    
+
     // Calcular porcentaje basado en puntos reales (siempre recalcular, no usar el guardado)
     const score = attempt.score || 0;
     if (totalPoints > 0 && score >= 0) {
       return (score / totalPoints) * 100;
     }
-    
+
     return 0;
   };
 
@@ -135,7 +135,7 @@ export const QuizResultsPage: React.FC = () => {
   const totalPointsFromQuestions = results.reduce((sum, r) => sum + r.pointsTotal, 0);
   const totalPoints = totalPointsFromQuestions > 0 ? totalPointsFromQuestions : assessment.total_points;
   const passed = assessment.passing_score ? scorePercentage >= assessment.passing_score : false;
-  
+
   console.log('📊 Cálculo de calificación:', {
     score: attempt.score,
     totalPoints,
@@ -148,21 +148,21 @@ export const QuizResultsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
-      <Breadcrumbs 
+      <Breadcrumbs
         items={[
-          { 
-            label: 'Dashboard', 
-            path: user?.role?.name === 'teacher' || user?.role?.name === 'admin' 
-              ? '/teacher/dashboard' 
-              : '/dashboard' 
+          {
+            label: 'Dashboard',
+            path: user?.role?.name === 'teacher' || user?.role?.name === 'admin'
+              ? '/teacher/dashboard'
+              : '/dashboard'
           },
-          { 
-            label: user?.role?.name === 'teacher' || user?.role?.name === 'admin' 
-              ? 'Calificaciones' 
-              : 'Mis Cursos', 
-            path: user?.role?.name === 'teacher' || user?.role?.name === 'admin' 
-              ? '/teacher/grades' 
-              : '/my/courses' 
+          {
+            label: user?.role?.name === 'teacher' || user?.role?.name === 'admin'
+              ? 'Calificaciones'
+              : 'Mis Cursos',
+            path: user?.role?.name === 'teacher' || user?.role?.name === 'admin'
+              ? '/teacher/grades'
+              : '/my/courses'
           },
           { label: assessment.title }
         ]}
@@ -194,7 +194,7 @@ export const QuizResultsPage: React.FC = () => {
                 <p className="text-sm text-gray-600">Intento #{attempt.attempt_number}</p>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div className="bg-white rounded-lg p-4">
                 <div className="text-sm text-gray-600 mb-1">Puntuación</div>
@@ -206,7 +206,7 @@ export const QuizResultsPage: React.FC = () => {
                 </div>
                 <div className="text-xs text-gray-500 mt-1">puntos</div>
               </div>
-              
+
               <div className="bg-white rounded-lg p-4">
                 <div className="text-sm text-gray-600 mb-1">Porcentaje</div>
                 <div className={`text-3xl font-bold ${getScoreColor(scorePercentage)}`}>
@@ -216,7 +216,7 @@ export const QuizResultsPage: React.FC = () => {
                   {assessment.passing_score ? `Aprobar: ${assessment.passing_score}%` : ''}
                 </div>
               </div>
-              
+
               <div className="bg-white rounded-lg p-4">
                 <div className="text-sm text-gray-600 mb-1">Estado</div>
                 <div className={`text-2xl font-bold ${getScoreColor(scorePercentage)}`}>
@@ -242,16 +242,15 @@ export const QuizResultsPage: React.FC = () => {
             {results.filter(r => r.isCorrect).length} de {results.length} correctas
           </div>
         </div>
-        
+
         <div className="space-y-4">
           {results.map((result, index) => (
             <div
               key={result.question.id}
-              className={`border-2 rounded-lg p-4 ${
-                result.isCorrect
-                  ? 'border-green-200 bg-green-50'
-                  : 'border-red-200 bg-red-50'
-              }`}
+              className={`border-2 rounded-lg p-4 ${result.isCorrect
+                ? 'border-green-200 bg-green-50'
+                : 'border-red-200 bg-red-50'
+                }`}
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-start gap-3 flex-1">
@@ -265,9 +264,8 @@ export const QuizResultsPage: React.FC = () => {
                       <span className="font-semibold text-gray-900">
                         Pregunta {index + 1}
                       </span>
-                      <span className={`text-sm font-medium ${
-                        result.isCorrect ? 'text-green-700' : 'text-red-700'
-                      }`}>
+                      <span className={`text-sm font-medium ${result.isCorrect ? 'text-green-700' : 'text-red-700'
+                        }`}>
                         {result.isCorrect ? '✓ Correcta' : '✗ Incorrecta'}
                       </span>
                       <span className="text-sm text-gray-600">
@@ -289,8 +287,8 @@ export const QuizResultsPage: React.FC = () => {
                     <div>
                       {(() => {
                         const answer = result.response.response_data;
-                        let optionsArray: Array<{id: string, text: string}> = [];
-                        
+                        let optionsArray: Array<{ id: string, text: string }> = [];
+
                         if (Array.isArray(result.question.options)) {
                           optionsArray = result.question.options;
                         } else if (typeof result.question.options === 'object' && result.question.options !== null) {
@@ -299,11 +297,10 @@ export const QuizResultsPage: React.FC = () => {
                             text: typeof value === 'string' ? value : (value?.text || value?.label || '')
                           }));
                         }
-                        
+
                         const selectedOption = optionsArray.find(opt => opt.id === answer || opt.text === answer);
                         return selectedOption ? (
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-gray-700">{selectedOption.id}:</span>
                             <span>{selectedOption.text}</span>
                           </div>
                         ) : (
@@ -337,29 +334,28 @@ export const QuizResultsPage: React.FC = () => {
                         {(() => {
                           // Obtener el ID de la respuesta correcta
                           let correctAnswerId = result.question.correct_answer;
-                          
+
                           // Si correct_answer es un string JSON, extraer el valor
                           if (typeof correctAnswerId === 'string' && correctAnswerId.startsWith('"') && correctAnswerId.endsWith('"')) {
                             correctAnswerId = correctAnswerId.slice(1, -1);
                           } else if (typeof correctAnswerId === 'object' && correctAnswerId !== null) {
                             correctAnswerId = String(correctAnswerId);
                           }
-                          
+
                           // Buscar la opción con ese ID en options
                           if (typeof result.question.options === 'object' && result.question.options !== null) {
                             const optionsObj = result.question.options;
                             const correctOptionText = optionsObj[String(correctAnswerId)];
-                            
+
                             if (correctOptionText) {
                               return (
                                 <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-green-700">{String(correctAnswerId)}:</span>
                                   <span>{typeof correctOptionText === 'string' ? correctOptionText : String(correctOptionText)}</span>
                                 </div>
                               );
                             }
                           }
-                          
+
                           return (
                             <div className="flex items-center gap-2">
                               <span className="font-semibold text-green-700">{String(correctAnswerId)}</span>
@@ -408,7 +404,7 @@ export const QuizResultsPage: React.FC = () => {
                           } catch (e) {
                             acceptableAnswers = [String(result.question.correct_answer)];
                           }
-                          
+
                           return (
                             <div>
                               <div className="text-sm text-green-700 mb-1">Respuestas aceptables:</div>
@@ -466,9 +462,9 @@ export const QuizResultsPage: React.FC = () => {
         >
           Volver
         </Button>
-        
+
         {assessment.course_id && (
-          <Link 
+          <Link
             to={
               user?.role?.name === 'teacher' || user?.role?.name === 'admin'
                 ? `/teacher/courses/${assessment.course_id}`

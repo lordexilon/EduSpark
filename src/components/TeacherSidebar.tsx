@@ -104,6 +104,7 @@ const getAdminItems = (userRole: string): MenuItem[] => {
       icon: IconCog,
       children: [
         { name: 'Configuración General', path: '/admin/settings', icon: IconCog },
+        { name: 'Landing Page', path: '/admin/settings/landing-page', icon: IconCog },
         { name: 'Carreras', path: '/admin/careers', icon: IconGraduationCap },
         { name: 'Materias', path: '/admin/subjects', icon: IconBookOpen },
         { name: 'Usuarios', path: '/admin/users', icon: IconUsers },

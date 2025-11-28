@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/Card.tsx';
-import { IconCog, IconGraduationCap, IconBookOpen, IconUsers, IconShield } from '../components/Icons.tsx';
+import { IconCog, IconGraduationCap, IconBookOpen, IconUsers, IconShield, IconPalette, IconCheck } from '../components/Icons.tsx';
 import { useAuth } from '../hooks/useAuth.tsx';
+import { useTheme, Theme } from '../context/ThemeContext.tsx';
 
 interface SettingsSection {
   id: string;
@@ -15,16 +16,57 @@ interface SettingsSection {
     description: string;
     path: string;
   }>;
+  customContent?: React.ReactNode;
 }
 
 const SettingsPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
-  const isAdmin = user?.role?.name === 'admin' || user?.role?.name === 'coordinator';
+  const isAdmin = user?.role?.name === 'admin' || user?.role?.name === 'coordinator' || user?.role?.name === 'admin-campus';
+
+  const themes: { id: Theme; name: string; color: string; border: string }[] = [
+    { id: 'blue', name: 'Azul (Por defecto)', color: 'bg-blue-50', border: 'border-blue-200' },
+    { id: 'slate', name: 'Neutro', color: 'bg-slate-50', border: 'border-slate-200' },
+    { id: 'gray', name: 'Alto Contraste', color: 'bg-gray-100', border: 'border-gray-200' },
+    { id: 'indigo', name: 'Moderno', color: 'bg-indigo-50', border: 'border-indigo-200' },
+    { id: 'corporate', name: 'Corporativo', color: 'bg-slate-100', border: 'border-slate-200' }
+  ];
 
   const sections: SettingsSection[] = [
+    {
+      id: 'appearance',
+      title: 'Apariencia',
+      description: 'Personaliza el aspecto visual de la aplicación',
+      icon: IconPalette,
+      customContent: (
+        <div className="space-y-4">
+          <h4 className="font-medium text-gray-800">Tema del Fondo</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {themes.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTheme(t.id)}
+                className={`relative p-4 rounded-lg border-2 text-left transition-all ${theme === t.id
+                  ? `border-primary ring-2 ring-primary/20 ${t.color}`
+                  : 'border-gray-200 hover:border-gray-300 bg-white'
+                  }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`font-semibold ${theme === t.id ? 'text-primary' : 'text-gray-700'}`}>
+                    {t.name}
+                  </span>
+                  {theme === t.id && <IconCheck className="w-5 h-5 text-primary" />}
+                </div>
+                <div className={`w-full h-12 rounded border ${t.border} ${t.color}`}></div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )
+    },
     {
       id: 'academic',
       title: 'Gestión Académica',
@@ -84,6 +126,11 @@ const SettingsPage: React.FC = () => {
           title: 'Parámetros Generales',
           description: 'Configuración del sistema',
           path: '/admin/settings/system'
+        },
+        {
+          title: 'Landing Page',
+          description: 'Personalizar página de inicio de la institución',
+          path: '/admin/settings/landing-page'
         }
       ]
     }
@@ -130,7 +177,7 @@ const SettingsPage: React.FC = () => {
             <Card key={section.id} className="hover:shadow-lg transition-shadow">
               <div
                 className="cursor-pointer"
-                onClick={() => section.items && toggleSection(section.id)}
+                onClick={() => (section.items || section.customContent) && toggleSection(section.id)}
               >
                 <div className="flex items-start space-x-4">
                   <div className="flex-shrink-0">
@@ -144,12 +191,11 @@ const SettingsPage: React.FC = () => {
                     </h3>
                     <p className="text-sm text-gray-600">{section.description}</p>
                   </div>
-                  {section.items && (
+                  {(section.items || section.customContent) && (
                     <div className="flex-shrink-0">
                       <svg
-                        className={`w-5 h-5 text-gray-400 transition-transform ${
-                          isExpanded ? 'transform rotate-180' : ''
-                        }`}
+                        className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'transform rotate-180' : ''
+                          }`}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -190,7 +236,13 @@ const SettingsPage: React.FC = () => {
                 </div>
               )}
 
-              {section.path && !section.items && (
+              {section.customContent && isExpanded && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  {section.customContent}
+                </div>
+              )}
+
+              {section.path && !section.items && !section.customContent && (
                 <div className="mt-4">
                   <button
                     onClick={() => handleNavigate(section.path!)}

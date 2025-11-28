@@ -23,6 +23,10 @@ export const TakeQuizPage: React.FC = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
+  const [showTimeWarning, setShowTimeWarning] = useState(false);
+  const [showTimeUpModal, setShowTimeUpModal] = useState(false);
 
   useEffect(() => {
     if (quizId && user?.id) {
@@ -32,17 +36,17 @@ export const TakeQuizPage: React.FC = () => {
 
   useEffect(() => {
     // Timer para límite de tiempo
-    if (timeRemaining !== null && timeRemaining > 0 && attempt) {
+    if (timeRemaining !== null && timeRemaining > 0 && attempt && attempt.status === 'in_progress') {
       const timer = setInterval(() => {
         setTimeRemaining(prev => {
           if (prev !== null && prev > 0) {
+            // Activar advertencia a los 10 segundos
+            if (prev === 11) { // Será 10 en el siguiente render
+              setShowTimeWarning(true);
+            }
             return prev - 1;
           }
-          if (prev === 0 && attempt.status === 'in_progress') {
-            handleAutoSubmit();
-            return 0;
-          }
-          return prev;
+          return 0;
         });
       }, 1000);
 
@@ -50,22 +54,35 @@ export const TakeQuizPage: React.FC = () => {
     }
   }, [timeRemaining, attempt]);
 
+  // Efecto separado para manejar el auto-submit cuando el tiempo llega a 0
+  useEffect(() => {
+    if (timeRemaining === 0 && attempt?.status === 'in_progress' && !submitting) {
+      console.log('⏰ Tiempo agotado, enviando automáticamente...');
+      setShowTimeWarning(false);
+      setShowTimeUpModal(true);
+      // Pequeño delay para que el usuario vea el modal antes de que se procese todo
+      setTimeout(() => {
+        handleAutoSubmit();
+      }, 1500);
+    }
+  }, [timeRemaining, attempt, submitting]);
+
   const loadQuiz = async () => {
     try {
       setLoading(true);
-      
+
       if (!user?.id || !quizId) return;
 
       // Cargar assessment y preguntas
-      const { assessment: loadedAssessment, questions: loadedQuestions } = 
+      const { assessment: loadedAssessment, questions: loadedQuestions } =
         await quizService.getAssessmentWithQuestions(quizId);
-      
+
       setAssessment(loadedAssessment);
       setQuestions(loadedQuestions);
 
       // Verificar intentos existentes
       const existingAttempts = await quizService.getExistingAttempts(user.id, quizId);
-      
+
       // Verificar límite de intentos
       if (loadedAssessment.max_attempts && existingAttempts.length >= loadedAssessment.max_attempts) {
         alert('Has alcanzado el límite de intentos para este quiz');
@@ -75,7 +92,7 @@ export const TakeQuizPage: React.FC = () => {
 
       // Iniciar o recuperar intento activo
       let activeAttempt = await quizService.getActiveAttempt(user.id, quizId);
-      
+
       if (activeAttempt) {
         setAttempt(activeAttempt);
         // Cargar respuestas existentes
@@ -129,28 +146,149 @@ export const TakeQuizPage: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error loading quiz:', error);
-      alert(error.message || 'Error cargando el quiz');
-      navigate(-1);
+      setError(error.message || 'Error cargando el quiz');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAnswer = (questionId: string, answer: any) => {
-    console.log('📝 handleAnswer llamado', { questionId, answer });
+  const calculateGrade = (question: Question, answer: any): { isCorrect: boolean | undefined, pointsEarned: number } => {
+    let isCorrect: boolean | undefined;
+    let pointsEarned = 0;
+
+    if (question.question_type === 'multiple_choice' && question.options) {
+      let correctAnswerValue = question.correct_answer;
+
+      if (typeof correctAnswerValue === 'string') {
+        if (correctAnswerValue.startsWith('"') && correctAnswerValue.endsWith('"')) {
+          correctAnswerValue = correctAnswerValue.slice(1, -1);
+        }
+        try {
+          const parsed = JSON.parse(correctAnswerValue);
+          if (typeof parsed === 'string') {
+            correctAnswerValue = parsed;
+          }
+        } catch (e) { }
+      } else if (typeof correctAnswerValue === 'object' && correctAnswerValue !== null) {
+        correctAnswerValue = String(correctAnswerValue);
+      }
+
+      const normalizedAnswer = String(answer).trim().toUpperCase();
+      const normalizedCorrect = String(correctAnswerValue).trim().toUpperCase();
+
+      isCorrect = normalizedAnswer === normalizedCorrect;
+      pointsEarned = isCorrect ? question.points : 0;
+    } else if (question.question_type === 'true_false') {
+      let correctAnswerValue = question.correct_answer;
+
+      if (typeof correctAnswerValue === 'string') {
+        if (correctAnswerValue.startsWith('"') && correctAnswerValue.endsWith('"')) {
+          correctAnswerValue = correctAnswerValue.slice(1, -1);
+        }
+        try {
+          const parsed = JSON.parse(correctAnswerValue);
+          if (typeof parsed === 'string' || typeof parsed === 'boolean') {
+            correctAnswerValue = parsed;
+          }
+        } catch (e) { }
+      }
+
+      const normalizedAnswer = String(answer).toLowerCase().trim();
+      const normalizedCorrect = String(correctAnswerValue).toLowerCase().trim();
+      isCorrect = normalizedAnswer === normalizedCorrect;
+      pointsEarned = isCorrect ? question.points : 0;
+    } else if (question.question_type === 'short_answer' || question.question_type === 'essay') {
+      let acceptableAnswers: string[] = [];
+
+      if (question.correct_answer) {
+        try {
+          let correctAnswerParsed = question.correct_answer;
+          if (typeof correctAnswerParsed === 'string') {
+            correctAnswerParsed = JSON.parse(correctAnswerParsed);
+          }
+
+          if (Array.isArray(correctAnswerParsed)) {
+            acceptableAnswers = correctAnswerParsed.map(a => String(a).toLowerCase().trim());
+          } else if (typeof correctAnswerParsed === 'string') {
+            acceptableAnswers = [correctAnswerParsed.toLowerCase().trim()];
+          }
+        } catch (e) {
+          acceptableAnswers = [String(question.correct_answer).toLowerCase().trim()];
+        }
+      }
+
+      const normalizedAnswer = String(answer).toLowerCase().trim();
+
+      isCorrect = acceptableAnswers.some(acceptable => {
+        if (normalizedAnswer === acceptable) return true;
+
+        const answerWords = normalizedAnswer.split(/\s+/).filter(w => w.length > 2);
+        const acceptableWords = acceptable.split(/\s+/).filter(w => w.length > 2);
+
+        if (answerWords.length > 0 && acceptableWords.length > 0) {
+          const matchingWords = answerWords.filter(w =>
+            acceptableWords.some(aw => aw.includes(w) || w.includes(aw))
+          );
+          const similarity = matchingWords.length / Math.max(answerWords.length, acceptableWords.length);
+          return similarity >= 0.7;
+        }
+
+        return false;
+      });
+
+      pointsEarned = 0; // Siempre 0 inicialmente para preguntas abiertas
+    }
+
+    return { isCorrect, pointsEarned };
+  };
+
+  const saveAnswer = async (questionId: string, answer: any) => {
+    if (!attempt || !user?.id) return;
+
+    setSaving(prev => ({ ...prev, [questionId]: true }));
+
+    try {
+      const question = questions.find(q => q.id === questionId);
+      if (!question) return;
+
+      const { isCorrect, pointsEarned } = calculateGrade(question, answer);
+
+      await quizService.submitResponse({
+        attempt_id: attempt.id,
+        question_id: questionId,
+        student_id: user.id,
+        response_data: answer,
+        is_correct: isCorrect,
+        points_earned: pointsEarned
+      });
+
+      console.log(`✅ Respuesta guardada para ${questionId}`);
+    } catch (err) {
+      console.error(`❌ Error guardando respuesta para ${questionId}:`, err);
+      // Opcional: mostrar error al usuario
+    } finally {
+      setSaving(prev => ({ ...prev, [questionId]: false }));
+    }
+  };
+
+  const handleAnswer = (questionId: string, answer: any, autoSave: boolean = true) => {
+    console.log('📝 handleAnswer llamado', { questionId, answer, autoSave });
     setResponses(prev => {
       const newResponses = {
         ...prev,
         [questionId]: answer
       };
-      console.log('✅ Respuesta guardada:', newResponses);
       return newResponses;
     });
+
+    if (autoSave) {
+      saveAnswer(questionId, answer);
+    }
   };
 
   const handleAutoSubmit = async () => {
     if (!attempt || submitting) return;
-    
+
     setSubmitting(true);
     await submitQuiz(true);
   };
@@ -162,12 +300,12 @@ export const TakeQuizPage: React.FC = () => {
     }
 
     try {
-      console.log('📤 Iniciando envío del quiz...', { 
-        attemptId: attempt.id, 
+      console.log('📤 Iniciando envío del quiz...', {
+        attemptId: attempt.id,
         responsesCount: Object.keys(responses).length,
-        questionsCount: questions.length 
+        questionsCount: questions.length
       });
-      
+
       setSubmitting(true);
 
       // Verificar que haya respuestas
@@ -177,182 +315,18 @@ export const TakeQuizPage: React.FC = () => {
         return;
       }
 
-      // Enviar todas las respuestas
-      console.log('📝 Enviando respuestas...');
+      // Asegurar que todas las respuestas estén guardadas antes de enviar
+      // (Aunque ya deberían estarlo por el auto-save, esto es un respaldo)
+      console.log('📝 Verificando respuestas guardadas...');
       for (const questionId in responses) {
         const answer = responses[questionId];
-        const question = questions.find(q => q.id === questionId);
-        
-        if (!question) {
-          console.warn('⚠️ Pregunta no encontrada:', questionId);
-          continue;
-        }
-
-        // Determinar si es correcta (solo para opción múltiple y true/false)
-        let isCorrect: boolean | undefined;
-        let pointsEarned = 0;
-
-        if (question.question_type === 'multiple_choice' && question.options) {
-          // Para multiple_choice, comparar directamente con correct_answer
-          // correct_answer puede ser un string JSON como "B" o el ID de la opción
-          let correctAnswerValue = question.correct_answer;
-          
-          // Si correct_answer es un string JSON, extraer el valor
-          if (typeof correctAnswerValue === 'string') {
-            // Si es un string JSON con comillas, extraer el valor
-            if (correctAnswerValue.startsWith('"') && correctAnswerValue.endsWith('"')) {
-              correctAnswerValue = correctAnswerValue.slice(1, -1);
-            }
-            // Si es un string JSON escapado, intentar parsearlo
-            try {
-              const parsed = JSON.parse(correctAnswerValue);
-              if (typeof parsed === 'string') {
-                correctAnswerValue = parsed;
-              }
-            } catch (e) {
-              // Si falla el parse, usar el valor original
-            }
-          } else if (typeof correctAnswerValue === 'object' && correctAnswerValue !== null) {
-            // Si es un objeto, convertir a string
-            correctAnswerValue = String(correctAnswerValue);
-          }
-          
-          // Normalizar la respuesta del estudiante
-          const normalizedAnswer = String(answer).trim().toUpperCase();
-          const normalizedCorrect = String(correctAnswerValue).trim().toUpperCase();
-          
-          // Comparar directamente
-          isCorrect = normalizedAnswer === normalizedCorrect;
-          console.log(`  🔍 Comparación multiple_choice:`, {
-            answer: normalizedAnswer,
-            correct: normalizedCorrect,
-            isCorrect,
-            originalAnswer: answer,
-            originalCorrect: question.correct_answer
-          });
-          pointsEarned = isCorrect ? question.points : 0;
-        } else if (question.question_type === 'true_false') {
-          // Normalizar comparación de true/false
-          let correctAnswerValue = question.correct_answer;
-          
-          // Si correct_answer es un string JSON, extraer el valor
-          if (typeof correctAnswerValue === 'string') {
-            if (correctAnswerValue.startsWith('"') && correctAnswerValue.endsWith('"')) {
-              correctAnswerValue = correctAnswerValue.slice(1, -1);
-            }
-            try {
-              const parsed = JSON.parse(correctAnswerValue);
-              if (typeof parsed === 'string' || typeof parsed === 'boolean') {
-                correctAnswerValue = parsed;
-              }
-            } catch (e) {
-              // Si falla el parse, usar el valor original
-            }
-          }
-          
-          const normalizedAnswer = String(answer).toLowerCase().trim();
-          const normalizedCorrect = String(correctAnswerValue).toLowerCase().trim();
-          isCorrect = normalizedAnswer === normalizedCorrect;
-          console.log(`  🔍 Comparación true_false:`, {
-            answer: normalizedAnswer,
-            correct: normalizedCorrect,
-            isCorrect
-          });
-          pointsEarned = isCorrect ? question.points : 0;
-        } else if (question.question_type === 'short_answer' || question.question_type === 'essay') {
-          // Para preguntas abiertas, comparar con las respuestas aceptables en correct_answer
-          // correct_answer puede ser un array de strings con posibles respuestas
-          let acceptableAnswers: string[] = [];
-          
-          if (question.correct_answer) {
-            try {
-              // Intentar parsear como JSON si es string
-              let correctAnswerParsed = question.correct_answer;
-              if (typeof correctAnswerParsed === 'string') {
-                correctAnswerParsed = JSON.parse(correctAnswerParsed);
-              }
-              
-              // Si es un array, usar directamente
-              if (Array.isArray(correctAnswerParsed)) {
-                acceptableAnswers = correctAnswerParsed.map(a => String(a).toLowerCase().trim());
-              } else if (typeof correctAnswerParsed === 'string') {
-                // Si es un string único, agregarlo al array
-                acceptableAnswers = [correctAnswerParsed.toLowerCase().trim()];
-              }
-            } catch (e) {
-              // Si falla el parse, usar el valor como string
-              acceptableAnswers = [String(question.correct_answer).toLowerCase().trim()];
-            }
-          }
-          
-          // Normalizar la respuesta del estudiante
-          const normalizedAnswer = String(answer).toLowerCase().trim();
-          
-          // Comparar con las respuestas aceptables (comparación flexible)
-          isCorrect = acceptableAnswers.some(acceptable => {
-            // Comparación exacta
-            if (normalizedAnswer === acceptable) return true;
-            
-            // Comparación por palabras clave (al menos 70% de palabras coinciden)
-            const answerWords = normalizedAnswer.split(/\s+/).filter(w => w.length > 2);
-            const acceptableWords = acceptable.split(/\s+/).filter(w => w.length > 2);
-            
-            if (answerWords.length > 0 && acceptableWords.length > 0) {
-              const matchingWords = answerWords.filter(w => 
-                acceptableWords.some(aw => aw.includes(w) || w.includes(aw))
-              );
-              const similarity = matchingWords.length / Math.max(answerWords.length, acceptableWords.length);
-              return similarity >= 0.7;
-            }
-            
-            return false;
-          });
-          
-          console.log(`  🔍 Comparación short_answer:`, {
-            answer: normalizedAnswer,
-            acceptableAnswers,
-            isCorrect
-          });
-          
-          // Para preguntas abiertas, el docente debe calificar manualmente
-          // Inicialmente damos 0 puntos hasta que el docente califique
-          // Si la respuesta coincide con alguna aceptable, marcamos is_correct como true
-          // pero points_earned será 0 hasta que el docente lo califique
-          pointsEarned = 0; // Siempre 0 inicialmente para preguntas abiertas
-        }
-
-        console.log(`  ✓ Enviando respuesta para pregunta ${questionId}:`, { 
-          answer, 
-          isCorrect, 
-          pointsEarned 
-        });
-
-        try {
-          const submittedResponse = await quizService.submitResponse({
-            attempt_id: attempt.id,
-            question_id: questionId,
-            student_id: user.id,
-            response_data: answer,
-            is_correct: isCorrect,
-            points_earned: pointsEarned
-          });
-          console.log(`  ✅ Respuesta enviada exitosamente para pregunta ${questionId}:`, submittedResponse.id);
-        } catch (responseError: any) {
-          console.error(`  ❌ Error enviando respuesta para pregunta ${questionId}:`, responseError);
-          console.error('  Error details:', {
-            message: responseError.message,
-            code: responseError.code,
-            details: responseError.details,
-            hint: responseError.hint
-          });
-          // Continuar con las demás respuestas aunque una falle
-        }
+        await saveAnswer(questionId, answer);
       }
 
-      console.log('✅ Todas las respuestas enviadas');
+      console.log('✅ Todas las respuestas verificadas');
 
       // Calcular tiempo invertido
-      const timeSpentMinutes = assessment?.time_limit 
+      const timeSpentMinutes = assessment?.time_limit
         ? assessment.time_limit - Math.floor((timeRemaining || 0) / 60)
         : undefined;
 
@@ -387,7 +361,20 @@ export const TakeQuizPage: React.FC = () => {
     );
   }
 
-  if (!assessment || questions.length === 0) {
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-center p-6 bg-red-50 rounded-xl border border-red-200 max-w-md">
+          <IconAlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-red-700 mb-2">Error al cargar el Quiz</h3>
+          <p className="text-red-600 mb-6">{error}</p>
+          <Button onClick={() => navigate(-1)} variant="secondary">Volver</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!assessment) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="text-center">
@@ -398,10 +385,23 @@ export const TakeQuizPage: React.FC = () => {
     );
   }
 
+  if (questions.length === 0) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-center p-6 bg-yellow-50 rounded-xl border border-yellow-200">
+          <IconAlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-yellow-700 mb-2">Quiz sin preguntas</h3>
+          <p className="text-yellow-600 mb-6">Este quiz aún no tiene preguntas configuradas.</p>
+          <Button onClick={() => navigate(-1)} variant="secondary">Volver</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
-      <Breadcrumbs 
+      <Breadcrumbs
         items={[
           { label: 'Dashboard', path: '/dashboard' },
           { label: 'Mis Cursos', path: '/my/courses' },
@@ -418,9 +418,8 @@ export const TakeQuizPage: React.FC = () => {
           )}
         </div>
         {timeRemaining !== null && (
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-lg ${
-            timeRemaining < 300 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-          }`}>
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-lg ${timeRemaining < 300 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+            }`}>
             <IconClock className="w-6 h-6" />
             <span>
               {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
@@ -453,6 +452,12 @@ export const TakeQuizPage: React.FC = () => {
               <span className="text-sm text-gray-600">
                 {currentQuestion.points} punto{currentQuestion.points > 1 ? 's' : ''}
               </span>
+              {saving[currentQuestion.id] && (
+                <span className="text-xs text-blue-600 flex items-center gap-1 animate-pulse">
+                  <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                  Guardando...
+                </span>
+              )}
             </div>
             {currentQuestion.is_required && (
               <span className="text-xs text-red-600 font-medium">* Requerida</span>
@@ -468,8 +473,8 @@ export const TakeQuizPage: React.FC = () => {
             {/* Opciones según tipo */}
             {currentQuestion.question_type === 'multiple_choice' && currentQuestion.options && (() => {
               // Convertir options a array si es un objeto JSON
-              let optionsArray: Array<{id: string, text: string}> = [];
-              
+              let optionsArray: Array<{ id: string, text: string }> = [];
+
               if (Array.isArray(currentQuestion.options)) {
                 // Si ya es un array, usarlo directamente
                 optionsArray = currentQuestion.options;
@@ -480,11 +485,11 @@ export const TakeQuizPage: React.FC = () => {
                   text: String(value)
                 }));
               }
-              
+
               if (optionsArray.length === 0) return null;
-              
+
               const savedAnswer = responses[currentQuestion.id];
-              
+
               return (
                 <div className="space-y-2">
                   {optionsArray.map((option) => {
@@ -499,21 +504,19 @@ export const TakeQuizPage: React.FC = () => {
                           console.log('🖱️ Click en opción:', option.id);
                           handleAnswer(currentQuestion.id, option.id);
                         }}
-                        className={`w-full text-left p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                          isSelected
-                            ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                            : 'border-gray-200 hover:border-primary/50 hover:bg-gray-50'
-                        }`}
+                        className={`w-full text-left p-4 rounded-lg border-2 transition-all cursor-pointer ${isSelected
+                          ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                          : 'border-gray-200 hover:border-primary/50 hover:bg-gray-50'
+                          }`}
                         style={{
                           backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.05)' : undefined,
                           borderColor: isSelected ? '#3b82f6' : undefined
                         }}
                       >
                         <div className="flex items-center gap-3">
-                          <div 
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                              isSelected ? 'border-primary bg-primary' : 'border-gray-300'
-                            }`}
+                          <div
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-gray-300'
+                              }`}
                             style={{
                               borderColor: isSelected ? '#3b82f6' : undefined,
                               backgroundColor: isSelected ? '#3b82f6' : undefined
@@ -521,7 +524,6 @@ export const TakeQuizPage: React.FC = () => {
                           >
                             {isSelected && <IconCheck className="w-4 h-4 text-white" />}
                           </div>
-                          <span className="font-medium text-gray-700 mr-2">{option.id}:</span>
                           <span className="text-gray-900">{option.text}</span>
                         </div>
                       </button>
@@ -533,50 +535,50 @@ export const TakeQuizPage: React.FC = () => {
 
             {currentQuestion.question_type === 'true_false' && (() => {
               const savedAnswer = responses[currentQuestion.id];
-              
+
               return (
-              <div className="grid grid-cols-2 gap-4">
-                {['Verdadero', 'Falso'].map((label, idx) => {
-                  const value = idx === 0 ? 'true' : 'false';
-                  const isSelected = String(savedAnswer) === String(value);
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        console.log('🖱️ Click en true/false:', value);
-                        handleAnswer(currentQuestion.id, value);
-                      }}
-                      className={`p-6 rounded-lg border-2 transition-all text-center cursor-pointer ${
-                        isSelected
+                <div className="grid grid-cols-2 gap-4">
+                  {['Verdadero', 'Falso'].map((label, idx) => {
+                    const value = idx === 0 ? 'true' : 'false';
+                    const isSelected = String(savedAnswer) === String(value);
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('🖱️ Click en true/false:', value);
+                          handleAnswer(currentQuestion.id, value);
+                        }}
+                        className={`p-6 rounded-lg border-2 transition-all text-center cursor-pointer ${isSelected
                           ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
                           : 'border-gray-200 hover:border-primary/50 hover:bg-gray-50'
-                      }`}
-                      style={{
-                        backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.05)' : undefined,
-                        borderColor: isSelected ? '#3b82f6' : undefined
-                      }}
-                    >
-                      <span className="font-semibold text-gray-900">{label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+                          }`}
+                        style={{
+                          backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.05)' : undefined,
+                          borderColor: isSelected ? '#3b82f6' : undefined
+                        }}
+                      >
+                        <span className="font-semibold text-gray-900">{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               );
             })()}
 
-            {(currentQuestion.question_type === 'short_answer' || 
+            {(currentQuestion.question_type === 'short_answer' ||
               currentQuestion.question_type === 'essay') && (
-              <textarea
-                value={responses[currentQuestion.id] || ''}
-                onChange={(e) => handleAnswer(currentQuestion.id, e.target.value)}
-                placeholder="Escribe tu respuesta aquí..."
-                rows={currentQuestion.question_type === 'essay' ? 8 : 4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-              />
-            )}
+                <textarea
+                  value={responses[currentQuestion.id] || ''}
+                  onChange={(e) => handleAnswer(currentQuestion.id, e.target.value, false)}
+                  onBlur={(e) => saveAnswer(currentQuestion.id, e.target.value)}
+                  placeholder="Escribe tu respuesta aquí..."
+                  rows={currentQuestion.question_type === 'essay' ? 8 : 4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                />
+              )}
           </div>
         </Card>
       )}
@@ -614,14 +616,44 @@ export const TakeQuizPage: React.FC = () => {
 
       {/* Indicador de progreso */}
       <div className="bg-gray-100 rounded-full h-2 overflow-hidden">
-        <div 
+        <div
           className="bg-primary h-full transition-all duration-300"
           style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
         />
       </div>
+
+      {/* Alerta de tiempo restante */}
+      {showTimeWarning && timeRemaining !== null && timeRemaining > 0 && (
+        <div className="fixed bottom-4 right-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg animate-bounce z-50">
+          <div className="flex items-center gap-2">
+            <IconClock className="w-6 h-6" />
+            <div>
+              <p className="font-bold">¡Quedan 10 segundos!</p>
+              <p className="text-sm">El quiz se enviará automáticamente.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Tiempo Agotado */}
+      {showTimeUpModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 max-w-md w-full text-center shadow-2xl">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <IconClock className="w-8 h-8 text-red-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Tiempo Agotado!</h2>
+            <p className="text-gray-600 mb-6">
+              El tiempo para realizar este quiz ha finalizado. Estamos enviando tus respuestas guardadas hasta el momento.
+            </p>
+            <div className="flex justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default TakeQuizPage;
-
