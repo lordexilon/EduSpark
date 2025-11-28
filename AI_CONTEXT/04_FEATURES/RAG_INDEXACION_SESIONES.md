@@ -267,6 +267,50 @@ VITE_SUPABASE_URL=xxx  # Fallback
 VITE_SUPABASE_SERVICE_ROLE_KEY=xxx  # Fallback
 ```
 
+## Cómo Ejecutar en Desarrollo
+
+### Opción 1: Un Solo Comando (Recomendado) ✅
+
+```bash
+# Levanta Frontend + Worker simultáneamente
+npm run dev:all
+```
+
+Esto ejecuta:
+- **Frontend** (Vite) en puerto 5173
+- **Worker** (Express) en puerto 3001
+
+Los logs aparecen con colores diferentes para fácil identificación:
+- 🔵 **[frontend]** - cyan
+- 🟣 **[worker]** - magenta
+
+### Opción 2: Procesos Separados
+
+```bash
+# Terminal 1: Frontend
+npm run dev
+
+# Terminal 2: Worker
+npm run dev:worker
+```
+
+### Opción 3: Solo Worker (para testing)
+
+```bash
+npm run dev:worker
+```
+
+## Verificación de Funcionamiento
+
+1. **Frontend** debería estar en: `http://localhost:5173`
+2. **Worker API** debería estar en: `http://localhost:3001`
+
+Para verificar que el worker está funcionando:
+```bash
+curl http://localhost:3001/health
+# Debería responder: {"status":"ok"}
+```
+
 ## Archivos Creados/Modificados
 
 ### Nuevos:
