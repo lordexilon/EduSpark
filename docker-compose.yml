@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Frontend - Vite App con Nginx
+  frontend:
+    build:
+      context: .
+      target: frontend
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - eduspark-network
+
+  # Worker - RAG Indexing Worker
+  worker:
+    build:
+      context: .
+      target: worker
+    ports:
+      - "3001:3001"
+    environment:
+      # Gemini API
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
+      
+      # Supabase
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_SERVICE_ROLE_KEY=${VITE_SUPABASE_SERVICE_ROLE_KEY}
+      
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - eduspark-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  eduspark-network:
+    driver: bridge

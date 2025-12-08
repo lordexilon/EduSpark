@@ -59,6 +59,10 @@ export interface FileProcessingJob {
     actualCosts?: CostEstimate; // Al finalizar
     category?: MaterialCategory; // Categoría del material
     materialId?: string; // ID del material en Supabase (opcional)
+    unitId?: string; // ID de la unidad (opcional)
+    sessionId?: string; // ID de la sesión (opcional)
+    source?: 'bucket' | 'google_drive'; // Fuente del archivo
+    driveFileId?: string; // ID del archivo en Google Drive
   };
 }
 

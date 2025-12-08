@@ -34,9 +34,32 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
   const [thumbnailUploadInfo, setThumbnailUploadInfo] = useState<string | null>(null);
   const [contentUploadMessage, setContentUploadMessage] = useState<string | null>(null);
+  // Campos de período y disponibilidad
+  const [startsAt, setStartsAt] = useState('');
+  const [endsAt, setEndsAt] = useState('');
+  const [availableFrom, setAvailableFrom] = useState('');
+  const [availableUntil, setAvailableUntil] = useState('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const uploadAbortController = useRef<AbortController | null>(null);
   const contentUploadAbortController = useRef<AbortController | null>(null);
+
+  // Helper para convertir fecha ISO (UTC) a formato datetime-local (hora local)
+  const toLocalDatetimeString = (isoString: string | undefined): string => {
+    if (!isoString) return '';
+    try {
+      const date = new Date(isoString);
+      // Obtener componentes en hora local
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    } catch (e) {
+      console.error('Error convirtiendo fecha:', e);
+      return '';
+    }
+  };
 
   useEffect(() => {
     if (unit) {
@@ -48,6 +71,11 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
       setDurationHours(unit.duration_hours);
       setOrderIndex(unit.order_index || unit.number);
       setThumbnailUrl(unit.thumbnail_url || '');
+      // Cargar campos de fecha usando la conversión correcta
+      setStartsAt(toLocalDatetimeString(unit.starts_at));
+      setEndsAt(toLocalDatetimeString(unit.ends_at));
+      setAvailableFrom(toLocalDatetimeString(unit.available_from));
+      setAvailableUntil(toLocalDatetimeString(unit.available_until));
     }
     setThumbnailUploadInfo(null);
     setContentUploadMessage(null);
@@ -160,19 +188,19 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!title.trim()) {
       alert('Por favor ingresa un título');
       return;
     }
-    
+
     // Validar tamaño del contenido HTML (límite razonable: 1MB)
     const maxHtmlLength = 1000000; // 1MB
     if (contentHtml && contentHtml.length > maxHtmlLength) {
       alert(`El contenido HTML es demasiado grande (${(contentHtml.length / 1024).toFixed(0)}KB). Máximo permitido: ${(maxHtmlLength / 1024).toFixed(0)}KB`);
       return;
     }
-    
+
     setLoading(true);
 
     try {
@@ -186,20 +214,26 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
         learning_objectives: learningObjectives.length > 0 ? learningObjectives : undefined,
         duration_hours: durationHours,
         order_index: orderIndex || unit?.number || undefined,
-        thumbnail_url: thumbnailUrl?.trim() || undefined
+        thumbnail_url: thumbnailUrl?.trim() || undefined,
+        // Campos de período
+        starts_at: startsAt ? new Date(startsAt).toISOString() : undefined,
+        ends_at: endsAt ? new Date(endsAt).toISOString() : undefined,
+        // Campos de disponibilidad
+        available_from: availableFrom ? new Date(availableFrom).toISOString() : undefined,
+        available_until: availableUntil ? new Date(availableUntil).toISOString() : undefined
       };
-      
+
       console.log('Guardando unidad:', {
         ...unitData,
         content_html_length: unitData.content_html?.length || 0
       });
-      
+
       // Timeout de 30 segundos para operaciones largas
       const savePromise = onSave(unitData);
-      const timeoutPromise = new Promise<never>((_, reject) => 
+      const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Timeout: La operación tomó demasiado tiempo (30s)')), 30000)
       );
-      
+
       await Promise.race([savePromise, timeoutPromise]);
       console.log('Unidad guardada exitosamente');
       // El modal se cierra desde handleSaveUnit después de actualizar el estado
@@ -210,9 +244,9 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
       console.error('Error message:', error?.message);
       console.error('Error code:', error?.code);
       console.error('Error stack:', error?.stack);
-      
+
       let errorMessage = 'Error desconocido al guardar';
-      
+
       if (error?.message) {
         errorMessage = error.message;
       } else if (typeof error === 'string') {
@@ -222,7 +256,7 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
       } else if (error?.supabaseError) {
         errorMessage = error.supabaseError.message || 'Error de Supabase';
       }
-      
+
       alert(`Error al guardar la unidad: ${errorMessage}`);
     } finally {
       setLoading(false);
@@ -293,11 +327,11 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
                   />
                 </div>
               </div>
-                {contentUploadMessage && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {contentUploadMessage}
-                  </p>
-                )}
+              {contentUploadMessage && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {contentUploadMessage}
+                </p>
+              )}
               {contentHtml && (
                 <p className="text-xs text-green-600 mt-1">
                   ✓ Contenido ingresado ({Math.round(contentHtml.length / 1024)}KB)
@@ -366,6 +400,88 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
                   onChange={(e) => setOrderIndex(e.target.value ? parseInt(e.target.value) : undefined)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+              </div>
+            </div>
+
+            {/* Período de la Unidad */}
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-semibold text-gray-800 mb-3">
+                📆 Período de la Unidad
+              </h3>
+              <p className="text-xs text-gray-600 mb-3">
+                Define cuándo empieza y termina esta unidad en el cronograma del curso
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fecha de Inicio
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={startsAt}
+                    onChange={(e) => setStartsAt(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Cuándo empieza esta unidad
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fecha de Fin
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={endsAt}
+                    onChange={(e) => setEndsAt(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Cuándo termina esta unidad
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Control de Disponibilidad */}
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-sm font-semibold text-gray-800 mb-3">
+                📅 Control de Disponibilidad para Estudiantes
+              </h3>
+              <p className="text-xs text-gray-600 mb-3">
+                Configura cuándo los estudiantes podrán acceder a esta unidad
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Disponible Desde
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={availableFrom}
+                    onChange={(e) => setAvailableFrom(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Los estudiantes podrán acceder desde esta fecha/hora
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Disponible Hasta
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={availableUntil}
+                    onChange={(e) => setAvailableUntil(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Opcional. Después de esta fecha, no podrán acceder
+                  </p>
+                </div>
               </div>
             </div>
 

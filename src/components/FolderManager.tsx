@@ -475,19 +475,24 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                 <p className="text-sm text-gray-500 py-4">No hay archivos PDF o PPT en esta carpeta</p>
               ) : (
                 <div className="space-y-2">
-                  {files.map((file) => {
-                    const status = getFileStatus(file.id);
-                    return (
-                      <div
-                        key={file.id}
-                        className={`flex items-center justify-between p-3 border rounded-lg ${
-                          selectedFiles.includes(file.id)
-                            ? 'border-blue-500 bg-blue-50'
-                            : processedFiles.includes(file.id)
-                            ? 'border-green-300 bg-green-50'
-                            : 'border-gray-200 hover:bg-gray-50'
-                        }`}
-                      >
+                  {(() => {
+                    // Filtrar archivos duplicados (mismo ID)
+                    const uniqueFiles = files.filter((file, index, self) => 
+                      index === self.findIndex(f => f.id === file.id)
+                    );
+                    return uniqueFiles.map((file, index) => {
+                      const status = getFileStatus(file.id);
+                      return (
+                        <div
+                          key={`${file.id}-${index}`}
+                          className={`flex items-center justify-between p-3 border rounded-lg ${
+                            selectedFiles.includes(file.id)
+                              ? 'border-blue-500 bg-blue-50'
+                              : processedFiles.includes(file.id)
+                              ? 'border-green-300 bg-green-50'
+                              : 'border-gray-200 hover:bg-gray-50'
+                          }`}
+                        >
                         <div className="flex items-center space-x-3 flex-1 min-w-0">
                           <FileText className="text-gray-500 flex-shrink-0" size={20} />
                           <div className="flex-1 min-w-0">
@@ -529,8 +534,9 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                           </button>
                         </div>
                       </div>
-                    );
-                  })}
+                      );
+                    });
+                  })()}
                 </div>
               )}
             </div>

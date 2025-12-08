@@ -29,6 +29,9 @@ export interface Flashcard {
   is_multiple_choice?: boolean;
   answer_options?: AnswerOption[]; // Array de opciones de respuesta
   correct_answer_index?: number; // Índice (0-based) de la respuesta correcta
+  // Campos de disponibilidad por fecha
+  available_from?: string; // Fecha desde la cual está disponible
+  available_until?: string; // Fecha hasta la cual está disponible
   created_at: string;
   updated_at: string;
 }

@@ -5,46 +5,20 @@ import { useAuth } from '../hooks/useAuth';
 import { useUnreadMessages } from '../hooks/useUnreadMessages';
 import { useUnreadAnnouncements } from '../hooks/useUnreadAnnouncements';
 import { useUserInstitution } from '../hooks/useUserInstitution';
+import { MENU_ITEMS } from './Sidebar/MenuConfig';
 
 interface MenuItem {
   name: string;
   path?: string;
   icon: React.FC<any>;
   children?: MenuItem[];
+  allowedRoles?: string[];
+  featureKey?: string;
 }
 
-const navItems: MenuItem[] = [
-  { name: 'Panel', path: '/dashboard', icon: IconDashboard },
-  {
-    name: 'Aprendizaje',
-    icon: IconBookOpen,
-    children: [
-      { name: 'Mis Clases', path: '/sessions', icon: IconBookOpen },
-      { name: 'Tutor IA', path: '/tutor', icon: IconRobot },
-      { name: 'Flashcards', path: '/flashcards', icon: IconCards },
-    ]
-  },
-  {
-    name: 'Evaluaciones',
-    icon: IconClipboardList,
-    children: [
-      { name: 'Mis Tareas', path: '/assignments', icon: IconClipboardList },
-      { name: 'Calificaciones', path: '/grades', icon: IconChartBar },
-    ]
-  },
-  {
-    name: 'Comunicación',
-    icon: IconMessage,
-    children: [
-      { name: 'Avisos', path: '/announcements', icon: IconBell },
-      { name: 'Foros', path: '/forums', icon: IconUserGroup },
-      { name: 'Mensajería', path: '/messages', icon: IconMessage },
-    ]
-  },
-  { name: 'Mis Dispositivos', path: '/devices', icon: IconDevices },
-  // Nuevo enlace para reporte de dispositivos (solo admin)
-  { name: 'Reporte Dispositivos', path: '/admin/devices-report', icon: IconDevices },
-];
+// const navItems: MenuItem[] = [ ... ] // Removed local definition
+
+
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -70,8 +44,26 @@ const MenuItemComponent: React.FC<{
 
   const isMessages = item.path === '/messages' || item.children?.some(c => c.path === '/messages');
   const isAnnouncements = item.path === '/announcements' || item.children?.some(c => c.path === '/announcements');
-  const hasUnread = (isMessages && unreadMessagesCount > 0) || (isAnnouncements && unreadAnnouncementsCount > 0);
-  const unreadCount = isMessages ? unreadMessagesCount : isAnnouncements ? unreadAnnouncementsCount : 0;
+  
+  // Si el item es "Comunicación" (tiene hijos de avisos y mensajes), sumar ambos contadores
+  const isCommunication = item.name === 'Comunicación' && item.children?.some(c => 
+    c.path === '/announcements' || c.path === '/messages'
+  );
+  
+  // Calcular contador: si es comunicación, sumar ambos; sino, usar el correspondiente
+  let hasUnread: boolean;
+  let unreadCount: number;
+  
+  if (isCommunication) {
+    // Para "Comunicación", mostrar la suma de avisos + mensajes
+    const totalUnread = unreadMessagesCount + unreadAnnouncementsCount;
+    hasUnread = totalUnread > 0;
+    unreadCount = totalUnread;
+  } else {
+    // Para items individuales, usar su contador específico
+    hasUnread = (isMessages && unreadMessagesCount > 0) || (isAnnouncements && unreadAnnouncementsCount > 0);
+    unreadCount = isMessages ? unreadMessagesCount : isAnnouncements ? unreadAnnouncementsCount : 0;
+  }
 
   if (collapsed) {
     // Cuando está colapsado, mostrar solo el icono
@@ -241,21 +233,66 @@ const MenuItemComponent: React.FC<{
 };
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle, onClose }) => {
-  const { user } = useAuth();
+  const { user, menuFeatures } = useAuth();
   const location = useLocation();
   const { unreadCount: unreadMessagesCount } = useUnreadMessages();
   const { unreadCount: unreadAnnouncementsCount } = useUnreadAnnouncements();
   const { institution } = useUserInstitution();
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
+  // Log de depuración para verificar contadores (solo en desarrollo)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔔 Contador de Comunicación - Sidebar:', {
+        userRole: user?.role?.name,
+        unreadMessagesCount,
+        unreadAnnouncementsCount,
+        totalUnread: unreadMessagesCount + unreadAnnouncementsCount
+      });
+    }
+  }, [user?.role?.name, unreadMessagesCount, unreadAnnouncementsCount]);
+
   const activeClassName = "bg-primary/10 text-primary font-semibold";
   const inactiveClassName = "text-text-light hover:bg-gray-100 hover:text-text-dark";
+
+  // Función para filtrar items
+  const isVisible = (item: MenuItem) => {
+    // 1. Filtro por rol
+    if (item.allowedRoles?.length && user?.role?.name) {
+      if (!item.allowedRoles.includes(user.role.name)) return false;
+    }
+
+    // 2. Filtro por feature flag
+    if (item.featureKey) {
+      const flag = menuFeatures?.find(f => f.key === item.featureKey);
+      // Si el flag existe y está deshabilitado -> ocultar
+      if (flag && !flag.enabled) return false;
+
+      // 3. Filtro por roles dinámicos del flag (si existen)
+      // Si el flag tiene roles definidos, estos tienen precedencia o se suman a la restricción
+      if (flag && flag.allowed_roles && flag.allowed_roles.length > 0 && user?.role?.name) {
+        if (!flag.allowed_roles.includes(user.role.name)) return false;
+      }
+    }
+
+    return true;
+  };
+
+  const filteredItems = MENU_ITEMS.filter(isVisible).map(item => {
+    if (item.children) {
+      return {
+        ...item,
+        children: item.children.filter(isVisible)
+      };
+    }
+    return item;
+  }).filter(item => !item.children || item.children.length > 0); // Ocultar padres sin hijos visibles
 
   // Auto-expandir menús si la ruta actual está dentro de un submenú
   useEffect(() => {
     const newExpanded = new Set<string>();
 
-    navItems.forEach((item) => {
+    filteredItems.forEach((item) => {
       if (item.children) {
         const hasActiveChild = item.children.some(child => child.path && location.pathname.startsWith(child.path));
         if (hasActiveChild) {
@@ -265,7 +302,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle, onClose 
     });
 
     setExpandedMenus(newExpanded);
-  }, [location.pathname]);
+  }, [location.pathname, menuFeatures]); // Re-evaluar cuando cambien los features
 
   const toggleMenu = (menuName: string) => {
     setExpandedMenus(prev => {
@@ -321,7 +358,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle, onClose 
 
       <nav className="flex-1 overflow-y-auto">
         <ul className="space-y-2">
-          {navItems.map((item) => (
+          {filteredItems.map((item) => (
             <li key={item.name}>
               <MenuItemComponent
                 item={item}

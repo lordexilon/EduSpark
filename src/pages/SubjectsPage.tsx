@@ -5,12 +5,16 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { subjectService, Subject, careerService, Career } from '../services/academicService';
+import { institutionService, Institution } from '../services/institutionService';
+import { useUserInstitution } from '../hooks/useUserInstitution';
 import { courseService } from '../services/teacherCourses';
 import Card from '../components/Card';
 import Button from '../components/Button';
 
 const SubjectsPage: React.FC = () => {
   const { user } = useAuth();
+  const { institution, loading: institutionLoading } = useUserInstitution();
+  const isAdminCampus = user?.role?.name === 'admin-campus';
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -24,6 +28,16 @@ const SubjectsPage: React.FC = () => {
   const [highlightedSubjectId, setHighlightedSubjectId] = useState<number | null>(null);
 
   useEffect(() => {
+    // Si es admin-campus, esperar a que se cargue la institución
+    if (isAdminCampus && institutionLoading) {
+      return;
+    }
+    if (isAdminCampus && !institution) {
+      setError('No tienes una institución asignada. Por favor, contacta al administrador.');
+      setLoading(false);
+      return;
+    }
+    
     const subjectIdParam = searchParams.get('subjectId');
     if (subjectIdParam) {
       const subjectId = parseInt(subjectIdParam);
@@ -32,7 +46,7 @@ const SubjectsPage: React.FC = () => {
       setHighlightedSubjectId(null);
     }
     loadData();
-  }, [searchParams]);
+  }, [searchParams, institution, institutionLoading, isAdminCampus]);
 
   // Scroll cuando los datos estén cargados y hay un subjectId destacado
   useEffect(() => {
@@ -50,10 +64,19 @@ const SubjectsPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const [subjectsData, careersData] = await Promise.all([
+      let [subjectsData, careersData] = await Promise.all([
         subjectService.getAllSubjects(),
         careerService.getActiveCareers()
       ]);
+      
+      // Si es admin-campus, filtrar por institución
+      if (isAdminCampus && institution) {
+        careersData = careersData.filter(career => (career as any).institution_id === institution.id);
+        // Filtrar materias de las carreras de la institución
+        const careerIds = careersData.map(c => c.id);
+        subjectsData = subjectsData.filter(subject => careerIds.includes(subject.career_id));
+      }
+      
       setSubjects(subjectsData);
       setCareers(careersData);
 
@@ -296,8 +319,13 @@ interface SubjectFormProps {
 }
 
 const SubjectForm: React.FC<SubjectFormProps> = ({ subject, careers, subjects, onClose, onSuccess }) => {
+  const { user } = useAuth();
+  const { institution } = useUserInstitution();
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
+  const [loadingInstitutions, setLoadingInstitutions] = useState(true);
   const [formData, setFormData] = useState({
     career_id: subject?.career_id || null,
+    institution_id: subject?.institution_id || institution?.id || undefined,
     name: subject?.name || '',
     code: subject?.code || '',
     description: subject?.description || '',
@@ -310,6 +338,25 @@ const SubjectForm: React.FC<SubjectFormProps> = ({ subject, careers, subjects, o
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadInstitutions = async () => {
+      try {
+        setLoadingInstitutions(true);
+        const data = await institutionService.getAllInstitutions();
+        setInstitutions(data);
+        // Si el usuario no es admin y tiene institución, pre-seleccionarla
+        if (!subject && user?.role?.name !== 'admin' && institution) {
+          setFormData(prev => ({ ...prev, institution_id: institution.id }));
+        }
+      } catch (err) {
+        console.error('Error cargando instituciones:', err);
+      } finally {
+        setLoadingInstitutions(false);
+      }
+    };
+    loadInstitutions();
+  }, [subject, user, institution]);
 
   const availablePrerequisites = formData.career_id
     ? subjects.filter(s => s.career_id === formData.career_id && s.id !== subject?.id)
@@ -359,6 +406,46 @@ const SubjectForm: React.FC<SubjectFormProps> = ({ subject, careers, subjects, o
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {user?.role?.name === 'admin' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Institución *
+              </label>
+              <select
+                required
+                value={formData.institution_id ? String(formData.institution_id) : ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ 
+                    ...formData, 
+                    institution_id: value ? parseInt(value, 10) : undefined 
+                  });
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={loadingInstitutions}
+              >
+                <option value="">Seleccionar institución</option>
+                {institutions.map(inst => (
+                  <option key={inst.id} value={inst.id}>{inst.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {user?.role?.name !== 'admin' && institution && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Institución
+              </label>
+              <input
+                type="text"
+                value={institution.name}
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600"
+              />
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Carrera *
@@ -422,8 +509,11 @@ const SubjectForm: React.FC<SubjectFormProps> = ({ subject, careers, subjects, o
               <input
                 type="number"
                 min="0"
-                value={formData.credits}
-                onChange={(e) => setFormData({ ...formData, credits: parseInt(e.target.value) })}
+                value={formData.credits || ''}
+                onChange={(e) => {
+            const value = e.target.value;
+            setFormData({ ...formData, credits: value ? parseInt(value, 10) : 0 });
+          }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -435,8 +525,11 @@ const SubjectForm: React.FC<SubjectFormProps> = ({ subject, careers, subjects, o
               <input
                 type="number"
                 min="0"
-                value={formData.hours_per_week}
-                onChange={(e) => setFormData({ ...formData, hours_per_week: parseInt(e.target.value) })}
+                value={formData.hours_per_week || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, hours_per_week: value ? parseInt(value, 10) : 0 });
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>

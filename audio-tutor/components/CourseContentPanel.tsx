@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase-shared';
-import { IconBookOpen, IconFileText, IconVideo, IconImage, IconDownload, IconEye, IconChevronDown, IconChevronUp, IconEdit } from '../../src/components/Icons';
+import { IconBookOpen, IconFileText, IconVideoCamera, IconImage, IconDownload, IconEye, IconChevronDown, IconChevronUp, IconEdit, IconCalendar, IconClock } from '../../src/components/Icons';
 
 interface CourseMaterial {
   id: string;
@@ -233,10 +233,10 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
 
   const getMaterialIcon = (type: string) => {
     switch (type) {
-      case 'video': return <IconVideo className="w-5 h-5" />;
+      case 'video': return <IconVideoCamera className="w-5 h-5" />;
       case 'image': return <IconImage className="w-5 h-5" />;
       case 'document': return <IconFileText className="w-5 h-5" />;
-      default: return <IconBookOpen className="w-5 h-5" />;
+      default: return <IconFileText className="w-5 h-5" />;
     }
   };
 
@@ -316,7 +316,7 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
               {sessions.length > 0 && (
                 <div className="bg-gray-50 rounded-lg p-4">
                   <button onClick={() => toggleSection('sessions')} className="w-full flex items-center justify-between text-left">
-                    <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2"><IconVideo className="w-5 h-5" />Sesiones del Curso ({sessions.length})</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2"><IconCalendar className="w-5 h-5" />Sesiones del Curso ({sessions.length})</h3>
                     {expandedSections.has('sessions') ? <IconChevronUp className="w-5 h-5" /> : <IconChevronDown className="w-5 h-5" />}
                   </button>
                   {expandedSections.has('sessions') && (
@@ -330,7 +330,7 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
                             className={`bg-white rounded-lg p-4 border ${highlightId === session.id && highlightType === 'session' ? 'ring-2 ring-blue-500' : ''}`}
                           >
                             <div className="flex items-start gap-3">
-                              <div className="text-blue-600 mt-1"><IconVideo className="w-5 h-5" /></div>
+                              <div className="text-blue-600 mt-1"><IconCalendar className="w-5 h-5" /></div>
                               <div className="flex-1">
                                 <h4 className="font-medium text-gray-900">{session.title}</h4>
                                 {session.description && (
@@ -438,7 +438,7 @@ export const CourseContentPanel: React.FC<CourseContentPanelProps> = ({
                           return (
                             <div key={`session-${session.id}-materials`} className="bg-white rounded-lg p-4 border border-green-200">
                               <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                                <IconVideo className="w-4 h-4 text-green-600" />
+                                <IconCalendar className="w-4 h-4 text-green-600" />
                                 {session.title}
                                 {unit && <span className="text-sm font-normal text-gray-500">(Unidad {unit.number})</span>}
                                 <span className="text-sm font-normal text-gray-500">({sessionMaterials.length} material{sessionMaterials.length !== 1 ? 'es' : ''})</span>

@@ -23,6 +23,8 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
   const [code, setCode] = useState(course.code || '');
   const [description, setDescription] = useState(course.description || '');
   const [status, setStatus] = useState<'active' | 'draft' | 'archived'>(course.status);
+  const [startDate, setStartDate] = useState(course.start_date ? course.start_date.split('T')[0] : '');
+  const [endDate, setEndDate] = useState(course.end_date ? course.end_date.split('T')[0] : '');
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
@@ -141,6 +143,8 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
         code: code.trim() || undefined,
         description: description.trim() || undefined,
         status,
+        start_date: startDate || undefined,
+        end_date: endDate || undefined,
       };
 
       // Agregar thumbnail_url si existe (puede que necesitemos actualizar el tipo Course)
@@ -239,6 +243,36 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
                 <option value="active">Activo</option>
                 <option value="archived">Archivado</option>
               </select>
+            </div>
+
+            {/* Fechas del Curso */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 mb-2">
+                  Fecha de Inicio
+                </label>
+                <input
+                  type="date"
+                  id="start_date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="end_date" className="block text-sm font-medium text-gray-700 mb-2">
+                  Fecha de Fin
+                </label>
+                <input
+                  type="date"
+                  id="end_date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={startDate || undefined}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
 
             {/* Imagen del Curso */}

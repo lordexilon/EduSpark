@@ -1,20 +1,34 @@
 # EduSpark - Desarrollo Local
 
-## 🚀 Inicio Rápido
+## 🚀 Inicio Rápido (Windows)
 
-### Ejecutar Todo (Frontend + Worker RAG)
+### Opción 1: Script Automático (Recomendado) ✅
 
 ```bash
 npm run dev:all
 ```
 
-Esto levanta:
-- ✅ **Frontend** (Vite) → `http://localhost:5173`
-- ✅ **Worker RAG** (Express) → `http://localhost:3001`
+Esto abrirá **2 ventanas nuevas de terminal**:
+- 🔵 **Ventana 1:** Frontend (Vite) → `http://localhost:5173`
+- 🟣 **Ventana 2:** Worker RAG → `http://localhost:3001`
 
-Los logs aparecen con colores:
-- 🔵 `[frontend]` - Vite development server
-- 🟣 `[worker]` - RAG indexing worker
+**Ventaja:** Logs separados y fácil de cerrar cada servicio.
+
+### Opción 2: Manual (Dos Terminales)
+
+```bash
+# Terminal 1: Frontend
+npm run dev
+
+# Terminal 2: Worker  
+npm run dev:worker
+```
+
+### Opción 3: Solo Frontend (sin RAG)
+
+```bash
+npm run dev
+```
 
 ### Comandos Disponibles
 

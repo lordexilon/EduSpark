@@ -9,12 +9,13 @@
     "dev:emergency": "node scripts/emergency-reload.js && npm run dev",
     "dev:auto": "node scripts/auto-reload.js",
     "dev:worker": "cd src/workers/file-processing-worker && npm run dev",
-    "dev:all": "concurrently \"npm run dev\" \"npm run dev:worker\" --names \"frontend,worker\" --prefix-colors \"cyan,magenta\"",
+    "dev:all": "scripts\\start-dev.bat",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "node scripts/clear-cache.js",
     "emergency": "node scripts/emergency-reload.js",
-    "test:gemini": "node scripts/test-gemini-api.js"
+    "test:gemini": "node scripts/test-gemini-api.js",
+    "verify:gemini": "node scripts/verify-gemini-api-key.js"
   },
   "dependencies": {
     "@fingerprintjs/fingerprintjs": "^5.0.1",
@@ -28,6 +29,7 @@
     "@tiptap/extension-underline": "^3.10.1",
     "@tiptap/react": "^3.10.1",
     "@tiptap/starter-kit": "^3.10.1",
+    "dotenv": "^17.2.3",
     "firebase": "^10.13.0",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
@@ -36,6 +38,7 @@
     "pdf-parse": "^1.1.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-pdf": "^10.2.0",
     "react-router-dom": "6",
     "xlsx": "^0.18.5"
   },

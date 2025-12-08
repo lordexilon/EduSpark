@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FlashcardWithProgress, getFlashcardsWithProgress, getFlashcardProgressStats } from '../services/flashcardService';
-import { courseService, Course } from '../services/teacherCourses';
+import { courseService, Course, unitService, sessionService, CourseUnit, Session } from '../services/teacherCourses';
 import { courseEnrollmentService } from '../services/academicService';
 import { useAuth } from '../hooks/useAuth';
 import Card from '../components/Card';
@@ -45,7 +45,7 @@ export const StudentFlashcardsPage: React.FC = () => {
       setLoading(true);
       const enrollments = await courseEnrollmentService.getStudentEnrollments(user!.id);
       const courseIds = enrollments.map((e) => e.course_id);
-      
+
       if (courseIds.length === 0) {
         setCourses([]);
         return;
@@ -54,9 +54,9 @@ export const StudentFlashcardsPage: React.FC = () => {
       const coursesData = await Promise.all(
         courseIds.map((id) => courseService.getCourse(id))
       );
-      
+
       setCourses(coursesData.filter(Boolean) as Course[]);
-      
+
       if (!selectedCourse && coursesData.length > 0) {
         setSelectedCourse(coursesData[0].id);
       }
@@ -67,16 +67,129 @@ export const StudentFlashcardsPage: React.FC = () => {
     }
   };
 
+  // Funciones de disponibilidad
+  const normalizeDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  };
+
+  const isUnitAvailable = (unit: CourseUnit, course: Course): boolean => {
+    if (user?.role?.name !== 'student') return true;
+    const now = new Date();
+
+    if (unit.available_from && unit.available_until) {
+      const start = new Date(unit.available_from);
+      const end = new Date(unit.available_until);
+      return now >= start && now <= end;
+    }
+    if (unit.available_from) return now >= new Date(unit.available_from);
+    if (unit.available_until) return now <= new Date(unit.available_until);
+
+    if (course?.start_date && course?.end_date) {
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const courseStart = normalizeDate(course.start_date);
+      const courseEnd = normalizeDate(course.end_date);
+      return today >= courseStart && today <= courseEnd;
+    }
+    return true;
+  };
+
+  const isSessionAvailable = (session: Session, units: CourseUnit[], course: Course): boolean => {
+    if (user?.role?.name !== 'student') return true;
+    const now = new Date();
+
+    if (session.unit_id) {
+      const parentUnit = units.find(u => u.id === session.unit_id);
+      if (parentUnit && !isUnitAvailable(parentUnit, course)) return false;
+    }
+
+    if (session.available_from && session.available_until) {
+      const start = new Date(session.available_from);
+      const end = new Date(session.available_until);
+      return now >= start && now <= end;
+    }
+    if (session.available_from) return now >= new Date(session.available_from);
+    if (session.available_until) return now <= new Date(session.available_until);
+
+    if (session.starts_at && session.ends_at) {
+      const start = new Date(session.starts_at);
+      const end = new Date(session.ends_at);
+      return now >= start && now <= end;
+    }
+
+    if (course?.start_date && course?.end_date) {
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const courseStart = normalizeDate(course.start_date);
+      const courseEnd = normalizeDate(course.end_date);
+      return today >= courseStart && today <= courseEnd;
+    }
+    return true;
+  };
+
+  const isFlashcardAvailable = (flashcard: FlashcardWithProgress, units: CourseUnit[], sessions: Session[], course: Course): boolean => {
+    if (user?.role?.name !== 'student') return true;
+    const now = new Date();
+
+    if (flashcard.session_id) {
+      const parentSession = sessions.find(s => s.id === flashcard.session_id);
+      if (parentSession && !isSessionAvailable(parentSession, units, course)) return false;
+    }
+
+    if (flashcard.unit_id) {
+      const parentUnit = units.find(u => u.id === flashcard.unit_id);
+      if (parentUnit && !isUnitAvailable(parentUnit, course)) return false;
+    }
+
+    if (flashcard.available_from && flashcard.available_until) {
+      const start = new Date(flashcard.available_from);
+      const end = new Date(flashcard.available_until);
+      return now >= start && now <= end;
+    }
+    if (flashcard.available_from) return now >= new Date(flashcard.available_from);
+    if (flashcard.available_until) return now <= new Date(flashcard.available_until);
+
+    return true;
+  };
+
   const loadFlashcards = async () => {
     if (!selectedCourse || !user?.id) return;
 
     try {
       setLoading(true);
-      const flashcardsData = await getFlashcardsWithProgress(selectedCourse, user.id);
-      setFlashcards(flashcardsData);
 
-      const statsData = await getFlashcardProgressStats(user.id, selectedCourse);
-      setStats(statsData);
+      // Cargar datos necesarios para validación
+      const [courseData, unitsData, sessionsData, flashcardsData] = await Promise.all([
+        courseService.getCourse(selectedCourse),
+        unitService.getCourseUnits(selectedCourse),
+        sessionService.getCourseSessions(selectedCourse),
+        getFlashcardsWithProgress(selectedCourse, user.id)
+      ]);
+
+      // Filtrar flashcards
+      const visibleFlashcards = flashcardsData.filter(f =>
+        isFlashcardAvailable(f, unitsData, sessionsData, courseData)
+      );
+
+      setFlashcards(visibleFlashcards);
+
+      // Calcular estadísticas basadas SOLO en flashcards visibles
+      const total = visibleFlashcards.length;
+      const mastered = visibleFlashcards.filter(f => (f.progress?.mastery_level || 0) >= 5).length;
+      const learning = visibleFlashcards.filter(f => (f.progress?.mastery_level || 0) > 0 && (f.progress?.mastery_level || 0) < 5).length;
+      const newCards = visibleFlashcards.filter(f => !f.progress).length;
+      const dueToday = visibleFlashcards.filter(f =>
+        f.progress?.next_review_at && new Date(f.progress.next_review_at) <= new Date()
+      ).length;
+
+      setStats({
+        total,
+        mastered,
+        learning,
+        new: newCards,
+        dueToday,
+        masteryPercentage: total > 0 ? (mastered / total) * 100 : 0
+      });
+
     } catch (err) {
       console.error('Error loading flashcards:', err);
     } finally {
@@ -217,9 +330,8 @@ export const StudentFlashcardsPage: React.FC = () => {
                           </p>
                         </div>
                         <div
-                          className={`w-4 h-4 rounded-full ${
-                            masteryColors[masteryLevel as keyof typeof masteryColors] || 'bg-gray-200'
-                          }`}
+                          className={`w-4 h-4 rounded-full ${masteryColors[masteryLevel as keyof typeof masteryColors] || 'bg-gray-200'
+                            }`}
                           title={`Nivel de dominio: ${masteryLevel}/5`}
                         />
                       </div>

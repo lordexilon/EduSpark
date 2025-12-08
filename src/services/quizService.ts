@@ -426,9 +426,13 @@ export const quizService = {
     const totalPoints = totalPointsFromQuestions > 0 ? totalPointsFromQuestions : assessment.total_points;
 
     // Calcular percentage
-    const percentage = totalPoints > 0
+    let percentage = totalPoints > 0
       ? (totalScore / totalPoints) * 100
       : 0;
+
+    // Asegurar que no exceda 100% y redondear a 2 decimales para evitar errores de constraint
+    percentage = Math.min(100, Math.max(0, percentage));
+    percentage = Math.round(percentage * 100) / 100;
 
     // Determinar si pasó
     const { data: assessmentFull, error: assessmentFullError } = await supabase

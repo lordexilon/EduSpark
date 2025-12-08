@@ -1152,10 +1152,10 @@ const ClassPlanner = ({ userId }: { userId: string }) => {
                                     try {
                                         const { supabase } = await import('../lib/supabase');
                                         const { data: accessData } = await supabase
-                                            .from('session_access')
+                                            .from('session_progress')
                                             .select('*')
                                             .eq('session_id', session.id)
-                                            .eq('user_id', userId)
+                                            .eq('student_id', userId)
                                             .maybeSingle();
 
                                         if (accessData) {

@@ -13,6 +13,7 @@ const AVATAR_BUCKET = 'avatars';
 const COURSE_MEDIA_BUCKET = 'course-media';
 const COURSE_DOCUMENTS_BUCKET = 'course-documents';
 const INSTITUTIONS_BUCKET = 'course-media'; // Usar course-media para logos de instituciones
+const LANDING_BUCKET = 'landing-page-images'; // Bucket para imágenes de landing page
 const MAX_AVATAR_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_COURSE_FILE_SIZE = 900 * 1024 * 1024; // 900MB (permite archivos hasta 850MB con margen)
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -122,27 +123,27 @@ export const uploadAvatar = async (
 
     if (uploadError) {
       console.error('Error subiendo avatar:', uploadError);
-      
+
       // Mensajes de error más descriptivos
       let errorMessage = uploadError.message || 'Error al subir la imagen.';
-      
-      if (uploadError.message?.includes('Bucket not found') || 
-          uploadError.message?.includes('does not exist') ||
-          uploadError.message?.includes('No such bucket')) {
+
+      if (uploadError.message?.includes('Bucket not found') ||
+        uploadError.message?.includes('does not exist') ||
+        uploadError.message?.includes('No such bucket')) {
         errorMessage = 'El bucket de avatares no está configurado. Por favor, contacta al administrador para crear el bucket "avatars".';
-      } else if (uploadError.message?.includes('row-level security') || 
-                 uploadError.message?.includes('RLS') ||
-                 uploadError.message?.includes('new row violates')) {
+      } else if (uploadError.message?.includes('row-level security') ||
+        uploadError.message?.includes('RLS') ||
+        uploadError.message?.includes('new row violates')) {
         errorMessage = 'Error de permisos. Verifica que el bucket "avatars" existe y las políticas RLS están configuradas correctamente.';
-      } else if (uploadError.message?.includes('permission') || 
-                 uploadError.message?.includes('403') ||
-                 uploadError.message?.includes('Forbidden')) {
+      } else if (uploadError.message?.includes('permission') ||
+        uploadError.message?.includes('403') ||
+        uploadError.message?.includes('Forbidden')) {
         errorMessage = 'No tienes permisos para subir archivos. Verifica que el bucket existe y las políticas RLS permiten subir avatares.';
-      } else if (uploadError.message?.includes('folder') || 
-                 uploadError.message?.includes('path')) {
+      } else if (uploadError.message?.includes('folder') ||
+        uploadError.message?.includes('path')) {
         errorMessage = 'Error con la ruta del archivo. Asegúrate de que el archivo se sube en la carpeta correcta.';
       }
-      
+
       return {
         success: false,
         error: errorMessage
@@ -193,9 +194,10 @@ export const uploadCourseMedia = async (
     }
 
     if (file.size > MAX_COURSE_FILE_SIZE) {
+      const maxSizeMB = MAX_COURSE_FILE_SIZE / (1024 * 1024);
       return {
         success: false,
-        error: 'El archivo es demasiado grande. El tamaño máximo es 35MB.',
+        error: `El archivo es demasiado grande. El tamaño máximo es ${maxSizeMB}MB.`,
       };
     }
 
@@ -333,20 +335,20 @@ export const uploadCourseDocument = async (
     // Comprimir PDF si es necesario (solo para archivos menores a 50MB)
     let fileToUpload = file;
     let optimizationMessage = 'Documento subido (sin compresión)';
-    
+
     // Umbral para archivos grandes: no comprimir archivos > 50MB para evitar problemas de memoria
     const LARGE_FILE_THRESHOLD = 50 * 1024 * 1024; // 50MB
-    
-    if (file.type === 'application/pdf' && 
-        (options.compressPDF !== false) && 
-        file.size < LARGE_FILE_THRESHOLD) {
+
+    if (file.type === 'application/pdf' &&
+      (options.compressPDF !== false) &&
+      file.size < LARGE_FILE_THRESHOLD) {
       // Solo comprimir PDFs menores a 50MB
       if (shouldCompressPDF(file, 5)) {
         try {
           const compressionResult = await compressPDF(file, options.maxPDFSizeMB ?? 10);
           fileToUpload = compressionResult.file;
           optimizationMessage = compressionResult.info;
-          
+
           console.log(`[uploadCourseDocument] PDF comprimido: ${(compressionResult.originalSize / 1024 / 1024).toFixed(2)}MB → ${(compressionResult.compressedSize / 1024 / 1024).toFixed(2)}MB`);
         } catch (compressionError) {
           console.warn('[uploadCourseDocument] Error comprimiendo PDF, usando original:', compressionError);
@@ -425,7 +427,7 @@ export const deleteAvatar = async (userId: string, filePath: string): Promise<bo
   try {
     // Si filePath es una URL completa, extraer solo el path relativo
     let fullPath: string;
-    
+
     if (filePath.startsWith('http')) {
       // Es una URL completa, extraer el path después de /avatars/
       const urlParts = filePath.split('/avatars/');
@@ -568,23 +570,23 @@ export const uploadInstitutionLogo = async (
 
     if (uploadError) {
       console.error('Error subiendo logo de institución:', uploadError);
-      
+
       let errorMessage = uploadError.message || 'Error al subir la imagen.';
-      
-      if (uploadError.message?.includes('Bucket not found') || 
-          uploadError.message?.includes('does not exist') ||
-          uploadError.message?.includes('No such bucket')) {
+
+      if (uploadError.message?.includes('Bucket not found') ||
+        uploadError.message?.includes('does not exist') ||
+        uploadError.message?.includes('No such bucket')) {
         errorMessage = 'El bucket de medios no está configurado. Por favor, contacta al administrador para crear el bucket "course-media".';
-      } else if (uploadError.message?.includes('row-level security') || 
-                 uploadError.message?.includes('RLS') ||
-                 uploadError.message?.includes('new row violates')) {
+      } else if (uploadError.message?.includes('row-level security') ||
+        uploadError.message?.includes('RLS') ||
+        uploadError.message?.includes('new row violates')) {
         errorMessage = 'Error de permisos. Verifica que el bucket "course-media" existe y las políticas RLS están configuradas correctamente.';
-      } else if (uploadError.message?.includes('permission') || 
-                 uploadError.message?.includes('403') ||
-                 uploadError.message?.includes('Forbidden')) {
+      } else if (uploadError.message?.includes('permission') ||
+        uploadError.message?.includes('403') ||
+        uploadError.message?.includes('Forbidden')) {
         errorMessage = 'No tienes permisos para subir archivos. Verifica que el bucket existe y las políticas RLS permiten subir logos.';
       }
-      
+
       return {
         success: false,
         error: errorMessage
@@ -617,3 +619,144 @@ export const uploadInstitutionLogo = async (
   }
 };
 
+
+/**
+ * Opciones para subida de imágenes de landing page
+ */
+export type LandingImageSection = 'logo' | 'hero' | 'gallery' | 'students';
+
+export interface UploadLandingImageOptions {
+  section: LandingImageSection;
+  maxWidth?: number;
+  maxHeight?: number;
+  quality?: number;
+}
+
+/**
+ * Sube una imagen para la landing page de una institución
+ */
+export const uploadLandingImage = async (
+  institutionId: number,
+  file: File,
+  options: UploadLandingImageOptions
+): Promise<UploadResult> => {
+  try {
+    // Validar tipo de archivo
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return {
+        success: false,
+        error: 'Tipo de archivo no permitido. Solo se permiten imágenes JPEG, PNG o WebP.'
+      };
+    }
+
+    // Validar tamaño (10MB máximo general)
+    if (file.size > 10 * 1024 * 1024) {
+      return {
+        success: false,
+        error: 'El archivo es demasiado grande. El tamaño máximo es 10MB.'
+      };
+    }
+
+    let fileToUpload = file;
+
+    // Configurar optimización según la sección
+    let maxWidth = options.maxWidth;
+    let maxHeight = options.maxHeight;
+    let quality = options.quality || 0.8;
+
+    // Valores por defecto si no se especifican
+    if (!maxWidth || !maxHeight) {
+      switch (options.section) {
+        case 'logo':
+          maxWidth = 500;
+          maxHeight = 500;
+          break;
+        case 'hero':
+          maxWidth = 1920;
+          maxHeight = 1080;
+          quality = 0.85; // Mejor calidad para hero
+          break;
+        case 'gallery':
+          maxWidth = 1200;
+          maxHeight = 800;
+          break;
+        case 'students':
+          maxWidth = 400;
+          maxHeight = 400;
+          break;
+      }
+    }
+
+    try {
+      if (shouldOptimizeInFrontend(file) || file.type !== 'image/webp') {
+        const result = await optimizeImage(file, {
+          maxWidth: maxWidth || 1200,
+          maxHeight: maxHeight || 1200,
+          quality: quality,
+          format: 'image/webp',
+          force: true,
+        });
+        fileToUpload = result.file;
+      }
+    } catch (optError) {
+      console.warn('[uploadLandingImage] No se pudo optimizar la imagen, se usará original', optError);
+      fileToUpload = file;
+    }
+
+    // Generar ruta: institution-{id}/{section}/{timestamp}.{ext}
+    const fileExt = MIME_TO_EXT[fileToUpload.type] || file.name.split('.').pop() || 'jpg';
+    const fileName = `${Date.now()}.${fileExt}`;
+    // Usar la estructura de carpetas definida en las políticas RLS: institution-{id}/...
+    const filePath = `institution-${institutionId}/${options.section}/${fileName}`;
+
+    // Subir archivo
+    const { data, error: uploadError } = await supabase.storage
+      .from(LANDING_BUCKET)
+      .upload(filePath, fileToUpload, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: fileToUpload.type,
+      });
+
+    if (uploadError) {
+      console.error('Error subiendo imagen de landing:', uploadError);
+
+      let errorMessage = uploadError.message || 'Error al subir la imagen.';
+
+      if (uploadError.message?.includes('Bucket not found')) {
+        errorMessage = `El bucket "${LANDING_BUCKET}" no existe. Solicita su creación en Supabase.`;
+      } else if (uploadError.message?.includes('row-level security')) {
+        errorMessage = 'No tienes permisos para subir imágenes a este bucket.';
+      }
+
+      return {
+        success: false,
+        error: errorMessage
+      };
+    }
+
+    // Obtener URL pública
+    const { data: urlData } = supabase.storage
+      .from(LANDING_BUCKET)
+      .getPublicUrl(filePath);
+
+    if (!urlData?.publicUrl) {
+      return {
+        success: false,
+        error: 'Error al obtener la URL de la imagen.'
+      };
+    }
+
+    return {
+      success: true,
+      url: urlData.publicUrl,
+      error: undefined,
+    };
+  } catch (error: any) {
+    console.error('Error inesperado subiendo imagen de landing:', error);
+    return {
+      success: false,
+      error: error.message || 'Error inesperado al subir la imagen.'
+    };
+  }
+};

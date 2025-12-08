@@ -1,7 +1,7 @@
 // pages/CourseViewPage.tsx
 // Vista de curso para estudiantes - Muestra módulos y sesiones organizadas
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { courseService, Course } from '../services/teacherCourses';
 import { unitService, CourseUnit } from '../services/teacherCourses';
@@ -13,7 +13,7 @@ import Button from '../components/Button';
 import Breadcrumbs from '../components/Breadcrumbs';
 import ProgressIndicator from '../components/ProgressIndicator';
 import GamificationScore from '../components/GamificationScore';
-import { IconBookOpen, IconChevronRight, IconCalendar, IconEye, IconRobot, IconClipboardList, IconClipboardCheck, IconClock, IconCards, IconCheck } from '../components/Icons';
+import { IconBookOpen, IconChevronRight, IconCalendar, IconEye, IconRobot, IconClipboardList, IconClipboardCheck, IconClock, IconCards, IconCheck, IconChevronDown, IconChevronUp } from '../components/Icons';
 import { MaterialDisplay } from '../components/MaterialDisplay';
 import { useAuth } from '../hooks/useAuth';
 import { courseEnrollmentService, CourseEnrollment } from '../services/academicService';
@@ -45,6 +45,138 @@ export const CourseViewPage: React.FC = () => {
   const [totalFlashcards, setTotalFlashcards] = useState<number>(0);
   const [completedFlashcards, setCompletedFlashcards] = useState<number>(0);
   const [markingUnit, setMarkingUnit] = useState<string | null>(null);
+  const [expandedMaterialsGroups, setExpandedMaterialsGroups] = useState<Set<string>>(new Set());
+
+  // ==========================================
+  // Lógica de Disponibilidad (Hooks)
+  // ==========================================
+
+  const normalizeDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  };
+
+  const isUnitAvailable = useCallback((unit: CourseUnit): boolean => {
+    if (user?.role?.name !== 'student') return true;
+    const now = new Date();
+
+    // 1. Fechas específicas de disponibilidad (prioridad)
+    if (unit.available_from && unit.available_until) {
+      const start = new Date(unit.available_from);
+      const end = new Date(unit.available_until);
+      return now >= start && now <= end;
+    }
+    if (unit.available_from) return now >= new Date(unit.available_from);
+    if (unit.available_until) return now <= new Date(unit.available_until);
+
+    // 2. Fechas del curso (fallback)
+    if (course?.start_date && course?.end_date) {
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const courseStart = normalizeDate(course.start_date);
+      const courseEnd = normalizeDate(course.end_date);
+      return today >= courseStart && today <= courseEnd;
+    }
+
+    return true;
+  }, [user, course]);
+
+  const isSessionAvailable = useCallback((session: Session): boolean => {
+    if (user?.role?.name !== 'student') return true;
+    const now = new Date();
+
+    // 1. Validar Unidad Padre
+    if (session.unit_id) {
+      const parentUnit = units.find(u => u.id === session.unit_id);
+      if (parentUnit && !isUnitAvailable(parentUnit)) return false;
+    }
+
+    // 2. Fechas específicas de disponibilidad
+    if (session.available_from && session.available_until) {
+      const start = new Date(session.available_from);
+      const end = new Date(session.available_until);
+      return now >= start && now <= end;
+    }
+    if (session.available_from) return now >= new Date(session.available_from);
+    if (session.available_until) return now <= new Date(session.available_until);
+
+    // 3. Fechas de "cursada" (compatibilidad)
+    if (session.starts_at && session.ends_at) {
+      const start = new Date(session.starts_at);
+      const end = new Date(session.ends_at);
+      return now >= start && now <= end;
+    }
+
+    // 4. Fechas del curso
+    if (course?.start_date && course?.end_date) {
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const courseStart = normalizeDate(course.start_date);
+      const courseEnd = normalizeDate(course.end_date);
+      return today >= courseStart && today <= courseEnd;
+    }
+
+    return true;
+  }, [user, course, units, isUnitAvailable]);
+
+  const isQuizAvailable = useCallback((quiz: Assessment): boolean => {
+    if (user?.role?.name !== 'student') return true;
+    const now = new Date();
+
+    // 1. Validar Sesión Padre
+    if (quiz.session_id) {
+      // Buscar sesión en todas las sesiones cargadas
+      const allSessions = Object.values(sessionsByUnit).flat();
+      const parentSession = allSessions.find(s => s.id === quiz.session_id);
+      if (parentSession && !isSessionAvailable(parentSession)) return false;
+    }
+
+    // 2. Validar Unidad Padre
+    if (quiz.unit_id) {
+      const parentUnit = units.find(u => u.id === quiz.unit_id);
+      if (parentUnit && !isUnitAvailable(parentUnit)) return false;
+    }
+
+    // 3. Fechas específicas
+    if (quiz.available_from && quiz.available_until) {
+      const start = new Date(quiz.available_from);
+      const end = new Date(quiz.available_until);
+      return now >= start && now <= end;
+    }
+    if (quiz.available_from) return now >= new Date(quiz.available_from);
+    if (quiz.available_until) return now <= new Date(quiz.available_until);
+
+    return true;
+  }, [user, units, sessionsByUnit, isSessionAvailable, isUnitAvailable]);
+
+  // ==========================================
+  // Variables Filtradas para Renderizado
+  // ==========================================
+  const visibleUnits = useMemo(() => units.filter(isUnitAvailable), [units, isUnitAvailable]);
+
+  const visibleSessionsByUnit = useMemo(() => {
+    const filtered: Record<string, Session[]> = {};
+    Object.keys(sessionsByUnit).forEach(unitId => {
+      filtered[unitId] = sessionsByUnit[unitId].filter(isSessionAvailable);
+    });
+    return filtered;
+  }, [sessionsByUnit, isSessionAvailable]);
+
+  const visibleQuizzesByUnit = useMemo(() => {
+    const filtered: Record<string, Assessment[]> = {};
+    Object.keys(quizzesByUnit).forEach(unitId => {
+      filtered[unitId] = quizzesByUnit[unitId].filter(isQuizAvailable);
+    });
+    return filtered;
+  }, [quizzesByUnit, isQuizAvailable]);
+
+  const visibleGeneralQuizzes = useMemo(() => generalQuizzes.filter(isQuizAvailable), [generalQuizzes, isQuizAvailable]);
+  const visibleFinalExam = useMemo(() => finalExam && isQuizAvailable(finalExam) ? finalExam : null, [finalExam, isQuizAvailable]);
+
+  // Efecto para auto-expandir si solo hay una unidad visible
+  useEffect(() => {
+    if (visibleUnits.length === 1) {
+      setExpandedUnits(new Set([visibleUnits[0].id]));
+    }
+  }, [visibleUnits]);
 
   useEffect(() => {
     if (id) {
@@ -249,6 +381,18 @@ export const CourseViewPage: React.FC = () => {
     });
   };
 
+  const toggleMaterialsGroup = (groupId: string) => {
+    setExpandedMaterialsGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupId)) {
+        newSet.delete(groupId);
+      } else {
+        newSet.add(groupId);
+      }
+      return newSet;
+    });
+  };
+
   // Función auxiliar para detectar si un material es un video
   const isVideoMaterial = (material: Material): boolean => {
     if (material.kind === 'video') return true;
@@ -257,6 +401,16 @@ export const CourseViewPage: React.FC = () => {
     const platform = transcriptService.detectPlatform(material.url);
     return platform !== null;
   };
+
+
+
+
+
+
+
+
+
+
 
   if (loading) {
     return (
@@ -276,6 +430,11 @@ export const CourseViewPage: React.FC = () => {
       </div>
     );
   }
+
+  // ==========================================
+  // Variables Filtradas para Renderizado (MOVIDAS AL INICIO)
+  // ==========================================
+
 
   return (
     <div className="space-y-6">
@@ -367,11 +526,11 @@ export const CourseViewPage: React.FC = () => {
       {user && (
         <div className="space-y-4">
           <GamificationScore
-            totalUnits={units.length}
+            totalUnits={visibleUnits.length}
             completedUnits={completedUnits.size}
-            totalSessions={Object.values(sessionsByUnit).flat().length}
+            totalSessions={Object.values(visibleSessionsByUnit).flat().length}
             completedSessions={completedSessions.size}
-            totalQuizzes={Object.values(quizzesByUnit).flat().length + generalQuizzes.length + (finalExam ? 1 : 0)}
+            totalQuizzes={Object.values(visibleQuizzesByUnit).flat().length + visibleGeneralQuizzes.length + (visibleFinalExam ? 1 : 0)}
             completedQuizzes={completedQuizzes.size}
             totalFlashcards={totalFlashcards}
             completedFlashcards={completedFlashcards}
@@ -390,56 +549,87 @@ export const CourseViewPage: React.FC = () => {
       )}
 
       {/* Módulos y Sesiones */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         <h2 className="text-xl font-semibold text-gray-900">Contenido del Curso</h2>
 
-        {units.length === 0 ? (
+        {visibleUnits.length === 0 ? (
           <Card>
             <div className="text-center py-8">
               <IconBookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">Este curso aún no tiene módulos definidos.</p>
+              <p className="text-gray-600">Este curso aún no tiene módulos definidos o disponibles actualmente.</p>
             </div>
           </Card>
         ) : (
           <>
-            <p className="text-sm text-gray-500 mb-2">Total de unidades: {units.length}</p>
-            {units.map((unit) => {
-              const unitSessions = sessionsByUnit[unit.id] || [];
-              // Excluir materiales asociados a sesiones (solo mostrar materiales de unidad sin session_id)
+            <p className="text-sm text-gray-500 mb-4">Total de unidades: {visibleUnits.length}</p>
+            {visibleUnits.map((unit, unitIndex) => {
+              const unitSessions = visibleSessionsByUnit[unit.id] || [];
+              // Excluir materiales asociados a sesiones Y materiales solo para RAG (no mostrar a estudiantes)
               const unitMaterials = materials.filter((material) =>
-                material.unit_id === unit.id && !material.session_id
+                material.unit_id === unit.id && 
+                !material.session_id &&
+                material.purpose !== 'rag' // Excluir materiales solo para RAG
               );
               const isExpanded = expandedUnits.has(unit.id);
 
+              // Colores alternados para cada unidad
+              const unitColors = [
+                { border: 'border-blue-500', bg: 'bg-blue-50', icon: 'bg-blue-100', text: 'text-blue-700', hover: 'hover:bg-blue-100', borderLight: 'border-blue-200' },
+                { border: 'border-purple-500', bg: 'bg-purple-50', icon: 'bg-purple-100', text: 'text-purple-700', hover: 'hover:bg-purple-100', borderLight: 'border-purple-200' },
+                { border: 'border-green-500', bg: 'bg-green-50', icon: 'bg-green-100', text: 'text-green-700', hover: 'hover:bg-green-100', borderLight: 'border-green-200' },
+                { border: 'border-orange-500', bg: 'bg-orange-50', icon: 'bg-orange-100', text: 'text-orange-700', hover: 'hover:bg-orange-100', borderLight: 'border-orange-200' },
+                { border: 'border-indigo-500', bg: 'bg-indigo-50', icon: 'bg-indigo-100', text: 'text-indigo-700', hover: 'hover:bg-indigo-100', borderLight: 'border-indigo-200' },
+                { border: 'border-pink-500', bg: 'bg-pink-50', icon: 'bg-pink-100', text: 'text-pink-700', hover: 'hover:bg-pink-100', borderLight: 'border-pink-200' },
+              ];
+              const colorScheme = unitColors[unitIndex % unitColors.length];
+
               return (
-                <Card key={unit.id} className="overflow-hidden">
+                <Card key={unit.id} className={`overflow-hidden border-l-4 ${colorScheme.border} shadow-md hover:shadow-lg transition-all duration-200`}>
                   <div
-                    className="cursor-pointer p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+                    className={`cursor-pointer p-5 ${colorScheme.bg} ${colorScheme.hover} transition-colors`}
                     onClick={() => toggleUnit(unit.id)}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                          <span className="text-primary font-semibold text-sm">
+                      <div className="flex items-center gap-4">
+                        <div className={`flex-shrink-0 w-12 h-12 ${colorScheme.icon} rounded-full flex items-center justify-center shadow-sm border-2 ${colorScheme.borderLight}`}>
+                          <span className={`${colorScheme.text} font-bold text-lg`}>
                             {unit.number}
                           </span>
                         </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {unit.title}
-                          </h3>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <IconBookOpen className={`w-5 h-5 ${colorScheme.text} opacity-70`} />
+                            <h3 className={`text-xl font-bold ${colorScheme.text}`}>
+                              {unit.title}
+                            </h3>
+                          </div>
                           {unit.description && (
-                            <p className="text-sm text-gray-600 mt-1">{unit.description}</p>
+                            <p className="text-sm text-gray-700 mt-1 line-clamp-2">{unit.description}</p>
                           )}
-                          <p className="text-xs text-gray-500 mt-1">
-                            {unitSessions.length} {unitSessions.length === 1 ? 'sesión' : 'sesiones'}
-                          </p>
+                          <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
+                            <span className="flex items-center gap-1">
+                              <IconBookOpen className="w-4 h-4" />
+                              {unitSessions.length} {unitSessions.length === 1 ? 'sesión' : 'sesiones'}
+                            </span>
+                            {unitMaterials.length > 0 && (
+                              <span className="flex items-center gap-1">
+                                <IconClipboardList className="w-4 h-4" />
+                                {unitMaterials.length} {unitMaterials.length === 1 ? 'material' : 'materiales'}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <IconChevronRight
-                        className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'transform rotate-90' : ''
-                          }`}
-                      />
+                      <div className="flex items-center gap-2">
+                        {completedUnits.has(unit.id) && (
+                          <div className={`w-8 h-8 ${colorScheme.icon} rounded-full flex items-center justify-center shadow-sm`}>
+                            <IconCheck className={`w-5 h-5 ${colorScheme.text}`} />
+                          </div>
+                        )}
+                        <IconChevronRight
+                          className={`w-6 h-6 ${colorScheme.text} transition-transform ${isExpanded ? 'transform rotate-90' : ''}`}
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -624,7 +814,7 @@ export const CourseViewPage: React.FC = () => {
 
                       {/* Quizzes/Evaluaciones - Mejorada jerarquía visual */}
                       {(() => {
-                        const unitQuizzes = quizzesByUnit[unit.id] || [];
+                        const unitQuizzes = visibleQuizzesByUnit[unit.id] || [];
                         if (unitQuizzes.length === 0) return null;
 
                         const typeLabels: Record<string, string> = {
@@ -732,22 +922,47 @@ export const CourseViewPage: React.FC = () => {
                       )}
 
                       {/* Otros Materiales de la Unidad */}
-                      {unitMaterials.filter(m => !isVideoMaterial(m)).length > 0 && (
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-semibold text-gray-900 mb-3">
-                            Material de la unidad ({unitMaterials.filter(m => !isVideoMaterial(m)).length})
-                          </h4>
+                      {(() => {
+                        const otherMaterials = unitMaterials.filter(m => !isVideoMaterial(m));
+                        if (otherMaterials.length === 0) return null;
+
+                        const groupId = `unit-${unit.id}-materials`;
+                        const isExpanded = expandedMaterialsGroups.has(groupId);
+                        const shouldCollapse = otherMaterials.length > 1;
+
+                        return (
                           <div className="space-y-2">
-                            {unitMaterials.filter(m => !isVideoMaterial(m)).map((material) => (
-                              <MaterialDisplay
-                                key={material.id}
-                                material={material}
-                                showFullPlayer={false}
-                              />
-                            ))}
+                            <div 
+                              className={`flex items-center justify-between ${shouldCollapse ? 'cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors' : ''}`}
+                              onClick={shouldCollapse ? () => toggleMaterialsGroup(groupId) : undefined}
+                            >
+                              <h4 className="text-sm font-semibold text-gray-900">
+                                Material de la unidad ({otherMaterials.length})
+                              </h4>
+                              {shouldCollapse && (
+                                <div className="flex items-center gap-2">
+                                  {isExpanded ? (
+                                    <IconChevronUp className="w-5 h-5 text-gray-600" />
+                                  ) : (
+                                    <IconChevronDown className="w-5 h-5 text-gray-600" />
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            {(isExpanded || !shouldCollapse) && (
+                              <div className="space-y-2">
+                                {otherMaterials.map((material) => (
+                                  <MaterialDisplay
+                                    key={material.id}
+                                    material={material}
+                                    showFullPlayer={false}
+                                  />
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   )}
                 </Card>
@@ -759,14 +974,14 @@ export const CourseViewPage: React.FC = () => {
 
         {/* Sesiones sin módulo asignado */}
         {
-          sessionsByUnit['sin-unidad'] && sessionsByUnit['sin-unidad'].length > 0 && (
+          visibleSessionsByUnit['sin-unidad'] && visibleSessionsByUnit['sin-unidad'].length > 0 && (
             <Card>
               <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">
                   Sesiones sin Módulo
                 </h3>
                 <div className="space-y-2">
-                  {sessionsByUnit['sin-unidad'].map((session) => (
+                  {visibleSessionsByUnit['sin-unidad'].map((session) => (
                     <Link
                       key={session.id}
                       to={`/session/${session.id}`}
@@ -792,11 +1007,11 @@ export const CourseViewPage: React.FC = () => {
 
       {/* Evaluaciones Generales del Curso (sin unidad específica) */}
       {
-        generalQuizzes.length > 0 && (
+        visibleGeneralQuizzes.length > 0 && (
           <Card className="mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Evaluaciones Generales</h2>
             <div className="space-y-2">
-              {generalQuizzes.map((quiz) => {
+              {visibleGeneralQuizzes.map((quiz) => {
                 const typeLabels: Record<string, string> = {
                   'quiz': 'Quiz',
                   'trivia': 'Trivia',
@@ -864,7 +1079,7 @@ export const CourseViewPage: React.FC = () => {
 
       {/* Examen Final */}
       {
-        finalExam && finalExam.is_published && finalExam.is_active && (
+        visibleFinalExam && visibleFinalExam.is_published && visibleFinalExam.is_active && (
           <Card className="mb-6 border-2 border-red-200 bg-red-50">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -938,22 +1153,41 @@ export const CourseViewPage: React.FC = () => {
         )
       }
 
-      {/* Materiales generales del curso (sin unidad y sin sesión) */}
+      {/* Materiales generales del curso (sin unidad y sin sesión, excluyendo materiales solo para RAG) */}
       {
-        materials.filter((material) => !material.unit_id && !material.session_id).length > 0 && (
+        materials.filter((material) => 
+          !material.unit_id && 
+          !material.session_id && 
+          material.purpose !== 'rag' // Excluir materiales solo para RAG
+        ).length > 0 && (
           <div className="space-y-3">
             <h2 className="text-xl font-semibold text-gray-900">Materiales del Curso</h2>
 
-            {/* Videos generales del curso (sin unidad y sin sesión) */}
-            {materials.filter((material) => !material.unit_id && !material.session_id && isVideoMaterial(material)).length > 0 && (
+            {/* Videos generales del curso (sin unidad y sin sesión, excluyendo materiales solo para RAG) */}
+            {materials.filter((material) => 
+              !material.unit_id && 
+              !material.session_id && 
+              material.purpose !== 'rag' && // Excluir materiales solo para RAG
+              isVideoMaterial(material)
+            ).length > 0 && (
               <Card className="mb-4">
                 <div className="p-4">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Videos del Curso ({materials.filter((material) => !material.unit_id && !material.session_id && isVideoMaterial(material)).length})
+                    Videos del Curso ({materials.filter((material) => 
+                      !material.unit_id && 
+                      !material.session_id && 
+                      material.purpose !== 'rag' && // Excluir materiales solo para RAG
+                      isVideoMaterial(material)
+                    ).length})
                   </h3>
                   <div className="space-y-6">
                     {materials
-                      .filter((material) => !material.unit_id && !material.session_id && isVideoMaterial(material))
+                      .filter((material) => 
+                        !material.unit_id && 
+                        !material.session_id && 
+                        material.purpose !== 'rag' && // Excluir materiales solo para RAG
+                        isVideoMaterial(material)
+                      )
                       .map((material) => (
                         <div key={material.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                           <MaterialDisplay
@@ -967,27 +1201,56 @@ export const CourseViewPage: React.FC = () => {
               </Card>
             )}
 
-            {/* Otros materiales generales del curso (sin unidad y sin sesión) */}
-            {materials.filter((material) => !material.unit_id && !material.session_id && !isVideoMaterial(material)).length > 0 && (
-              <Card>
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Material del curso ({materials.filter((material) => !material.unit_id && !material.session_id && !isVideoMaterial(material)).length})
-                  </h3>
-                  <div className="space-y-2">
-                    {materials
-                      .filter((material) => !material.unit_id && !material.session_id && !isVideoMaterial(material))
-                      .map((material) => (
-                        <MaterialDisplay
-                          key={material.id}
-                          material={material}
-                          showFullPlayer={false}
-                        />
-                      ))}
+            {/* Otros materiales generales del curso (sin unidad y sin sesión, excluyendo materiales solo para RAG) */}
+            {(() => {
+              const generalOtherMaterials = materials.filter((material) => 
+                !material.unit_id && 
+                !material.session_id && 
+                material.purpose !== 'rag' && // Excluir materiales solo para RAG
+                !isVideoMaterial(material)
+              );
+              
+              if (generalOtherMaterials.length === 0) return null;
+
+              const groupId = 'general-course-materials';
+              const isExpanded = expandedMaterialsGroups.has(groupId);
+              const shouldCollapse = generalOtherMaterials.length > 1;
+
+              return (
+                <Card>
+                  <div className="p-4">
+                    <div 
+                      className={`flex items-center justify-between mb-4 ${shouldCollapse ? 'cursor-pointer hover:bg-gray-50 p-2 rounded-lg -m-2 transition-colors' : ''}`}
+                      onClick={shouldCollapse ? () => toggleMaterialsGroup(groupId) : undefined}
+                    >
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Material del curso ({generalOtherMaterials.length})
+                      </h3>
+                      {shouldCollapse && (
+                        <div className="flex items-center gap-2">
+                          {isExpanded ? (
+                            <IconChevronUp className="w-5 h-5 text-gray-600" />
+                          ) : (
+                            <IconChevronDown className="w-5 h-5 text-gray-600" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {(isExpanded || !shouldCollapse) && (
+                      <div className="space-y-2">
+                        {generalOtherMaterials.map((material) => (
+                          <MaterialDisplay
+                            key={material.id}
+                            material={material}
+                            showFullPlayer={false}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              </Card>
-            )}
+                </Card>
+              );
+            })()}
           </div>
         )
       }
@@ -997,3 +1260,5 @@ export const CourseViewPage: React.FC = () => {
 
 export default CourseViewPage;
 
+
+// Force recompile

@@ -25,7 +25,8 @@ const SettingsPage: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
-  const isAdmin = user?.role?.name === 'admin' || user?.role?.name === 'coordinator' || user?.role?.name === 'admin-campus';
+  const isAdmin = user?.role?.name === 'admin' || user?.role?.name === 'coordinator' || user?.role?.name === 'admin-campus' || user?.role?.name === 'supervisor';
+  const isSupervisor = user?.role?.name === 'supervisor';
 
   const themes: { id: Theme; name: string; color: string; border: string }[] = [
     { id: 'blue', name: 'Azul (Por defecto)', color: 'bg-blue-50', border: 'border-blue-200' },
@@ -158,6 +159,12 @@ const SettingsPage: React.FC = () => {
     );
   }
 
+  // Filtrar secciones según el rol
+  // Supervisor solo ve "Configuración General" (sistema)
+  const visibleSections = isSupervisor 
+    ? sections.filter(section => section.id === 'system')
+    : sections;
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center space-x-3 mb-6">
@@ -169,7 +176,7 @@ const SettingsPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {sections.map((section) => {
+        {visibleSections.map((section) => {
           const SectionIcon = section.icon;
           const isExpanded = activeSection === section.id;
 

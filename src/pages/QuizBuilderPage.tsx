@@ -55,6 +55,8 @@ export const QuizBuilderPage: React.FC = () => {
   const [passingScore, setPassingScore] = useState<number>(70);
   const [isPublished, setIsPublished] = useState(false);
   const [isFinalExam, setIsFinalExam] = useState(false);
+  const [availableFrom, setAvailableFrom] = useState<string>('');
+  const [availableUntil, setAvailableUntil] = useState<string>('');
   
   // Preguntas
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -157,6 +159,8 @@ export const QuizBuilderPage: React.FC = () => {
         setPassingScore(assessment.passing_score || 70);
         setIsPublished(assessment.is_published || false);
         setIsFinalExam(assessment.is_final_exam || false);
+        setAvailableFrom(assessment.available_from || '');
+        setAvailableUntil(assessment.available_until || '');
         setQuestions(loadedQuestions || []);
         
         // Si no hay courseId en la URL, obtenerlo del assessment
@@ -306,6 +310,8 @@ export const QuizBuilderPage: React.FC = () => {
         passing_score: passingScore,
         is_published: publish,
         is_final_exam: isFinalExam && assessmentType === 'exam', // Solo permitir si es tipo 'exam'
+        available_from: availableFrom || undefined,
+        available_until: availableUntil || undefined,
         created_by: user.id
       };
 
@@ -649,6 +655,55 @@ export const QuizBuilderPage: React.FC = () => {
               rows={3}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
             />
+          </div>
+
+          {/* Fechas de Disponibilidad */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Fecha de Inicio (Disponible desde)
+              </label>
+              <input
+                type="datetime-local"
+                value={availableFrom ? new Date(availableFrom).toISOString().slice(0, 16) : ''}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    // Convertir a formato ISO para guardar en la BD
+                    const date = new Date(e.target.value);
+                    setAvailableFrom(date.toISOString());
+                  } else {
+                    setAvailableFrom('');
+                  }
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                El quiz estará oculto para estudiantes hasta esta fecha
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Fecha de Fin (Disponible hasta)
+              </label>
+              <input
+                type="datetime-local"
+                value={availableUntil ? new Date(availableUntil).toISOString().slice(0, 16) : ''}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    // Convertir a formato ISO para guardar en la BD
+                    const date = new Date(e.target.value);
+                    setAvailableUntil(date.toISOString());
+                  } else {
+                    setAvailableUntil('');
+                  }
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                El quiz estará oculto para estudiantes después de esta fecha
+              </p>
+            </div>
           </div>
 
           {/* Marcar como Examen Final (solo para tipo 'exam') */}

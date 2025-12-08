@@ -3,9 +3,23 @@
  * Funciona para estudiantes, docentes y administradores
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { Eye, EyeOff, Mail, Lock, Loader2, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Loader2, UserPlus, AlertCircle } from 'lucide-react';
+
+// Estilos CSS inline para animación de error
+const errorStyles = `
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`;
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -19,23 +33,152 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  
+  // SOLUCIÓN: Usar sessionStorage para persistir el error entre re-montajes
+  const [loginError, setLoginError] = useState<string>(() => {
+    // Cargar error desde sessionStorage al montar
+    try {
+      const savedError = sessionStorage.getItem('loginError');
+      if (savedError && savedError.trim().length > 0) {
+        // Limpiar errores de red antiguos que no son relevantes para el usuario
+        const networkErrors = ['Failed to fetch', 'NetworkError', 'Network request failed', 'Error de conexión'];
+        const isNetworkError = networkErrors.some(err => savedError.includes(err));
+        
+        if (isNetworkError) {
+          // Los errores de red antiguos no son relevantes, limpiarlos
+          console.log('📦 LoginForm: Error de red antiguo detectado, limpiando sessionStorage');
+          sessionStorage.removeItem('loginError');
+          return '';
+        }
+        
+        console.log('📦 LoginForm: Error recuperado de sessionStorage al montar:', savedError);
+        return savedError;
+      }
+    } catch (e) {
+      console.warn('⚠️ LoginForm: Error accediendo a sessionStorage:', e);
+    }
+    return '';
+  });
+
+  // Log de montaje/desmontaje del componente y limpiar errores antiguos
+  useEffect(() => {
+    console.log('🔵 LoginForm: Componente MONTADO, loginError inicial:', loginError);
+    
+    // Limpiar errores de red antiguos al montar el componente
+    try {
+      const savedError = sessionStorage.getItem('loginError');
+      if (savedError) {
+        const networkErrors = ['Failed to fetch', 'NetworkError', 'Network request failed'];
+        const isNetworkError = networkErrors.some(err => savedError.includes(err));
+        
+        if (isNetworkError) {
+          console.log('🧹 LoginForm: Limpiando error de red antiguo de sessionStorage');
+          sessionStorage.removeItem('loginError');
+          // Si el estado local también tiene este error, limpiarlo
+          if (loginError === savedError) {
+            setLoginError('');
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ LoginForm: Error accediendo a sessionStorage en useEffect:', e);
+    }
+    
+    return () => {
+      console.log('🔴 LoginForm: Componente DESMONTADO, loginError actual:', loginError);
+    };
+  }, []);
+
+  // Guardar error en sessionStorage cuando el componente se desmonta
+  useEffect(() => {
+    return () => {
+      // Este cleanup se ejecuta cuando el componente se desmonta o cuando loginError cambia
+      if (loginError && loginError.trim().length > 0) {
+        sessionStorage.setItem('loginError', loginError);
+        console.log('💾 LoginForm: Error guardado en sessionStorage al desmontar:', loginError);
+      }
+    };
+  }, [loginError]);
+
+  // Sincronizar loginError con sessionStorage cuando cambia
+  useEffect(() => {
+    if (loginError && loginError.trim().length > 0) {
+      // No guardar errores de red en sessionStorage (no son relevantes para el usuario)
+      const networkErrors = ['Failed to fetch', 'NetworkError', 'Network request failed'];
+      const isNetworkError = networkErrors.some(err => loginError.includes(err));
+      
+      if (isNetworkError) {
+        console.log('⚠️ LoginForm: Error de red detectado, no guardando en sessionStorage');
+        sessionStorage.removeItem('loginError');
+      } else {
+        sessionStorage.setItem('loginError', loginError);
+        console.log('💾 LoginForm: Error guardado en sessionStorage:', loginError);
+      }
+    } else {
+      sessionStorage.removeItem('loginError');
+    }
+  }, [loginError]);
+
+  // Debug: Log cuando cambia loginError
+  useEffect(() => {
+    console.log('🔄 LoginForm: useEffect de loginError ejecutado. LoginError =', loginError);
+    if (loginError && loginError.trim().length > 0) {
+      console.log('🔴 LoginForm: LoginError actualizado:', loginError);
+      setTimeout(() => {
+        const errorElement = document.querySelector('[data-error-message]');
+        console.log('🔴 LoginForm: Error element encontrado:', !!errorElement);
+        if (errorElement) {
+          console.log('✅ LoginForm: Elemento encontrado, haciendo scroll');
+          errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          console.error('❌ LoginForm: No se encontró el elemento de error');
+        }
+      }, 200);
+    }
+  }, [loginError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setLoginError(''); // Limpiar error previo
 
     if (!formData.email || !formData.password) {
-      setError('Todos los campos son requeridos');
+      setLoginError('Todos los campos son requeridos');
       return;
     }
 
-    const result = await login(formData.email, formData.password);
-    
-    if (result.success) {
-      onSuccess?.();
-    } else {
-      setError(result.error || 'Error de autenticación');
+    try {
+      const result = await login(formData.email, formData.password);
+      
+      console.log('📋 LoginForm: Resultado del login:', { success: result.success, error: result.error });
+      
+      if (result.success) {
+        // Limpiar cualquier error previo antes de éxito
+        setLoginError('');
+        sessionStorage.removeItem('loginError');
+        onSuccess?.();
+      } else {
+        // Mostrar el mensaje de error específico que viene de la API
+        const errorMessage = result.error || 'Error al iniciar sesión. Por favor, verifica tus credenciales.';
+        console.log('❌ LoginForm: Estableciendo loginError:', errorMessage);
+        
+        // CRÍTICO: Guardar en sessionStorage INMEDIATAMENTE antes de setState
+        // porque el componente se desmonta antes de que el useEffect se ejecute
+        sessionStorage.setItem('loginError', errorMessage);
+        console.log('💾 LoginForm: Error guardado en sessionStorage INMEDIATAMENTE:', errorMessage);
+        
+        setLoginError(errorMessage);
+        console.log('❌ LoginForm: setLoginError llamado');
+      }
+    } catch (err: any) {
+      // Capturar cualquier error inesperado
+      const errorMessage = err?.message || 'Error inesperado al iniciar sesión. Por favor, intenta nuevamente.';
+      console.log('❌ LoginForm: Error capturado en catch:', errorMessage);
+      
+      // CRÍTICO: Guardar en sessionStorage INMEDIATAMENTE
+      sessionStorage.setItem('loginError', errorMessage);
+      console.log('💾 LoginForm: Error guardado en sessionStorage (catch):', errorMessage);
+      
+      setLoginError(errorMessage);
     }
   };
 
@@ -47,8 +190,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
+    <>
+      <style>{errorStyles}</style>
+      <div className="w-full max-w-md mx-auto">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             ¡Bienvenido de vuelta!
@@ -59,51 +204,71 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className={`border-l-4 px-4 py-3 rounded-lg shadow-sm ${
-              error.includes('conexión') || error.includes('servidor') 
+          {/* Mensaje de error - usar loginError que persiste entre re-renders */}
+          {(() => {
+            console.log('🖼️ LoginForm RENDER: loginError =', loginError, 'length =', loginError?.length);
+            return loginError && loginError.trim().length > 0;
+          })() ? (
+            <div 
+              data-error-message
+              className={`border-l-4 px-4 py-3 rounded-lg shadow-md mb-4 ${
+              loginError.includes('conexión') || loginError.includes('servidor') 
                 ? 'bg-yellow-50 border-yellow-500 text-yellow-800'
-                : error.includes('deshabilitada') || error.includes('prohibido')
+                : loginError.includes('deshabilitada') || loginError.includes('prohibido')
                 ? 'bg-orange-50 border-orange-500 text-orange-800'
                 : 'bg-red-50 border-red-500 text-red-700'
-            }`}>
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  {error.includes('conexión') || error.includes('servidor') ? (
-                    <svg className="h-5 w-5 text-yellow-600 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  ) : error.includes('deshabilitada') || error.includes('prohibido') ? (
-                    <svg className="h-5 w-5 text-orange-600 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
-                    </svg>
+            }`}
+            role="alert"
+            aria-live="assertive"
+            style={{
+              display: 'block',
+              opacity: 1,
+              visibility: 'visible',
+              minHeight: '50px',
+              zIndex: 1000,
+              position: 'relative'
+            }}>
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 mt-0.5">
+                  {loginError.includes('conexión') || loginError.includes('servidor') ? (
+                    <AlertCircle className="h-5 w-5 text-yellow-600" />
+                  ) : loginError.includes('deshabilitada') || loginError.includes('prohibido') ? (
+                    <AlertCircle className="h-5 w-5 text-orange-600" />
                   ) : (
-                    <svg className="h-5 w-5 text-red-400 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
+                    <AlertCircle className="h-5 w-5 text-red-500" />
                   )}
                 </div>
                 <div className="ml-3 flex-1">
-                  <p className="text-sm font-medium">{error}</p>
-                  {(error.includes('email no ha sido confirmado') || error.includes('deshabilitada')) && (
+                  <p className="text-sm font-semibold leading-relaxed">{loginError}</p>
+                  {(loginError.includes('email no ha sido confirmado') || loginError.includes('deshabilitada')) && (
                     <p className="mt-2 text-xs opacity-80">
                       Si necesitas ayuda, contacta al administrador.
                     </p>
                   )}
-                  {error.includes('conexión') && (
+                  {loginError.includes('conexión') && (
                     <p className="mt-2 text-xs opacity-80">
                       Verifica tu conexión a internet y vuelve a intentar.
                     </p>
                   )}
-                  {error.includes('Demasiados intentos') && (
+                  {loginError.includes('Demasiados intentos') && (
                     <p className="mt-2 text-xs opacity-80">
                       Por seguridad, espera unos minutos antes de volver a intentar.
+                    </p>
+                  )}
+                  {(loginError.includes('incorrectos') || loginError.includes('no existe') || loginError.includes('contraseña') || loginError.includes('credenciales')) && (
+                    <p className="mt-2 text-xs opacity-80">
+                      Verifica que el email y la contraseña sean correctos. Si olvidaste tu contraseña o necesitas ayuda, contacta al administrador.
+                    </p>
+                  )}
+                  {loginError.includes('formato del email') && (
+                    <p className="mt-2 text-xs opacity-80">
+                      El email debe tener un formato válido, por ejemplo: usuario@ejemplo.com
                     </p>
                   )}
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -192,6 +357,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
         </div>
       </div>
     </div>
+    </>
   );
 };
 

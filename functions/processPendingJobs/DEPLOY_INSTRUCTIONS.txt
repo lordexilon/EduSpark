@@ -1,0 +1,49 @@
+INSTRUCCIONES DE DESPLIEGUE - processPendingJobs
+================================================
+
+Esta función permite procesar jobs pendientes manualmente.
+
+DESPLIEGUE CON FIREBASE CLI:
+----------------------------
+cd functions/processPendingJobs
+firebase deploy --only functions:processPendingJobs
+
+O desde la raíz del proyecto:
+firebase deploy --only functions:processPendingJobs
+
+USO:
+----
+Una vez desplegada, puedes invocar la función:
+
+1. Desde la consola de Google Cloud:
+   - Ir a Cloud Functions
+   - Seleccionar processPendingJobs
+   - Hacer clic en "Probar función"
+
+2. Desde línea de comandos:
+   curl -X POST https://[REGION]-[PROJECT-ID].cloudfunctions.net/processPendingJobs
+
+3. Desde el código:
+   fetch('https://[REGION]-[PROJECT-ID].cloudfunctions.net/processPendingJobs', {
+     method: 'POST'
+   })
+
+CONFIGURAR CLOUD SCHEDULER (RECOMENDADO):
+-----------------------------------------
+Para procesar jobs pendientes automáticamente cada 2 minutos:
+
+gcloud scheduler jobs create http rag-worker-scheduler \
+  --location=us-central1 \
+  --schedule="*/2 * * * *" \
+  --uri="https://rag-worker-mcc5aevj6a-uc.a.run.app" \
+  --http-method=POST \
+  --time-zone="America/Montevideo" \
+  --description="Procesa jobs pendientes de RAG cada 2 minutos" \
+  --headers="Content-Type=application/json"
+
+NOTAS:
+------
+- La función es pública (invoker: 'public') para facilitar el diagnóstico
+- El timeout es de 540 segundos (9 minutos)
+- Solo se permite 1 instancia simultánea para evitar procesamiento duplicado
+

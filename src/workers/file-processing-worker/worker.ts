@@ -20,8 +20,25 @@ async function processSplitJob(job: FileProcessingJob): Promise<void> {
   console.log(`[Split] Procesando trabajo ${job.id} para archivo ${job.sourceFileName}`);
 
   try {
-    // Descargar primeras páginas para análisis
-    const fileBuffer = await downloadFile(job.sourceFileId);
+    // Determinar fuente del archivo
+    const source = job.metadata?.source || 'bucket';
+    const userId = job.metadata?.userId;
+    const driveFileId = job.metadata?.driveFileId;
+
+    console.log(`[Split] Fuente del archivo: ${source}`);
+
+    // Descargar archivo para análisis
+    let fileBuffer: Buffer;
+
+    if (source === 'google_drive' && driveFileId && userId) {
+      console.log(`[Split] Descargando desde Google Drive: ${driveFileId}`);
+      fileBuffer = await downloadFile(driveFileId, 'google_drive', userId);
+    } else if (job.sourceFileId) {
+      console.log(`[Split] Descargando desde Supabase Storage: ${job.sourceFileId}`);
+      fileBuffer = await downloadFile(job.sourceFileId, 'bucket');
+    } else {
+      throw new Error('No se pudo determinar la fuente del archivo');
+    }
 
     // Detectar tipo y contar páginas
     const pdfType = await detectPdfType(fileBuffer);
@@ -96,13 +113,26 @@ async function processChunkJob(job: FileProcessingJob): Promise<void> {
       status: 'processing',
     });
 
-    // Descargar archivo (o rango si es muy grande)
-    const fileMetadata = await getFileMetadata(job.sourceFileId);
+    // Determinar fuente del archivo (bucket o Google Drive)
+    const source = job.metadata?.source || 'bucket';
+    const userId = job.metadata?.userId;
+    const driveFileId = job.metadata?.driveFileId;
+
+    console.log(`[Chunk] Fuente del archivo: ${source}`);
+
+    // Descargar archivo desde la fuente correcta
     let fileBuffer: Buffer;
 
-    // Para archivos grandes (>100MB), considerar descargar solo el rango necesario
-    // Por ahora, descargamos el archivo completo
-    fileBuffer = await downloadFile(job.sourceFileId);
+    if (source === 'google_drive' && driveFileId && userId) {
+      console.log(`[Chunk] Descargando desde Google Drive: ${driveFileId}`);
+      fileBuffer = await downloadFile(driveFileId, 'google_drive', userId);
+    } else if (job.sourceFileId) {
+      // Supabase Storage (bucketPath en sourceFileId)
+      console.log(`[Chunk] Descargando desde Supabase Storage: ${job.sourceFileId}`);
+      fileBuffer = await downloadFile(job.sourceFileId, 'bucket');
+    } else {
+      throw new Error('No se pudo determinar la fuente del archivo');
+    }
 
     // Extraer texto del rango de páginas
     const pdfType = job.pdfType || 'unknown';

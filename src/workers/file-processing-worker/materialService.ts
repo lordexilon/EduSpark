@@ -8,11 +8,14 @@ let supabaseClient: ReturnType<typeof createClient> | null = null;
 /**
  * Inicializa cliente de Supabase
  */
+/**
+ * Inicializa cliente de Supabase
+ */
 function initializeSupabase() {
   if (supabaseClient) return supabaseClient;
 
-  const url = process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceKey) {
     throw new Error('SUPABASE_URL y SUPABASE_SERVICE_KEY deben estar configurados');
@@ -62,16 +65,47 @@ export async function updateMaterialRagStatus(
 ): Promise<void> {
   const supabase = initializeSupabase();
 
-  const updateData: Record<string, any> = {
+  // Primero obtener metadata actual para no perder datos
+  let currentMetadata = {};
+  if (errorMessage) {
+    const { data } = await supabase
+      .from('materials')
+      .select('metadata')
+      .eq('id', materialId)
+      .single();
+    currentMetadata = data?.metadata || {};
+  }
+
+  const updateData: any = {
     rag_status: status,
   };
 
   if (errorMessage) {
-    updateData.metadata = { errorMessage };
+    updateData.metadata = {
+      ...currentMetadata,
+      processingError: errorMessage,
+      lastProcessingAttempt: new Date().toISOString()
+    };
+  } else if (status === 'completed') {
+    // Si se completó, limpiar errores previos
+    const { data } = await supabase
+      .from('materials')
+      .select('metadata')
+      .eq('id', materialId)
+      .single();
+
+    const meta = data?.metadata || {};
+    delete meta.processingError;
+
+    updateData.metadata = {
+      ...meta,
+      lastProcessedAt: new Date().toISOString(),
+      ragProcessed: true
+    };
   }
 
-  const { error } = await (supabase
-    .from('materials') as any)
+  const { error } = await supabase
+    .from('materials')
     .update(updateData)
     .eq('id', materialId);
 

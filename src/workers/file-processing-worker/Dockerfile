@@ -1,27 +1,33 @@
+# Usar una imagen base de Node.js
 FROM node:20-slim
 
-WORKDIR /app
-
-# Instalar dependencias del sistema para PDF
+# Instalar dependencias del sistema necesarias para pdf-lib y canvas
 RUN apt-get update && apt-get install -y \
-    poppler-utils \
+    python3 \
+    make \
+    g++ \
+    build-essential \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libgif-dev \
+    librsvg2-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar archivos de dependencias
+# Establecer directorio de trabajo
+WORKDIR /app
+
+# Copiar package.json
 COPY package*.json ./
 
-# Instalar dependencias
-RUN npm ci --only=production
+# Instalar todas las dependencias (incluyendo ts-node)
+RUN npm ci && npm install -g ts-node typescript
 
-# Copiar código fuente
+# Copiar el código fuente del worker
 COPY . .
 
-# Compilar TypeScript
-RUN npm run build
-
-# Exponer puerto (si es necesario para health checks)
+# Exponer el puerto 8080 (requerido por Cloud Run)
 EXPOSE 8080
 
-# Comando de inicio
-CMD ["node", "index.js"]
-
+# Comando para iniciar el worker con ts-node (ejecutar TypeScript directamente)
+CMD ["node_modules/.bin/ts-node", "index.ts"]

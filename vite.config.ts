@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       react(),
-      // handleCacheErrors(), // Maneja errores EPERM en Windows
+      handleCacheErrors(), // Maneja errores EPERM en Windows
     ],
     resolve: {
       alias: {
@@ -38,44 +38,45 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(
-        env.GEMINI_API_KEY
+        process.env.VITE_GEMINI_API_KEY
         || env.VITE_GEMINI_API_KEY
-        || process.env?.VITE_GEMINI_API_KEY
-        || process.env?.GEMINI_API_KEY
-        || ''
-      ),
-      'process.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL || process.env?.VITE_SUPABASE_URL || 'https://mckfscukxcqwntpjagar.supabase.co'),
-      'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY || process.env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZzY3VreGNxd250cGphZ2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3NDU0MzQsImV4cCI6MjA3NjMyMTQzNH0.4j8Pf2_xZRitw-MkrNKC0MqrzTHRYtnQmrSquTO5zu8'),
-      'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(
-        env.VITE_GEMINI_API_KEY
         || env.GEMINI_API_KEY
-        || process.env?.VITE_GEMINI_API_KEY
-        || process.env?.GEMINI_API_KEY
+        || process.env.GEMINI_API_KEY
         || ''
       ),
-      'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL || process.env?.VITE_SUPABASE_URL || 'https://mckfscukxcqwntpjagar.supabase.co'),
-      'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY || process.env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZzY3VreGNxd250cGphZ2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3NDU0MzQsImV4cCI6MjA3NjMyMTQzNH0.4j8Pf2_xZRitw-MkrNKC0MqrzTHRYtnQmrSquTO5zu8'),
+      'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(
+        process.env.VITE_GEMINI_API_KEY
+        || env.VITE_GEMINI_API_KEY
+        || env.GEMINI_API_KEY
+        || process.env.GEMINI_API_KEY
+        || ''
+      ),
     },
     // Configuración de build para evitar problemas de caché
     build: {
       rollupOptions: {
         output: {
           manualChunks: {
-            vendor: ['react', 'react-dom'],
-            router: ['react-router-dom'],
-            supabase: ['@supabase/supabase-js']
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            'supabase': ['@supabase/supabase-js'],
+            'tiptap': ['@tiptap/react', '@tiptap/starter-kit'],
+            'icons': ['lucide-react']
           }
         }
-      }
+      },
+      // Aumentar límite de advertencia de chunk
+      chunkSizeWarningLimit: 1000
     },
     // Configuración de caché
     cacheDir: '.vite-temp',
     optimizeDeps: {
       force: false,
-      // Evitar problemas con directorios temporales en Windows
       holdUntilCrawlEnd: false,
-      // Incluir dependencias de Tiptap para optimización
       include: [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        '@supabase/supabase-js',
         '@tiptap/react',
         '@tiptap/starter-kit',
         '@tiptap/extension-image',
@@ -84,10 +85,11 @@ export default defineConfig(({ mode }) => {
         '@tiptap/extension-color',
         '@tiptap/extension-text-align',
         '@tiptap/extension-underline',
+        'lucide-react'
       ],
-      // Retrasar la eliminación de archivos temporales
+      exclude: ['@tailwindcss/*'],
       esbuildOptions: {
-        // Configuración adicional de esbuild si es necesario
+        target: 'es2020'
       }
     },
     // Manejar errores de permisos en Windows de manera más silenciosa

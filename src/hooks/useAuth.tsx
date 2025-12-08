@@ -20,6 +20,8 @@ interface AuthContextType {
   }) => Promise<{ success: boolean; error?: string }>;
   refreshUser: () => Promise<void>;
   updateUser: (userData: User) => void;
+  menuFeatures: import('../services/menuFeatureService').MenuFeature[];
+  refreshMenuFeatures: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -139,6 +141,7 @@ const isCacheValid = (): boolean => {
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [menuFeatures, setMenuFeatures] = useState<import('../services/menuFeatureService').MenuFeature[]>([]);
   const [loading, setLoading] = useState(true);
   const initCompleteRef = React.useRef(false);
   const pendingSessionRef = React.useRef<any>(null);
@@ -146,9 +149,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const isAuthenticated = !!user;
 
+  const refreshMenuFeatures = async () => {
+    const { fetchMenuFeatures } = await import('../services/menuFeatureService');
+    const features = await fetchMenuFeatures();
+    setMenuFeatures(features);
+  };
+
   // Mantener ref sincronizado con el estado
   React.useEffect(() => {
     userRef.current = user;
+    if (user) {
+      refreshMenuFeatures();
+    } else {
+      setMenuFeatures([]);
+    }
   }, [user]);
 
   // Función para validar y actualizar usuario desde BD
@@ -925,19 +939,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     <AuthContext.Provider value={{
       user,
       loading,
-      updateUser,
       isAuthenticated,
       login,
       logout,
       register,
-      refreshUser
+      refreshUser,
+      updateUser,
+      menuFeatures,
+      refreshMenuFeatures
     }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');

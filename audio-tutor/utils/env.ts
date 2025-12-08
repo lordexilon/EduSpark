@@ -1,7 +1,7 @@
 const PLACEHOLDER_VALUES = new Set(['', 'PLACEHOLDER_API_KEY', 'undefined', 'null']);
 
 const FALLBACKS = ['VITE_GEMINI_API_KEY', 'GEMINI_API_KEY', 'API_KEY'] as const;
-const HARDCODED_KEY = 'AIzaSyDmbEdVTtQSaYInAsuCbplkSs_PFZSo2sc';
+const HARDCODED_KEY = 'AIzaSyCE-K_2cpz-BCu_Wan0uC7xvBb7OJJXGRc';
 
 type EnvRecord = Record<string, string | undefined> | undefined;
 
@@ -41,7 +41,7 @@ const pickFirstValid = (...values: Array<string | null | undefined>): string | n
       return sanitized;
     }
   }
-  
+
   // Fallback final: API key hardcodeada para desarrollo
   return HARDCODED_KEY;
 };

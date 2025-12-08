@@ -15,6 +15,11 @@ interface DocumentViewerProps {
     allow_download?: boolean;
     allow_view?: boolean;
     allow_print?: boolean;
+    metadata?: {
+      isReadOnly?: boolean;
+      viewLink?: string;
+      [key: string]: any;
+    };
   };
   isOpen: boolean;
   onClose: () => void;
@@ -96,12 +101,18 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
       if (url.includes('/file/d/')) {
         const fileId = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)?.[1];
         if (fileId) {
+          // Detectar si es material de solo lectura para aplicar restricciones máximas
+          const isReadOnlyMaterial = material.metadata?.isReadOnly || !!material.metadata?.viewLink;
           // Usar el visor embebido con parámetros que restringen descarga e impresión
           // rm=minimal: oculta opciones de menú
           // rm=embedded: modo embebido con menos opciones
           // chrome=false: oculta la barra de Chrome
-          const embedUrl = `https://drive.google.com/file/d/${fileId}/preview?rm=minimal&chrome=false`;
-          console.log('🔄 URL de Google Drive convertida a preview con restricciones:', embedUrl);
+          // Para materiales de solo lectura, usar parámetros más restrictivos
+          const restrictParams = isReadOnlyMaterial 
+            ? 'rm=minimal&rm=embedded&chrome=false&usp=sharing'
+            : 'rm=minimal&chrome=false';
+          const embedUrl = `https://drive.google.com/file/d/${fileId}/preview?${restrictParams}`;
+          console.log(`🔄 URL de Google Drive convertida a preview con restricciones${isReadOnlyMaterial ? ' (SOLO LECTURA)' : ''}:`, embedUrl);
           return embedUrl;
         }
       }
@@ -467,22 +478,34 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
       // Bloquear Ctrl+P y Cmd+P (impresión)
       const handleKeyDown = (e: KeyboardEvent) => {
         // Bloquear impresión
-        if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
           e.preventDefault();
           e.stopPropagation();
+          alert('🔒 La impresión de este documento no está permitida.');
           return false;
         }
         // Bloquear Ctrl+S (guardar/descargar)
-        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
           e.preventDefault();
           e.stopPropagation();
+          alert('🔒 La descarga de este documento no está permitida.');
           return false;
         }
         // Bloquear Ctrl+Shift+S (guardar como)
-        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'S') {
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'S' || e.key === 's')) {
           e.preventDefault();
           e.stopPropagation();
+          alert('🔒 La descarga de este documento no está permitida.');
           return false;
+        }
+        // Bloquear Ctrl+A (seleccionar todo - puede usarse para copiar)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+          if (isReadOnly) {
+            e.preventDefault();
+            e.stopPropagation();
+            alert('🔒 La selección completa no está permitida en documentos de solo lectura.');
+            return false;
+          }
         }
         // Bloquear F12 (herramientas de desarrollador)
         if (e.key === 'F12') {
@@ -609,7 +632,9 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   if (!isOpen) return null;
 
   const canView = material.allow_view !== false;
-  // BLOQUEAR descarga e impresión por defecto para seguridad
+  // Detectar si es material de solo lectura
+  const isReadOnly = material.metadata?.isReadOnly || !!material.metadata?.viewLink;
+  // BLOQUEAR descarga e impresión por defecto para seguridad (especialmente para materiales de solo lectura)
   const canDownload = false; // Siempre bloqueado
   const canPrint = false; // Siempre bloqueado
 
@@ -776,8 +801,22 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
             <div className="absolute inset-0 bg-white flex items-center justify-center z-10 overflow-y-auto">
               <div className="text-center p-6 max-w-2xl">
                 <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                <p className="text-gray-700 mb-2 font-medium">Error al cargar el documento</p>
+                <p className="text-gray-700 mb-2 font-medium">
+                  {error.includes('bloqueado') || error.includes('extensión') 
+                    ? 'Documento bloqueado por extensión del navegador' 
+                    : 'Error al cargar el documento'}
+                </p>
                 <p className="text-sm text-gray-600 mb-4">{error}</p>
+                {(error.includes('bloqueado') || error.includes('extensión')) && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 text-left">
+                    <p className="text-sm font-semibold text-yellow-800 mb-2">💡 Solución:</p>
+                    <ol className="text-xs text-yellow-700 space-y-1 list-decimal list-inside">
+                      <li>Haz clic en el icono de la extensión (Comet, uBlock Origin, etc.) en la barra del navegador</li>
+                      <li>Desactívala temporalmente para este sitio</li>
+                      <li>O haz clic en "Abrir en nueva ventana" para ver el documento</li>
+                    </ol>
+                  </div>
+                )}
                 
                 {/* Panel de debug */}
                 <div className="bg-gray-50 rounded-lg p-4 mb-4 text-left">
@@ -821,10 +860,14 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   >
                     Reintentar ({viewMode})
                   </button>
-                  {material.url && (
+                  {(material.url || localUrl) && (
                     <button
                       onClick={() => {
-                        window.open(material.url, '_blank', 'noopener,noreferrer');
+                        // Usar la URL actual que se está intentando mostrar
+                        const urlToOpen = localUrl || getProcessedUrl(material.url || '') || material.url;
+                        if (urlToOpen) {
+                          window.open(urlToOpen, '_blank', 'noopener,noreferrer');
+                        }
                       }}
                       className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                     >
@@ -900,22 +943,58 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
                         setLoading(false);
                         setError(null);
                         
-                        // Detectar si Edge está bloqueando el contenido
+                        // Detectar si extensiones (Comet, uBlock, etc.) o el navegador está bloqueando el contenido
                         setTimeout(() => {
                           try {
                             const iframe = document.querySelector(`iframe[title="${material.title}"]`) as HTMLIFrameElement;
                             if (iframe) {
                               const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-                              if (!iframeDoc || iframeDoc.body?.textContent?.includes('bloqueó') || 
-                                  iframeDoc.body?.textContent?.includes('blocked')) {
-                                console.warn('⚠️ Edge puede estar bloqueando el contenido, intentando fallback');
-                                // Cambiar a método alternativo
-                                setViewMode('embed');
+                              if (!iframeDoc || 
+                                  iframeDoc.body?.textContent?.includes('bloqueó') || 
+                                  iframeDoc.body?.textContent?.includes('blocked') ||
+                                  iframeDoc.body?.textContent?.includes('Comet') ||
+                                  iframeDoc.body?.innerHTML?.includes('bloqueado')) {
+                                console.warn('⚠️ Extensión o navegador puede estar bloqueando el contenido del PDF');
+                                // Intentar descargar el PDF como blob para mostrar alternativamente
+                                if (displayUrl && !displayUrl.startsWith('blob:')) {
+                                  console.log('🔄 Intentando descargar PDF como blob para evitar bloqueo de extensiones...');
+                                  downloadWithProgress(displayUrl).then(blobUrl => {
+                                    if (blobUrl) {
+                                      setLocalUrl(blobUrl);
+                                      console.log('✅ PDF descargado como blob, mostrando alternativamente');
+                                    }
+                                  }).catch(err => {
+                                    console.error('❌ Error descargando PDF como blob:', err);
+                                    setError('El documento está siendo bloqueado por una extensión del navegador (Comet, uBlock, etc.). Por favor, desactiva la extensión temporalmente o abre el documento en una nueva pestaña.');
+                                  });
+                                }
                               }
+                            } else {
+                              // Si no podemos acceder al iframe después de 2 segundos, puede estar bloqueado
+                              console.warn('⚠️ No se puede acceder al contenido del iframe, posible bloqueo de extensión');
                             }
                           } catch (e) {
-                            // Cross-origin es normal, no hacer nada
-                            console.debug('🔒 Cross-origin normal para blob URL');
+                            // Cross-origin es normal, pero si persiste mucho tiempo puede ser bloqueo
+                            console.debug('🔒 Cross-origin restricción activa (normal y esperado para seguridad)');
+                            
+                            // Detectar si el iframe está completamente vacío después de 3 segundos (indicador de bloqueo)
+                            setTimeout(() => {
+                              const iframe = document.querySelector(`iframe[title="${material.title}"]`) as HTMLIFrameElement;
+                              if (iframe && iframe.contentWindow) {
+                                try {
+                                  // Si no podemos acceder y no hay errores visibles, puede ser bloqueo silencioso
+                                  const rect = iframe.getBoundingClientRect();
+                                  if (rect.height > 0 && rect.width > 0) {
+                                    // El iframe tiene tamaño pero no podemos acceder al contenido
+                                    // Esto puede indicar un bloqueo silencioso de extensiones
+                                    console.warn('⚠️ Posible bloqueo silencioso detectado. Mostrando mensaje de ayuda.');
+                                    // No establecer error inmediatamente, solo loguear
+                                  }
+                                } catch (innerErr) {
+                                  // Ignorar errores de acceso
+                                }
+                              }
+                            }, 1000);
                           }
                         }, 2000);
                         // Intentar bloquear interacciones en el iframe
@@ -1038,7 +1117,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
                       setError(null);
                       
                       // Para Supabase Storage o blob URLs, verificar si realmente se cargó el PDF
-                      if (displayUrl.includes('supabase.co/storage') || displayUrl.startsWith('blob:')) {
+                      if (displayUrl.includes('supabase.co/storage') || displayUrl.startsWith('blob:') || displayUrl.includes('servepdfreadonly')) {
                         setTimeout(() => {
                           try {
                             const iframe = iframeRef.current;
@@ -1047,21 +1126,55 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
                               const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
                               if (iframeDoc) {
                                 const body = iframeDoc.body;
-                                // Si el body está vacío o tiene un error, cambiar a Google Viewer
-                                if (!body || body.innerHTML.trim() === '' || body.innerHTML.includes('Error') || body.innerHTML.includes('404')) {
-                                  console.warn('⚠️ PDF de Supabase no se cargó en iframe, cambiando a Google Viewer');
-                                  setViewMode('google-viewer');
-                                  setLoading(true);
+                                // Detectar bloqueos de extensiones (Comet, uBlock, etc.)
+                                const bodyText = body?.textContent || body?.innerText || '';
+                                const bodyHTML = body?.innerHTML || '';
+                                
+                                if (!body || 
+                                    body.innerHTML.trim() === '' || 
+                                    bodyHTML.includes('Error') || 
+                                    bodyHTML.includes('404') ||
+                                    bodyText.includes('bloqueó') ||
+                                    bodyText.includes('blocked') ||
+                                    bodyText.includes('Comet') ||
+                                    bodyHTML.includes('bloqueado') ||
+                                    bodyHTML.includes('extension')) {
+                                  console.warn('⚠️ PDF bloqueado o no se cargó correctamente, posible extensión bloqueadora');
+                                  setError('El documento está siendo bloqueado por una extensión del navegador (Comet, uBlock Origin, etc.). Por favor, desactiva la extensión temporalmente para este sitio, o haz clic en "Abrir en nueva ventana" para ver el documento.');
+                                }
+                              } else {
+                                // Si no podemos acceder al documento, puede ser bloqueo silencioso
+                                // Intentar descargar como blob como alternativa
+                                if (displayUrl && !displayUrl.startsWith('blob:') && displayUrl.includes('servepdfreadonly')) {
+                                  console.log('🔄 Intentando descargar PDF como blob para evitar bloqueo...');
+                                  downloadWithProgress(displayUrl).then(blobUrl => {
+                                    if (blobUrl) {
+                                      setLocalUrl(blobUrl);
+                                      console.log('✅ PDF descargado como blob, mostrando alternativamente');
+                                    }
+                                  }).catch(err => {
+                                    console.error('❌ Error descargando PDF:', err);
+                                  });
                                 }
                               }
                             }
                           } catch (e) {
                             // Cross-origin error es esperado y normal - el PDF debería estar cargándose
                             // Usar console.debug para que solo aparezca si el usuario tiene la consola en modo debug
-                            console.debug('🔒 Cross-origin restricción (normal) - PDF debería estar cargándose correctamente');
+                            console.debug('🔒 Cross-origin restricción activa (normal y esperado para seguridad)');
                             
-                            // No cambiar automáticamente a Google Viewer - el PDF debería estar visible
-                            // Si el usuario reporta que no ve nada, se puede cambiar manualmente
+                            // Verificar después de más tiempo si el iframe sigue sin mostrar contenido
+                            setTimeout(() => {
+                              const iframe = iframeRef.current;
+                              if (iframe) {
+                                const rect = iframe.getBoundingClientRect();
+                                // Si el iframe tiene tamaño pero no podemos acceder, puede ser bloqueo
+                                // Mostrar mensaje de ayuda
+                                if (rect.width > 0 && rect.height > 0) {
+                                  console.warn('⚠️ Iframe tiene tamaño pero contenido no accesible - posible bloqueo de extensión');
+                                }
+                              }
+                            }, 3000);
                           }
                         }, 2000);
                       }
@@ -1290,10 +1403,12 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
         </div>
 
         {/* Footer con advertencia de seguridad */}
-        <div className="flex-shrink-0 bg-yellow-50 border-t border-yellow-200 px-6 py-3">
-          <p className="text-sm text-yellow-800 flex items-center gap-2">
+        <div className={`flex-shrink-0 border-t px-6 py-3 ${isReadOnly ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'}`}>
+          <p className={`text-sm flex items-center gap-2 ${isReadOnly ? 'text-red-800' : 'text-yellow-800'}`}>
             <Printer className="w-4 h-4" />
-            La descarga e impresión de este documento están deshabilitadas por seguridad.
+            {isReadOnly 
+              ? '🔒 Documento de solo lectura: La descarga e impresión están completamente deshabilitadas.'
+              : 'La descarga e impresión de este documento están deshabilitadas por seguridad.'}
           </p>
         </div>
       </div>

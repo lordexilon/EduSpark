@@ -32,7 +32,12 @@ const AnnouncementsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [readAnnouncements, setReadAnnouncements] = useState<Set<string>>(new Set());
 
-  const isTeacher = user?.role?.name === 'teacher' || user?.role?.name === 'admin' || user?.role?.name === 'coordinator';
+  // Definir roles que pueden acceder a rutas de teacher
+  const isTeacher = user?.role?.name === 'teacher' || 
+                    user?.role?.name === 'admin' || 
+                    user?.role?.name === 'admin-campus' ||
+                    user?.role?.name === 'coordinator' ||
+                    user?.role?.name === 'supervisor';
   const isTeacherRoute = location.pathname.startsWith('/teacher/announcements');
 
   // Redirigir estudiantes que intentan acceder a ruta de teacher
@@ -41,7 +46,13 @@ const AnnouncementsPage: React.FC = () => {
       navigate('/announcements', { replace: true });
       return;
     }
-  }, [user, isTeacher, isTeacherRoute, navigate]);
+    
+    // Redirigir teachers/admin/etc que intentan acceder a ruta de estudiante
+    if (user && isTeacher && !isTeacherRoute && location.pathname === '/announcements') {
+      navigate('/teacher/announcements', { replace: true });
+      return;
+    }
+  }, [user, isTeacher, isTeacherRoute, navigate, location.pathname]);
 
   useEffect(() => {
     if (user?.id) {

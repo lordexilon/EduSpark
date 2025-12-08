@@ -58,12 +58,12 @@ const InstitutionManagementPage: React.FC = () => {
   const [searching, setSearching] = useState(false);
   const [assigningUser, setAssigningUser] = useState<string | null>(null);
   const [positionInput, setPositionInput] = useState<Record<string, string>>({});
-  
+
   // Estados para gestión de estudiantes
   const [institutionStudents, setInstitutionStudents] = useState<Student[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [showStudentsTab, setShowStudentsTab] = useState(false);
-  
+
   // Estados para gestión de recursos
   const [showResourcesModal, setShowResourcesModal] = useState(false);
   const [selectedInstitutionForResources, setSelectedInstitutionForResources] = useState<Institution | null>(null);
@@ -81,8 +81,8 @@ const InstitutionManagementPage: React.FC = () => {
     try {
       setLoading(true);
 
-      // Si es admin-campus o coordinator, solo cargar su institución
-      if (user?.role?.name === 'admin-campus' || user?.role?.name === 'coordinator') {
+      // Si es admin-campus, coordinator o supervisor, solo cargar su institución
+      if (user?.role?.name === 'admin-campus' || user?.role?.name === 'coordinator' || user?.role?.name === 'supervisor') {
         if (user?.id) {
           const userInstitution = await institutionService.getUserInstitution(user.id);
           if (userInstitution) {
@@ -159,15 +159,25 @@ const InstitutionManagementPage: React.FC = () => {
 
   const handleCreateOrUpdate = async () => {
     try {
-      // Prevenir que admin-campus o coordinator creen nuevas instituciones
-      if (!selectedInstitution && (user?.role?.name === 'admin-campus' || user?.role?.name === 'coordinator')) {
+      // Prevenir que coordinator o supervisor creen nuevas instituciones
+      // Admin-campus puede editar su institución pero no crear nuevas
+      if (!selectedInstitution && (user?.role?.name === 'coordinator' || user?.role?.name === 'supervisor')) {
         alert('No tienes permisos para crear nuevas instituciones. Solo puedes editar tu institución.');
         return;
       }
 
       if (selectedInstitution) {
-        // Verificar que admin-campus o coordinator solo editen su propia institución
-        if ((user?.role?.name === 'admin-campus' || user?.role?.name === 'coordinator') && user?.id) {
+        // Verificar que coordinator o supervisor solo editen su propia institución
+        // Admin-campus puede editar su institución
+        if ((user?.role?.name === 'coordinator' || user?.role?.name === 'supervisor') && user?.id) {
+          const userInstitution = await institutionService.getUserInstitution(user.id);
+          if (!userInstitution || userInstitution.id !== selectedInstitution.id) {
+            alert('No tienes permisos para editar esta institución. Solo puedes editar tu propia institución.');
+            return;
+          }
+        }
+        // Admin-campus puede editar su institución
+        if (user?.role?.name === 'admin-campus' && user?.id) {
           const userInstitution = await institutionService.getUserInstitution(user.id);
           if (!userInstitution || userInstitution.id !== selectedInstitution.id) {
             alert('No tienes permisos para editar esta institución. Solo puedes editar tu propia institución.');
@@ -253,7 +263,7 @@ const InstitutionManagementPage: React.FC = () => {
       handleSearchUsers('');
     }, 100);
   };
-  
+
   const loadInstitutionStudents = async (institutionId: number) => {
     try {
       setLoadingStudents(true);
@@ -277,13 +287,13 @@ const InstitutionManagementPage: React.FC = () => {
       setLoadingStudents(false);
     }
   };
-  
+
   const handleManageResources = async (institution: Institution) => {
     setSelectedInstitutionForResources(institution);
     setShowResourcesModal(true);
     await loadResourcesForInstitution(institution.id);
   };
-  
+
   const loadResourcesForInstitution = async (institutionId: number) => {
     try {
       setLoadingResources(true);
@@ -292,25 +302,25 @@ const InstitutionManagementPage: React.FC = () => {
         careerService.getAllCareers().catch(() => []),
         subjectService.getAllSubjects().catch(() => [])
       ]);
-      
+
       setAvailableCareers(careersData);
       setAvailableSubjects(subjectsData);
-      
+
       // Obtener recursos asignados a la institución usando RPC
       try {
         const { data: careersAssigned, error: careersError } = await supabase
           .rpc('get_careers_for_institution', { p_institution_id: institutionId });
-        
+
         if (!careersError && careersAssigned) {
           const assigned = careersAssigned
             .filter((c: any) => c.is_assigned)
             .map((c: any) => c.career_id);
           setAssignedCareers(assigned);
         }
-        
+
         const { data: subjectsAssigned, error: subjectsError } = await supabase
           .rpc('get_subjects_for_institution', { p_institution_id: institutionId });
-        
+
         if (!subjectsError && subjectsAssigned) {
           const assigned = subjectsAssigned
             .filter((s: any) => s.is_assigned)
@@ -332,19 +342,19 @@ const InstitutionManagementPage: React.FC = () => {
       setLoadingResources(false);
     }
   };
-  
+
   const handleAssignCareer = async (careerId: number) => {
     if (!selectedInstitutionForResources) return;
-    
+
     try {
       const { error } = await supabase
         .rpc('assign_career_to_institution', {
           p_career_id: careerId,
           p_institution_id: selectedInstitutionForResources.id
         });
-      
+
       if (error) throw error;
-      
+
       setAssignedCareers([...assignedCareers, careerId]);
       alert('Carrera asignada exitosamente');
     } catch (error: any) {
@@ -352,19 +362,19 @@ const InstitutionManagementPage: React.FC = () => {
       alert('Error al asignar carrera: ' + error.message);
     }
   };
-  
+
   const handleAssignSubject = async (subjectId: number) => {
     if (!selectedInstitutionForResources) return;
-    
+
     try {
       const { error } = await supabase
         .rpc('assign_subject_to_institution', {
           p_subject_id: subjectId,
           p_institution_id: selectedInstitutionForResources.id
         });
-      
+
       if (error) throw error;
-      
+
       setAssignedSubjects([...assignedSubjects, subjectId]);
       alert('Materia asignada exitosamente');
     } catch (error: any) {
@@ -438,11 +448,17 @@ const InstitutionManagementPage: React.FC = () => {
         isPrimary,
         position
       );
+
+      // Recargar la lista de usuarios asignados
       await loadInstitutionUsers(selectedInstitutionForUsers.id);
+
+      // Limpiar la búsqueda y resultados para reflejar el cambio
       setSearchQuery('');
       setSearchResults([]);
       setPositionInput({ ...positionInput, [userId]: '' });
-      alert('Usuario asignado exitosamente');
+
+      // Opcional: Mostrar mensaje de éxito
+      // alert('Usuario asignado exitosamente'); 
     } catch (error: any) {
       console.error('Error asignando usuario:', error);
       alert('Error al asignar usuario: ' + error.message);
@@ -781,8 +797,8 @@ const InstitutionManagementPage: React.FC = () => {
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <div className="flex items-center justify-between">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${institution.is_active
-                        ? 'text-green-600 bg-green-100'
-                        : 'text-gray-600 bg-gray-100'
+                      ? 'text-green-600 bg-green-100'
+                      : 'text-gray-600 bg-gray-100'
                       }`}>
                       {institution.is_active ? 'Activa' : 'Inactiva'}
                     </span>
@@ -791,8 +807,8 @@ const InstitutionManagementPage: React.FC = () => {
                       <button
                         onClick={() => handleToggleActive(institution)}
                         className={`px-3 py-1 text-xs font-medium rounded transition-colors ${institution.is_active
-                            ? 'text-orange-600 bg-orange-50 hover:bg-orange-100'
-                            : 'text-green-600 bg-green-50 hover:bg-green-100'
+                          ? 'text-orange-600 bg-orange-50 hover:bg-orange-100'
+                          : 'text-green-600 bg-green-50 hover:bg-green-100'
                           }`}
                         title={institution.is_active ? 'Desactivar institución' : 'Activar institución'}
                       >
@@ -920,11 +936,10 @@ const InstitutionManagementPage: React.FC = () => {
                 <div className="flex gap-4">
                   <button
                     onClick={() => setShowStudentsTab(false)}
-                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-                      !showStudentsTab
+                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${!showStudentsTab
                         ? 'border-blue-600 text-blue-600'
                         : 'border-transparent text-gray-500 hover:text-gray-700'
-                    }`}
+                      }`}
                   >
                     <IconUsers className="w-4 h-4 inline mr-2" />
                     Usuarios ({institutionUsers.length})
@@ -936,11 +951,10 @@ const InstitutionManagementPage: React.FC = () => {
                         loadInstitutionStudents(selectedInstitutionForUsers.id);
                       }
                     }}
-                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-                      showStudentsTab
+                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${showStudentsTab
                         ? 'border-blue-600 text-blue-600'
                         : 'border-transparent text-gray-500 hover:text-gray-700'
-                    }`}
+                      }`}
                   >
                     <IconGraduationCap className="w-4 h-4 inline mr-2" />
                     Estudiantes ({institutionStudents.length})
@@ -955,68 +969,68 @@ const InstitutionManagementPage: React.FC = () => {
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
                     Usuarios Asignados ({institutionUsers.length})
                   </h3>
-                {loadingUsers ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  </div>
-                ) : institutionUsers.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    No hay usuarios asignados a esta institución
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {institutionUsers.map((item) => (
-                      <div
-                        key={item.user_id}
-                        className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <div className="font-medium text-gray-900">
-                              {item.user?.first_name} {item.user?.last_name}
+                  {loadingUsers ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    </div>
+                  ) : institutionUsers.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      No hay usuarios asignados a esta institución
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {institutionUsers.map((item) => (
+                        <div
+                          key={item.user_id}
+                          className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <div className="font-medium text-gray-900">
+                                {item.user?.first_name} {item.user?.last_name}
+                              </div>
+                              {item.is_primary && (
+                                <span className="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full flex items-center gap-1">
+                                  <IconStar className="w-3 h-3" />
+                                  Primaria
+                                </span>
+                              )}
                             </div>
-                            {item.is_primary && (
-                              <span className="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full flex items-center gap-1">
-                                <IconStar className="w-3 h-3" />
-                                Primaria
+                            <div className="text-sm text-gray-500 mt-1">{item.user?.email}</div>
+                            {item.user?.role && (
+                              <span className="text-xs text-gray-400 capitalize">
+                                {item.user.role.name}
                               </span>
                             )}
+                            {item.position && (
+                              <div className="text-sm text-gray-600 mt-1">
+                                Cargo: {item.position}
+                              </div>
+                            )}
                           </div>
-                          <div className="text-sm text-gray-500 mt-1">{item.user?.email}</div>
-                          {item.user?.role && (
-                            <span className="text-xs text-gray-400 capitalize">
-                              {item.user.role.name}
-                            </span>
-                          )}
-                          {item.position && (
-                            <div className="text-sm text-gray-600 mt-1">
-                              Cargo: {item.position}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {!item.is_primary && (
+                          <div className="flex items-center gap-2">
+                            {!item.is_primary && (
+                              <button
+                                onClick={() => handleSetPrimary(item.user_id)}
+                                className="px-3 py-1 text-sm text-yellow-600 bg-yellow-50 rounded hover:bg-yellow-100"
+                                title="Marcar como institución primaria"
+                              >
+                                <IconStar className="w-4 h-4" />
+                              </button>
+                            )}
                             <button
-                              onClick={() => handleSetPrimary(item.user_id)}
-                              className="px-3 py-1 text-sm text-yellow-600 bg-yellow-50 rounded hover:bg-yellow-100"
-                              title="Marcar como institución primaria"
+                              onClick={() => handleRemoveUser(item.user_id)}
+                              className="px-3 py-1 text-sm text-red-600 bg-red-50 rounded hover:bg-red-100"
+                              title="Remover de la institución"
                             >
-                              <IconStar className="w-4 h-4" />
+                              <IconTrash className="w-4 h-4" />
                             </button>
-                          )}
-                          <button
-                            onClick={() => handleRemoveUser(item.user_id)}
-                            className="px-3 py-1 text-sm text-red-600 bg-red-50 rounded hover:bg-red-100"
-                            title="Remover de la institución"
-                          >
-                            <IconTrash className="w-4 h-4" />
-                          </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ) : (
                 /* Lista de estudiantes */
                 <div>
@@ -1118,11 +1132,10 @@ const InstitutionManagementPage: React.FC = () => {
                           return (
                             <div
                               key={career.id}
-                              className={`flex items-center justify-between p-3 rounded-lg border ${
-                                isAssigned
+                              className={`flex items-center justify-between p-3 rounded-lg border ${isAssigned
                                   ? 'bg-green-50 border-green-200'
                                   : 'bg-white border-gray-200'
-                              }`}
+                                }`}
                             >
                               <div className="flex-1">
                                 <div className="font-medium text-gray-900">
@@ -1172,11 +1185,10 @@ const InstitutionManagementPage: React.FC = () => {
                           return (
                             <div
                               key={subject.id}
-                              className={`flex items-center justify-between p-3 rounded-lg border ${
-                                isAssigned
+                              className={`flex items-center justify-between p-3 rounded-lg border ${isAssigned
                                   ? 'bg-green-50 border-green-200'
                                   : 'bg-white border-gray-200'
-                              }`}
+                                }`}
                             >
                               <div className="flex-1">
                                 <div className="font-medium text-gray-900">

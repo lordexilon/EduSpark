@@ -368,15 +368,22 @@ export class RAGService {
         let useHybridDirectly = false;
 
         try {
-          const result = await supabase.rpc(
+          // Timeout de 3 segundos para evitar bloqueos
+          const textSearchPromise = supabase.rpc(
             'search_course_content_chunks_text_clean',
             {
               search_query: query,
               course_id_param: courseIdInt,
-              result_limit: 5, // AUMENTADO: De 3 a 5 para tener más opciones
-              min_relevance: 0.01  // REDUCIDO: De 0.1 a 0.01 para ser más permisivo
+              result_limit: 15, // OPTIMIZADO: Aumentado a 15 para libros grandes
+              min_relevance: 0.001  // OPTIMIZADO: Reducido a 0.001 para mayor cobertura
             }
           );
+
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout')), 3000)
+          );
+
+          const result = await Promise.race([textSearchPromise, timeoutPromise]) as any;
 
           if (result.error) {
             // Detectar si la función no existe (404 o error de función no encontrada)
@@ -425,8 +432,8 @@ export class RAGService {
               {
                 search_query: query,
                 course_id_param: courseIdInt,
-                result_limit: 5,
-                min_relevance: 0.01
+                result_limit: 15, // OPTIMIZADO
+                min_relevance: 0.001 // OPTIMIZADO
               }
             );
             if (!fallbackResult.error && fallbackResult.data) {
@@ -641,8 +648,8 @@ export class RAGService {
                   {
                     query_embedding: embeddingString,
                     course_id_param: courseIdStr,
-                    match_threshold: 0.7,
-                    match_count: 3 // OPTIMIZADO: Reducido de 5 a 3
+                    match_threshold: 0.1, // OPTIMIZADO: Reducido para mayor cobertura
+                    match_count: 10 // OPTIMIZADO: Aumentado para más contexto
                   }
                 );
                 chunks = result.data;

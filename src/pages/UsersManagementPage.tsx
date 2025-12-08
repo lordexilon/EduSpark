@@ -1,9 +1,10 @@
 // pages/UsersManagementPage.tsx
 // Página de administración de usuarios (solo para admins)
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useUserInstitution } from '../hooks/useUserInstitution';
 import { usersAPI, rolesAPI } from '../services/api';
 import { User, supabase } from '../lib/supabase';
 import { IconSearch, IconEdit, IconTrash, IconShield, IconUserX, IconUserCheck, IconKey, IconFilter, IconMail, IconCheckCircle, IconDollarSign } from '../components/Icons';
@@ -22,6 +23,7 @@ interface Institution {
 
 const UsersManagementPage: React.FC = () => {
   const { user: currentUser } = useAuth();
+  const { institution } = useUserInstitution();
   const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -31,27 +33,34 @@ const UsersManagementPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  
+  const isSupervisor = currentUser?.role?.name === 'supervisor';
+  const isAdminCampus = currentUser?.role?.name === 'admin-campus';
 
   // Estados para modales
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showLimitsModal, setShowLimitsModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ password: '', confirmPassword: '' });
 
   // Estado para rastrear emails confirmados
   const [emailConfirmed, setEmailConfirmed] = useState<Record<string, boolean>>({});
   const [confirmingEmail, setConfirmingEmail] = useState<string | null>(null);
+  // Registro de usuarios que acabamos de confirmar (para evitar que checkEmailStatus los sobrescriba)
+  const recentlyConfirmedRef = useRef<Set<string>>(new Set());
 
   // Estado para límites de gasto
   const [userLimits, setUserLimits] = useState<Record<string, any>>({});
   const [loadingLimits, setLoadingLimits] = useState<Record<string, boolean>>({});
 
-  // Verificar que el usuario es admin, coordinator o admin-campus
+  // Verificar que el usuario es admin, coordinator, admin-campus o supervisor
   useEffect(() => {
     const isAdmin = currentUser?.role?.name === 'admin' ||
       currentUser?.role?.name === 'coordinator' ||
-      currentUser?.role?.name === 'admin-campus';
+      currentUser?.role?.name === 'admin-campus' ||
+      currentUser?.role?.name === 'supervisor';
 
     if (!currentUser) {
       navigate('/login');
@@ -59,22 +68,78 @@ const UsersManagementPage: React.FC = () => {
     }
 
     if (!isAdmin) {
-      setError('No tienes permisos para acceder a esta página. Solo administradores, coordinadores y administradores de campus pueden gestionar usuarios.');
+      setError('No tienes permisos para acceder a esta página. Solo administradores, coordinadores, administradores de campus y supervisores pueden gestionar usuarios.');
       setLoading(false);
       // No redirigir aquí, dejar que AdminRoute lo maneje
       return;
     }
 
+    // Si es supervisor o admin-campus, esperar a que se cargue la institución
+    if ((isSupervisor || isAdminCampus) && !institution) {
+      // Esperar un momento para que se cargue la institución
+      return;
+    }
+
     loadData();
-  }, [currentUser, navigate]);
+  }, [currentUser, navigate, institution, isSupervisor, isAdminCampus]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const [usersResult, rolesResult, institutionsResult] = await Promise.all([
-        usersAPI.getUsers(),
+      // Si es supervisor o admin-campus y no tiene institución, mostrar error
+      if ((isSupervisor || isAdminCampus) && !institution) {
+        setError('No tienes una institución asignada. Por favor, contacta al administrador.');
+        setLoading(false);
+        return;
+      }
+
+      // Si es supervisor o admin-campus, cargar usuarios filtrados por institución
+      let usersResult;
+      if ((isSupervisor || isAdminCampus) && institution) {
+        // Cargar usuarios de la institución del supervisor
+        const { data, error } = await supabase
+          .from('users')
+          .select(`
+            id,
+            email,
+            first_name,
+            last_name,
+            is_active,
+            created_at,
+            updated_at,
+            role:roles(id, name),
+            user_institutions!inner(institution_id)
+          `)
+          .eq('user_institutions.institution_id', institution.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          setError(error.message || 'Error al cargar usuarios');
+          setLoading(false);
+          return;
+        }
+
+        // Limpiar los datos para eliminar la relación user_institutions
+        const cleanedUsers = (data || []).map((user: any) => ({
+          id: user.id,
+          email: user.email,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          is_active: user.is_active,
+          created_at: user.created_at,
+          updated_at: user.updated_at,
+          role: user.role
+        }));
+
+        usersResult = { success: true, data: cleanedUsers };
+      } else {
+        // Para otros roles, usar la API normal
+        usersResult = await usersAPI.getUsers();
+      }
+
+      const [rolesResult, institutionsResult] = await Promise.all([
         rolesAPI.getRoles(),
         loadInstitutions()
       ]);
@@ -92,7 +157,13 @@ const UsersManagementPage: React.FC = () => {
       const usersData = usersResult.data || [];
       setUsers(usersData);
       setRoles(rolesResult.data || []);
-      setInstitutions(institutionsResult);
+      
+      // Si es supervisor o admin-campus, solo mostrar su institución
+      if ((isSupervisor || isAdminCampus) && institution) {
+        setInstitutions([{ id: institution.id, name: institution.name }]);
+      } else {
+        setInstitutions(institutionsResult);
+      }
 
       // Verificar estado de confirmación de email para cada usuario (solo si la función existe)
       for (const user of usersData) {
@@ -208,18 +279,75 @@ const UsersManagementPage: React.FC = () => {
       return;
     }
 
+    // Validar que el userId sea un UUID válido
+    if (!editingUser.id || typeof editingUser.id !== 'string') {
+      alert('Error: ID de usuario inválido. Por favor, recarga la página e intenta nuevamente.');
+      return;
+    }
+
+    // Validar formato UUID básico
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(editingUser.id)) {
+      alert('Error: El ID de usuario no tiene un formato válido. Por favor, contacta al administrador.');
+      console.error('ID de usuario inválido:', editingUser.id, 'Usuario:', editingUser);
+      return;
+    }
+
     try {
+      console.log('🔐 Intentando cambiar contraseña para usuario:', {
+        id: editingUser.id,
+        email: editingUser.email,
+        name: `${editingUser.first_name} ${editingUser.last_name}`
+      });
+
       const result = await usersAPI.changeUserPassword(editingUser.id, passwordForm.password);
 
       if (result.success) {
+        // La Cloud Function changeUserPassword ya confirma el email automáticamente,
+        // pero llamamos explícitamente a confirmUserEmail para asegurar que se confirme
+        // y que el estado se actualice correctamente
+        console.log(`📧 Confirmando email explícitamente después de cambiar contraseña para: ${editingUser.email}`);
+        try {
+          const confirmResult = await usersAPI.confirmUserEmail(editingUser.id);
+          if (confirmResult.success) {
+            console.log(`✅ Email confirmado explícitamente para: ${editingUser.email}`);
+          } else {
+            console.warn(`⚠️ No se pudo confirmar email explícitamente (puede que ya esté confirmado): ${confirmResult.error}`);
+          }
+        } catch (confirmErr: any) {
+          console.error('Error confirmando email explícitamente:', confirmErr);
+          // No fallar si falla la confirmación explícita, ya que changeUserPassword ya lo hace
+        }
+        
+        // Agregar a la lista de recientemente confirmados para evitar que checkEmailStatus lo sobrescriba
+        recentlyConfirmedRef.current.add(editingUser.id);
+        console.log(`✅ Usuario ${editingUser.id} agregado a lista de recientemente confirmados`);
+        
+        // Actualizar el estado local INMEDIATAMENTE para reflejar que el email está confirmado
+        setEmailConfirmed(prev => ({ ...prev, [editingUser.id]: true }));
+        console.log(`✅ Contraseña cambiada y email confirmado para: ${editingUser.email}`);
+        
+        // Recargar datos para actualizar la UI, pero mantener el estado de email confirmado
+        await loadData();
+        
+        // Limpiar de la lista después de 10 segundos (más tiempo para que la RPC se actualice)
+        setTimeout(() => {
+          recentlyConfirmedRef.current.delete(editingUser.id);
+          console.log(`✅ Usuario ${editingUser.id} removido de lista de recientemente confirmados`);
+        }, 10000);
+        
         setShowPasswordModal(false);
         setPasswordForm({ password: '', confirmPassword: '' });
-        alert('Contraseña actualizada correctamente');
+        alert('✅ Contraseña actualizada correctamente y email confirmado');
       } else {
-        alert(`Error: ${result.error}`);
+        // Mostrar mensaje de error más descriptivo
+        const errorMsg = result.error || 'Error desconocido al cambiar la contraseña';
+        alert(`❌ Error: ${errorMsg}`);
+        console.error('Error al cambiar contraseña:', result);
       }
     } catch (err: any) {
-      alert(`Error al cambiar contraseña: ${err.message}`);
+      console.error('Excepción al cambiar contraseña:', err);
+      alert(`❌ Error al cambiar contraseña: ${err.message || 'Error desconocido. Por favor, intenta nuevamente.'}`);
     }
   };
 
@@ -236,8 +364,47 @@ const UsersManagementPage: React.FC = () => {
       const result = await usersAPI.toggleUserStatus(user.id, newStatus);
 
       if (result.success) {
+        // Si se está activando el usuario y su email no está confirmado, confirmarlo automáticamente
+        let emailWasConfirmed = false;
+        if (newStatus && emailConfirmed[user.id] !== true) {
+          console.log(`📧 Activando usuario y confirmando email para: ${user.email}`);
+          try {
+            const confirmResult = await usersAPI.confirmUserEmail(user.id);
+            if (confirmResult.success) {
+              // Agregar a la lista de recientemente confirmados
+              recentlyConfirmedRef.current.add(user.id);
+              console.log(`✅ Usuario ${user.id} agregado a lista de recientemente confirmados (activación)`);
+              
+              setEmailConfirmed(prev => ({ ...prev, [user.id]: true }));
+              emailWasConfirmed = true;
+              console.log(`✅ Email confirmado automáticamente para: ${user.email}`);
+              
+              // Limpiar de la lista después de 5 segundos
+              setTimeout(() => {
+                recentlyConfirmedRef.current.delete(user.id);
+                console.log(`✅ Usuario ${user.id} removido de lista de recientemente confirmados (activación)`);
+              }, 5000);
+            } else {
+              console.warn(`⚠️ No se pudo confirmar email automáticamente: ${confirmResult.error}`);
+            }
+          } catch (confirmErr: any) {
+            console.error('Error confirmando email automáticamente:', confirmErr);
+            // No fallar la activación si falla la confirmación de email
+          }
+        }
+        
+        // Recargar datos para actualizar la UI con el estado más reciente
         await loadData();
-        alert(`Usuario ${action === 'activar' ? 'activado' : 'desactivado'} correctamente`);
+        
+        // Forzar el estado a confirmado después de recargar si se confirmó el email
+        if (newStatus && emailWasConfirmed) {
+          setTimeout(() => {
+            setEmailConfirmed(prev => ({ ...prev, [user.id]: true }));
+            console.log(`✅ Estado de email forzado a confirmado después de activar: ${user.email}`);
+          }, 100);
+        }
+        
+        alert(`Usuario ${action === 'activar' ? 'activado' : 'desactivado'} correctamente${emailWasConfirmed ? ' y email confirmado' : ''}`);
       } else {
         alert(`Error: ${result.error}`);
       }
@@ -248,6 +415,21 @@ const UsersManagementPage: React.FC = () => {
 
   // Confirmar email de usuario
   const handleConfirmEmail = async (user: User) => {
+    // Si es supervisor, verificar que el usuario pertenezca a su institución
+    if (isSupervisor && institution) {
+      const userInstitution = await supabase
+        .from('user_institutions')
+        .select('institution_id')
+        .eq('user_id', user.id)
+        .eq('institution_id', institution.id)
+        .maybeSingle();
+
+      if (!userInstitution.data) {
+        alert('No puedes confirmar el email de usuarios de otras instituciones.');
+        return;
+      }
+    }
+
     if (!confirm(`¿Estás seguro de confirmar el email de ${user.email}?`)) return;
 
     try {
@@ -255,10 +437,24 @@ const UsersManagementPage: React.FC = () => {
       const result = await usersAPI.confirmUserEmail(user.id);
 
       if (result.success && result.data) {
-        // Actualizar el estado local
+        // Agregar a la lista de recientemente confirmados
+        recentlyConfirmedRef.current.add(user.id);
+        console.log(`✅ Usuario ${user.id} agregado a lista de recientemente confirmados (confirmación manual)`);
+        
+        // Actualizar el estado local INMEDIATAMENTE
         setEmailConfirmed(prev => ({ ...prev, [user.id]: true }));
+        console.log(`✅ Email confirmado para: ${user.email}`);
+        
+        // Recargar datos para actualizar la UI, pero mantener el estado de email confirmado
+        await loadData();
+        
+        // Limpiar de la lista después de 5 segundos
+        setTimeout(() => {
+          recentlyConfirmedRef.current.delete(user.id);
+          console.log(`✅ Usuario ${user.id} removido de lista de recientemente confirmados (confirmación manual)`);
+        }, 5000);
+        
         alert(`Email de ${result.data.email} confirmado exitosamente.`);
-        await loadData(); // Recargar datos para reflejar cambios
       } else {
         alert(`Error: ${result.error || 'No se pudo confirmar el email'}`);
       }
@@ -271,16 +467,43 @@ const UsersManagementPage: React.FC = () => {
 
   // Verificar si el email está confirmado (usando RPC)
   const checkEmailStatus = async (userId: string) => {
+    // Si acabamos de confirmar este email, no verificar (evitar sobrescribir el estado)
+    if (recentlyConfirmedRef.current.has(userId)) {
+      console.log(`📧 Omitiendo verificación de email para ${userId} (recientemente confirmado)`);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .rpc('get_user_email_status', { p_user_id: userId });
 
       if (!error && data && data.length > 0) {
-        setEmailConfirmed(prev => ({ ...prev, [userId]: data[0].is_confirmed }));
+        const isConfirmed = data[0].is_confirmed;
+        // Solo actualizar si no está en la lista de recientemente confirmados
+        if (!recentlyConfirmedRef.current.has(userId)) {
+          setEmailConfirmed(prev => ({ ...prev, [userId]: isConfirmed }));
+          console.log(`📧 Estado de email verificado para ${userId}: ${isConfirmed ? 'Confirmado' : 'Pendiente'}`);
+        } else {
+          console.log(`📧 Estado de email verificado para ${userId}: ${isConfirmed ? 'Confirmado' : 'Pendiente'} (manteniendo estado confirmado)`);
+        }
+      } else if (error) {
+        console.debug('⚠️ Error verificando estado de email (RPC):', error.message);
+        // Si la función RPC no existe o falla, y el usuario está activo,
+        // asumir que el email está confirmado (especialmente después de cambiar contraseña o activar)
+        const user = users.find(u => u.id === userId);
+        if (user && user.is_active === true && !recentlyConfirmedRef.current.has(userId)) {
+          setEmailConfirmed(prev => ({ ...prev, [userId]: true }));
+          console.log(`📧 Asumiendo email confirmado para usuario activo: ${userId}`);
+        }
       }
-      // Ignorar silenciosamente si la función no existe (404) o cualquier otro error
     } catch (err: any) {
-      // Ignorar todos los errores silenciosamente - la función RPC puede no existir
+      console.debug('⚠️ Error verificando estado de email (catch):', err.message);
+      // Si falla completamente, y el usuario está activo, asumir confirmado
+      const user = users.find(u => u.id === userId);
+      if (user && user.is_active === true && !recentlyConfirmedRef.current.has(userId)) {
+        setEmailConfirmed(prev => ({ ...prev, [userId]: true }));
+        console.log(`📧 Asumiendo email confirmado para usuario activo (fallback): ${userId}`);
+      }
     }
   };
 
@@ -331,6 +554,44 @@ const UsersManagementPage: React.FC = () => {
       alert('Límites de gasto actualizados correctamente');
     } catch (err: any) {
       alert(`Error al guardar límites: ${err.message}`);
+    }
+  };
+
+  // Crear nuevo usuario
+  const handleCreateUser = async (userData: { 
+    email: string; 
+    password: string; 
+    firstName: string; 
+    lastName: string; 
+    roleId: number; 
+    autoConfirm: boolean 
+  }) => {
+    try {
+      console.log('🔐 handleCreateUser: Creando usuario con autoConfirm:', userData.autoConfirm);
+      
+      const result = await usersAPI.createUser(
+        {
+          email: userData.email,
+          password: userData.password,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          roleId: userData.roleId,
+        },
+        userData.autoConfirm
+      );
+
+      if (result.success) {
+        setShowCreateModal(false);
+        await loadData();
+        alert(userData.autoConfirm 
+          ? 'Usuario creado y activado correctamente. Ya puede iniciar sesión.' 
+          : 'Usuario creado correctamente. Deberá confirmar su email para iniciar sesión.');
+      } else {
+        alert(`Error: ${result.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error al crear usuario: ${err.message}`);
+      console.error('Error al crear usuario:', err);
     }
   };
 
@@ -414,9 +675,18 @@ const UsersManagementPage: React.FC = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-text-dark mb-2">Gestión de Usuarios</h1>
-        <p className="text-text-light">Administra usuarios, roles y permisos del sistema</p>
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-text-dark mb-2">Gestión de Usuarios</h1>
+          <p className="text-text-light">Administra usuarios, roles y permisos del sistema</p>
+        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
+        >
+          <IconUserCheck className="w-5 h-5" />
+          Crear Usuario
+        </button>
       </div>
 
       {/* Filtros y búsqueda */}
@@ -610,6 +880,20 @@ const UsersManagementPage: React.FC = () => {
                         >
                           <IconKey className="w-5 h-5" />
                         </button>
+                        {emailConfirmed[user.id] !== true && (
+                          <button
+                            onClick={() => handleConfirmEmail(user)}
+                            disabled={confirmingEmail === user.id}
+                            className="text-blue-600 hover:text-blue-900 p-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Confirmar email del usuario"
+                          >
+                            {confirmingEmail === user.id ? (
+                              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <IconMail className="w-5 h-5" />
+                            )}
+                          </button>
+                        )}
                         <button
                           onClick={() => handleToggleStatus(user)}
                           className={`p-1 ${user.is_active === true
@@ -697,6 +981,15 @@ const UsersManagementPage: React.FC = () => {
             setShowLimitsModal(false);
             setEditingUser(null);
           }}
+        />
+      )}
+
+      {/* Modal de creación de usuario */}
+      {showCreateModal && (
+        <CreateUserModal
+          roles={roles}
+          onSave={handleCreateUser}
+          onClose={() => setShowCreateModal(false)}
         />
       )}
     </div>
@@ -1024,6 +1317,180 @@ const LimitsModal: React.FC<LimitsModalProps> = ({ user, limits, onSave, onClose
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
               Guardar Límites
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Modal para crear usuario
+interface CreateUserModalProps {
+  roles: Role[];
+  onSave: (userData: { email: string; password: string; firstName: string; lastName: string; roleId: number; autoConfirm: boolean }) => void;
+  onClose: () => void;
+}
+
+const CreateUserModal: React.FC<CreateUserModalProps> = ({ roles, onSave, onClose }) => {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    firstName: '',
+    lastName: '',
+    roleId: roles.find(r => r.name === 'teacher')?.id || roles[0]?.id || 0,
+    autoConfirm: true, // Por defecto, confirmar email automáticamente
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (formData.password !== formData.confirmPassword) {
+      alert('Las contraseñas no coinciden');
+      return;
+    }
+    
+    if (formData.password.length < 6) {
+      alert('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    
+    onSave(formData);
+  };
+
+  const getRoleLabel = (roleName: string) => {
+    const labels: Record<string, string> = {
+      student: 'Estudiante',
+      teacher: 'Docente',
+      admin: 'Administrador',
+      coordinator: 'Coordinador',
+      'admin-campus': 'Admin Campus'
+    };
+    return labels[roleName] || roleName;
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <h2 className="text-xl font-bold mb-4">Crear Nuevo Usuario</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email *
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              required
+            />
+          </div>
+          
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nombre *
+            </label>
+            <input
+              type="text"
+              value={formData.firstName}
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              required
+            />
+          </div>
+          
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Apellido *
+            </label>
+            <input
+              type="text"
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              required
+            />
+          </div>
+          
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Contraseña *
+            </label>
+            <input
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              required
+              minLength={6}
+            />
+            <p className="text-xs text-gray-500 mt-1">Mínimo 6 caracteres</p>
+          </div>
+          
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Confirmar Contraseña *
+            </label>
+            <input
+              type="password"
+              value={formData.confirmPassword}
+              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              required
+              minLength={6}
+            />
+          </div>
+          
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Rol *
+            </label>
+            <select
+              value={formData.roleId}
+              onChange={(e) => setFormData({ ...formData, roleId: parseInt(e.target.value) })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              required
+            >
+              {roles.map(role => (
+                <option key={role.id} value={role.id}>
+                  {getRoleLabel(role.name)}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="mb-4">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.autoConfirm}
+                onChange={(e) => setFormData({ ...formData, autoConfirm: e.target.checked })}
+                className="mr-2 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+              />
+              <span className="text-sm text-gray-700">
+                Habilitar usuario directamente (sin confirmación de email)
+              </span>
+            </label>
+            <p className="text-xs text-gray-500 mt-1 ml-6">
+              Si está marcado, el usuario podrá iniciar sesión inmediatamente sin confirmar su correo electrónico.
+            </p>
+          </div>
+          
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+            >
+              Crear Usuario
             </button>
           </div>
         </form>

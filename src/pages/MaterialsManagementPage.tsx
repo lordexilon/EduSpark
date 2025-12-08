@@ -35,7 +35,9 @@ import {
   Users,
   Cloud,
   Upload,
-  HardDrive
+  HardDrive,
+  MoreVertical,
+  ChevronDown
 } from 'lucide-react';
 import type { MaterialCategory } from '../types/fileProcessing';
 
@@ -79,6 +81,36 @@ export const MaterialsManagementPage: React.FC = () => {
 
   // Referencia para el scroll de la tabla
   const tableScrollRef = useRef<HTMLDivElement>(null);
+  
+  // Estado para menús desplegables de acciones
+  const [openActionMenus, setOpenActionMenus] = useState<Set<string>>(new Set());
+  
+  const toggleActionMenu = (materialId: string) => {
+    setOpenActionMenus(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(materialId)) {
+        newSet.delete(materialId);
+      } else {
+        newSet.add(materialId);
+      }
+      return newSet;
+    });
+  };
+  
+  // Cerrar menús al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openActionMenus.size > 0) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.action-menu-container')) {
+          setOpenActionMenus(new Set());
+        }
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openActionMenus]);
 
   // Modal de asignación de cursos
   const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
@@ -138,8 +170,12 @@ export const MaterialsManagementPage: React.FC = () => {
   }, [materials]);
 
   useEffect(() => {
+    console.log(`📊 [MaterialsManagementPage] useEffect para loadChunksCount: materials.length = ${materials.length}`);
     if (materials.length > 0) {
+      console.log(`📊 [MaterialsManagementPage] Ejecutando loadChunksCount para ${materials.length} materiales`);
       loadChunksCount();
+    } else {
+      console.log(`📊 [MaterialsManagementPage] No hay materiales, saltando loadChunksCount`);
     }
   }, [materials]);
 
@@ -553,8 +589,13 @@ export const MaterialsManagementPage: React.FC = () => {
 
     const confirmed = confirm(
       `¿Compartir "${material.title}" con todos los estudiantes del curso?\n\n` +
-      `Los estudiantes recibirán acceso de solo lectura al documento en Google Drive.\n\n` +
-      `⚠️ IMPORTANTE: Se aplicarán restricciones para prevenir descarga e impresión del documento.`
+      `Los estudiantes recibirán acceso de SOLO LECTURA al documento en Google Drive.\n\n` +
+      `🔒 Restricciones que se aplicarán:\n` +
+      `- Solo visualización (no pueden editar)\n` +
+      `- Sin descarga del archivo\n` +
+      `- Sin copia del contenido\n` +
+      `- Sin impresión (limitada)\n\n` +
+      `⚠️ NOTA: Los estudiantes recibirán una notificación por email con el enlace de acceso.`
     );
 
     if (!confirmed) return;
@@ -577,24 +618,41 @@ export const MaterialsManagementPage: React.FC = () => {
 
       if (result.failed.length > 0) {
         const failedEmails = result.failed.map(f => f.email).join(', ');
-        alert(
-          `Compartido con ${result.success.length} estudiante(s) exitosamente.\n\n` +
-          `Error con ${result.failed.length} estudiante(s):\n${failedEmails}\n\n` +
-          `Verifica que estos emails sean válidos y que los estudiantes tengan cuentas de Google.`
-        );
+        const message = 
+          `✅ Compartido con ${result.success.length} estudiante(s) exitosamente.\n\n` +
+          `❌ Error con ${result.failed.length} estudiante(s):\n${failedEmails}\n\n` +
+          `Verifica que estos emails sean válidos y que los estudiantes tengan cuentas de Google.\n\n` +
+          (result.viewLink ? `🔗 Enlace de vista previa:\n${result.viewLink}` : '');
+        
+        alert(message);
       } else {
-        alert(
+        const message = 
           `✅ Documento compartido exitosamente con ${result.success.length} estudiante(s).\n\n` +
           `Los estudiantes recibirán una notificación por email.\n\n` +
           `🔒 Restricciones aplicadas:\n` +
+          `- Solo visualización (no pueden editar)\n` +
           `- Sin descarga del archivo\n` +
           `- Sin copia del contenido\n` +
-          `- Solo visualización en Google Drive`
-        );
+          `- Sin impresión (limitada)\n\n` +
+          (result.viewLink ? `🔗 Enlace de vista previa:\n${result.viewLink}\n\n` : '') +
+          `💡 Los estudiantes pueden acceder al documento desde su correo o desde Google Drive.`;
+        
+        alert(message);
       }
     } catch (error: any) {
       console.error('Error compartiendo material:', error);
-      alert('Error al compartir el material: ' + (error.message || 'Error desconocido'));
+      const errorMessage = error.message || 'Error desconocido';
+      
+      // Mensajes de error más específicos
+      if (errorMessage.includes('token') || errorMessage.includes('autenticación')) {
+        alert(
+          `❌ Error de autenticación con Google Drive.\n\n` +
+          `Tu sesión de Google Drive ha expirado o no tienes permisos.\n\n` +
+          `Por favor, ve a tu perfil para reconectar tu cuenta de Google Drive.`
+        );
+      } else {
+        alert(`❌ Error al compartir el material:\n\n${errorMessage}`);
+      }
     } finally {
       setSharingMaterial(null);
     }
@@ -711,32 +769,104 @@ export const MaterialsManagementPage: React.FC = () => {
 
   const loadChunksCount = async () => {
     try {
+      console.log('📊 [MaterialsManagementPage] Iniciando carga de conteo de chunks...');
       setLoadingChunks(true);
       const chunksCount: Record<string, number> = {};
 
       // Obtener conteo de chunks por material_id desde metadata
-      const { data: chunks, error } = await supabase
-        .from('course_content_chunks')
-        .select('metadata');
+      // Nota: Supabase limita a 1000 por defecto, necesitamos obtener todos
+      console.log('📊 [MaterialsManagementPage] Consultando course_content_chunks...');
+      let allChunks: any[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      let hasMore = true;
 
-      if (error) {
-        console.error('Error cargando chunks:', error);
-        return;
+      while (hasMore) {
+        const { data: chunks, error } = await supabase
+          .from('course_content_chunks')
+          .select('metadata')
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+
+        if (error) {
+          console.error('❌ [MaterialsManagementPage] Error cargando chunks:', error);
+          break;
+        }
+
+        if (chunks && chunks.length > 0) {
+          allChunks = allChunks.concat(chunks);
+          hasMore = chunks.length === pageSize;
+          page++;
+          console.log(`📊 [MaterialsManagementPage] Página ${page}: ${chunks.length} chunks obtenidos`);
+        } else {
+          hasMore = false;
+        }
       }
+
+      const chunks = allChunks;
+
+      console.log(`📊 [MaterialsManagementPage] Total chunks obtenidos: ${chunks?.length || 0}`);
 
       // Contar chunks por material_id (almacenado en metadata)
       if (chunks) {
+        let chunksConMaterialId = 0;
+        let chunksSinMaterialId = 0;
+        
         chunks.forEach(chunk => {
           const materialId = chunk.metadata?.material_id || chunk.metadata?.sourceFileId;
           if (materialId) {
             chunksCount[materialId] = (chunksCount[materialId] || 0) + 1;
+            chunksConMaterialId++;
+          } else {
+            chunksSinMaterialId++;
           }
         });
+        
+        console.log(`📊 [MaterialsManagementPage] Chunks con material_id: ${chunksConMaterialId}`);
+        console.log(`📊 [MaterialsManagementPage] Chunks sin material_id: ${chunksSinMaterialId}`);
+        console.log(`📊 [MaterialsManagementPage] Materiales con chunks: ${Object.keys(chunksCount).length}`);
+        console.log(`📊 [MaterialsManagementPage] Conteo por material:`, chunksCount);
+        
+        // Verificar qué materiales tienen chunks pero no están en la lista de materiales cargados
+        const materialIdsConChunks = Object.keys(chunksCount);
+        const materialIdsCargados = materials.map(m => m.id);
+        const materialesConChunksNoCargados = materialIdsConChunks.filter(id => !materialIdsCargados.includes(id));
+        
+        console.log(`📊 [MaterialsManagementPage] Materiales cargados (${materialIdsCargados.length}):`, materialIdsCargados);
+        console.log(`📊 [MaterialsManagementPage] Materiales con chunks (${materialIdsConChunks.length}):`, materialIdsConChunks);
+        
+        // Verificar qué materiales cargados tienen chunks
+        const materialesCargadosConChunks = materialIdsCargados.filter(id => chunksCount[id]);
+        const detallesMaterialesConChunks = materialesCargadosConChunks.map(id => {
+          const material = materials.find(m => m.id === id);
+          return {
+            id,
+            title: material?.title || 'N/A',
+            chunks: chunksCount[id]
+          };
+        });
+        console.log(`✅ [MaterialsManagementPage] Materiales cargados CON chunks (${materialesCargadosConChunks.length}):`, detallesMaterialesConChunks);
+        console.log(`📊 [MaterialsManagementPage] Estado de materialChunks después de setMaterialChunks:`, chunksCount);
+        
+        const materialesCargadosSinChunks = materialIdsCargados.filter(id => !chunksCount[id]);
+        if (materialesCargadosSinChunks.length > 0) {
+          console.log(`⚠️ [MaterialsManagementPage] Materiales cargados SIN chunks (${materialesCargadosSinChunks.length}):`, materialesCargadosSinChunks);
+        }
+        
+        if (materialesConChunksNoCargados.length > 0) {
+          console.log(`⚠️ [MaterialsManagementPage] ${materialesConChunksNoCargados.length} materiales tienen chunks pero no están en la lista cargada:`, materialesConChunksNoCargados);
+          
+          // Verificar si son IDs temporales
+          const idsTemporales = materialesConChunksNoCargados.filter(id => id.startsWith('job_temp_'));
+          if (idsTemporales.length > 0) {
+            console.log(`🔴 [MaterialsManagementPage] ${idsTemporales.length} IDs temporales encontrados (deberían limpiarse):`, idsTemporales);
+          }
+        }
       }
 
       setMaterialChunks(chunksCount);
+      console.log('✅ [MaterialsManagementPage] Conteo de chunks cargado exitosamente');
     } catch (err: any) {
-      console.error('Error cargando conteo de chunks:', err);
+      console.error('❌ [MaterialsManagementPage] Error cargando conteo de chunks:', err);
     } finally {
       setLoadingChunks(false);
     }
@@ -1279,7 +1409,7 @@ export const MaterialsManagementPage: React.FC = () => {
                     <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[150px]">Estado RAG</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[120px]">Chunks</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[120px]">Tamaño</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[500px]">Acciones</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 w-20">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1450,14 +1580,33 @@ export const MaterialsManagementPage: React.FC = () => {
                             <span className="text-sm text-gray-700">
                               {getRAGStatusLabel(material.rag_status)}
                             </span>
+                            {material.rag_status === 'processing' && material.metadata?.processingJobId && (
+                              <button
+                                onClick={async () => {
+                                  if (confirm('¿Cancelar este job? Se marcará como fallido.')) {
+                                    const result = await materialService.cancelProcessingJob(material.metadata.processingJobId);
+                                    if (result.success) {
+                                      alert('Job cancelado exitosamente');
+                                      loadMaterials();
+                                    } else {
+                                      alert(`Error: ${result.error}`);
+                                    }
+                                  }
+                                }}
+                                className="text-xs text-red-600 hover:text-red-800 underline ml-2"
+                                title="Cancelar procesamiento atascado"
+                              >
+                                Cancelar
+                              </button>
+                            )}
                           </div>
                         </td>
                         <td className="py-3 px-4">
                           {material.rag_status === 'completed' ? (
                             <div className="flex items-center gap-2">
                               <Brain className="w-4 h-4 text-purple-500" />
-                              <span className="text-sm font-medium text-purple-700">
-                                {materialChunks[material.id] || 0}
+                              <span className="text-sm font-medium text-purple-700" title={`Material ID: ${material.id}, Chunks en estado: ${materialChunks[material.id] ?? 'undefined'}`}>
+                                {materialChunks[material.id] ?? 0}
                               </span>
                               <button
                                 onClick={() => loadChunksForMaterial(material.id)}
@@ -1475,138 +1624,186 @@ export const MaterialsManagementPage: React.FC = () => {
                           {formatFileSize(material.size_bytes)}
                         </td>
                         <td className="py-3 px-4">
-                          <div className="flex items-center gap-2 flex-wrap">
+                          <div className="relative action-menu-container">
+                            {/* Botón principal de menú */}
                             <button
-                              onClick={() => {
-                                setSelectedMaterialForAssignment(material);
-                                setAssignmentModalOpen(true);
-                              }}
-                              className="inline-flex items-center px-2 py-1 text-sm font-medium text-white bg-indigo-600 border border-indigo-600 rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              title="Asignar a cursos"
+                              onClick={() => toggleActionMenu(material.id)}
+                              className="inline-flex items-center justify-center w-9 h-9 text-gray-600 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                              title="Más acciones"
                             >
-                              <Users className="w-4 h-4 mr-1" />
-                              Asignar
+                              <MoreVertical className="w-5 h-5" />
                             </button>
-                            {(material.url || material.metadata?.sourceFileId) && (
-                              <a
-                                href={material.url || `https://drive.google.com/file/d/${material.metadata?.sourceFileId}/view`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center px-2 py-1 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                title="Ver material"
-                              >
-                                <Eye className="w-4 h-4 mr-1" />
-                                Ver
-                              </a>
-                            )}
-                            {material.rag_status === 'completed' && material.course_id && (
-                              <button
-                                onClick={() => openTutorWithCourse(material.course_id.toString())}
-                                className="inline-flex items-center px-2 py-1 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-                                title="Abrir Tutor Virtual con este curso"
-                              >
-                                <Brain className="w-4 h-4 mr-1" />
-                                Tutor
-                              </button>
-                            )}
-                            {material.course_id && (
-                              <a
-                                href={`/teacher/tutor?courseId=${material.course_id}${material.unit_id ? `&moduleId=${material.unit_id}` : ''}${material.session_id ? `&highlightId=${material.session_id}&highlightType=session` : ''}${material.id ? `&highlightMaterialId=${material.id}` : ''}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center px-2 py-1 text-sm font-medium text-white bg-purple-600 border border-purple-600 rounded-md shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                title="Ver en contexto del curso"
-                              >
-                                <BookOpen className="w-4 h-4 mr-1" />
-                                Curso
-                              </a>
-                            )}
-                            {(() => {
-                              const sourceInfo = getMaterialSource(material);
-                              const isGoogleDrive = sourceInfo.source === 'google_drive';
-                              const isBucket = sourceInfo.source === 'bucket';
-                              const isProcessed = material.metadata?.processed === true;
 
-                              return (
-                                <>
-                                  {/* Botón para migrar de Drive a Bucket */}
-                                  {isGoogleDrive && material.metadata?.sourceFileId && material.course_id && (
-                                    <button
-                                      onClick={() => handleMigrateDriveToBucket(material)}
-                                      disabled={migratingMaterial === material.id}
-                                      className="inline-flex items-center px-2 py-1 text-sm font-medium text-white bg-purple-600 border border-purple-600 rounded-md shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                      title="Migrar de Google Drive a Bucket para procesamiento RAG"
-                                    >
-                                      {migratingMaterial === material.id ? (
-                                        <>
-                                          <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
-                                          Migrando...
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Upload className="w-4 h-4 mr-1" />
-                                          Migrar
-                                        </>
-                                      )}
-                                    </button>
-                                  )}
+                            {/* Menú desplegable */}
+                            {openActionMenus.has(material.id) && (
+                              <div className="absolute right-0 mt-1 w-64 bg-white rounded-md shadow-lg border border-gray-200 z-50 py-1 max-h-96 overflow-y-auto">
+                                {/* Acciones principales - siempre visibles */}
+                                <button
+                                  onClick={() => {
+                                    setSelectedMaterialForAssignment(material);
+                                    setAssignmentModalOpen(true);
+                                    setOpenActionMenus(new Set());
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2"
+                                >
+                                  <Users className="w-4 h-4" />
+                                  <span>Asignar a cursos</span>
+                                </button>
 
-                                  {/* Botón para procesar para RAG */}
-                                  {isBucket && !isProcessed && material.course_id && (
-                                    <button
-                                      onClick={() => handleProcessForRAG(material)}
-                                      disabled={processingMaterial === material.id}
-                                      className="inline-flex items-center px-2 py-1 text-sm font-medium text-white bg-indigo-600 border border-indigo-600 rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                      title="Procesar para RAG (generar chunks para Tutor Virtual)"
-                                    >
-                                      {processingMaterial === material.id ? (
-                                        <>
-                                          <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
-                                          Procesando...
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Brain className="w-4 h-4 mr-1" />
-                                          Procesar RAG
-                                        </>
-                                      )}
-                                    </button>
-                                  )}
-
-                                  {/* Botón para compartir con estudiantes (solo Google Drive) */}
-                                  {isGoogleDrive && material.metadata?.sourceFileId && material.course_id && (
-                                    <button
-                                      onClick={() => handleShareWithStudents(material)}
-                                      disabled={sharingMaterial === material.id}
-                                      className="inline-flex items-center px-2 py-1 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                      title="Compartir con estudiantes del curso (Google Drive)"
-                                    >
-                                      {sharingMaterial === material.id ? (
-                                        <>
-                                          <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
-                                          Compartiendo...
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Share2 className="w-4 h-4 mr-1" />
-                                          Compartir
-                                        </>
-                                      )}
-                                    </button>
-                                  )}
-
-                                  {/* Botón eliminar */}
-                                  <button
-                                    onClick={() => handleDeleteMaterial(material.id)}
-                                    className="inline-flex items-center px-2 py-1 text-sm font-medium text-white bg-red-600 border border-red-600 rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-                                    title="Eliminar material"
+                                {(material.url || material.metadata?.sourceFileId) && (
+                                  <a
+                                    href={material.url || `https://drive.google.com/file/d/${material.metadata?.sourceFileId}/view`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={() => setOpenActionMenus(new Set())}
+                                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2"
                                   >
-                                    <Trash2 className="w-4 h-4 mr-1" />
-                                    Eliminar
+                                    <Eye className="w-4 h-4" />
+                                    <span>Ver material</span>
+                                  </a>
+                                )}
+
+                                {material.rag_status === 'completed' && material.course_id && (
+                                  <button
+                                    onClick={() => {
+                                      openTutorWithCourse(material.course_id.toString());
+                                      setOpenActionMenus(new Set());
+                                    }}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 flex items-center gap-2"
+                                  >
+                                    <Brain className="w-4 h-4" />
+                                    <span>Abrir Tutor Virtual</span>
                                   </button>
-                                </>
-                              );
-                            })()}
+                                )}
+
+                                {material.course_id && (
+                                  <a
+                                    href={`/teacher/tutor?courseId=${material.course_id}${material.unit_id ? `&moduleId=${material.unit_id}` : ''}${material.session_id ? `&highlightId=${material.session_id}&highlightType=session` : ''}${material.id ? `&highlightMaterialId=${material.id}` : ''}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={() => setOpenActionMenus(new Set())}
+                                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 flex items-center gap-2"
+                                  >
+                                    <BookOpen className="w-4 h-4" />
+                                    <span>Ver en curso</span>
+                                  </a>
+                                )}
+
+                                {/* Separador */}
+                                {(() => {
+                                  const sourceInfo = getMaterialSource(material);
+                                  const isGoogleDrive = sourceInfo.source === 'google_drive';
+                                  const isBucket = sourceInfo.source === 'bucket';
+                                  const isProcessed = material.metadata?.processed === true;
+                                  const hasActions = (isGoogleDrive && material.metadata?.sourceFileId && material.course_id) ||
+                                                    (isBucket && !isProcessed && material.course_id) ||
+                                                    (isGoogleDrive && material.metadata?.sourceFileId && material.course_id);
+                                  
+                                  return hasActions ? (
+                                    <div className="border-t border-gray-200 my-1" />
+                                  ) : null;
+                                })()}
+
+                                {/* Acciones de procesamiento */}
+                                {(() => {
+                                  const sourceInfo = getMaterialSource(material);
+                                  const isGoogleDrive = sourceInfo.source === 'google_drive';
+                                  const isBucket = sourceInfo.source === 'bucket';
+                                  const isProcessed = material.metadata?.processed === true;
+
+                                  return (
+                                    <>
+                                      {/* Botón para migrar de Drive a Bucket */}
+                                      {isGoogleDrive && material.metadata?.sourceFileId && material.course_id && (
+                                        <button
+                                          onClick={() => {
+                                            handleMigrateDriveToBucket(material);
+                                            setOpenActionMenus(new Set());
+                                          }}
+                                          disabled={migratingMaterial === material.id}
+                                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                          {migratingMaterial === material.id ? (
+                                            <>
+                                              <RefreshCw className="w-4 h-4 animate-spin" />
+                                              <span>Migrando...</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Upload className="w-4 h-4" />
+                                              <span>Migrar a Bucket</span>
+                                            </>
+                                          )}
+                                        </button>
+                                      )}
+
+                                      {/* Botón para procesar para RAG */}
+                                      {isBucket && !isProcessed && material.course_id && (
+                                        <button
+                                          onClick={() => {
+                                            handleProcessForRAG(material);
+                                            setOpenActionMenus(new Set());
+                                          }}
+                                          disabled={processingMaterial === material.id}
+                                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                          {processingMaterial === material.id ? (
+                                            <>
+                                              <RefreshCw className="w-4 h-4 animate-spin" />
+                                              <span>Procesando RAG...</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Brain className="w-4 h-4" />
+                                              <span>Procesar para RAG</span>
+                                            </>
+                                          )}
+                                        </button>
+                                      )}
+
+                                      {/* Botón para compartir con estudiantes */}
+                                      {isGoogleDrive && material.metadata?.sourceFileId && material.course_id && (
+                                        <button
+                                          onClick={() => {
+                                            handleShareWithStudents(material);
+                                            setOpenActionMenus(new Set());
+                                          }}
+                                          disabled={sharingMaterial === material.id}
+                                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                          {sharingMaterial === material.id ? (
+                                            <>
+                                              <RefreshCw className="w-4 h-4 animate-spin" />
+                                              <span>Compartiendo...</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Share2 className="w-4 h-4" />
+                                              <span>Compartir con estudiantes</span>
+                                            </>
+                                          )}
+                                        </button>
+                                      )}
+                                    </>
+                                  );
+                                })()}
+
+                                {/* Separador antes de eliminar */}
+                                <div className="border-t border-gray-200 my-1" />
+
+                                {/* Botón eliminar */}
+                                <button
+                                  onClick={() => {
+                                    handleDeleteMaterial(material.id);
+                                    setOpenActionMenus(new Set());
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 flex items-center gap-2"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  <span>Eliminar material</span>
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>

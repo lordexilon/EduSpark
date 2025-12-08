@@ -784,7 +784,12 @@ const TutorVirtualPage: React.FC = () => {
                         {message.text || '(mensaje vacío)'}
                       </p>
                     ) : (
-                      <MarkdownText text={message.text} className="prose prose-sm sm:prose-base max-w-none text-sm sm:text-base" />
+                      <div className="space-y-2">
+                        <MarkdownText 
+                          text={message.text} 
+                          className="prose prose-sm sm:prose-base max-w-none text-sm sm:text-base leading-relaxed" 
+                        />
+                      </div>
                     )}
                     {/* Timestamp para debug - solo en desarrollo y con menor opacidad */}
                     {process.env.NODE_ENV === 'development' && message.timestamp && (

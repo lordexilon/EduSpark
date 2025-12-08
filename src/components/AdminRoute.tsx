@@ -20,10 +20,11 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     );
   }
 
-  // Verificar que el usuario sea admin, coordinator o admin-campus
+  // Verificar que el usuario sea admin, coordinator, admin-campus o supervisor
   const isAdmin = user?.role?.name === 'admin' || 
                   user?.role?.name === 'coordinator' || 
-                  user?.role?.name === 'admin-campus';
+                  user?.role?.name === 'admin-campus' ||
+                  user?.role?.name === 'supervisor';
   
   // Logging para diagnóstico
   console.log('🔐 AdminRoute - Verificación de permisos:', {
@@ -41,7 +42,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   }
 
   if (!isAdmin) {
-    console.log('🔐 AdminRoute - Usuario no es admin/coordinator/admin-campus, redirigiendo a dashboard');
+    console.log('🔐 AdminRoute - Usuario no es admin/coordinator/admin-campus/supervisor, redirigiendo a dashboard');
     // Redirigir a dashboard con mensaje de error
     return <Navigate to="/teacher/dashboard" replace />;
   }

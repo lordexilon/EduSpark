@@ -165,6 +165,35 @@ const CreateCoursePage: React.FC = () => {
       setLoading(true);
       console.log('🔄 Iniciando guardado de curso...', { isEditing, id, formData });
 
+      // Obtener institution_id de la materia o carrera seleccionada
+      let institutionId: number | undefined = undefined;
+      
+      if (formData.subject_id) {
+        // Si hay materia seleccionada, obtener su institution_id
+        try {
+          const subject = await subjectService.getSubject(parseInt(formData.subject_id));
+          if (subject?.institution_id) {
+            institutionId = subject.institution_id;
+            console.log('📚 Institution ID obtenido de la materia:', institutionId);
+          }
+        } catch (err) {
+          console.error('Error obteniendo institution_id de la materia:', err);
+        }
+      }
+      
+      // Si no se obtuvo de la materia, intentar desde la carrera
+      if (!institutionId && formData.career_id) {
+        try {
+          const career = await careerService.getCareer(parseInt(formData.career_id));
+          if (career?.institution_id) {
+            institutionId = career.institution_id;
+            console.log('📚 Institution ID obtenido de la carrera:', institutionId);
+          }
+        } catch (err) {
+          console.error('Error obteniendo institution_id de la carrera:', err);
+        }
+      }
+
       const courseData = {
         title: formData.title,
         code: formData.code || undefined,
@@ -176,7 +205,8 @@ const CreateCoursePage: React.FC = () => {
         academic_period: formData.academic_period || undefined,
         start_date: formData.start_date || undefined,
         end_date: formData.end_date || undefined,
-        max_students: formData.max_students ? parseInt(formData.max_students) : undefined
+        max_students: formData.max_students ? parseInt(formData.max_students) : undefined,
+        institution_id: institutionId // Asignar institution_id al curso
       };
 
       console.log('📦 Datos del curso a guardar:', courseData);

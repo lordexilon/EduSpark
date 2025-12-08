@@ -17,9 +17,34 @@ interface MenuItem {
   path?: string;
   icon: React.FC<any>;
   children?: MenuItem[];
+  featureKey?: string;
 }
 
 const getNavItems = (userRole: string): MenuItem[] => {
+  // Menú específico para supervisor
+  if (userRole === 'supervisor') {
+    return [
+      { name: 'Panel', path: '/teacher/dashboard', icon: IconDashboard },
+      {
+        name: 'Materiales',
+        icon: IconBookOpen,
+        children: [
+          { name: 'Procesar Materiales', path: '/teacher/file-processing', icon: IconFileText },
+          { name: 'Administrar Materiales', path: '/teacher/materials', icon: IconFileText },
+        ]
+      },
+      {
+        name: 'Tutor IA',
+        icon: IconRobot,
+        featureKey: 'ai_tutor',
+        children: [
+          { name: 'Tutor IA', path: '/teacher/tutor', icon: IconRobot, featureKey: 'ai_tutor' },
+        ]
+      },
+    ];
+  }
+
+  // Menú para otros roles (teacher, admin, etc.)
   const baseItems: MenuItem[] = [
     { name: 'Panel', path: '/teacher/dashboard', icon: IconDashboard },
     {
@@ -36,26 +61,27 @@ const getNavItems = (userRole: string): MenuItem[] => {
       icon: IconClipboardCheck,
       children: [
         { name: 'Quizzes', path: '/teacher/quizzes', icon: IconClipboardCheck },
-        { name: 'Flashcards', path: '/teacher/flashcards', icon: IconCards },
+        { name: 'Flashcards', path: '/teacher/flashcards', icon: IconCards, featureKey: 'flashcards' },
       ]
     },
     {
       name: 'Tutor IA',
       icon: IconRobot,
+      featureKey: 'ai_tutor',
       children: [
-        { name: 'Tutor IA', path: '/teacher/tutor', icon: IconRobot },
-        { name: 'Análisis Tutor IA', path: '/teacher/tutor-analytics', icon: IconChartBar },
+        { name: 'Tutor IA', path: '/teacher/tutor', icon: IconRobot, featureKey: 'ai_tutor' },
+        { name: 'Análisis Tutor IA', path: '/teacher/tutor-analytics', icon: IconChartBar, featureKey: 'ai_tutor' },
       ]
     },
-    { name: 'Mis Tareas', path: '/teacher/assignments', icon: IconClipboardList },
-    { name: 'Calificaciones', path: '/teacher/grades', icon: IconTrophy },
+    { name: 'Mis Tareas', path: '/teacher/assignments', icon: IconClipboardList, featureKey: 'assignments' },
+    { name: 'Calificaciones', path: '/teacher/grades', icon: IconTrophy, featureKey: 'grades' },
     {
       name: 'Comunicación',
       icon: IconMessage,
       children: [
-        { name: 'Avisos', path: '/teacher/announcements', icon: IconBell },
-        { name: 'Foros', path: '/teacher/forums', icon: IconUserGroup },
-        { name: 'Mensajería', path: '/teacher/messages', icon: IconMessage },
+        { name: 'Avisos', path: '/teacher/announcements', icon: IconBell, featureKey: 'announcements' },
+        { name: 'Foros', path: '/teacher/forums', icon: IconUserGroup, featureKey: 'forums' },
+        { name: 'Mensajería', path: '/teacher/messages', icon: IconMessage, featureKey: 'messaging' },
       ]
     },
     { name: 'Mis Dispositivos', path: '/devices', icon: IconDevices },
@@ -65,6 +91,41 @@ const getNavItems = (userRole: string): MenuItem[] => {
 };
 
 const getAdminItems = (userRole: string): MenuItem[] => {
+  // Menú específico para supervisor
+  if (userRole === 'supervisor') {
+    return [
+      {
+        name: 'Administración',
+        icon: IconUsers,
+        children: [
+          { name: 'Estudiantes', path: '/teacher/students', icon: IconStudent },
+          { name: 'Importación Masiva', path: '/admin/bulk-import', icon: IconUpload },
+          { name: 'Suspender/Reactivar', path: '/admin/bulk-suspend-reactivate', icon: IconXCircle },
+          { name: 'Gestión de Pagos', path: '/admin/payment-management', icon: IconDollarSign },
+        ]
+      },
+      {
+        name: 'Institución',
+        icon: IconUserGroup,
+        children: [
+          { name: 'Datos de Institución', path: '/admin/institutions', icon: IconUserGroup },
+        ]
+      },
+      {
+        name: 'Documentos',
+        icon: IconFileText,
+        path: '/admin/documents'
+      },
+      {
+        name: 'Configuración',
+        icon: IconCog,
+        children: [
+          { name: 'Configuración General', path: '/admin/settings', icon: IconCog },
+        ]
+      },
+    ];
+  }
+
   // Incluir admin-campus junto con admin y coordinator
   if (userRole !== 'admin' && userRole !== 'coordinator' && userRole !== 'admin-campus') {
     return [];
@@ -80,7 +141,7 @@ const getAdminItems = (userRole: string): MenuItem[] => {
     { name: 'Suspender/Reactivar', path: '/admin/bulk-suspend-reactivate', icon: IconXCircle },
     { name: 'Gestión de Pagos', path: '/admin/payment-management', icon: IconDollarSign },
     { name: 'Instituciones', path: '/admin/institutions', icon: IconUserGroup },
-    { name: 'Reporte Dispositivos', path: '/admin/devices-report', icon: IconDevices },
+    { name: 'Reporte Dispositivos', path: '/admin/devices-report', icon: IconDevices, featureKey: 'admin_reports' },
   ];
 
   // Opciones completas para admin global
@@ -91,6 +152,8 @@ const getAdminItems = (userRole: string): MenuItem[] => {
     { name: 'Costos de Procesamiento', path: '/admin/processing-costs', icon: IconDollarSign },
     { name: 'Reportes Globales', path: '/admin/comprehensive-reports', icon: IconChartBar },
     { name: 'Documentos', path: '/admin/documents', icon: IconFileText },
+    { name: 'Gestión Menú', path: '/admin/menu-features', icon: IconCog, featureKey: 'menu_management' },
+    { name: 'Gestión Roles', path: '/admin/roles', icon: IconUserGroup, featureKey: 'menu_management' },
   ];
 
   return [
@@ -134,8 +197,26 @@ const MenuItemComponent: React.FC<{
 
   const isMessages = item.path === '/teacher/messages' || item.children?.some(c => c.path === '/teacher/messages');
   const isAnnouncements = item.path === '/teacher/announcements' || item.children?.some(c => c.path === '/teacher/announcements');
-  const hasUnread = (isMessages && unreadMessagesCount > 0) || (isAnnouncements && unreadAnnouncementsCount > 0);
-  const unreadCount = isMessages ? unreadMessagesCount : isAnnouncements ? unreadAnnouncementsCount : 0;
+  
+  // Si el item es "Comunicación" (tiene hijos de avisos y mensajes), sumar ambos contadores
+  const isCommunication = item.name === 'Comunicación' && item.children?.some(c => 
+    c.path === '/teacher/announcements' || c.path === '/teacher/messages'
+  );
+  
+  // Calcular contador: si es comunicación, sumar ambos; sino, usar el correspondiente
+  let hasUnread: boolean;
+  let unreadCount: number;
+  
+  if (isCommunication) {
+    // Para "Comunicación", mostrar la suma de avisos + mensajes
+    const totalUnread = unreadMessagesCount + unreadAnnouncementsCount;
+    hasUnread = totalUnread > 0;
+    unreadCount = totalUnread;
+  } else {
+    // Para items individuales, usar su contador específico
+    hasUnread = (isMessages && unreadMessagesCount > 0) || (isAnnouncements && unreadAnnouncementsCount > 0);
+    unreadCount = isMessages ? unreadMessagesCount : isAnnouncements ? unreadAnnouncementsCount : 0;
+  }
 
   if (collapsed) {
     // Cuando está colapsado, mostrar solo el icono
@@ -220,6 +301,7 @@ const MenuItemComponent: React.FC<{
                   <NavLink
                     to={child.path!}
                     onClick={(e) => {
+                      console.log('🔗 Navegando a:', child.path, 'desde TeacherSidebar');
                       if (onClose && window.innerWidth < 1024) {
                         onClose();
                       }
@@ -285,20 +367,64 @@ const MenuItemComponent: React.FC<{
 };
 
 const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ collapsed = false, onToggle, onClose }) => {
-  const { user } = useAuth();
+  const { user, menuFeatures } = useAuth();
   const location = useLocation();
   const { unreadCount: unreadMessagesCount } = useUnreadMessages();
   const { unreadCount: unreadAnnouncementsCount } = useUnreadAnnouncements();
   const { institution } = useUserInstitution();
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
+  // Log de depuración para verificar contadores (solo en desarrollo)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔔 Contador de Comunicación - TeacherSidebar:', {
+        userRole: user?.role?.name,
+        unreadMessagesCount,
+        unreadAnnouncementsCount,
+        totalUnread: unreadMessagesCount + unreadAnnouncementsCount
+      });
+    }
+  }, [user?.role?.name, unreadMessagesCount, unreadAnnouncementsCount]);
+
   const activeClassName = "bg-primary/10 text-primary font-semibold";
   const inactiveClassName = "text-text-light hover:bg-gray-100 hover:text-text-dark";
 
   const userRole = user?.role?.name || '';
-  const isAdmin = userRole === 'admin' || userRole === 'coordinator' || userRole === 'admin-campus';
-  const baseItems = getNavItems(userRole);
-  const adminItems = getAdminItems(userRole);
+  const isAdmin = userRole === 'admin' || userRole === 'coordinator' || userRole === 'admin-campus' || userRole === 'supervisor';
+
+  // Función para filtrar items
+  const isVisible = (item: MenuItem): boolean => {
+    // Filtro por feature flag
+    if (item.featureKey) {
+      const flag = menuFeatures?.find(f => f.key === item.featureKey);
+      // Si el flag existe y está deshabilitado -> ocultar
+      if (flag && !flag.enabled) return false;
+
+      // Filtro por roles dinámicos del flag (si existen)
+      if (flag && flag.allowed_roles && flag.allowed_roles.length > 0 && userRole) {
+        if (!flag.allowed_roles.includes(userRole)) return false;
+      }
+    }
+    return true;
+  };
+
+  // Obtener items y filtrar
+  const rawBaseItems = getNavItems(userRole);
+  const rawAdminItems = getAdminItems(userRole);
+
+  const baseItems = rawBaseItems.filter(isVisible).map(item => {
+    if (item.children) {
+      return { ...item, children: item.children.filter(isVisible) };
+    }
+    return item;
+  }).filter(item => !item.children || item.children.length > 0);
+
+  const adminItems = rawAdminItems.filter(isVisible).map(item => {
+    if (item.children) {
+      return { ...item, children: item.children.filter(isVisible) };
+    }
+    return item;
+  }).filter(item => !item.children || item.children.length > 0);
 
   // Debug: Verificar rol y items de admin
   useEffect(() => {
@@ -392,12 +518,15 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ collapsed = false, onTo
                 ? 'bg-blue-100 text-blue-700'
                 : user?.role?.name === 'admin-campus'
                   ? 'bg-purple-100 text-purple-700'
-                  : 'bg-primary/20 text-primary'
+                  : user?.role?.name === 'supervisor'
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-primary/20 text-primary'
               }`}>
               {user?.role?.name === 'admin' ? 'Admin' :
                 user?.role?.name === 'coordinator' ? 'Coord' :
                   user?.role?.name === 'admin-campus' ? 'Admin Campus' :
-                    'Docente'}
+                    user?.role?.name === 'supervisor' ? 'Supervisor' :
+                      'Docente'}
             </span>
           </>
         )}

@@ -3,15 +3,23 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useUserInstitution } from '../hooks/useUserInstitution';
 import { studentService, Student, StudentWithEnrollments } from '../services/studentService';
 import { careerService, Career, subjectService, Subject } from '../services/academicService';
 import { courseService, Course } from '../services/teacherCourses';
 import { careerEnrollmentService, courseEnrollmentService } from '../services/academicService';
+import { supabase } from '../lib/supabase';
 import Card from '../components/Card';
 import Button from '../components/Button';
 
 const StudentsManagementPage: React.FC = () => {
   const { user } = useAuth();
+  const { institution, loading: institutionLoading } = useUserInstitution();
+  const isSupervisor = user?.role?.name === 'supervisor';
+  const isAdminCampus = user?.role?.name === 'admin-campus';
+  const isCoordinator = user?.role?.name === 'coordinator';
+  const isTeacher = user?.role?.name === 'teacher';
+  const shouldFilterByInstitution = isSupervisor || isAdminCampus || isCoordinator || isTeacher;
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<StudentWithEnrollments | null>(null);
   const [careers, setCareers] = useState<Career[]>([]);
@@ -28,20 +36,175 @@ const StudentsManagementPage: React.FC = () => {
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null); // Filtro por materia
 
   useEffect(() => {
-    if (user?.role?.name === 'admin' || user?.role?.name === 'teacher' || user?.role?.name === 'admin-campus' || user?.role?.name === 'coordinator') {
+    if (user?.role?.name === 'admin' || user?.role?.name === 'teacher' || user?.role?.name === 'admin-campus' || user?.role?.name === 'coordinator' || user?.role?.name === 'supervisor') {
+      // Si necesita filtrar por institución, esperar a que se cargue
+      if (shouldFilterByInstitution && institutionLoading) {
+        return;
+      }
+      if (shouldFilterByInstitution && !institution) {
+        setError('No tienes una institución asignada. Por favor, contacta al administrador.');
+        setLoading(false);
+        return;
+      }
       loadData();
     }
-  }, [user]);
+  }, [user, institution, institutionLoading, shouldFilterByInstitution]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const [studentsData, careersData, coursesData] = await Promise.all([
-        studentService.getAllStudents(),
+
+      // Si necesita filtrar por institución, cargar estudiantes filtrados por institución
+      let studentsData: Student[] = [];
+      
+      console.log(`🔍 StudentsManagementPage: Usuario: ${user?.role?.name}, Institución: ${institution?.name || 'N/A'}, Filtrar por institución: ${shouldFilterByInstitution}`);
+      
+      if (shouldFilterByInstitution && institution) {
+        // Obtener el ID del rol de estudiante
+        const { data: studentRole } = await supabase
+          .from('roles')
+          .select('id')
+          .eq('name', 'student')
+          .single();
+
+        if (!studentRole) {
+          setError('No se encontró el rol de estudiante');
+          setLoading(false);
+          return;
+        }
+
+        // Obtener los IDs de usuarios de la institución
+        console.log(`🔍 StudentsManagementPage: Buscando usuarios de la institución ${institution.name} (ID: ${institution.id})`);
+        
+        // Para admin-campus, coordinator y supervisor, la política RLS debería filtrar automáticamente
+        // La política RLS ya filtra por institution_id = get_user_primary_institution_id()
+        // No necesitamos agregar .eq('institution_id') porque RLS ya lo hace
+        const { data: userInstitutions, error: uiError } = await supabase
+          .from('user_institutions')
+          .select('user_id, is_primary, institution_id');
+        
+        if (uiError) {
+          console.error('❌ Error obteniendo usuarios de la institución:', uiError);
+          console.error('❌ Detalles del error:', {
+            code: uiError.code,
+            message: uiError.message,
+            details: uiError.details,
+            hint: uiError.hint
+          });
+          setError('Error al cargar estudiantes de la institución: ' + uiError.message);
+          setLoading(false);
+          return;
+        }
+        
+        console.log(`📊 StudentsManagementPage: Total registros obtenidos de user_institutions: ${userInstitutions?.length || 0}`);
+        console.log(`📋 StudentsManagementPage: Detalles completos:`, userInstitutions);
+        
+        // Verificar que todos los registros pertenecen a la institución correcta
+        const filteredUserInstitutions = (userInstitutions || []).filter((ui: any) => {
+          const matches = ui.institution_id === institution.id;
+          if (!matches) {
+            console.warn(`⚠️ StudentsManagementPage: Registro con institution_id=${ui.institution_id} no coincide con ${institution.id}`);
+          }
+          return matches;
+        });
+        
+        console.log(`📊 StudentsManagementPage: Registros filtrados por institución ${institution.id}: ${filteredUserInstitutions.length}`);
+
+        if (uiError) {
+          console.error('❌ Error obteniendo usuarios de la institución:', uiError);
+          setError('Error al cargar estudiantes de la institución');
+          setLoading(false);
+          return;
+        }
+
+        console.log(`📊 StudentsManagementPage: Encontrados ${filteredUserInstitutions?.length || 0} usuarios en la institución ${institution.id}`);
+        console.log(`📋 StudentsManagementPage: Detalles de user_institutions:`, filteredUserInstitutions);
+        
+        const userIds = filteredUserInstitutions.map((ui: any) => ui.user_id);
+        
+        // Verificar qué usuarios son y sus roles
+        if (userIds.length > 0) {
+          const { data: usersInfo, error: usersInfoError } = await supabase
+            .from('users')
+            .select('id, email, first_name, last_name, role_id, roles(name)')
+            .in('id', userIds);
+          
+          if (!usersInfoError && usersInfo) {
+            console.log(`👤 StudentsManagementPage: Usuarios en la institución con sus roles:`, usersInfo.map((u: any) => ({
+              id: u.id,
+              email: u.email,
+              name: `${u.first_name} ${u.last_name}`,
+              role_id: u.role_id,
+              role_name: u.roles?.name
+            })));
+          }
+        }
+
+        if (userIds.length === 0) {
+          console.warn(`⚠️ StudentsManagementPage: No hay usuarios en la institución ${institution.name} (ID: ${institution.id})`);
+          studentsData = [];
+        } else {
+          console.log(`👥 StudentsManagementPage: IDs de usuarios encontrados:`, userIds);
+          console.log(`🔍 StudentsManagementPage: Buscando estudiantes con role_id=${studentRole.id} entre ${userIds.length} usuarios`);
+          
+          // Obtener los estudiantes de esos usuarios
+          const { data, error: studentsError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('role_id', studentRole.id)
+            .in('id', userIds)
+            .order('last_name', { ascending: true })
+            .order('first_name', { ascending: true });
+
+          if (studentsError) {
+            console.error('❌ Error obteniendo estudiantes:', studentsError);
+            throw studentsError;
+          }
+
+          console.log(`📋 StudentsManagementPage: Resultado de consulta - Total usuarios consultados: ${userIds.length}, Estudiantes encontrados: ${data?.length || 0}`);
+          if (data && data.length === 0) {
+            // Si no se encontraron estudiantes, verificar qué roles tienen los usuarios
+            console.log(`⚠️ StudentsManagementPage: No se encontraron estudiantes. Verificando roles de los usuarios...`);
+            const { data: usersData, error: usersError } = await supabase
+              .from('users')
+              .select('id, email, first_name, last_name, role_id, roles(name)')
+              .in('id', userIds);
+            
+            if (!usersError && usersData) {
+              console.log(`📋 StudentsManagementPage: Usuarios en la institución con sus roles:`, usersData.map((u: any) => ({
+                id: u.id,
+                email: u.email,
+                name: `${u.first_name} ${u.last_name}`,
+                role_id: u.role_id,
+                role_name: u.roles?.name
+              })));
+            }
+          }
+
+          studentsData = (data || []) as Student[];
+          console.log(`✅ StudentsManagementPage: Cargados ${studentsData.length} estudiantes de la institución ${institution.name} (ID: ${institution.id})`);
+          if (studentsData.length > 0) {
+            console.log(`📋 StudentsManagementPage: Estudiantes encontrados:`, studentsData.map(s => ({ id: s.id, name: `${s.first_name} ${s.last_name}`, email: s.email })));
+          }
+        }
+      } else if (user?.role?.name === 'admin') {
+        // Admin ve todos los estudiantes
+        console.log('🔍 StudentsManagementPage: Cargando todos los estudiantes (admin)');
+        studentsData = await studentService.getAllStudents();
+        console.log(`✅ StudentsManagementPage: Cargados ${studentsData.length} estudiantes (todos)`);
+      } else {
+        // Para otros roles sin institución, intentar usar el servicio normal (confía en RLS)
+        console.log(`⚠️ StudentsManagementPage: Usuario ${user?.role?.name} sin institución asignada, intentando cargar estudiantes...`);
+        studentsData = await studentService.getAllStudents();
+        console.log(`✅ StudentsManagementPage: Cargados ${studentsData.length} estudiantes (filtrados por RLS)`);
+      }
+
+      const [careersData, coursesData] = await Promise.all([
         careerService.getAllCareers(),
         courseService.getMyCourses(user!.id).catch(() => [])
       ]);
+
       setStudents(studentsData);
       setCareers(careersData);
       setCourses(coursesData);
@@ -246,7 +409,7 @@ const StudentsManagementPage: React.FC = () => {
     );
   });
 
-  if (!user || (user.role?.name !== 'admin' && user.role?.name !== 'teacher' && user.role?.name !== 'admin-campus' && user.role?.name !== 'coordinator')) {
+  if (!user || (user.role?.name !== 'admin' && user.role?.name !== 'teacher' && user.role?.name !== 'admin-campus' && user.role?.name !== 'coordinator' && user.role?.name !== 'supervisor')) {
     return (
       <div className="max-w-4xl mx-auto p-6">
         <Card>
@@ -351,12 +514,14 @@ const StudentsManagementPage: React.FC = () => {
               <div className="mt-6">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold text-gray-900">Carreras</h3>
-                  <Button
-                    onClick={() => setShowEnrollCareerModal(true)}
-                    className="px-3 py-1 text-sm"
-                  >
-                    + Inscribir
-                  </Button>
+                  {!isSupervisor && (
+                    <Button
+                      onClick={() => setShowEnrollCareerModal(true)}
+                      className="px-3 py-1 text-sm"
+                    >
+                      + Inscribir
+                    </Button>
+                  )}
                 </div>
                 {selectedStudent.career_enrollments && selectedStudent.career_enrollments.length > 0 ? (
                   <div className="space-y-2">
@@ -380,36 +545,38 @@ const StudentsManagementPage: React.FC = () => {
                               </span>
                             </p>
                           </div>
-                          <div className="flex gap-1 ml-2">
-                            {enrollment.status === 'active' && (
+                          {!isSupervisor && (
+                            <div className="flex gap-1 ml-2">
+                              {enrollment.status === 'active' && (
+                                <Button
+                                  onClick={() => handleSuspendCareer(enrollment.id)}
+                                  variant="secondary"
+                                  className="px-2 py-1 text-xs"
+                                  title="Suspender"
+                                >
+                                  ⏸️
+                                </Button>
+                              )}
+                              {enrollment.status === 'suspended' && (
+                                <Button
+                                  onClick={() => handleReactivateCareer(enrollment.id)}
+                                  variant="secondary"
+                                  className="px-2 py-1 text-xs"
+                                  title="Reactivar"
+                                >
+                                  ▶️
+                                </Button>
+                              )}
                               <Button
-                                onClick={() => handleSuspendCareer(enrollment.id)}
+                                onClick={() => handleUnenrollCareer(enrollment.id)}
                                 variant="secondary"
-                                className="px-2 py-1 text-xs"
-                                title="Suspender"
+                                className="px-2 py-1 text-xs text-red-600 hover:text-red-700"
+                                title="Desmatricular"
                               >
-                                ⏸️
+                                🗑️
                               </Button>
-                            )}
-                            {enrollment.status === 'suspended' && (
-                              <Button
-                                onClick={() => handleReactivateCareer(enrollment.id)}
-                                variant="secondary"
-                                className="px-2 py-1 text-xs"
-                                title="Reactivar"
-                              >
-                                ▶️
-                              </Button>
-                            )}
-                            <Button
-                              onClick={() => handleUnenrollCareer(enrollment.id)}
-                              variant="secondary"
-                              className="px-2 py-1 text-xs text-red-600 hover:text-red-700"
-                              title="Desmatricular"
-                            >
-                              🗑️
-                            </Button>
-                          </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -423,12 +590,14 @@ const StudentsManagementPage: React.FC = () => {
               <div className="mt-6">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold text-gray-900">Cursos</h3>
-                  <Button
-                    onClick={() => setShowEnrollCourseModal(true)}
-                    className="px-3 py-1 text-sm"
-                  >
-                    + Inscribir
-                  </Button>
+                  {!isSupervisor && (
+                    <Button
+                      onClick={() => setShowEnrollCourseModal(true)}
+                      className="px-3 py-1 text-sm"
+                    >
+                      + Inscribir
+                    </Button>
+                  )}
                 </div>
                 {selectedStudent.course_enrollments && selectedStudent.course_enrollments.length > 0 ? (
                   <div className="space-y-2">
@@ -452,36 +621,38 @@ const StudentsManagementPage: React.FC = () => {
                               </span>
                             </p>
                           </div>
-                          <div className="flex gap-1 ml-2">
-                            {enrollment.status === 'active' && (
+                          {!isSupervisor && (
+                            <div className="flex gap-1 ml-2">
+                              {enrollment.status === 'active' && (
+                                <Button
+                                  onClick={() => handleSuspendCourse(enrollment.id)}
+                                  variant="secondary"
+                                  className="px-2 py-1 text-xs"
+                                  title="Suspender"
+                                >
+                                  ⏸️
+                                </Button>
+                              )}
+                              {enrollment.status === 'suspended' && (
+                                <Button
+                                  onClick={() => handleReactivateCourse(enrollment.id)}
+                                  variant="secondary"
+                                  className="px-2 py-1 text-xs"
+                                  title="Reactivar"
+                                >
+                                  ▶️
+                                </Button>
+                              )}
                               <Button
-                                onClick={() => handleSuspendCourse(enrollment.id)}
+                                onClick={() => handleUnenrollCourse(enrollment.id)}
                                 variant="secondary"
-                                className="px-2 py-1 text-xs"
-                                title="Suspender"
+                                className="px-2 py-1 text-xs text-red-600 hover:text-red-700"
+                                title="Desmatricular"
                               >
-                                ⏸️
+                                🗑️
                               </Button>
-                            )}
-                            {enrollment.status === 'suspended' && (
-                              <Button
-                                onClick={() => handleReactivateCourse(enrollment.id)}
-                                variant="secondary"
-                                className="px-2 py-1 text-xs"
-                                title="Reactivar"
-                              >
-                                ▶️
-                              </Button>
-                            )}
-                            <Button
-                              onClick={() => handleUnenrollCourse(enrollment.id)}
-                              variant="secondary"
-                              className="px-2 py-1 text-xs text-red-600 hover:text-red-700"
-                              title="Desmatricular"
-                            >
-                              🗑️
-                            </Button>
-                          </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -501,8 +672,8 @@ const StudentsManagementPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal Inscribir en Carrera */}
-      {showEnrollCareerModal && selectedStudent && (
+      {/* Modal Inscribir en Carrera - Solo para no supervisores */}
+      {!isSupervisor && showEnrollCareerModal && selectedStudent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-xl font-bold mb-4">Inscribir en Carrera</h3>
@@ -546,8 +717,8 @@ const StudentsManagementPage: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Inscribir en Curso */}
-      {showEnrollCourseModal && selectedStudent && (
+      {/* Modal Inscribir en Curso - Solo para no supervisores */}
+      {!isSupervisor && showEnrollCourseModal && selectedStudent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold mb-4">Inscribir en Curso</h3>

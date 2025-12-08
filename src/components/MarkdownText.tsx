@@ -97,8 +97,8 @@ export const MarkdownText: React.FC<MarkdownTextProps> = ({ text, className = ''
       );
     }
     
-    // Párrafo normal
-    return <p key={`p-${Math.random()}`} className="my-1">{processInlineFormatting(line)}</p>;
+    // Párrafo normal - mejor espaciado para legibilidad
+    return <p key={`p-${Math.random()}`} className="my-2 leading-relaxed">{processInlineFormatting(line)}</p>;
   };
   
   // Procesar formato inline (negritas, cursivas, código, etc.)

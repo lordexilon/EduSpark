@@ -1,8 +1,9 @@
 // pages/BulkUserImportPage.tsx
 // Página para importación masiva de usuarios
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useUserInstitution } from '../hooks/useUserInstitution';
 import { bulkUserImportService, BulkUserData, BulkImportResult } from '../services/bulkUserImportService';
 import { institutionService } from '../services/institutionService';
 import { careerService } from '../services/academicService';
@@ -14,6 +15,8 @@ import { IconUpload, IconFileText, IconUsers, IconCheck, IconX, IconXCircle, Ico
 
 const BulkUserImportPage: React.FC = () => {
   const { user } = useAuth();
+  const { institution } = useUserInstitution();
+  const isSupervisor = user?.role?.name === 'supervisor';
   const [importMode, setImportMode] = useState<'manual' | 'csv' | 'excel'>('manual');
   const [csvText, setCsvText] = useState('');
   const [users, setUsers] = useState<BulkUserData[]>([]);
@@ -45,6 +48,13 @@ const BulkUserImportPage: React.FC = () => {
     skip_email_confirmation: true
   });
 
+  // Si es supervisor, pre-seleccionar su institución
+  useEffect(() => {
+    if (isSupervisor && institution) {
+      setFormData(prev => ({ ...prev, institution_id: institution.id }));
+    }
+  }, [isSupervisor, institution]);
+
   React.useEffect(() => {
     loadReferenceData();
   }, []);
@@ -52,8 +62,16 @@ const BulkUserImportPage: React.FC = () => {
   const loadReferenceData = async () => {
     try {
       setLoadingData(true);
-      const [instData, careersData, subjectsData, coursesData] = await Promise.all([
-        institutionService.getAllInstitutions(),
+      
+      // Si es supervisor, solo cargar su institución
+      let instData;
+      if (isSupervisor && institution) {
+        instData = [institution];
+      } else {
+        instData = await institutionService.getAllInstitutions();
+      }
+
+      const [careersData, subjectsData, coursesData] = await Promise.all([
         careerService.getActiveCareers().catch(() => []),
         subjectService.getAllSubjects().catch(() => []),
         courseService.getMyCourses(user?.id || '').catch(() => [])
@@ -148,6 +166,14 @@ const BulkUserImportPage: React.FC = () => {
   };
 
   const processParsedUsers = async (parsedUsers: BulkUserData[]) => {
+    // Si es supervisor, forzar institution_id para todos los usuarios
+    if (isSupervisor && institution) {
+      parsedUsers.forEach(user => {
+        user.institution_id = institution.id;
+        user.institution_name = institution.name;
+      });
+    }
+
     // Resolver nombres a IDs
     const resolvedUsers = await bulkUserImportService.resolveIdsFromNames(
       parsedUsers,
@@ -160,32 +186,95 @@ const BulkUserImportPage: React.FC = () => {
     // Validar cada usuario
     const validUsers: BulkUserData[] = [];
     const invalidUsers: Array<{ email: string; errors: string[] }> = [];
-
-    resolvedUsers.forEach(user => {
-      const validation = bulkUserImportService.validateUserData(user);
-      if (validation.valid && user.institution_id) {
-        validUsers.push(user);
-      } else {
-        const errors = validation.errors;
-        if (!user.institution_id && user.institution_name) {
-          errors.push(`Institución "${user.institution_name}" no encontrada`);
+    
+    // Identificar usuarios por identity_document si está disponible
+    const usersByIdentityDoc = new Map<string, BulkUserData>();
+    parsedUsers.forEach(user => {
+      if (user.identity_document) {
+        const doc = user.identity_document.trim();
+        if (doc.length >= 4) {
+          usersByIdentityDoc.set(doc, user);
         }
-        if (user.career_name && !user.career_id) {
-          errors.push(`Carrera "${user.career_name}" no encontrada`);
-        }
-        if (user.subject_name && !user.subject_id) {
-          errors.push(`Materia "${user.subject_name}" no encontrada`);
-        }
-        if (user.course_name && !user.course_id) {
-          errors.push(`Curso "${user.course_name}" no encontrado`);
-        }
-        invalidUsers.push({ email: user.email || 'sin email', errors });
       }
     });
 
+    // Validar cada usuario (incluyendo relaciones)
+    for (const user of resolvedUsers) {
+      const validation = bulkUserImportService.validateUserData(user);
+      
+      // Si es supervisor, validar que el usuario pertenezca a su institución
+      if (isSupervisor && institution && user.institution_id !== institution.id) {
+        invalidUsers.push({
+          email: user.email || user.identity_document || 'sin identificador',
+          errors: [`El usuario debe pertenecer a la institución "${institution.name}"`]
+        });
+        continue;
+      }
+      
+      if (!validation.valid) {
+        invalidUsers.push({ 
+          email: user.email || user.identity_document || 'sin identificador', 
+          errors: validation.errors 
+        });
+        continue;
+      }
+
+      if (!user.institution_id) {
+        invalidUsers.push({
+          email: user.email || user.identity_document || 'sin identificador',
+          errors: user.institution_name 
+            ? [`Institución "${user.institution_name}" no encontrada`]
+            : ['Institución es requerida']
+        });
+        continue;
+      }
+
+      // Validar relaciones carrera-materia-curso
+      const relationshipValidation = await bulkUserImportService.validateRelationships(
+        user,
+        careers,
+        subjects,
+        courses
+      );
+
+      if (!relationshipValidation.valid) {
+        invalidUsers.push({
+          email: user.email || user.identity_document || 'sin identificador',
+          errors: relationshipValidation.errors
+        });
+        continue;
+      }
+
+      // Validar que los nombres se resolvieron correctamente
+      const errors: string[] = [];
+      if (user.career_name && !user.career_id) {
+        errors.push(`Carrera "${user.career_name}" no encontrada`);
+      }
+      if (user.subject_name && !user.subject_id) {
+        errors.push(`Materia "${user.subject_name}" no encontrada`);
+      }
+      if (user.course_name && !user.course_id) {
+        errors.push(`Curso "${user.course_name}" no encontrado`);
+      }
+
+      if (errors.length > 0) {
+        invalidUsers.push({ 
+          email: user.email || user.identity_document || 'sin identificador', 
+          errors 
+        });
+        continue;
+      }
+
+      // Usuario válido
+      validUsers.push(user);
+    }
+
     if (invalidUsers.length > 0) {
       const errorMsg = `Se encontraron ${invalidUsers.length} usuario(s) con errores:\n\n` +
-        invalidUsers.map(u => `- ${u.email}: ${u.errors.join(', ')}`).join('\n');
+        invalidUsers.map(u => {
+          const identifier = u.email || 'sin identificador';
+          return `- ${identifier}: ${u.errors.join(', ')}`;
+        }).join('\n');
       alert(errorMsg);
     }
 
@@ -200,6 +289,24 @@ const BulkUserImportPage: React.FC = () => {
     if (users.length === 0) {
       alert('No hay usuarios para importar');
       return;
+    }
+
+    // Si es supervisor, verificar que todos los usuarios pertenezcan a su institución
+    if (isSupervisor && institution) {
+      const usersFromOtherInstitution = users.filter(u => 
+        u.institution_id && u.institution_id !== institution.id
+      );
+      
+      if (usersFromOtherInstitution.length > 0) {
+        alert(`Error: No puedes importar usuarios de otras instituciones.\n\n` +
+          `${usersFromOtherInstitution.length} usuario(s) no pertenecen a "${institution.name}"`);
+        return;
+      }
+      
+      // Forzar institution_id para todos los usuarios
+      users.forEach(user => {
+        user.institution_id = institution.id;
+      });
     }
 
     // Resolver nombres a IDs antes de importar
@@ -263,7 +370,7 @@ const BulkUserImportPage: React.FC = () => {
       // Importar librería xlsx dinámicamente
       const XLSX = await import('xlsx');
       
-      // Crear datos de ejemplo
+      // Crear datos de ejemplo que muestren diferentes casos de uso válidos
       const data = [
         {
           'email': 'usuario1@ejemplo.com',
@@ -303,8 +410,22 @@ const BulkUserImportPage: React.FC = () => {
           'identity_document': '11223344',
           'identity_document_type': 'DNI',
           'career_name': 'Ingeniería en Sistemas',
-          'subject_name': '',
+          'subject_name': 'Programación',
           'course_name': 'Programación I',
+          'position': ''
+        },
+        {
+          'email': 'usuario4@ejemplo.com',
+          'password': 'Password123!',
+          'first_name': 'Ana',
+          'last_name': 'Martínez',
+          'role': 'student',
+          'institution_name': 'Universidad Ejemplo',
+          'identity_document': '44332211',
+          'identity_document_type': 'DNI',
+          'career_name': 'Ingeniería en Sistemas',
+          'subject_name': '',
+          'course_name': 'Base de Datos',
           'position': ''
         }
       ];
@@ -337,27 +458,53 @@ const BulkUserImportPage: React.FC = () => {
         ['INSTRUCCIONES PARA PLANTILLA DE IMPORTACIÓN DE USUARIOS'],
         [''],
         ['Columnas requeridas:'],
-        ['- email: Email del usuario (requerido)'],
-        ['- first_name: Nombre del usuario (requerido)'],
-        ['- last_name: Apellido del usuario (requerido)'],
-        ['- institution_name: Nombre de la institución (requerido)'],
+        ['- email: Email del usuario (REQUERIDO)'],
+        ['- first_name: Nombre del usuario (REQUERIDO)'],
+        ['- last_name: Apellido del usuario (REQUERIDO)'],
+        ['- institution_name: Nombre de la institución (REQUERIDO)'],
+        [''],
+        ['Columnas opcionales pero recomendadas:'],
+        ['- identity_document: Documento de identidad (DNI, cédula, etc.) - IDENTIFICADOR PRINCIPAL'],
+        ['  * Si se proporciona, se usa para buscar usuarios existentes antes que el email'],
+        ['  * Debe tener al menos 4 caracteres, sin espacios'],
+        ['  * Es único e irrepetible en el sistema'],
+        ['- identity_document_type: Tipo de documento (DNI, CEDULA, PASAPORTE, LICENCIA, OTRO)'],
         [''],
         ['Columnas opcionales:'],
         ['- password: Contraseña (si no se proporciona, se genera automáticamente)'],
         ['- role: Rol del usuario (student, teacher, admin-campus, coordinator). Default: student'],
-        ['- identity_document: Documento de identidad (DNI, cédula, etc.)'],
-        ['- identity_document_type: Tipo de documento (DNI, CEDULA, PASAPORTE, LICENCIA, OTRO)'],
-        ['- career_name: Nombre de la carrera'],
-        ['- subject_name: Nombre de la materia'],
-        ['- course_name: Nombre del curso'],
+        ['- career_name: Nombre de la carrera (debe existir en el sistema)'],
+        ['- subject_name: Nombre de la materia (debe pertenecer a la carrera si se especifica)'],
+        ['- course_name: Nombre del curso (debe pertenecer a la materia si se especifica)'],
         ['- position: Cargo/posición en la institución'],
         [''],
         ['NOTAS IMPORTANTES:'],
         ['1. Use NOMBRES en lugar de IDs para institución, carrera, materia y curso'],
         ['2. Los nombres deben coincidir exactamente con los registrados en el sistema'],
-        ['3. El documento de identidad es único e irrepetible'],
+        ['3. El documento de identidad (identity_document) es el IDENTIFICADOR PRINCIPAL'],
+        ['   * Si un usuario ya existe con ese documento, se actualizará en lugar de crear uno nuevo'],
+        ['   * Si no existe por documento, se buscará por email'],
+        ['   * El documento de identidad es único e irrepetible'],
         ['4. Si no se proporciona password, se generará una automáticamente'],
         ['5. Los usuarios se crearán sin confirmación de email por defecto'],
+        [''],
+        ['VALIDACIÓN DE RELACIONES CARRERA-MATERIA-CURSO:'],
+        ['- Si proporciona carrera + materia + curso: se valida que curso pertenezca a materia y materia a carrera'],
+        ['- Si proporciona carrera + curso (sin materia): se valida que el curso pertenezca a una materia de esa carrera'],
+        ['- Si proporciona materia + carrera: se valida que la materia pertenezca a esa carrera'],
+        ['- Si solo proporciona carrera: se asigna solo a la carrera (sin validar relaciones)'],
+        [''],
+        ['EJEMPLOS EN LA PLANTILLA:'],
+        ['- Usuario 1: Estudiante con solo carrera (caso básico)'],
+        ['- Usuario 2: Docente con carrera + materia + curso (relación completa, validada)'],
+        ['- Usuario 3: Estudiante con carrera + materia + curso (relación completa, validada)'],
+        ['- Usuario 4: Estudiante con carrera + curso sin materia (se valida que curso pertenezca a materia de esa carrera)'],
+        [''],
+        ['IMPORTANTE SOBRE RELACIONES:'],
+        ['Los ejemplos muestran diferentes combinaciones válidas. Asegúrate de que:'],
+        ['- Si proporciona materia, debe pertenecer a la carrera especificada'],
+        ['- Si proporciona curso, debe pertenecer a la materia especificada (si hay materia)'],
+        ['- Si proporciona curso sin materia, el curso debe pertenecer a una materia de la carrera'],
         [''],
         ['Ejemplos de valores:'],
         ['- role: student, teacher, admin-campus, coordinator'],
@@ -378,7 +525,8 @@ const BulkUserImportPage: React.FC = () => {
       const template = `email,password,first_name,last_name,role,institution_name,identity_document,identity_document_type,career_name,subject_name,course_name,position
 usuario1@ejemplo.com,Password123!,Juan,Pérez,student,Universidad Ejemplo,12345678,DNI,Ingeniería en Sistemas,,,
 usuario2@ejemplo.com,Password123!,María,González,teacher,Universidad Ejemplo,87654321,CEDULA,Ingeniería en Sistemas,Matemáticas,Álgebra Lineal,Profesor de Matemáticas
-usuario3@ejemplo.com,Password123!,Carlos,Rodríguez,student,Universidad Ejemplo,11223344,DNI,Ingeniería en Sistemas,,Programación I,`;
+usuario3@ejemplo.com,Password123!,Carlos,Rodríguez,student,Universidad Ejemplo,11223344,DNI,Ingeniería en Sistemas,Programación,Programación I,
+usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,44332211,DNI,Ingeniería en Sistemas,,Base de Datos,`;
 
       const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
@@ -558,14 +706,23 @@ usuario3@ejemplo.com,Password123!,Carlos,Rodríguez,student,Universidad Ejemplo,
                 <select
                   value={formData.institution_id}
                   onChange={(e) => setFormData({ ...formData, institution_id: parseInt(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  disabled={isSupervisor && institution !== null}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    isSupervisor && institution ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`}
                   required
+                  title={isSupervisor && institution ? `Solo puedes importar usuarios a ${institution.name}` : ''}
                 >
                   <option value="0">Seleccionar...</option>
                   {institutions.map(inst => (
                     <option key={inst.id} value={inst.id}>{inst.name}</option>
                   ))}
                 </select>
+                {isSupervisor && institution && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Solo puedes importar usuarios a tu institución: <strong>{institution.name}</strong>
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -672,9 +829,13 @@ usuario3@ejemplo.com,Password123!,Carlos,Rodríguez,student,Universidad Ejemplo,
                 {processingExcel ? 'Procesando...' : 'Seleccionar archivo Excel'}
               </label>
               <p className="text-xs text-gray-600 mt-2">
-                El archivo Excel debe tener columnas: <code>email</code>, <code>first_name</code>, <code>last_name</code>, 
-                <code>institution_name</code> (o <code>institution_id</code>), <code>identity_document</code>, 
+                El archivo Excel debe tener columnas: <code>email</code> (o <code>identity_document</code>), 
+                <code>first_name</code>, <code>last_name</code>, <code>institution_name</code> (o <code>institution_id</code>), 
+                <code>identity_document</code> (identificador principal), <code>identity_document_type</code> (opcional),
                 <code>career_name</code> (opcional), <code>subject_name</code> (opcional), <code>course_name</code> (opcional).
+                <br />
+                <strong>Importante:</strong> Se validarán las relaciones carrera-materia-curso. Si proporciona curso y materia, 
+                el curso debe pertenecer a esa materia. Si proporciona materia y carrera, la materia debe pertenecer a esa carrera.
               </p>
             </div>
           </Card>
@@ -762,7 +923,8 @@ usuario3@ejemplo.com,Password123!,Carlos,Rodríguez,student,Universidad Ejemplo,
                       {user.career_name && !user.career_id && ` | Carrera: ${user.career_name} (no encontrada)`}
                       {user.course_id && ` | Curso: ${courses.find(c => c.id === user.course_id)?.title || user.course_id}`}
                       {user.course_name && !user.course_id && ` | Curso: ${user.course_name} (no encontrado)`}
-                      {user.identity_document && ` | CI: ${user.identity_document_type ? `${user.identity_document_type} ` : ''}${user.identity_document}`}
+                      {user.identity_document && ` | Doc: ${user.identity_document_type ? `${user.identity_document_type} ` : ''}${user.identity_document}`}
+                      {!user.email && user.identity_document && ` (identificado por documento)`}
                     </div>
                   </div>
                   <button
@@ -801,7 +963,9 @@ usuario3@ejemplo.com,Password123!,Carlos,Rodríguez,student,Universidad Ejemplo,
                   .filter(r => !r.success)
                   .map((result, index) => (
                     <div key={index} className="p-2 bg-red-50 rounded text-sm">
-                      <div className="font-medium">{result.email}</div>
+                      <div className="font-medium">
+                        {result.email || result.identity_document || 'Usuario sin identificador'}
+                      </div>
                       <div className="text-red-600">{result.error}</div>
                     </div>
                   ))}

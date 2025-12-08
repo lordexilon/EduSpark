@@ -1,246 +1,208 @@
 // services/firestoreService.ts
-// Servicio para interactuar con Firestore
+// Servicio para interactuar con el sistema de procesamiento de archivos (Migrado a Supabase)
+// Mantenemos el nombre del archivo para compatibilidad, pero ahora usa Supabase
 
-import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { 
-  getFirestore, 
-  Firestore, 
-  collection, 
-  doc, 
-  addDoc, 
-  updateDoc, 
-  getDoc, 
-  getDocs, 
-  query, 
-  where, 
-  orderBy, 
-  onSnapshot,
-  Timestamp,
-  QuerySnapshot,
-  DocumentData
-} from 'firebase/firestore';
+import { supabase } from '../lib/supabase';
 import type { FileProcessingJob, JobStatus } from '../types/fileProcessing';
 
-// Configuración de Firebase (debe estar en variables de entorno)
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyAwcdqI2DJfmYY_CAuA35vnZYmYJtuL3rc',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'eduspark-py.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'eduspark-py',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'eduspark-py.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '470326625254',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:470326625254:web:87632d5146a1d0332d0c27',
-};
-
-let app: FirebaseApp | null = null;
-let db: Firestore | null = null;
-let initializationError: Error | null = null;
-
 /**
- * Inicializa Firebase si no está inicializado
+ * Convierte un registro de Supabase a FileProcessingJob
  */
-function initializeFirebase(): Firestore {
-  // Si ya hay un error de inicialización, lanzarlo
-  if (initializationError) {
-    throw initializationError;
-  }
-
-  try {
-    if (!app) {
-      const apps = getApps();
-      if (apps.length === 0) {
-        // Validar que la configuración esté completa
-        if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-          throw new Error('Configuración de Firebase incompleta. Verifica las variables de entorno.');
-        }
-        app = initializeApp(firebaseConfig);
-      } else {
-        app = apps[0];
-      }
-    }
-    
-    if (!db) {
-      db = getFirestore(app);
-    }
-    
-    return db;
-  } catch (error: any) {
-    initializationError = error;
-    console.error('Error inicializando Firebase:', error);
-    throw error;
-  }
-}
-
-/**
- * Convierte un objeto con fechas a formato Firestore
- */
-function convertToFirestore(data: any): any {
-  const converted = { ...data };
+function convertFromSupabase(row: any): FileProcessingJob {
+  // bucket_path puede ser el ID de Google Drive o la ruta del bucket
+  // También verificar metadata.sourceFileId que puede tener el ID original
+  const sourceFileId = row.metadata?.sourceFileId || row.bucket_path;
   
-  if (converted.createdAt && !(converted.createdAt instanceof Timestamp)) {
-    converted.createdAt = Timestamp.fromDate(new Date(converted.createdAt));
-  }
-  if (converted.updatedAt && !(converted.updatedAt instanceof Timestamp)) {
-    converted.updatedAt = Timestamp.fromDate(new Date(converted.updatedAt));
-  }
-  if (converted.startedAt && !(converted.startedAt instanceof Timestamp)) {
-    converted.startedAt = Timestamp.fromDate(new Date(converted.startedAt));
-  }
-  if (converted.completedAt && !(converted.completedAt instanceof Timestamp)) {
-    converted.completedAt = Timestamp.fromDate(new Date(converted.completedAt));
-  }
-  
-  return converted;
-}
-
-/**
- * Convierte un documento de Firestore a objeto JavaScript
- */
-function convertFromFirestore(docData: DocumentData, id: string): FileProcessingJob {
-  const data = docData;
-  
-  return {
-    id,
-    ...data,
-    createdAt: data.createdAt?.toDate?.() || data.createdAt || new Date(),
-    updatedAt: data.updatedAt?.toDate?.() || data.updatedAt || new Date(),
-    startedAt: data.startedAt?.toDate?.() || data.startedAt,
-    completedAt: data.completedAt?.toDate?.() || data.completedAt,
+  const job = {
+    id: row.id,
+    status: row.status as JobStatus,
+    sourceFileId: sourceFileId, // Usar metadata.sourceFileId si existe, sino bucket_path
+    sourceFileName: row.file_name,
+    courseId: row.course_id?.toString(),
+    jobType: row.metadata?.jobType || 'split',
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+    startedAt: row.metadata?.startedAt ? new Date(row.metadata.startedAt) : undefined,
+    completedAt: row.metadata?.completedAt ? new Date(row.metadata.completedAt) : undefined,
+    errorMessage: row.error_message,
+    metadata: row.metadata || {},
+    // Campos adicionales mapeados desde metadata
+    pageStart: row.metadata?.pageStart,
+    pageEnd: row.metadata?.pageEnd,
+    totalPages: row.metadata?.totalPages,
+    chunksCreated: row.metadata?.chunksCreated,
+    pdfType: row.metadata?.pdfType,
   } as FileProcessingJob;
+
+  // Añadir chunksProcessed y chunksTotal como propiedades directas para facilitar acceso
+  (job as any).chunksProcessed = row.metadata?.chunksProcessed || 0;
+  (job as any).chunksTotal = row.metadata?.chunksTotal;
+
+  return job;
 }
 
 /**
  * Crea un nuevo trabajo de procesamiento
  */
 export async function createJob(job: Omit<FileProcessingJob, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
-  const firestore = initializeFirebase();
-  const jobsCollection = collection(firestore, 'file_processing_jobs');
-  
-  const now = Timestamp.now();
-  const jobData = convertToFirestore({
-    ...job,
-    createdAt: now,
-    updatedAt: now,
-  });
-  
-  const docRef = await addDoc(jobsCollection, jobData);
-  return docRef.id;
+  const { data, error } = await supabase
+    .from('file_processing_jobs')
+    .insert({
+      material_id: job.metadata?.materialId,
+      course_id: Number(job.courseId),
+      user_id: job.metadata?.userId,
+      bucket_path: job.sourceFileId,
+      file_name: job.sourceFileName,
+      status: 'pending',
+      metadata: {
+        ...job.metadata,
+        jobType: job.jobType,
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single();
+
+  if (error) throw error;
+  return data.id;
 }
 
 /**
  * Actualiza un trabajo de procesamiento
  */
 export async function updateJob(jobId: string, updates: Partial<FileProcessingJob>): Promise<void> {
-  const firestore = initializeFirebase();
-  const jobRef = doc(firestore, 'file_processing_jobs', jobId);
-  
-  const updateData = convertToFirestore({
-    ...updates,
-    updatedAt: Timestamp.now(),
-  });
-  
-  await updateDoc(jobRef, updateData);
+  const updateData: any = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (updates.status) updateData.status = updates.status;
+  if (updates.errorMessage) updateData.error_message = updates.errorMessage;
+
+  // Si hay actualizaciones de metadata, necesitamos hacer merge
+  if (updates.metadata || updates.totalPages || updates.chunksCreated || updates.pdfType) {
+    const { data: current } = await supabase
+      .from('file_processing_jobs')
+      .select('metadata')
+      .eq('id', jobId)
+      .single();
+
+    const currentMeta = current?.metadata || {};
+
+    updateData.metadata = {
+      ...currentMeta,
+      ...updates.metadata,
+    };
+
+    if (updates.totalPages) updateData.metadata.totalPages = updates.totalPages;
+    if (updates.chunksCreated) updateData.metadata.chunksCreated = updates.chunksCreated;
+    if (updates.pdfType) updateData.metadata.pdfType = updates.pdfType;
+  }
+
+  const { error } = await supabase
+    .from('file_processing_jobs')
+    .update(updateData)
+    .eq('id', jobId);
+
+  if (error) throw error;
 }
 
 /**
- * Cancela un trabajo de procesamiento usando Cloud Function
+ * Cancela un trabajo de procesamiento
+ * (En Supabase simplemente actualizamos el estado a failed o cancelled si existiera)
  */
 export async function cancelJob(jobId: string): Promise<void> {
-  // Obtener token de autenticación de Supabase
-  const { supabase } = await import('../lib/supabase');
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (!session?.access_token) {
-    throw new Error('No hay sesión activa. Por favor, inicia sesión nuevamente.');
-  }
+  const { error } = await supabase
+    .from('file_processing_jobs')
+    .update({
+      status: 'cancelled',
+      error_message: 'Cancelado por el usuario',
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', jobId);
 
-  // URL de la Cloud Function (puede estar en variable de entorno)
-  const cancelJobUrl = import.meta.env.VITE_CANCEL_JOB_URL || 'https://us-central1-eduspark-py.cloudfunctions.net/cancelFileProcessingJob';
-  
-  const response = await fetch(cancelJobUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify({ jobId }),
-  });
+  if (error) throw error;
+}
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-    throw new Error(errorData.error || `Error cancelando job: ${response.statusText}`);
-  }
+/**
+ * Elimina un trabajo de procesamiento
+ */
+export async function deleteJob(jobId: string): Promise<void> {
+  const { error } = await supabase
+    .from('file_processing_jobs')
+    .delete()
+    .eq('id', jobId);
 
-  const result = await response.json();
-  if (!result.success) {
-    throw new Error(result.error || 'Error cancelando job');
-  }
+  if (error) throw error;
 }
 
 /**
  * Obtiene un trabajo por ID
  */
 export async function getJob(jobId: string): Promise<FileProcessingJob | null> {
-  const firestore = initializeFirebase();
-  const jobRef = doc(firestore, 'file_processing_jobs', jobId);
-  const jobSnap = await getDoc(jobRef);
-  
-  if (!jobSnap.exists()) {
-    return null;
-  }
-  
-  return convertFromFirestore(jobSnap.data(), jobSnap.id);
+  const { data, error } = await supabase
+    .from('file_processing_jobs')
+    .select('*')
+    .eq('id', jobId)
+    .single();
+
+  if (error || !data) return null;
+  return convertFromSupabase(data);
 }
 
 /**
  * Obtiene todos los trabajos de un archivo
  */
 export async function getJobsByFileId(sourceFileId: string): Promise<FileProcessingJob[]> {
-  const firestore = initializeFirebase();
-  const jobsCollection = collection(firestore, 'file_processing_jobs');
-  const q = query(
-    jobsCollection,
-    where('sourceFileId', '==', sourceFileId),
-    orderBy('createdAt', 'asc')
-  );
-  
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => convertFromFirestore(doc.data(), doc.id));
+  const { data, error } = await supabase
+    .from('file_processing_jobs')
+    .select('*')
+    .eq('bucket_path', sourceFileId)
+    .order('created_at', { ascending: true });
+
+  if (error) return [];
+  return (data || []).map(convertFromSupabase);
 }
 
 /**
  * Obtiene trabajos pendientes
  */
 export async function getPendingJobs(): Promise<FileProcessingJob[]> {
-  const firestore = initializeFirebase();
-  const jobsCollection = collection(firestore, 'file_processing_jobs');
-  const q = query(
-    jobsCollection,
-    where('status', '==', 'pending'),
-    orderBy('createdAt', 'asc')
-  );
-  
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => convertFromFirestore(doc.data(), doc.id));
+  const { data, error } = await supabase
+    .from('file_processing_jobs')
+    .select('*')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true });
+
+  if (error) return [];
+  return (data || []).map(convertFromSupabase);
 }
 
 /**
- * Obtiene todos los trabajos de un usuario (sin listener en tiempo real)
+ * Obtiene todos los trabajos de un usuario
  */
 export async function getAllJobs(userId: string): Promise<FileProcessingJob[]> {
-  try {
-    const firestore = initializeFirebase();
-    const jobsCollection = collection(firestore, 'file_processing_jobs');
-    const q = query(jobsCollection, orderBy('createdAt', 'desc'));
-    
-    const querySnapshot = await getDocs(q);
-    const allJobs = querySnapshot.docs.map(doc => convertFromFirestore(doc.data(), doc.id));
-    
-    // Filtrar por userId en metadata
-    return allJobs.filter(job => job.metadata?.userId === userId);
-  } catch (error: any) {
-    console.error('Error obteniendo jobs:', error);
+  console.log(`[FirestoreService] Obteniendo jobs para usuario: ${userId}`);
+  const { data, error } = await supabase
+    .from('file_processing_jobs')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('[FirestoreService] Error obteniendo jobs:', error);
     return [];
   }
+  
+  const jobs = (data || []).map(convertFromSupabase);
+  console.log(`[FirestoreService] Jobs encontrados: ${jobs.length}`, jobs.map(j => ({
+    id: j.id,
+    status: j.status,
+    sourceFileId: j.sourceFileId,
+    metadataSourceFileId: (j.metadata as any)?.sourceFileId,
+    fileName: j.sourceFileName
+  })));
+  return jobs;
 }
 
 /**
@@ -250,148 +212,94 @@ export function subscribeToFileJobs(
   sourceFileId: string,
   callback: (jobs: FileProcessingJob[]) => void
 ): () => void {
-  try {
-    const firestore = initializeFirebase();
-    const jobsCollection = collection(firestore, 'file_processing_jobs');
-    const q = query(
-      jobsCollection,
-      where('sourceFileId', '==', sourceFileId),
-      orderBy('createdAt', 'asc')
-    );
-    
-    return onSnapshot(
-      q, 
-      (snapshot: QuerySnapshot) => {
-        try {
-          const jobs = snapshot.docs.map(doc => convertFromFirestore(doc.data(), doc.id));
-          callback(jobs);
-        } catch (error) {
-          console.error('Error procesando snapshot de Firestore:', error);
-          callback([]);
-        }
+  // Suscripción a cambios en la tabla filtrando por bucket_path
+  const channel = supabase
+    .channel(`file-jobs-${sourceFileId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'file_processing_jobs',
+        filter: `bucket_path=eq.${sourceFileId}`,
       },
-      (error) => {
-        console.error('Error en listener de Firestore:', error);
-        callback([]);
+      async () => {
+        // Cuando hay cambios, recargar los datos
+        const jobs = await getJobsByFileId(sourceFileId);
+        callback(jobs);
       }
-    );
-  } catch (error) {
-    console.error('Error inicializando listener de Firestore:', error);
-    return () => {};
-  }
+    )
+    .subscribe();
+
+  // Carga inicial
+  getJobsByFileId(sourceFileId).then(callback);
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
 
 /**
  * Escucha cambios en todos los trabajos (tiempo real)
- * Filtra por userId en metadata para seguridad
- * Si falla el listener en tiempo real, usa polling como fallback
  */
 export function subscribeToAllJobs(
   userId: string,
   callback: (jobs: FileProcessingJob[]) => void
 ): () => void {
-  let unsubscribe: (() => void) | null = null;
-  let pollingInterval: NodeJS.Timeout | null = null;
-  let usePolling = false;
-  let lastErrorTime = 0;
-  const POLLING_INTERVAL = 5000; // 5 segundos
-  const ERROR_COOLDOWN = 30000; // 30 segundos antes de reintentar tiempo real
-
-  const startPolling = () => {
-    if (pollingInterval) return; // Ya está en polling
-    
-    console.warn('⚠️ Firestore: Cambiando a modo polling debido a errores de conexión');
-    usePolling = true;
-    
-    const poll = async () => {
-      try {
-        const firestore = initializeFirebase();
-        const jobsCollection = collection(firestore, 'file_processing_jobs');
-        const q = query(jobsCollection, orderBy('createdAt', 'desc'));
+  console.log(`[FirestoreService] Suscribiéndose a jobs para usuario: ${userId}`);
+  
+  // Suscripción a cambios en la tabla filtrando por user_id
+  const channel = supabase
+    .channel(`user-jobs-${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'file_processing_jobs',
+        filter: `user_id=eq.${userId}`,
+      },
+      async (payload) => {
+        const oldChunksProcessed = (payload.old?.metadata as any)?.chunksProcessed;
+        const newChunksProcessed = (payload.new?.metadata as any)?.chunksProcessed;
+        const oldChunksTotal = (payload.old?.metadata as any)?.chunksTotal;
+        const newChunksTotal = (payload.new?.metadata as any)?.chunksTotal;
         
-        const querySnapshot = await getDocs(q);
-        const allJobs = querySnapshot.docs.map(doc => convertFromFirestore(doc.data(), doc.id));
-        const userJobs = allJobs.filter(job => job.metadata?.userId === userId);
-        callback(userJobs);
-      } catch (error) {
-        console.error('Error en polling de Firestore:', error);
-        callback([]);
+        const progressChanged = oldChunksProcessed !== newChunksProcessed || oldChunksTotal !== newChunksTotal;
+        
+        console.log(`[FirestoreService] Cambio detectado en jobs:`, {
+          eventType: payload.eventType,
+          jobId: payload.new?.id || payload.old?.id,
+          status: payload.new?.status || payload.old?.status,
+          progressChanged,
+          oldChunks: { processed: oldChunksProcessed, total: oldChunksTotal },
+          newChunks: { processed: newChunksProcessed, total: newChunksTotal }
+        });
+        
+        // Para eventos DELETE, usar un pequeño delay para asegurar que Supabase haya procesado
+        const delay = payload.eventType === 'DELETE' ? 500 : 0;
+        
+        setTimeout(async () => {
+          const jobs = await getAllJobs(userId);
+          console.log(`[FirestoreService] Jobs recargados después de cambio (${payload.eventType}): ${jobs.length}`);
+          callback(jobs);
+        }, delay);
       }
-    };
-    
-    // Poll inmediatamente
-    poll();
-    
-    // Luego cada intervalo
-    pollingInterval = setInterval(poll, POLLING_INTERVAL);
-  };
+    )
+    .subscribe((status) => {
+      console.log(`[FirestoreService] Estado de suscripción: ${status}`);
+    });
 
-  const stopPolling = () => {
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
-      pollingInterval = null;
-    }
-    usePolling = false;
-  };
+  // Carga inicial
+  getAllJobs(userId).then((jobs) => {
+    console.log(`[FirestoreService] Carga inicial de jobs: ${jobs.length} jobs`);
+    callback(jobs);
+  });
 
-  const tryRealtime = () => {
-    if (usePolling) return; // Ya estamos en modo polling
-    
-    try {
-      const firestore = initializeFirebase();
-      const jobsCollection = collection(firestore, 'file_processing_jobs');
-      const q = query(jobsCollection, orderBy('createdAt', 'desc'));
-      
-      unsubscribe = onSnapshot(
-        q, 
-        (snapshot: QuerySnapshot) => {
-          try {
-            const allJobs = snapshot.docs.map(doc => convertFromFirestore(doc.data(), doc.id));
-            const userJobs = allJobs.filter(job => job.metadata?.userId === userId);
-            callback(userJobs);
-            
-            // Si el listener funciona, detener polling si estaba activo
-            if (usePolling) {
-              console.log('✅ Firestore: Listener en tiempo real restaurado');
-              stopPolling();
-            }
-          } catch (error) {
-            console.error('Error procesando snapshot de Firestore:', error);
-            callback([]);
-          }
-        },
-        (error) => {
-          const now = Date.now();
-          console.error('Error en listener de Firestore:', error);
-          
-          // Si hay muchos errores seguidos, cambiar a polling
-          if (now - lastErrorTime < 5000) {
-            // Dos errores en menos de 5 segundos, cambiar a polling
-            if (!usePolling) {
-              startPolling();
-            }
-          }
-          
-          lastErrorTime = now;
-          callback([]);
-        }
-      );
-    } catch (error) {
-      console.error('Error inicializando listener de Firestore:', error);
-      // Si falla la inicialización, usar polling
-      startPolling();
-    }
-  };
-
-  // Intentar tiempo real primero
-  tryRealtime();
-
-  // Retornar función de limpieza
   return () => {
-    if (unsubscribe) {
-      unsubscribe();
-    }
-    stopPolling();
+    console.log(`[FirestoreService] Desuscribiéndose de jobs para usuario: ${userId}`);
+    supabase.removeChannel(channel);
   };
 }
+
 

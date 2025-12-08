@@ -1,8 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../components/Card.tsx';
 import { useAuth } from '../hooks/useAuth.tsx';
-import { IconUserCircle, IconMail, IconBriefcase, IconUpload, IconX, IconEdit, IconSave, IconXCircle } from '../components/Icons.tsx'; 
+import { useUserInstitution } from '../hooks/useUserInstitution';
+import { IconUserCircle, IconMail, IconBriefcase, IconUpload, IconX, IconEdit, IconSave, IconXCircle } from '../components/Icons.tsx';
 import Button from '../components/Button.tsx';
 import { careerEnrollmentService } from '../services/academicService';
 import { careerService } from '../services/academicService';
@@ -13,6 +15,8 @@ import { usersAPI } from '../services/api';
 
 const ProfilePage: React.FC = () => {
   const { user, logout, refreshUser, updateUser } = useAuth();
+  const { institution } = useUserInstitution();
+  const navigate = useNavigate();
   const [careerName, setCareerName] = useState<string | null>(null);
   const [loadingCareer, setLoadingCareer] = useState(true);
   const [hasGoogleCalendarConnected, setHasGoogleCalendarConnected] = useState(false);
@@ -42,7 +46,7 @@ const ProfilePage: React.FC = () => {
 
       try {
         setCheckingGoogle(true);
-        
+
         // Verificar Calendar
         const hasCalendarToken = await googleOAuthService.hasValidToken(user.id, 'calendar');
         setHasGoogleCalendarConnected(hasCalendarToken);
@@ -80,7 +84,7 @@ const ProfilePage: React.FC = () => {
         // Obtener inscripciones activas en carreras
         const enrollments = await careerEnrollmentService.getStudentEnrollments(user.id);
         const activeEnrollment = enrollments.find(e => e.status === 'active');
-        
+
         if (activeEnrollment) {
           const career = await careerService.getCareer(activeEnrollment.career_id);
           if (career) {
@@ -110,13 +114,13 @@ const ProfilePage: React.FC = () => {
   }, [isEditing, user]);
 
   if (!user) {
-    return <p>Cargando perfil...</p>; 
+    return <p>Cargando perfil...</p>;
   }
 
   const displayRole = (role: any) => {
     // Si role es un objeto, usar la propiedad name
     const roleName = typeof role === 'object' && role?.name ? role.name : role;
-    
+
     if (roleName === 'student') return 'Estudiante';
     if (roleName === 'teacher') return 'Profesor';
     if (roleName === 'admin') return 'Administrador';
@@ -169,7 +173,7 @@ const ProfilePage: React.FC = () => {
 
   const handleDisconnectGoogleCalendar = async () => {
     if (!user?.id) return;
-    
+
     if (!confirm('¿Estás seguro de que deseas desconectar tu cuenta de Google Calendar?')) {
       return;
     }
@@ -186,7 +190,7 @@ const ProfilePage: React.FC = () => {
 
   const handleDisconnectGoogleDrive = async () => {
     if (!user?.id) return;
-    
+
     if (!confirm('¿Estás seguro de que deseas desconectar tu cuenta de Google Drive? Esto eliminará la vinculación de tu carpeta.')) {
       return;
     }
@@ -246,7 +250,7 @@ const ProfilePage: React.FC = () => {
 
       // Subir nueva imagen
       const uploadResult = await uploadAvatar(user.id, file);
-      
+
       if (!uploadResult.success || !uploadResult.url) {
         setError(uploadResult.error || 'Error al subir la imagen.');
         setUploadingAvatar(false);
@@ -255,7 +259,7 @@ const ProfilePage: React.FC = () => {
 
       // Actualizar avatar_url en la base de datos
       const updateResult = await updateAvatarUrl(user.id, uploadResult.url);
-      
+
       if (!updateResult.success) {
         setError(updateResult.error || 'Error al actualizar el perfil.');
         setUploadingAvatar(false);
@@ -264,13 +268,13 @@ const ProfilePage: React.FC = () => {
 
       // Actualizar el usuario en el contexto
       await refreshUser();
-      
+
       // Limpiar preview y input
       setAvatarPreview(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      
+
       alert('Imagen de perfil actualizada exitosamente.');
     } catch (error: any) {
       console.error('Error subiendo avatar:', error);
@@ -341,11 +345,11 @@ const ProfilePage: React.FC = () => {
         first_name: editingProfile.first_name.trim(),
         last_name: editingProfile.last_name.trim()
       };
-      
+
       // Manejar identity_document: si está vacío o solo espacios, enviar null, sino enviar el valor trimmeado
       const trimmedDoc = editingProfile.identity_document?.trim() || '';
       updateData.identity_document = trimmedDoc.length > 0 ? trimmedDoc : null;
-      
+
       // Agregar tipo de documento si se proporciona
       if (editingProfile.identity_document_type) {
         updateData.identity_document_type = editingProfile.identity_document_type;
@@ -353,9 +357,9 @@ const ProfilePage: React.FC = () => {
         // Si no hay documento, tampoco debe haber tipo
         updateData.identity_document_type = null;
       }
-      
+
       console.log('📤 ProfilePage: Enviando datos de actualización', updateData);
-      
+
       const result = await usersAPI.updateUser(user.id, updateData);
 
       if (result.success && result.data) {
@@ -381,7 +385,7 @@ const ProfilePage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       <h1 className="text-3xl font-bold text-slate-800 text-center">Mi Perfil</h1>
-      
+
       {/* Información Personal */}
       <Card>
         <div className="flex flex-col items-center">
@@ -415,7 +419,7 @@ const ProfilePage: React.FC = () => {
               <IconUpload className="w-4 h-4" />
               {user.avatar_url ? 'Cambiar foto' : 'Subir foto'}
             </label>
-            
+
             {avatarPreview && (
               <div className="flex gap-2 justify-center">
                 <Button
@@ -459,13 +463,13 @@ const ProfilePage: React.FC = () => {
                 </button>
               </div>
               <p className="text-slate-600 mb-4">{displayRole(user.role)}</p>
-              
+
               <div className="w-full space-y-4 mt-6">
                 <div className="flex items-center gap-3">
                   <IconMail className="w-5 h-5 text-slate-500" />
                   <span className="text-slate-700">{user.email}</span>
                 </div>
-                
+
                 {user.identity_document && (
                   <div className="flex items-center gap-3">
                     <IconBriefcase className="w-5 h-5 text-slate-500" />
@@ -475,7 +479,7 @@ const ProfilePage: React.FC = () => {
                     </span>
                   </div>
                 )}
-                
+
                 {careerName && (
                   <div className="flex items-center gap-3">
                     <IconBriefcase className="w-5 h-5 text-slate-500" />
@@ -499,7 +503,7 @@ const ProfilePage: React.FC = () => {
                   disabled={saving}
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Apellido *
@@ -513,15 +517,15 @@ const ProfilePage: React.FC = () => {
                   disabled={saving}
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Tipo de Documento
                 </label>
                 <select
                   value={editingProfile.identity_document_type || ''}
-                  onChange={(e) => setEditingProfile({ 
-                    ...editingProfile, 
+                  onChange={(e) => setEditingProfile({
+                    ...editingProfile,
                     identity_document_type: e.target.value || null as any
                   })}
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -535,7 +539,7 @@ const ProfilePage: React.FC = () => {
                   <option value="OTRO">Otro</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Número de Documento
@@ -552,26 +556,26 @@ const ProfilePage: React.FC = () => {
                   Documento único e irrepetible. Mínimo 4 caracteres, sin espacios.
                 </p>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 <IconMail className="w-5 h-5 text-slate-500" />
                 <span className="text-slate-700">{user.email}</span>
                 <span className="text-xs text-slate-500">(No editable)</span>
               </div>
-              
+
               {careerName && (
                 <div className="flex items-center gap-3">
                   <IconBriefcase className="w-5 h-5 text-slate-500" />
                   <span className="text-slate-700">Carrera: {careerName}</span>
                 </div>
               )}
-              
+
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
                   {error}
                 </div>
               )}
-              
+
               <div className="flex gap-2 pt-2">
                 <Button
                   onClick={handleSaveProfile}
@@ -599,20 +603,20 @@ const ProfilePage: React.FC = () => {
       {/* Integraciones */}
       <Card>
         <h3 className="text-xl font-bold text-slate-800 mb-4">Integraciones</h3>
-        
+
         {/* Google Calendar */}
         <div className="border-b border-gray-200 pb-4 mb-4">
           <div className="flex items-center justify-between mb-2">
             <div>
               <h4 className="font-semibold text-slate-800">Google Calendar</h4>
               <p className="text-sm text-slate-600">
-                {isTeacher 
+                {isTeacher
                   ? 'Conecta tu cuenta para crear videollamadas automáticamente en las sesiones'
                   : 'Conecta tu cuenta para sincronizar eventos y recordatorios'}
               </p>
             </div>
           </div>
-          
+
           {checkingGoogle ? (
             <div className="flex items-center gap-2 text-sm text-gray-600 mt-3">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
@@ -661,7 +665,7 @@ const ProfilePage: React.FC = () => {
               </p>
             </div>
           </div>
-          
+
           {checkingGoogle ? (
             <div className="flex items-center gap-2 text-sm text-gray-600 mt-3">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
@@ -737,7 +741,15 @@ const ProfilePage: React.FC = () => {
       <Card>
         <Button
           variant="danger"
-          onClick={logout}
+          onClick={async () => {
+            const slug = institution?.slug;
+            await logout();
+            if (slug) {
+              navigate(`/${slug}`);
+            } else {
+              navigate('/');
+            }
+          }}
           className="w-full"
         >
           Cerrar Sesión

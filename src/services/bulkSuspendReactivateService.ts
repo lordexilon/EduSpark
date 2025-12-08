@@ -31,13 +31,53 @@ export interface SuspendReactivateResult {
 export const bulkSuspendReactivateService = {
   /**
    * Suspender o reactivar usuarios masivamente
+   * @param users Array de usuarios a procesar
+   * @param institutionId ID de institución opcional para filtrar usuarios (para supervisores)
    */
   async bulkSuspendReactivateUsers(
-    users: SuspendReactivateUserData[]
+    users: SuspendReactivateUserData[],
+    institutionId?: number
   ): Promise<SuspendReactivateResult> {
     try {
+      // Si se proporciona institutionId, filtrar usuarios por institución
+      let usersToProcess = users;
+      if (institutionId) {
+        const identityDocuments = users.map(u => u.identity_document).filter(Boolean);
+        
+        if (identityDocuments.length > 0) {
+          // Buscar usuarios por documento de identidad y filtrar por institución
+          const { data: usersData, error: usersError } = await supabase
+            .from('users')
+            .select(`
+              id,
+              identity_document,
+              user_institutions!inner(institution_id)
+            `)
+            .in('identity_document', identityDocuments)
+            .eq('user_institutions.institution_id', institutionId);
+
+          if (usersError) {
+            throw new Error(`Error al validar usuarios por institución: ${usersError.message}`);
+          }
+
+          // Crear un mapa de documentos válidos
+          const validDocuments = new Set((usersData || []).map((u: any) => u.identity_document));
+          
+          // Filtrar usuarios que no pertenecen a la institución
+          usersToProcess = users.filter(u => 
+            !u.identity_document || validDocuments.has(u.identity_document)
+          );
+
+          // Si se filtraron usuarios, informar
+          if (usersToProcess.length < users.length) {
+            const filteredCount = users.length - usersToProcess.length;
+            console.warn(`⚠️ ${filteredCount} usuario(s) no pertenecen a la institución ${institutionId} y fueron excluidos`);
+          }
+        }
+      }
+
       // Convertir array de usuarios a JSONB
-      const usersJson = users.map(user => ({
+      const usersJson = usersToProcess.map(user => ({
         identity_document: user.identity_document,
         is_active: user.is_active
       }));
@@ -262,13 +302,53 @@ export const bulkSuspendReactivateService = {
   /**
    * Procesar pagos desde Excel y actualizar estados automáticamente
    * Esta función registra los pagos y actualiza el estado de los usuarios
+   * @param users Array de usuarios a procesar
+   * @param institutionId ID de institución opcional para filtrar usuarios (para supervisores)
    */
   async processPaymentsFromExcel(
-    users: SuspendReactivateUserData[]
+    users: SuspendReactivateUserData[],
+    institutionId?: number
   ): Promise<SuspendReactivateResult> {
     try {
+      // Si se proporciona institutionId, filtrar usuarios por institución
+      let usersToProcess = users;
+      if (institutionId) {
+        const identityDocuments = users.map(u => u.identity_document).filter(Boolean);
+        
+        if (identityDocuments.length > 0) {
+          // Buscar usuarios por documento de identidad y filtrar por institución
+          const { data: usersData, error: usersError } = await supabase
+            .from('users')
+            .select(`
+              id,
+              identity_document,
+              user_institutions!inner(institution_id)
+            `)
+            .in('identity_document', identityDocuments)
+            .eq('user_institutions.institution_id', institutionId);
+
+          if (usersError) {
+            throw new Error(`Error al validar usuarios por institución: ${usersError.message}`);
+          }
+
+          // Crear un mapa de documentos válidos
+          const validDocuments = new Set((usersData || []).map((u: any) => u.identity_document));
+          
+          // Filtrar usuarios que no pertenecen a la institución
+          usersToProcess = users.filter(u => 
+            !u.identity_document || validDocuments.has(u.identity_document)
+          );
+
+          // Si se filtraron usuarios, informar
+          if (usersToProcess.length < users.length) {
+            const filteredCount = users.length - usersToProcess.length;
+            console.warn(`⚠️ ${filteredCount} usuario(s) no pertenecen a la institución ${institutionId} y fueron excluidos`);
+          }
+        }
+      }
+
       // Convertir array de usuarios a JSONB con información de pago
-      const usersJson = users.map(user => {
+      const usersJson = usersToProcess.map(user => {
         // Determinar is_active basado en paid si no está definido
         let isActive = user.is_active;
         if (isActive === undefined && user.paid !== undefined) {

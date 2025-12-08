@@ -10,6 +10,7 @@ interface ProcessingTimerProps {
   estimatedMinutes?: number;
   chunksProcessed?: number;
   chunksTotal?: number;
+  jobStatus?: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
 }
 
 export const ProcessingTimer: React.FC<ProcessingTimerProps> = ({ 
@@ -17,7 +18,8 @@ export const ProcessingTimer: React.FC<ProcessingTimerProps> = ({
   isProcessing,
   estimatedMinutes,
   chunksProcessed,
-  chunksTotal
+  chunksTotal,
+  jobStatus
 }) => {
   const [elapsed, setElapsed] = useState<string>('00:00');
   const [estimatedRemaining, setEstimatedRemaining] = useState<string | null>(null);
@@ -87,34 +89,53 @@ export const ProcessingTimer: React.FC<ProcessingTimerProps> = ({
         }
       }
       
-      // Calcular tiempo estimado restante basado en progreso
-      if (chunksProcessed !== undefined && chunksTotal !== undefined && chunksTotal > 0 && chunksProcessed > 0) {
+      // Si el job está en "pending", no calcular tiempo restante (aún no ha comenzado a procesarse)
+      if (jobStatus === 'pending') {
+        // Si está en cola, mostrar el tiempo estimado total pero no el restante
+        setEstimatedRemaining(null);
+      } else if (chunksProcessed !== undefined && chunksTotal !== undefined && chunksTotal > 0 && chunksProcessed > 0) {
+        // Calcular tiempo estimado restante basado en progreso de chunks
         const progress = chunksProcessed / chunksTotal;
         const elapsedMinutes = diff / 60000;
         
-        if (progress > 0) {
-          const estimatedTotalMinutes = elapsedMinutes / progress;
-          const remainingMinutes = estimatedTotalMinutes - elapsedMinutes;
+        // Solo calcular si hay progreso real (más de 1 chunk procesado y progreso > 0.01)
+        if (progress > 0.01 && chunksProcessed > 1) {
+          // Calcular velocidad promedio (chunks por minuto)
+          const chunksPerMinute = chunksProcessed / elapsedMinutes;
           
-          if (remainingMinutes > 0) {
-            const hours = Math.floor(remainingMinutes / 60);
-            const mins = Math.floor(remainingMinutes % 60);
+          // Solo si la velocidad es razonable (> 0.1 chunks/minuto)
+          if (chunksPerMinute > 0.1) {
+            const remainingChunks = chunksTotal - chunksProcessed;
+            const remainingMinutes = remainingChunks / chunksPerMinute;
             
-            if (hours > 0) {
-              setEstimatedRemaining(`${hours}h ${mins}m`);
+            // Limitar el tiempo restante a un máximo razonable (24 horas)
+            const maxRemainingMinutes = 24 * 60;
+            const finalRemainingMinutes = Math.min(remainingMinutes, maxRemainingMinutes);
+            
+            if (finalRemainingMinutes > 0) {
+              const hours = Math.floor(finalRemainingMinutes / 60);
+              const mins = Math.floor(finalRemainingMinutes % 60);
+              
+              if (hours > 0) {
+                setEstimatedRemaining(`${hours}h ${mins}m`);
+              } else {
+                setEstimatedRemaining(`${mins}m`);
+              }
             } else {
-              setEstimatedRemaining(`${mins}m`);
+              setEstimatedRemaining('Finalizando...');
             }
           } else {
-            setEstimatedRemaining('Finalizando...');
+            // Si la velocidad es muy baja, no mostrar estimación (probablemente hay errores)
+            setEstimatedRemaining(null);
           }
         }
-      } else if (estimatedMinutes) {
-        // Usar estimación inicial si no hay progreso aún
+      } else if (estimatedMinutes && jobStatus === 'processing') {
+        // Usar estimación inicial solo si el job está realmente procesando (no en cola)
         const elapsedMinutes = diff / 60000;
         const remaining = estimatedMinutes - elapsedMinutes;
         
-        if (remaining > 0) {
+        if (remaining > 1) {
+          // Si queda más de 1 minuto, mostrar tiempo restante
           const hours = Math.floor(remaining / 60);
           const mins = Math.floor(remaining % 60);
           
@@ -123,9 +144,16 @@ export const ProcessingTimer: React.FC<ProcessingTimerProps> = ({
           } else {
             setEstimatedRemaining(`${mins}m`);
           }
-        } else {
+        } else if (remaining > 0) {
+          // Si queda menos de 1 minuto pero aún positivo, mostrar "Finalizando..."
           setEstimatedRemaining('Finalizando...');
+        } else {
+          // Si ya pasó el tiempo estimado, no mostrar tiempo restante
+          setEstimatedRemaining(null);
         }
+      } else {
+        // Si no hay información suficiente, no mostrar tiempo restante
+        setEstimatedRemaining(null);
       }
     };
 
@@ -133,7 +161,7 @@ export const ProcessingTimer: React.FC<ProcessingTimerProps> = ({
     const interval = setInterval(updateTimer, 1000); // Actualizar cada segundo
 
     return () => clearInterval(interval);
-  }, [startTime, isProcessing, estimatedMinutes, chunksProcessed, chunksTotal]);
+  }, [startTime, isProcessing, estimatedMinutes, chunksProcessed, chunksTotal, jobStatus]);
 
   // Mostrar siempre el tiempo pronosticado si está disponible, incluso si no está procesando
   if (estimatedTotal && !isProcessing) {
@@ -150,22 +178,11 @@ export const ProcessingTimer: React.FC<ProcessingTimerProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-2 text-sm">
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="flex items-center gap-2 text-gray-600">
-          <Clock size={16} className="text-blue-500" />
-          <span className="font-medium">Tiempo transcurrido: {elapsed}</span>
-        </div>
-        {estimatedTotal && (
-          <div className="flex items-center gap-2 text-gray-600">
-            <span className="font-medium">Tiempo pronosticado: {estimatedTotal}</span>
-          </div>
-        )}
-        {estimatedRemaining && (
-          <div className="flex items-center gap-2 text-gray-600">
-            <span className="font-medium">Tiempo estimado restante: {estimatedRemaining}</span>
-          </div>
-        )}
+    <div className="flex items-center gap-2 text-sm">
+      <Clock size={16} className="text-blue-600" />
+      <div className="flex flex-col">
+        <span className="text-xs text-blue-600">Transcurrido</span>
+        <span className="font-semibold text-blue-800">{elapsed}</span>
       </div>
     </div>
   );

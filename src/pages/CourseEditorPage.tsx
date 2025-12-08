@@ -43,7 +43,7 @@ export const CourseEditorPage: React.FC = () => {
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
   const materialFileInputRef = useRef<HTMLInputElement | null>(null);
   const materialUploadAbortController = useRef<AbortController | null>(null);
-  const MAX_FILE_SIZE = 35 * 1024 * 1024;
+  const MAX_FILE_SIZE = 900 * 1024 * 1024; // 900MB - soporte para archivos muy grandes
 
   useEffect(() => {
     if (id) {
@@ -371,7 +371,9 @@ export const CourseEditorPage: React.FC = () => {
     if (!file) return;
 
     if (file.size > MAX_FILE_SIZE) {
-      alert('El archivo supera el límite de 35MB.');
+      const maxSizeMB = MAX_FILE_SIZE / (1024 * 1024);
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      alert(`El archivo supera el límite de ${maxSizeMB}MB. Tamaño del archivo: ${fileSizeMB}MB.`);
       event.target.value = '';
       return;
     }

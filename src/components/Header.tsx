@@ -32,35 +32,35 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           <IconMenu className="w-6 h-6 text-text-dark" />
         </button>
       )}
-      
+
       {/* Búsqueda - oculta en móviles pequeños, visible en tablets y desktop */}
       <div className="relative flex-1 max-w-xs hidden sm:block">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <IconSearch className="w-5 h-5 text-text-light" />
+          <IconSearch className="w-5 h-5 text-text-light" />
         </div>
         <input
-            type="text"
-            placeholder="Buscar curso..."
-            className="w-full bg-background border border-border rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary/50 outline-none transition"
+          type="text"
+          placeholder="Buscar curso..."
+          className="w-full bg-background border border-border rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary/50 outline-none transition"
         />
       </div>
-      
+
       <div className="flex items-center space-x-3 sm:space-x-5 flex-shrink-0">
-        <button 
+        <button
           onClick={forceReload}
           className="text-text-light hover:text-text-dark transition p-1 rounded hover:bg-background hidden sm:block"
           title="Recargar página (F5)"
         >
           <IconRefreshCw className="w-6 h-6" />
         </button>
-        <button 
+        <button
           onClick={() => {
-            const isTeacher = user?.role?.name === 'teacher' || user?.role?.name === 'admin';
+            const isTeacher = ['teacher', 'admin', 'admin-campus', 'coordinator', 'supervisor'].includes(user?.role?.name || '');
             navigate(isTeacher ? '/teacher/messages' : '/messages');
           }}
           className={`relative text-text-light hover:text-text-dark transition p-1 rounded hover:bg-background ${totalUnread > 0 ? 'animate-pulse' : ''}`}
           title={
-            totalUnread > 0 
+            totalUnread > 0
               ? `${unreadMessagesCount} mensaje${unreadMessagesCount !== 1 ? 's' : ''} no leído${unreadMessagesCount !== 1 ? 's' : ''}, ${unreadAnnouncementsCount} aviso${unreadAnnouncementsCount !== 1 ? 's' : ''} no leído${unreadAnnouncementsCount !== 1 ? 's' : ''}`
               : 'Notificaciones'
           }
@@ -74,10 +74,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         </button>
         <div className="flex items-center">
           {user?.avatar_url ? (
-            <img 
-              src={user.avatar_url} 
-              alt={`${user.first_name} ${user.last_name}`} 
-              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-gray-200" 
+            <img
+              src={user.avatar_url}
+              alt={`${user.first_name} ${user.last_name}`}
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-gray-200"
             />
           ) : (
             <IconUserCircle className="w-8 h-8 sm:w-10 sm:h-10 text-text-light" />

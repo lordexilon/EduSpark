@@ -22,6 +22,7 @@ import MyCoursesPage from './pages/MyCoursesPage.tsx';
 import { CourseViewPage } from './pages/CourseViewPage.tsx';
 // Teacher pages
 import TeacherDashboardPage from './pages/TeacherDashboardPage.tsx';
+import SupervisorDashboard from './pages/SupervisorDashboard.tsx';
 // Fase 1 - Gestión Académica
 import CareersPage from './pages/CareersPage.tsx';
 import SubjectsPage from './pages/SubjectsPage.tsx';
@@ -79,6 +80,9 @@ import { DocumentLibraryPage } from './pages/DocumentLibraryPage.tsx';
 import ResetStudentProgressPage from './pages/ResetStudentProgressPage.tsx';
 import { UserDevicesPage } from './pages/UserDevicesPage.tsx';
 import LandingPageConfigPage from './pages/LandingPageConfigPage.tsx';
+import { MenuFeatureEditor } from './pages/Admin/MenuFeatureEditor.tsx';
+import RolesManagementPage from './pages/Admin/RolesManagementPage.tsx';
+import TestPDFViewer from './pages/TestPDFViewer.tsx'; // Página de prueba para visor PDF seguro
 
 // This component handles the conditional rendering of routes based on authentication.
 const AppRoutes: React.FC = () => {
@@ -127,11 +131,12 @@ const AppRoutes: React.FC = () => {
   }
 
   // If user is logged in, show the appropriate layout and routes based on role.
-  // Admin, admin-campus, coordinator y teacher usan el layout de teacher
+  // Admin, admin-campus, coordinator, supervisor y teacher usan el layout de teacher
   const isTeacher = user?.role?.name === 'teacher' ||
     user?.role?.name === 'admin' ||
     user?.role?.name === 'admin-campus' ||
-    user?.role?.name === 'coordinator';
+    user?.role?.name === 'coordinator' ||
+    user?.role?.name === 'supervisor';
   console.log('👤 AppRoutes: User logged in', { role: user?.role?.name, isTeacher });
 
   if (isTeacher) {
@@ -145,7 +150,11 @@ const AppRoutes: React.FC = () => {
           <TeacherLayout>
             <Routes>
               <Route path="/" element={<Navigate to="/teacher/dashboard" replace />} />
-              <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} />
+              <Route path="/teacher/dashboard" element={
+                user?.role?.name === 'supervisor'
+                  ? <SupervisorDashboard />
+                  : <TeacherDashboardPage />
+              } />
               <Route path="/teacher/flashcards" element={<TeacherFlashcardsPage />} />
               <Route path="/teacher/courses" element={<TeacherCoursesPage />} />
               <Route path="/teacher/courses/new" element={<CreateCoursePage />} />
@@ -200,9 +209,12 @@ const AppRoutes: React.FC = () => {
               <Route path="/admin/institutions" element={<AdminRoute><InstitutionManagementPage /></AdminRoute>} />
               <Route path="/admin/documents" element={<AdminRoute><DocumentLibraryPage /></AdminRoute>} />
               <Route path="/admin/devices-report" element={<AdminRoute><AdminDevicesReportPage /></AdminRoute>} />
+              <Route path="/admin/menu-features" element={<AdminRoute><MenuFeatureEditor /></AdminRoute>} />
+              <Route path="/admin/roles" element={<AdminRoute><RolesManagementPage /></AdminRoute>} />
               <Route path="/admin/settings/landing-page" element={<AdminRoute><LandingPageConfigPage /></AdminRoute>} />
               <Route path="/devices" element={<UserDevicesPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/test-pdf" element={<TestPDFViewer />} />
               <Route path="*" element={<Navigate to="/teacher/dashboard" replace />} />
             </Routes>
           </TeacherLayout>
@@ -237,6 +249,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/messages" element={<MessagingPage />} />
         <Route path="/devices" element={<UserDevicesPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/test-pdf" element={<TestPDFViewer />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Layout>

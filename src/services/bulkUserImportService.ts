@@ -96,7 +96,7 @@ export const bulkUserImportService = {
         last_name: user.last_name,
         role: user.role || 'student',
         institution_id: user.institution_id,
-        identity_document: user.identity_document || null,
+        identity_document: user.identity_document ? user.identity_document.trim() : null,
         identity_document_type: user.identity_document_type || null,
         career_id: user.career_id || null,
         subject_id: user.subject_id || null,
@@ -374,12 +374,16 @@ export const bulkUserImportService = {
 
   /**
    * Validar datos de usuario antes de importar
+   * IMPORTANTE: identity_document es el identificador principal (además de email)
    */
   validateUserData(user: BulkUserData): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
+    // Validar email O identity_document (al menos uno debe estar presente)
     if (!user.email || !user.email.includes('@')) {
-      errors.push('Email inválido');
+      if (!user.identity_document || user.identity_document.trim().length < 4) {
+        errors.push('Email válido o documento de identidad es requerido');
+      }
     }
 
     if (!user.first_name || user.first_name.trim().length === 0) {
@@ -406,6 +410,71 @@ export const bulkUserImportService = {
       }
       if (/\s/.test(doc)) {
         errors.push('Documento de identidad no puede contener espacios');
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  },
+
+  /**
+   * Validar relaciones carrera-materia-curso
+   * Verifica que:
+   * - Si se proporciona curso y materia, el curso debe pertenecer a esa materia
+   * - Si se proporciona materia y carrera, la materia debe pertenecer a esa carrera
+   * - Si se proporciona curso y carrera, el curso debe pertenecer a una materia de esa carrera
+   */
+  async validateRelationships(
+    user: BulkUserData,
+    careers: Array<{ id: number; name: string }>,
+    subjects: Array<{ id: number; name: string; career_id?: number }>,
+    courses: Array<{ id: number; title: string; subject_id?: number }>
+  ): Promise<{ valid: boolean; errors: string[] }> {
+    const errors: string[] = [];
+
+    // Si se proporciona curso, obtener su subject_id
+    let courseSubjectId: number | undefined;
+    if (user.course_id) {
+      const course = courses.find(c => c.id === user.course_id);
+      if (!course) {
+        errors.push(`Curso con ID ${user.course_id} no encontrado`);
+      } else {
+        courseSubjectId = course.subject_id;
+      }
+    }
+
+    // Si se proporciona materia, obtener su career_id
+    let subjectCareerId: number | undefined;
+    if (user.subject_id) {
+      const subject = subjects.find(s => s.id === user.subject_id);
+      if (!subject) {
+        errors.push(`Materia con ID ${user.subject_id} no encontrada`);
+      } else {
+        subjectCareerId = subject.career_id;
+      }
+    }
+
+    // Validar: Si se proporciona curso y materia, el curso debe pertenecer a esa materia
+    if (user.course_id && user.subject_id && courseSubjectId !== undefined) {
+      if (courseSubjectId !== user.subject_id) {
+        errors.push(`El curso ${user.course_id} no pertenece a la materia ${user.subject_id}. El curso pertenece a la materia ${courseSubjectId}`);
+      }
+    }
+
+    // Validar: Si se proporciona materia y carrera, la materia debe pertenecer a esa carrera
+    if (user.subject_id && user.career_id && subjectCareerId !== undefined) {
+      if (subjectCareerId !== user.career_id) {
+        errors.push(`La materia ${user.subject_id} no pertenece a la carrera ${user.career_id}. La materia pertenece a la carrera ${subjectCareerId}`);
+      }
+    }
+
+    // Validar: Si se proporciona curso y carrera (sin materia), el curso debe pertenecer a una materia de esa carrera
+    if (user.course_id && user.career_id && !user.subject_id && courseSubjectId !== undefined) {
+      const subject = subjects.find(s => s.id === courseSubjectId);
+      if (subject && subject.career_id !== user.career_id) {
+        errors.push(`El curso ${user.course_id} pertenece a una materia de la carrera ${subject.career_id}, no a la carrera ${user.career_id} especificada`);
       }
     }
 

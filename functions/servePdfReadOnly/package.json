@@ -1,0 +1,14 @@
+{
+  "name": "serve-pdf-readonly",
+  "version": "1.0.0",
+  "description": "Cloud Function para servir PDFs con restricciones de solo lectura",
+  "main": "index.js",
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.3.0",
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "engines": {
+    "node": "20"
+  }
+}
+

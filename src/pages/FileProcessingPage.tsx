@@ -1,7 +1,7 @@
 // pages/FileProcessingPage.tsx
 // Página para procesar archivos de Google Drive para RAG
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { googleDriveService } from '../services/googleDriveService';
@@ -10,7 +10,6 @@ import { subscribeToAllJobs } from '../services/firestoreService';
 import { cancelJob } from '../services/firestoreService';
 import { estimateCosts } from '../services/costEstimator';
 import { FileAnalysisModal } from '../components/FileAnalysisModal';
-import { ProcessingProgress } from '../components/ProcessingProgress';
 import { ProcessingTimer } from '../components/ProcessingTimer';
 import { CourseMaterialSelector } from '../components/CourseMaterialSelector';
 import { ProcessingNotification } from '../components/ProcessingNotification';
@@ -38,6 +37,39 @@ import type { FileAnalysis, FileProcessingJob, MaterialCategory } from '../types
 const ANALYZE_FILE_URL = import.meta.env.VITE_ANALYZE_FILE_URL || '';
 const CREATE_JOB_URL = import.meta.env.VITE_CREATE_JOB_URL || '';
 const CANCEL_JOB_URL = import.meta.env.VITE_CANCEL_JOB_URL || 'https://us-central1-eduspark-py.cloudfunctions.net/cancelFileProcessingJob';
+const RAG_WORKER_URL = import.meta.env.VITE_RAG_WORKER_URL || 'https://us-central1-eduspark-py.cloudfunctions.net/rag-worker';
+
+// Helper para manejar errores de Supabase/PostgreSQL que deben ignorarse silenciosamente
+const shouldIgnoreSupabaseError = (error: any): boolean => {
+  if (!error) return false;
+  
+  const errorCode = error.code;
+  const errorMessage = error.message?.toLowerCase() || '';
+  
+  // Errores que deben ignorarse silenciosamente:
+  // - 25P02: Transaction aborted (ocurre cuando una transacción previa falló)
+  // - 57014: Statement timeout
+  // - Errores de transacción abortada
+  const ignorableCodes = ['25P02', '57014'];
+  const ignorableMessages = [
+    'current transaction is aborted',
+    'commands ignored until end of transaction block',
+    'statement timeout'
+  ];
+  
+  return ignorableCodes.includes(errorCode) || 
+         ignorableMessages.some(msg => errorMessage.includes(msg));
+};
+
+const handleSupabaseError = (error: any, context: string = '') => {
+  if (shouldIgnoreSupabaseError(error)) {
+    // Error ignorable, solo loggear en modo debug si es necesario
+    return;
+  }
+  
+  // Error que debe ser reportado
+  console.error(`Error${context ? ` en ${context}` : ''}:`, error);
+};
 
 interface DriveFile {
   id: string;
@@ -50,6 +82,24 @@ interface DriveFile {
 export const FileProcessingPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  
+  // Manejar errores de MutationObserver y otros errores de librerías externas
+  useEffect(() => {
+    const originalError = console.error;
+    console.error = (...args: any[]) => {
+      // Filtrar errores de MutationObserver que vienen de librerías externas
+      if (args[0]?.toString().includes('MutationObserver') || 
+          args[0]?.toString().includes('observe')) {
+        // No hacer nada, estos errores son de librerías externas y no afectan la funcionalidad
+        return;
+      }
+      originalError.apply(console, args);
+    };
+    
+    return () => {
+      console.error = originalError;
+    };
+  }, []);
   const [files, setFiles] = useState<DriveFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState<string | null>(null);
@@ -71,6 +121,8 @@ export const FileProcessingPage: React.FC = () => {
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [diagnosticInfo, setDiagnosticInfo] = useState<any>(null);
   const [hiddenFileIds, setHiddenFileIds] = useState<Set<string>>(new Set());
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const reloadIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Función de diagnóstico de tokens
   const diagnosticarTokens = async () => {
@@ -285,12 +337,20 @@ export const FileProcessingPage: React.FC = () => {
     if (!user) return;
 
     const unsubscribe = subscribeToAllJobs(user.id, async (updatedJobs) => {
+      console.log(`[FileProcessing] Jobs actualizados: ${updatedJobs.length} jobs`, updatedJobs.map(j => ({
+        id: j.id,
+        status: j.status,
+        sourceFileId: j.sourceFileId,
+        metadataSourceFileId: (j.metadata as any)?.sourceFileId,
+        fileName: j.sourceFileName
+      })));
       setJobs(updatedJobs);
 
       // Actualizar IDs de archivos procesados
       const processedIds = updatedJobs
         .filter(job => job.status === 'completed')
-        .map(job => job.sourceFileId);
+        .map(job => job.sourceFileId || (job.metadata as any)?.sourceFileId)
+        .filter(Boolean);
       setProcessedFileIds(processedIds);
 
       // Detectar trabajos que cambiaron de estado para notificaciones y actualizar rag_status
@@ -314,61 +374,74 @@ export const FileProcessingPage: React.FC = () => {
           });
 
           // Actualizar rag_status en Supabase si el job tiene materialId
+          // Hacer esto de forma asíncrona para no bloquear el flujo principal
           const materialId = job.metadata?.materialId;
           if (materialId) {
-            try {
-              let newStatus: string;
-              const updateData: any = {};
+            // Ejecutar de forma asíncrona sin await para evitar bloqueos
+            (async () => {
+              try {
+                let newStatus: string;
+                const updateData: any = {};
 
-              if (job.status === 'completed') {
-                newStatus = 'completed';
-                updateData.rag_status = newStatus;
-                updateData.processed_at = new Date().toISOString();
-              } else if (job.status === 'failed') {
-                newStatus = 'failed';
-                updateData.rag_status = newStatus;
-                updateData.rag_error = job.errorMessage || 'Error en el procesamiento';
-              } else if (job.status === 'cancelled') {
-                // Para jobs cancelados, mantener el estado actual o marcarlo como 'pending'
-                // No actualizar rag_status a menos que sea necesario
-                newStatus = 'pending'; // O mantener el estado actual
-                updateData.rag_status = newStatus;
-              } else {
-                continue; // No hacer nada para otros estados
-              }
-
-              if (Object.keys(updateData).length > 0) {
-                const { error: updateError } = await supabase
-                  .from('materials')
-                  .update(updateData)
-                  .eq('id', materialId);
-
-                if (updateError) {
-                  console.error('Error actualizando rag_status:', updateError);
+                if (job.status === 'completed') {
+                  newStatus = 'completed';
+                  updateData.rag_status = newStatus;
+                  updateData.processed_at = new Date().toISOString();
+                } else if (job.status === 'failed') {
+                  newStatus = 'failed';
+                  updateData.rag_status = newStatus;
+                  updateData.rag_error = job.errorMessage || 'Error en el procesamiento';
+                } else if (job.status === 'cancelled') {
+                  // Para jobs cancelados, mantener el estado actual o marcarlo como 'pending'
+                  // No actualizar rag_status a menos que sea necesario
+                  newStatus = 'pending'; // O mantener el estado actual
+                  updateData.rag_status = newStatus;
                 } else {
-                  console.log(`✅ rag_status actualizado a "${newStatus}" para material ${materialId}`);
+                  return; // No hacer nada para otros estados
                 }
+
+                if (Object.keys(updateData).length > 0) {
+                  // Actualización asíncrona silenciosa - no bloquear por timeouts
+                  supabase
+                    .from('materials')
+                    .update(updateData)
+                    .eq('id', materialId)
+                    .then(({ error: updateError }) => {
+                      if (updateError) {
+                        // Manejar errores usando la función helper (ignora timeouts silenciosamente)
+                        handleSupabaseError(updateError, 'actualizando rag_status');
+                      }
+                    })
+                    .catch((err: any) => {
+                      // Manejar errores usando la función helper
+                      handleSupabaseError(err, 'actualizando rag_status');
+                    });
+                }
+              } catch (err: any) {
+                // Manejar errores usando la función helper
+                handleSupabaseError(err, 'actualizando estado del material');
               }
-            } catch (err: any) {
-              console.error('Error actualizando estado del material:', err);
-            }
+            })();
           }
         } else if (job.status === 'processing') {
-          // Actualizar a processing cuando inicia
+          // Actualizar a processing cuando inicia (asíncrono, no bloquea)
           const materialId = job.metadata?.materialId;
           if (materialId) {
-            try {
-              const { error: updateError } = await supabase
-                .from('materials')
-                .update({ rag_status: 'processing' })
-                .eq('id', materialId);
-
-              if (updateError) {
-                console.error('Error actualizando rag_status a processing:', updateError);
-              }
-            } catch (err: any) {
-              console.error('Error actualizando estado del material:', err);
-            }
+            // Hacer la actualización de forma asíncrona sin bloquear
+            supabase
+              .from('materials')
+              .update({ rag_status: 'processing' })
+              .eq('id', materialId)
+              .then(({ error: updateError }) => {
+                if (updateError) {
+                  // Manejar errores usando la función helper
+                  handleSupabaseError(updateError, 'actualizando rag_status a processing');
+                }
+              })
+              .catch((err: any) => {
+                // Manejar errores usando la función helper
+                handleSupabaseError(err, 'actualizando estado del material');
+              });
           }
         }
       }
@@ -378,6 +451,87 @@ export const FileProcessingPage: React.FC = () => {
       unsubscribe();
     };
   }, [user]);
+
+  // Calcular si hay jobs en procesamiento usando useMemo para evitar re-renderizados innecesarios
+  const hasProcessingJobs = useMemo(() => {
+    return jobs.some(j => 
+      j.status === 'processing' || j.status === 'pending'
+    );
+  }, [jobs]);
+
+  // Recargar jobs cada 1 minuto cuando hay jobs en procesamiento
+  useEffect(() => {
+    if (!user) {
+      // Limpiar intervalo si no hay usuario
+      if (reloadIntervalRef.current) {
+        clearInterval(reloadIntervalRef.current);
+        reloadIntervalRef.current = null;
+      }
+      return;
+    }
+
+    // Si ya hay un intervalo activo y no hay jobs en procesamiento, limpiarlo
+    if (!hasProcessingJobs && reloadIntervalRef.current) {
+      console.log('[FileProcessing] 🛑 Deteniendo intervalo de recarga (no hay jobs en procesamiento)');
+      clearInterval(reloadIntervalRef.current);
+      reloadIntervalRef.current = null;
+      return;
+    }
+
+    // Si no hay jobs en procesamiento, no hacer nada
+    if (!hasProcessingJobs) {
+      return;
+    }
+
+    // Si ya hay un intervalo activo, no crear otro
+    if (reloadIntervalRef.current) {
+      return;
+    }
+
+    console.log('[FileProcessing] ⏰ Iniciando intervalo de recarga cada 1 minuto para jobs en procesamiento');
+
+    // Función para recargar jobs
+    const reloadJobs = async () => {
+      try {
+        const { getAllJobs } = await import('../services/firestoreService');
+        const updatedJobs = await getAllJobs(user.id);
+        
+        // Solo loggear si hay cambios significativos (evitar spam)
+        setJobs(prevJobs => {
+          const hasStatusChanges = updatedJobs.some(updatedJob => {
+            const existingJob = prevJobs.find(j => j.id === updatedJob.id);
+            return !existingJob || existingJob.status !== updatedJob.status;
+          });
+          
+          if (hasStatusChanges) {
+            console.log(`[FileProcessing] 🔄 Recarga automática: ${updatedJobs.length} jobs encontrados`);
+          }
+          return updatedJobs;
+        });
+
+        // Actualizar IDs de archivos procesados
+        const processedIds = updatedJobs
+          .filter(job => job.status === 'completed')
+          .map(job => job.sourceFileId || (job.metadata as any)?.sourceFileId)
+          .filter(Boolean);
+        setProcessedFileIds(processedIds);
+      } catch (error) {
+        console.error('[FileProcessing] Error recargando jobs:', error);
+      }
+    };
+
+    // Recargar inmediatamente y luego cada 1 minuto
+    reloadJobs();
+    reloadIntervalRef.current = setInterval(reloadJobs, 60000); // 60000ms = 1 minuto
+
+    return () => {
+      if (reloadIntervalRef.current) {
+        console.log('[FileProcessing] 🛑 Deteniendo intervalo de recarga');
+        clearInterval(reloadIntervalRef.current);
+        reloadIntervalRef.current = null;
+      }
+    };
+  }, [user, hasProcessingJobs]); // Usar hasProcessingJobs en lugar de jobs para evitar bucles infinitos
 
   // Analizar archivo
   const handleAnalyze = async (file: DriveFile) => {
@@ -478,8 +632,26 @@ export const FileProcessingPage: React.FC = () => {
         throw new Error(errorMsg);
       }
     } catch (err: any) {
-      console.error('[FileProcessing] Error analizando archivo:', err);
-      setError(err.message || 'Error analizando archivo');
+      console.error('[FileProcessing] ❌ Error analizando archivo:', err);
+      
+      // Mensajes de error más descriptivos
+      let errorMessage = 'Error analizando archivo';
+      
+      if (err.message) {
+        errorMessage = err.message;
+      } else if (err.name === 'TypeError' && err.message?.includes('fetch')) {
+        errorMessage = 'Error de conexión con el servidor. Verifica tu conexión a internet e intenta nuevamente.';
+      } else if (err.name === 'AbortError') {
+        errorMessage = 'La solicitud tardó demasiado tiempo. Por favor, intenta nuevamente.';
+      } else if (err.response?.status === 401 || err.response?.status === 403) {
+        errorMessage = 'No tienes permisos para analizar este archivo. Verifica tu sesión.';
+      } else if (err.response?.status === 500) {
+        errorMessage = 'Error interno del servidor. Por favor, intenta nuevamente más tarde.';
+      } else if (err.response?.status >= 400) {
+        errorMessage = `Error del servidor (${err.response.status}). Por favor, intenta nuevamente.`;
+      }
+      
+      setError(errorMessage);
     } finally {
       setAnalyzing(null);
       console.log('[FileProcessing] Estado: analyzing = null');
@@ -488,16 +660,207 @@ export const FileProcessingPage: React.FC = () => {
 
   // Cancelar procesamiento
   const handleCancel = async (jobId: string) => {
-    if (!confirm('¿Estás seguro de que deseas cancelar este procesamiento?')) {
+    if (!confirm('⚠️ ¿Estás seguro de que deseas cancelar este procesamiento?\n\nEl progreso actual se perderá y tendrás que iniciar el procesamiento nuevamente.')) {
       return;
     }
 
     try {
+      setError(null);
       await cancelJob(jobId);
       console.log('✅ Job cancelado:', jobId);
+      // Mostrar mensaje de éxito
+      setStatusMessage('Procesamiento cancelado correctamente');
+      setTimeout(() => setStatusMessage(null), 3000);
     } catch (err: any) {
       console.error('Error cancelando job:', err);
       setError(err.message || 'Error cancelando procesamiento');
+    }
+  };
+
+  // Eliminar job fallido completamente
+  const handleDeleteFailed = async (jobId: string, fileId: string) => {
+    if (!confirm('⚠️ ¿Estás seguro de que deseas eliminar este procesamiento fallido?\n\nEsta acción no se puede deshacer.')) {
+      return;
+    }
+
+    try {
+      setError(null);
+      console.log(`[FileProcessing] 🗑️ Intentando eliminar job: ${jobId}`);
+      
+      // Verificar que el usuario esté autenticado
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        throw new Error('No hay sesión activa. Por favor, inicia sesión nuevamente.');
+      }
+      
+      console.log(`[FileProcessing] Usuario autenticado: ${session.user.id}`);
+      
+      // Verificar que el job pertenece al usuario antes de eliminar
+      const { data: jobData, error: fetchError } = await supabase
+        .from('file_processing_jobs')
+        .select('id, user_id')
+        .eq('id', jobId)
+        .single();
+      
+      if (fetchError || !jobData) {
+        throw new Error('Job no encontrado');
+      }
+      
+      if (jobData.user_id !== session.user.id) {
+        throw new Error('No tienes permisos para eliminar este job. El job pertenece a otro usuario.');
+      }
+      
+      console.log(`[FileProcessing] ✅ Verificación de permisos OK. Job pertenece al usuario. Eliminando...`);
+      console.log(`[FileProcessing] Detalles del job:`, {
+        jobId,
+        jobUserId: jobData.user_id,
+        sessionUserId: session.user.id,
+        match: jobData.user_id === session.user.id
+      });
+      
+      // Eliminar el job de la base de datos
+      // La política RLS ya verifica que user_id = auth.uid(), así que solo necesitamos el ID
+      const { data: deleteData, error: deleteError } = await supabase
+        .from('file_processing_jobs')
+        .delete()
+        .eq('id', jobId)
+        .select();
+
+      if (deleteError) {
+        console.error('[FileProcessing] ❌ Error eliminando job:', {
+          error: deleteError,
+          code: deleteError.code,
+          message: deleteError.message,
+          details: deleteError.details,
+          hint: deleteError.hint
+        });
+        
+        // Si es un error de permisos, mostrar mensaje más claro
+        if (deleteError.code === '42501' || deleteError.message?.includes('permission') || deleteError.message?.includes('policy')) {
+          throw new Error('No tienes permisos para eliminar este job. Esto podría ser un problema de configuración de seguridad en la base de datos.');
+        }
+        
+        throw deleteError;
+      }
+
+      // Verificar que realmente se eliminó
+      if (deleteData && deleteData.length > 0) {
+        console.log(`[FileProcessing] ✅ Job eliminado exitosamente. Filas afectadas: ${deleteData.length}`, deleteData);
+      } else {
+        console.warn(`[FileProcessing] ⚠️ DELETE ejecutado pero no se eliminó ninguna fila. Esto podría indicar:
+          - El job no existe
+          - Hay un problema de permisos RLS (Row Level Security)
+          - El job pertenece a otro usuario
+          
+          Job ID: ${jobId}
+          Usuario actual: ${user?.id}`);
+        
+        // Mostrar error al usuario
+        setError('No se pudo eliminar el job. Verifica que tengas permisos o que el job exista.');
+        return;
+      }
+
+      // Filtrar el job eliminado inmediatamente del estado local
+      setJobs(prevJobs => {
+        const filtered = prevJobs.filter(j => j.id !== jobId);
+        console.log(`[FileProcessing] Job ${jobId} eliminado del estado local. Jobs restantes: ${filtered.length}`);
+        return filtered;
+      });
+
+      // También ocultar el archivo
+      handleHideFile(fileId);
+      
+      console.log('✅ Job eliminado:', jobId);
+      setStatusMessage('Procesamiento fallido eliminado');
+      setTimeout(() => setStatusMessage(null), 3000);
+      
+      // Forzar recarga de jobs después de eliminar (con delay mayor para dar tiempo a Supabase)
+      setTimeout(async () => {
+        console.log('[FileProcessing] Forzando recarga de jobs después de eliminar job...');
+        try {
+          const { getAllJobs } = await import('../services/firestoreService');
+          const allJobs = await getAllJobs(user?.id || '');
+          console.log(`[FileProcessing] Jobs cargados después de eliminar: ${allJobs.length}`, allJobs.map(j => ({
+            id: j.id,
+            status: j.status,
+            sourceFileId: j.sourceFileId,
+            fileName: j.sourceFileName,
+            errorMessage: j.errorMessage
+          })));
+          
+          // Verificar que el job eliminado realmente no esté en la lista
+          const deletedJobStillExists = allJobs.find(j => j.id === jobId);
+          if (deletedJobStillExists) {
+            console.warn(`⚠️ El job eliminado ${jobId} todavía aparece en la lista. Filtrando manualmente...`);
+            // Filtrar manualmente si todavía aparece
+            const filteredJobs = allJobs.filter(j => j.id !== jobId);
+            setJobs(filteredJobs);
+          } else {
+            setJobs(allJobs);
+          }
+        } catch (err) {
+          console.error('[FileProcessing] Error recargando jobs después de eliminar:', err);
+        }
+      }, 2000); // Aumentado a 2 segundos para dar más tiempo a Supabase
+    } catch (err: any) {
+      console.error('Error eliminando job:', err);
+      setError(err.message || 'Error eliminando procesamiento fallido');
+    }
+  };
+
+  // Forzar procesamiento de un job que está atascado en pending
+  const handleForceProcess = async (jobId: string) => {
+    if (!confirm('🔄 ¿Deseas forzar el procesamiento de este job?\n\nEsto invocará directamente al RAG worker para procesar el job.')) {
+      return;
+    }
+
+    try {
+      setError(null);
+      console.log(`[FileProcessing] 🔄 Forzando procesamiento del job: ${jobId}`);
+
+      // Obtener token de autenticación
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No hay sesión activa. Por favor, inicia sesión nuevamente.');
+      }
+
+      // Invocar directamente al RAG worker
+      const response = await fetch(RAG_WORKER_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          jobId: jobId,
+          action: 'process'
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error del RAG worker: ${response.status} - ${errorText}`);
+      }
+
+      const responseText = await response.text();
+      console.log(`[FileProcessing] ✅ RAG worker invocado exitosamente. Respuesta: ${responseText}`);
+      
+      setStatusMessage('✅ Procesamiento forzado. El job debería comenzar a procesarse en breve.');
+      setTimeout(() => setStatusMessage(null), 5000);
+
+      // Recargar jobs después de un momento
+      setTimeout(async () => {
+        try {
+          const { getAllJobs } = await import('../services/firestoreService');
+          const allJobs = await getAllJobs(user.id);
+          setJobs(allJobs);
+        } catch (err) {
+          console.error('[FileProcessing] Error recargando jobs:', err);
+        }
+      }, 2000);
+    } catch (err: any) {
+      console.error('[FileProcessing] ❌ Error forzando procesamiento:', err);
+      setError(err.message || 'Error al forzar el procesamiento del job');
     }
   };
 
@@ -520,7 +883,7 @@ export const FileProcessingPage: React.FC = () => {
   // Procesar archivo
   const handleProcess = async (ragProcessingType: 'full' | 'readonly' = 'full') => {
     if (!user || !analysis || !CREATE_JOB_URL) {
-      setError('Datos incompletos para procesar');
+      setError('Datos incompletos para procesar. Por favor, verifica que todos los datos estén disponibles.');
       return;
     }
 
@@ -532,18 +895,51 @@ export const FileProcessingPage: React.FC = () => {
     try {
       setProcessing(true);
       setError(null);
+      setStatusMessage(null);
 
-      // Crear material en Supabase primero
+      console.log('[FileProcessing] Iniciando procesamiento:', {
+        fileId: analysis.fileId,
+        fileName: analysis.fileName,
+        courseId: selectedCourseId,
+        ragProcessingType,
+        hasAnalysis: !!analysis
+      });
+
+      // Crear material en Supabase primero - ES CRÍTICO
       let materialId: string | undefined;
       try {
         // Determinar el tipo de material basado en el archivo
         const file = files.find(f => f.id === analysis.fileId);
+        if (!file) {
+          throw new Error(`No se encontró el archivo ${analysis.fileId} en la lista de archivos`);
+        }
+
         const isImage = file?.mimeType?.startsWith('image/') || false;
         const materialKind = isImage ? 'other' : 'pdf'; // Las imágenes se guardan como 'other'
         const mimeType = file?.mimeType || 'application/pdf';
 
-        // Determinar rag_status según el tipo de procesamiento
-        const ragStatus = ragProcessingType === 'readonly' ? 'readonly' : 'pending';
+            // Determinar rag_status según el tipo de procesamiento
+            // Para materiales de solo lectura, rag_status debe ser NULL (no se procesan para RAG)
+            // La constraint solo permite: 'pending', 'processing', 'completed', 'failed', NULL
+            const ragStatus = ragProcessingType === 'readonly' ? null : 'pending';
+            
+            // Establecer purpose según el tipo de procesamiento
+            // 'rag' = Solo para RAG (procesar pero NO mostrar a estudiantes)
+            // 'download' = Solo para descarga/visualización (NO procesar para RAG)
+            // 'both' = Para RAG Y descarga/visualización
+            const purpose = ragProcessingType === 'readonly' ? 'download' : 
+                           ragProcessingType === 'full' ? 'rag' : 
+                           'rag'; // Por defecto, solo para RAG
+
+        console.log('[FileProcessing] Creando material en Supabase:', {
+          course_id: selectedCourseId,
+          title: analysis.fileName,
+          kind: materialKind,
+          category: selectedCategory,
+          rag_status: ragStatus,
+          purpose: purpose,
+          ragProcessingType: ragProcessingType
+        });
 
         const { data: material, error: materialError } = await supabase
           .from('materials')
@@ -552,7 +948,8 @@ export const FileProcessingPage: React.FC = () => {
             title: analysis.fileName,
             kind: materialKind,
             category: selectedCategory,
-            rag_status: ragStatus,
+            rag_status: ragStatus, // NULL para solo lectura, 'pending' para RAG
+            purpose: purpose, // 'download' para solo lectura, 'rag' para procesamiento RAG
             mime_type: mimeType,
             size_bytes: analysis.fileSize,
             metadata: {
@@ -560,25 +957,152 @@ export const FileProcessingPage: React.FC = () => {
               pdfType: analysis.pdfType,
               requiresOCR: analysis.requiresOCR,
               isImage: isImage,
-              ragProcessingType: ragProcessingType,
+              ragProcessingType: ragProcessingType, // Guardar en metadata para referencia
             },
           })
           .select('id')
           .single();
 
-        if (materialError) throw materialError;
+        if (materialError) {
+          console.error('[FileProcessing] Error detallado al crear material:', materialError);
+          throw new Error(`Error al crear el material: ${materialError.message || 'Error desconocido'}`);
+        }
+
+        if (!material?.id) {
+          throw new Error('No se recibió el ID del material creado');
+        }
+
         materialId = material.id;
+        console.log(`[FileProcessing] ✅ Material creado exitosamente: ${materialId}`);
       } catch (err: any) {
-        console.error('Error creando material:', err);
-        // Continuar aunque falle la creación del material
+        console.error('[FileProcessing] ❌ Error crítico creando material:', err);
+        const errorMsg = err.message || 'Error al crear el material en la base de datos';
+        setError(`No se pudo crear el material. ${errorMsg}. Por favor, intenta nuevamente.`);
+        setProcessing(false);
+        return; // NO continuar si no se puede crear el material
       }
 
       // Obtener token de autenticación de Supabase
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        setError('No hay sesión activa. Por favor, inicia sesión nuevamente.');
+        const errorMsg = 'No hay sesión activa. Por favor, inicia sesión nuevamente.';
+        console.error('[FileProcessing]', errorMsg);
+        setError(errorMsg);
+        setProcessing(false);
         return;
       }
+
+      // Para materiales de solo lectura, aplicar restricciones al archivo INMEDIATAMENTE
+      // Las restricciones se aplican al archivo de Google Drive antes de compartirlo
+      if (ragProcessingType === 'readonly') {
+        console.log('[FileProcessing] Material de solo lectura creado. Aplicando restricciones al archivo de Google Drive...');
+        
+        try {
+          // Importar el servicio de Google Drive dinámicamente
+          const { googleDriveService } = await import('../services/googleDriveService');
+          
+          // Aplicar restricciones al archivo PRIMERO (sin compartir con usuarios)
+          const restrictionsResult = await googleDriveService.applyReadOnlyRestrictions(
+            user.id,
+            analysis.fileId
+          );
+          
+          if (!restrictionsResult.success) {
+            console.error('[FileProcessing] ❌ Error aplicando restricciones:', restrictionsResult.error);
+            setShowAnalysisModal(false);
+            setAnalysis(null);
+            setStatusMessage(
+              `⚠️ Material creado pero no se pudieron aplicar las restricciones de solo lectura. ` +
+              `Error: ${restrictionsResult.error}. Puedes intentar compartirlo manualmente desde la página de materiales.`
+            );
+            setProcessing(false);
+            return;
+          }
+          
+          console.log('[FileProcessing] ✅ Restricciones aplicadas al archivo de Google Drive');
+          
+          // Intentar compartir con estudiantes (si hay estudiantes inscritos)
+          try {
+            const { materialService } = await import('../services/teacherCourses');
+            
+            const shareResult = await materialService.shareMaterialWithCourseStudents(
+              materialId,
+              selectedCourseId,
+              user.id,
+              'reader' // Solo lectura
+            );
+            
+            if (shareResult.success.length > 0) {
+              console.log('[FileProcessing] ✅ Material compartido con estudiantes. viewLink generado:', shareResult.viewLink);
+              setShowAnalysisModal(false);
+              setAnalysis(null);
+              setStatusMessage(
+                `✅ Material de solo lectura creado y compartido exitosamente con ${shareResult.success.length} estudiante(s). ` +
+                `El documento tiene restricciones de solo lectura - no se puede imprimir ni descargar.`
+              );
+            } else {
+              console.log('[FileProcessing] ⚠️ No hay estudiantes inscritos para compartir');
+              setShowAnalysisModal(false);
+              setAnalysis(null);
+              setStatusMessage(
+                `✅ Material de solo lectura creado con restricciones aplicadas. ` +
+                `No se compartió porque no hay estudiantes inscritos en el curso. ` +
+                `Puedes compartirlo manualmente cuando haya estudiantes.`
+              );
+            }
+          } catch (shareError: any) {
+            console.warn('[FileProcessing] ⚠️ Error compartiendo material (las restricciones ya están aplicadas):', shareError);
+            setShowAnalysisModal(false);
+            setAnalysis(null);
+            setStatusMessage(
+              `✅ Material de solo lectura creado con restricciones aplicadas. ` +
+              `No se pudo compartir automáticamente: ${shareError.message}. ` +
+              `Puedes compartirlo manualmente desde la página de materiales.`
+            );
+          }
+        } catch (error: any) {
+          console.error('[FileProcessing] ❌ Error crítico aplicando restricciones:', error);
+          setShowAnalysisModal(false);
+          setAnalysis(null);
+          setStatusMessage(
+            `⚠️ Material creado pero hubo un error aplicando las restricciones: ${error.message}. ` +
+            `Puedes intentar compartirlo manualmente desde la página de materiales.`
+          );
+        }
+        
+        setProcessing(false);
+        return; // Terminar aquí para materiales de solo lectura
+      }
+
+      // Para procesamiento RAG completo, crear el job
+      // Validar que tenemos todos los datos necesarios
+      if (!analysis.fileId || !analysis.fileName) {
+        throw new Error('Datos de análisis incompletos');
+      }
+
+      const requestBody = {
+        fileId: analysis.fileId,
+        fileName: analysis.fileName,
+        courseId: selectedCourseId,
+        userId: user.id,
+        category: selectedCategory,
+        materialId: materialId,
+        ragProcessingType: ragProcessingType, // 'full'
+        analysis: {
+          totalPages: analysis.totalPages,
+          pdfType: analysis.pdfType,
+          estimatedCosts: {
+            ...analysis.estimatedCosts.estimatedCosts,
+            processingTime: (analysis.estimatedCosts as any).processingTime, // Incluir processingTime desde estimatedCosts
+          },
+        },
+      };
+
+      console.log('[FileProcessing] Enviando solicitud de creación de job a:', CREATE_JOB_URL);
+      console.log('[FileProcessing] Datos del request:', {
+        ...requestBody,
+        analysis: { ...requestBody.analysis, estimatedCosts: '...' } // No loggear costs completos
+      });
 
       const response = await fetch(CREATE_JOB_URL, {
         method: 'POST',
@@ -588,38 +1112,103 @@ export const FileProcessingPage: React.FC = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({
-          fileId: analysis.fileId,
-          fileName: analysis.fileName,
-          courseId: selectedCourseId,
-          userId: user.id,
-          category: selectedCategory,
-          materialId: materialId,
-          ragProcessingType: ragProcessingType, // 'full' o 'readonly'
-          analysis: {
-            totalPages: analysis.totalPages,
-            pdfType: analysis.pdfType,
-            estimatedCosts: analysis.estimatedCosts.estimatedCosts,
-          },
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      console.log('[FileProcessing] Respuesta recibida:', response.status, response.statusText);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error creando trabajo');
+        let errorMessage = `Error ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+          console.error('[FileProcessing] Error detallado del servidor:', errorData);
+        } catch (e) {
+          const errorText = await response.text();
+          console.error('[FileProcessing] Error en formato texto:', errorText);
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      if (data.success) {
-        setShowAnalysisModal(false);
-        setAnalysis(null);
-        // El trabajo se mostrará automáticamente en el dashboard gracias a la suscripción
-      } else {
+      console.log('[FileProcessing] Respuesta de creación de job:', data);
+      
+      if (!data.success) {
         throw new Error(data.error || 'Error en la creación del trabajo');
       }
+
+      if (!data.jobId) {
+        throw new Error('No se recibió el ID del job creado. El procesamiento puede no haberse iniciado correctamente.');
+      }
+
+      console.log(`[FileProcessing] ✅ Job creado exitosamente: ${data.jobId}`);
+      setShowAnalysisModal(false);
+      setAnalysis(null);
+      setStatusMessage(`✅ Procesamiento iniciado correctamente. Job ID: ${data.jobId}`);
+      
+      // Limpiar jobs antiguos fallidos para el mismo archivo (opcional, no bloqueante)
+      (async () => {
+        try {
+          const { getAllJobs } = await import('../services/firestoreService');
+          const allJobs = await getAllJobs(user.id);
+          
+          // Encontrar jobs antiguos fallidos para el mismo archivo
+          const oldFailedJobs = allJobs.filter(j => {
+            const jobFileId = j.sourceFileId || (j.metadata as any)?.sourceFileId;
+            return jobFileId === analysis.fileId && 
+                   j.status === 'failed' && 
+                   j.id !== data.jobId &&
+                   j.errorMessage !== 'Cancelado por el usuario'; // No eliminar cancelados manualmente
+          });
+          
+          // Eliminar jobs antiguos (máximo 1 a la vez para no sobrecargar)
+          if (oldFailedJobs.length > 0) {
+            console.log(`[FileProcessing] 🧹 Limpiando ${oldFailedJobs.length} job(s) antiguo(s) fallido(s) para el mismo archivo`);
+            const oldestJob = oldFailedJobs.sort((a, b) => {
+              const dateA = new Date(a.createdAt || 0).getTime();
+              const dateB = new Date(b.createdAt || 0).getTime();
+              return dateA - dateB; // Más antiguo primero
+            })[0];
+            
+            // Eliminar solo el más antiguo
+            const { error: deleteError } = await supabase
+              .from('file_processing_jobs')
+              .delete()
+              .eq('id', oldestJob.id);
+            
+            if (deleteError) {
+              console.warn('[FileProcessing] ⚠️ No se pudo eliminar job antiguo:', deleteError);
+            } else {
+              console.log(`[FileProcessing] ✅ Job antiguo eliminado: ${oldestJob.id}`);
+            }
+          }
+        } catch (err) {
+          console.warn('[FileProcessing] ⚠️ Error limpiando jobs antiguos (no crítico):', err);
+        }
+      })();
+      
+      // Forzar recarga de jobs después de un breve delay para asegurar que se haya guardado
+      setTimeout(async () => {
+        console.log('[FileProcessing] Forzando recarga de jobs después de crear job...');
+        try {
+          const { getAllJobs } = await import('../services/firestoreService');
+          const allJobs = await getAllJobs(user.id);
+          console.log(`[FileProcessing] Jobs cargados manualmente: ${allJobs.length}`, allJobs);
+          setJobs(allJobs);
+        } catch (err) {
+          console.error('[FileProcessing] Error recargando jobs:', err);
+        }
+      }, 2000);
     } catch (err: any) {
-      console.error('Error procesando archivo:', err);
-      setError(err.message || 'Error procesando archivo');
+      console.error('[FileProcessing] ❌ Error procesando archivo:', err);
+      const errorMessage = err.message || 'Error procesando archivo';
+      setError(errorMessage);
+      
+      // Si el error es por falta de material, sugerir reintentar
+      if (errorMessage.includes('material')) {
+        setStatusMessage('⚠️ No se pudo crear el material. Por favor, verifica que el curso esté correcto e intenta nuevamente.');
+      }
     } finally {
       setProcessing(false);
     }
@@ -720,15 +1309,56 @@ export const FileProcessingPage: React.FC = () => {
         </div>
       )}
 
+      {/* Mensaje de estado (éxito/info) */}
+      {statusMessage && (
+        <Card className="mb-6 bg-green-50 border-green-200">
+          <div className="flex items-start space-x-3">
+            <CheckCircle2 className="text-green-500 flex-shrink-0 mt-1" size={24} />
+            <div className="flex-1">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-green-700">{statusMessage}</p>
+                </div>
+                <button
+                  onClick={() => setStatusMessage(null)}
+                  className="ml-4 text-green-500 hover:text-green-700 transition-colors"
+                  title="Cerrar mensaje"
+                >
+                  <XCircle size={20} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {error && (
-        <Card className="mb-6 bg-red-50 border-red-200">
+        <Card className="mb-6 bg-red-50 border-red-200 border-l-4 border-l-red-500">
           <div className="flex items-start space-x-3">
             <AlertCircle className="text-red-500 flex-shrink-0 mt-1" size={24} />
             <div className="flex-1">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-red-800 mb-2">Error</h3>
-                  <p className="text-red-700 mb-3">{error}</p>
+                  <h3 className="text-lg font-semibold text-red-800 mb-2">⚠️ Error en el Procesamiento</h3>
+                  <p className="text-red-700 mb-3 font-medium">{error}</p>
+                  {/* Mensajes de ayuda según el tipo de error */}
+                  {error.includes('conexión') || error.includes('conexion') || error.includes('network') ? (
+                    <p className="text-sm text-red-600 mt-2">
+                      💡 Verifica tu conexión a internet e intenta nuevamente.
+                    </p>
+                  ) : error.includes('Google Drive') || error.includes('Drive') ? (
+                    <p className="text-sm text-red-600 mt-2">
+                      💡 Asegúrate de tener acceso a Google Drive y que la API esté habilitada.
+                    </p>
+                  ) : error.includes('sesión') || error.includes('sesion') || error.includes('autenticación') ? (
+                    <p className="text-sm text-red-600 mt-2">
+                      💡 Tu sesión puede haber expirado. Por favor, recarga la página e inicia sesión nuevamente.
+                    </p>
+                  ) : error.includes('procesamiento') || error.includes('procesar') ? (
+                    <p className="text-sm text-red-600 mt-2">
+                      💡 El procesamiento falló. Puedes intentar nuevamente o contactar al administrador si el problema persiste.
+                    </p>
+                  ) : null}
                 </div>
                 <button
                   onClick={() => setError(null)}
@@ -879,8 +1509,8 @@ export const FileProcessingPage: React.FC = () => {
       )}
 
       {folderId && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Lista de archivos */}
+        <div className="w-full">
+          {/* Lista de archivos - Ocupa todo el ancho disponible */}
           <Card>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-800">Archivos Disponibles</h2>
@@ -918,9 +1548,99 @@ export const FileProcessingPage: React.FC = () => {
             ) : (
               <div className="space-y-3">
                 {files.filter(file => !hiddenFileIds.has(file.id)).map((file) => {
-                  const isAnalyzing = analyzing === file.id;
-                  const fileJobs = jobs.filter(j => j.sourceFileId === file.id);
+                    const isAnalyzing = analyzing === file.id;
+                    // Buscar jobs que coincidan con el fileId (puede estar en sourceFileId o en metadata.sourceFileId)
+                    let fileJobs = jobs.filter(j => {
+                      const jobFileId = j.sourceFileId || (j.metadata as any)?.sourceFileId;
+                      const matches = jobFileId === file.id;
+                      // Log comentado para evitar spam en consola - solo usar para debugging específico
+                      // if (matches) {
+                      //   console.log(`[FileProcessing] ✅ Job encontrado para archivo ${file.id}:`, {
+                      //     jobId: j.id,
+                      //     status: j.status,
+                      //     sourceFileId: j.sourceFileId,
+                      //     metadataSourceFileId: (j.metadata as any)?.sourceFileId
+                      //   });
+                      // }
+                      return matches;
+                    });
+                    
+                    // Filtrar jobs: mostrar solo el más relevante
+                    // Prioridad: processing > pending > completed > failed (más reciente) > cancelled
+                    if (fileJobs.length > 1) {
+                      // Guardar el conteo original antes de filtrar
+                      const originalCount = fileJobs.length;
+                      
+                      // Ordenar por prioridad y fecha
+                      fileJobs.sort((a, b) => {
+                        // Prioridad de estados
+                        const priorityOrder: Record<string, number> = {
+                          'processing': 1,
+                          'pending': 2,
+                          'completed': 3,
+                          'failed': 4,
+                          'cancelled': 5
+                        };
+                        
+                        const priorityA = priorityOrder[a.status] || 99;
+                        const priorityB = priorityOrder[b.status] || 99;
+                        
+                        // Si tienen la misma prioridad, usar la fecha más reciente
+                        if (priorityA === priorityB) {
+                          const dateA = new Date(a.createdAt || a.updatedAt || 0).getTime();
+                          const dateB = new Date(b.createdAt || b.updatedAt || 0).getTime();
+                          return dateB - dateA; // Más reciente primero
+                        }
+                        
+                        return priorityA - priorityB; // Menor número = mayor prioridad
+                      });
+                      
+                      // Filtrar jobs cancelados explícitamente
+                      const cancelledJobs = fileJobs.filter(j => 
+                        j.status === 'cancelled' || 
+                        (j.status === 'failed' && j.errorMessage === 'Cancelado por el usuario')
+                      );
+                      
+                      const activeJobs = fileJobs.filter(j => 
+                        j.status !== 'cancelled' && 
+                        !(j.status === 'failed' && j.errorMessage === 'Cancelado por el usuario')
+                      );
+                      
+                      // Si hay jobs activos, mostrar solo el más prioritario
+                      if (activeJobs.length > 0) {
+                        fileJobs = [activeJobs[0]]; // Solo el más prioritario
+                      } else if (cancelledJobs.length > 0) {
+                        // Si todos están cancelados, mostrar solo el más reciente
+                        fileJobs = [cancelledJobs[0]];
+                      } else {
+                        // Fallback: mostrar solo el primero después de ordenar
+                        fileJobs = [fileJobs[0]];
+                      }
+                      
+                      // Log comentado para evitar spam - solo usar para debugging específico
+                      // console.log(`[FileProcessing] 🔍 Filtrado: 1 job mostrado de ${originalCount} total(es) para archivo ${file.name}`);
+                    }
                   const hasJobs = fileJobs.length > 0;
+                  
+                  // Debug: Log comentado para evitar spam - solo usar para debugging específico
+                  // console.log(`[FileProcessing] 📄 Archivo ${file.name} (${file.id}):`, {
+                  //   totalJobs: jobs.length,
+                  //   fileJobs: fileJobs.length,
+                  //   hasJobs,
+                  //   fileJobsDetails: fileJobs.map(j => ({
+                  //     id: j.id,
+                  //     status: j.status,
+                  //     sourceFileId: j.sourceFileId,
+                  //     metadataSourceFileId: (j.metadata as any)?.sourceFileId
+                  //   })),
+                  //   allJobs: jobs.map(j => ({
+                  //     id: j.id,
+                  //     status: j.status,
+                  //     sourceFileId: j.sourceFileId,
+                  //     metadataSourceFileId: (j.metadata as any)?.sourceFileId,
+                  //     fileName: j.sourceFileName
+                  //   }))
+                  // });
                   const isCompleted = fileJobs.length > 0 && fileJobs.every(j => j.status === 'completed');
                   const isAlreadyProcessed = processedFileIds.includes(file.id);
                   const canReanalyze = isCompleted || isAlreadyProcessed; // Permitir re-análisis solo si está completado
@@ -930,18 +1650,36 @@ export const FileProcessingPage: React.FC = () => {
                   const fileTypeLabel = getFileTypeLabel(file.mimeType);
                   // Mejorar detección de procesamiento para evitar jobs "colgados"
                   const isProcessing = fileJobs.some(j => {
-                    if (j.status !== 'processing') return false;
-                    // Verificar si el job lleva más de 2 horas sin actualizar
+                    // Considerar tanto 'processing' como 'pending' como estados de procesamiento
+                    if (j.status !== 'processing' && j.status !== 'pending') return false;
+                    
+                    // Verificar si el job lleva más de 2 horas sin actualizar (posiblemente colgado)
                     const updatedAt = j.updatedAt ? new Date(j.updatedAt) : new Date(j.createdAt);
                     const now = new Date();
                     const hoursSinceUpdate = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60);
+                    
+                    // Si lleva más de 2 horas sin actualizar, considerarlo como "stuck"
                     if (hoursSinceUpdate > 2) {
-                      console.warn(`Job ${j.id} lleva ${hoursSinceUpdate.toFixed(1)} horas sin actualizar`);
-                      return false;
+                      console.warn(`⚠️ Job ${j.id} lleva ${hoursSinceUpdate.toFixed(1)} horas sin actualizar (posiblemente colgado)`);
+                      // Aún así lo mostramos como procesando pero con advertencia
+                      return true;
                     }
                     return true;
                   });
+                  
+                  // Detectar si hay jobs "stuck" (más de 2 horas)
+                  const hasStuckJob = fileJobs.some(j => {
+                    if (j.status !== 'processing' && j.status !== 'pending') return false;
+                    const updatedAt = j.updatedAt ? new Date(j.updatedAt) : new Date(j.createdAt);
+                    const now = new Date();
+                    const hoursSinceUpdate = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60);
+                    return hoursSinceUpdate > 2;
+                  });
+                  
                   const hasFailed = fileJobs.some(j => j.status === 'failed');
+                  
+                  // Obtener el job principal para usar en los badges
+                  const mainJobForBadge = fileJobs.length > 0 ? fileJobs[0] : null;
 
                   return (
                     <div
@@ -1000,9 +1738,29 @@ export const FileProcessingPage: React.FC = () => {
                                   </span>
                                 )}
                                 {isProcessing && (
-                                  <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium flex items-center gap-1">
-                                    <Clock className="w-3 h-3 animate-pulse" />
-                                    Procesando
+                                  <span className={`px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1 ${
+                                    hasStuckJob 
+                                      ? 'bg-orange-100 text-orange-800' 
+                                      : fileJobs.some(j => j.status === 'pending')
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {hasStuckJob ? (
+                                      <>
+                                        <AlertCircle className="w-3 h-3" />
+                                        Detenido
+                                      </>
+                                    ) : fileJobs.some(j => j.status === 'pending') ? (
+                                      <>
+                                        <Clock className="w-3 h-3" />
+                                        En cola
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Clock className="w-3 h-3 animate-pulse" />
+                                        Procesando
+                                      </>
+                                    )}
                                   </span>
                                 )}
                                 {fileJobs.some(j => j.status === 'cancelled') && (
@@ -1026,72 +1784,438 @@ export const FileProcessingPage: React.FC = () => {
                               <span>•</span>
                               <span>Modificado: {formatDate(file.modifiedTime)}</span>
                             </div>
+                            
+                            {/* Tarjeta de procesamiento - mostrar siempre que haya un job para este archivo */}
                             {hasJobs && (() => {
-                              const mainJob = fileJobs[0]; // El job principal
-                              const chunksProcessed = mainJob?.chunksProcessed || 0;
-                              const chunksTotal = mainJob?.chunksTotal;
-                              const isProcessing = mainJob?.status === 'processing' || mainJob?.status === 'pending';
+                              const mainJob = fileJobs[0]; // Usar directamente el primer job de fileJobs
+                              
+                              if (!mainJob) {
+                                console.warn(`[FileProcessing] ⚠️ hasJobs es true pero no hay mainJob para ${file.id}`);
+                                return null;
+                              }
+                              
+                              // Log comentado para evitar spam en consola - solo usar para debugging específico
+                              // console.log(`[FileProcessing] 🎯 Renderizando tarjeta de procesamiento para ${file.name}:`, {
+                              //   jobId: mainJob.id,
+                              //   status: mainJob.status,
+                              //   hasJobs,
+                              //   fileJobsCount: fileJobs.length
+                              // });
+                              // Obtener chunks desde metadata o desde el job directamente
+                              const chunksProcessed = (mainJob?.metadata as any)?.chunksProcessed || 
+                                                      (mainJob as any)?.chunksProcessed || 0;
+                              const chunksTotal = (mainJob?.metadata as any)?.chunksTotal || 
+                                                  (mainJob as any)?.chunksTotal;
+                              
+                              // Log del progreso comentado para evitar spam en consola - solo usar para debugging específico
+                              // if (chunksTotal && chunksTotal > 0) {
+                              //   const progressPercent = Math.round((chunksProcessed / chunksTotal) * 100);
+                              //   console.log(`[FileProcessing] 📊 Progreso de chunks para ${file.name}: ${chunksProcessed}/${chunksTotal} (${progressPercent}%)`, {
+                              //     jobId: mainJob?.id,
+                              //     status: mainJob?.status,
+                              //     metadata: mainJob?.metadata
+                              //   });
+                              // }
+                              // Detectar estado de procesamiento (incluyendo pending)
+                              const isProcessingJob = mainJob?.status === 'processing' || mainJob?.status === 'pending';
+                              // Usar las variables del scope externo para isCompleted y hasFailed
+                              const isCompletedJob = mainJob?.status === 'completed';
+                              const hasFailedJob = mainJob?.status === 'failed';
+                              
+                              // Detectar si el job está "stuck" (más de 2 horas sin actualizar)
+                              const isStuck = isProcessingJob && mainJob?.updatedAt && (() => {
+                                const updatedAt = new Date(mainJob.updatedAt);
+                                const now = new Date();
+                                const hoursSinceUpdate = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60);
+                                return hoursSinceUpdate > 2;
+                              })();
+                              
                               // Obtener tiempo estimado de diferentes posibles ubicaciones
                               const estimatedMinutes = mainJob?.metadata?.estimatedCosts?.processingTime?.estimatedMinutes ||
-                                mainJob?.metadata?.estimatedCosts?.estimatedCosts?.processingTime?.estimatedMinutes ||
+                                (mainJob?.metadata?.estimatedCosts as any)?.estimatedCosts?.processingTime?.estimatedMinutes ||
                                 (mainJob?.metadata?.estimatedCosts?.processingTime?.estimatedHours
                                   ? mainJob.metadata.estimatedCosts.processingTime.estimatedHours * 60
                                   : undefined);
+                              
+                              // Obtener startTime: usar startedAt si está disponible, sino usar createdAt
+                              const startTime = mainJob?.startedAt || mainJob?.createdAt;
+                              
+                              // Debug: Log comentado para evitar spam en consola - solo usar para debugging específico
+                              // console.log(`[FileProcessing] Timer para ${file.name}:`, {
+                              //   status: mainJob?.status,
+                              //   isProcessingJob,
+                              //   startTime,
+                              //   startedAt: mainJob?.startedAt,
+                              //   createdAt: mainJob?.createdAt,
+                              //   estimatedMinutes,
+                              //   chunksProcessed,
+                              //   chunksTotal
+                              // });
+
+                              // Determinar etapa actual del procesamiento con más detalles
+                              const getProcessingStage = () => {
+                                if (!isProcessingJob) return null;
+                                
+                                // Normalizar estado a minúsculas para comparación robusta
+                                const jobStatus = (mainJob?.status || '').toLowerCase().trim();
+                                
+                                // Debug: Log para diagnosticar el problema
+                                console.log(`[ProcessingStage] ${file.name}:`, {
+                                  status: mainJob?.status,
+                                  statusNormalized: jobStatus,
+                                  startedAt: mainJob?.startedAt,
+                                  createdAt: mainJob?.createdAt,
+                                  chunksProcessed,
+                                  chunksTotal,
+                                  isProcessingJob
+                                });
+                                
+                                // Si el job está en "pending", mostrar mensaje de espera
+                                if (jobStatus === 'pending') {
+                                  console.log(`[ProcessingStage] ✅ Job en pending, retornando mensaje de cola`);
+                                  return '⏳ Esperando en cola de procesamiento...';
+                                }
+                                
+                                // Si el job está en "processing", mostrar etapas según progreso
+                                if (jobStatus === 'processing') {
+                                  // Si no tiene startedAt y no hay chunks procesados, aún no ha comenzado realmente
+                                  if (!mainJob?.startedAt && chunksProcessed === 0) {
+                                    console.log(`[ProcessingStage] Job en processing pero sin startedAt, retornando iniciando`);
+                                    return '🔄 Iniciando procesamiento...';
+                                  }
+                                  
+                                  if (chunksProcessed === 0) {
+                                    // Solo calcular etapas basadas en tiempo si realmente tiene startedAt
+                                    const startTime = mainJob.startedAt || mainJob.createdAt;
+                                    if (startTime && mainJob.startedAt) {
+                                      const elapsed = (new Date().getTime() - new Date(startTime).getTime()) / 1000 / 60; // minutos
+                                      console.log(`[ProcessingStage] Tiempo transcurrido: ${elapsed.toFixed(2)} minutos`);
+                                      if (elapsed < 2) return '📥 Descargando archivo...';
+                                      if (elapsed < 10) return '📄 Extrayendo texto del PDF...';
+                                      // NO mostrar número de chunks aquí porque aún no lo sabemos (solo estimación inicial)
+                                      return '⏳ Preparando chunks...';
+                                    }
+                                    // Si no tiene startedAt, usar createdAt pero mostrar mensaje más genérico
+                                    return '🔄 Iniciando procesamiento...';
+                                  }
+                                  // Solo mostrar números cuando tengamos chunksTotal REAL (no estimación inicial)
+                                  // Verificamos que chunksProcessed > 0 para asegurar que ya comenzó el procesamiento real
+                                  if (chunksTotal && chunksTotal > 0 && chunksProcessed > 0 && chunksProcessed < chunksTotal) {
+                                    const progress = Math.round((chunksProcessed / chunksTotal) * 100);
+                                    return `🤖 Generando embeddings: ${chunksProcessed}/${chunksTotal} (${progress}%)`;
+                                  }
+                                  // Si tenemos chunksTotal pero aún no hay chunks procesados, mostrar mensaje genérico
+                                  if (chunksTotal && chunksTotal > 0 && chunksProcessed === 0) {
+                                    return '⏳ Preparando chunks para embeddings...';
+                                  }
+                                  return '✅ Finalizando...';
+                                }
+                                
+                                console.warn(`[ProcessingStage] ⚠️ Estado desconocido: ${jobStatus}`);
+                                return null;
+                              };
+
+                              const processingStage = getProcessingStage();
 
                               return (
-                                <div className="space-y-2 mt-2">
-                                  {/* Estado del job */}
-                                  <div className={`flex items-center gap-2 ${isProcessing ? 'text-blue-700' : isCompleted ? 'text-green-700' : 'text-gray-600'}`}>
-                                    <span className="font-medium">
-                                      {mainJob?.status === 'processing' ? 'Procesando...' :
-                                        mainJob?.status === 'pending' ? 'Pendiente' :
-                                          mainJob?.status === 'completed' ? 'Completado' :
-                                            mainJob?.status === 'failed' ? 'Error' :
-                                              'Iniciando...'}
-                                    </span>
-                                    {isProcessing && <Loader2 className="w-4 h-4 animate-spin" />}
-                                    {isCompleted && <CheckCircle2 className="w-4 h-4" />}
+                                <div className="space-y-3 mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200 shadow-sm">
+                                  {/* Estado del job con más detalles */}
+                                  <div className="flex items-center justify-between">
+                                    <div className={`flex items-center gap-2 ${isProcessingJob ? 'text-blue-700' : isCompletedJob ? 'text-green-700' : hasFailedJob ? 'text-red-700' : 'text-gray-600'}`}>
+                                      <span className="font-semibold text-base">
+                                        {isStuck ? '⚠️ Procesamiento Detenido' :
+                                          mainJob?.status === 'processing' ? '🔄 Procesando' :
+                                            mainJob?.status === 'pending' ? '⏳ Pendiente' :
+                                              mainJob?.status === 'completed' ? '✅ Completado' :
+                                                mainJob?.status === 'failed' ? '❌ Error' :
+                                                  'Iniciando...'}
+                                      </span>
+                                      {isProcessingJob && !isStuck && <Loader2 className="w-5 h-5 animate-spin" />}
+                                      {isStuck && <AlertCircle className="w-5 h-5 text-orange-500" />}
+                                      {isCompletedJob && <CheckCircle2 className="w-5 h-5" />}
+                                      {hasFailedJob && <XCircle className="w-5 h-5" />}
+                                    </div>
                                   </div>
-
-                                  {/* Barra de progreso visual - solo si hay chunksTotal */}
-                                  {chunksTotal !== undefined && chunksTotal > 0 && (
-                                    <div>
-                                      <div className="flex justify-between text-sm mb-1">
-                                        <span className={`font-medium ${isProcessing ? 'text-blue-700' : 'text-green-700'}`}>
-                                          {chunksProcessed} de {chunksTotal} chunks completados
-                                        </span>
-                                        <span className={`font-semibold ${isProcessing ? 'text-blue-700' : 'text-green-700'}`}>
-                                          {Math.round((chunksProcessed / chunksTotal) * 100)}%
+                                  
+                                  {/* Mostrar progreso de sub-jobs si el archivo fue dividido */}
+                                  {mainJob?.metadata?.subJobIds && mainJob?.metadata?.subJobsTotal > 0 && (
+                                    <div className="bg-indigo-50 border border-indigo-200 rounded p-3">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-sm font-medium text-indigo-800">
+                                          📄 Archivo dividido en {mainJob.metadata.subJobsTotal} partes
                                         </span>
                                       </div>
-                                      <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                                        <div
-                                          className={`h-2.5 rounded-full transition-all duration-500 ease-out ${isProcessing
-                                            ? 'bg-gradient-to-r from-blue-500 to-blue-600'
-                                            : 'bg-gradient-to-r from-green-500 to-green-600'
-                                            }`}
-                                          style={{ width: `${Math.round((chunksProcessed / chunksTotal) * 100)}%` }}
-                                        />
+                                      <div className="space-y-2">
+                                        <div className="flex justify-between text-xs text-indigo-600 mb-1">
+                                          <span>Partes procesadas</span>
+                                          <span>{mainJob.metadata.subJobsCompleted || 0}/{mainJob.metadata.subJobsTotal} ({Math.round(((mainJob.metadata.subJobsCompleted || 0) / mainJob.metadata.subJobsTotal) * 100)}%)</span>
+                                        </div>
+                                        <div className="w-full bg-indigo-200 rounded-full h-2.5">
+                                          <div 
+                                            className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300"
+                                            style={{ width: `${Math.round(((mainJob.metadata.subJobsCompleted || 0) / mainJob.metadata.subJobsTotal) * 100)}%` }}
+                                          />
+                                        </div>
+                                        <p className="text-xs text-indigo-600 mt-1">
+                                          Procesando partes en paralelo para optimizar el tiempo de procesamiento
+                                        </p>
                                       </div>
                                     </div>
                                   )}
 
-                                  {/* Temporizador - mostrar siempre si hay tiempo estimado o si está procesando */}
-                                  {(estimatedMinutes || (isProcessing && (mainJob.startedAt || mainJob.createdAt))) && (
-                                    <ProcessingTimer
-                                      startTime={mainJob.startedAt || mainJob.createdAt}
-                                      isProcessing={isProcessing}
-                                      estimatedMinutes={estimatedMinutes}
-                                      chunksProcessed={chunksProcessed}
-                                      chunksTotal={chunksTotal}
-                                    />
+                                  {/* Advertencia si el job está stuck */}
+                                  {isStuck && (
+                                    <div className="bg-orange-50 border border-orange-200 rounded p-2">
+                                      <div className="flex items-start gap-2">
+                                        <AlertCircle className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                                        <div className="flex-1">
+                                          <p className="text-sm font-medium text-orange-800">⚠️ Procesamiento Detenido</p>
+                                          <p className="text-xs text-orange-700 mt-1">
+                                            El procesamiento lleva {(() => {
+                                              const updatedAt = mainJob?.updatedAt ? new Date(mainJob.updatedAt) : new Date(mainJob?.createdAt || Date.now());
+                                              const now = new Date();
+                                              const hoursSinceUpdate = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60);
+                                              return `${hoursSinceUpdate.toFixed(1)} horas`;
+                                            })()} sin actualizarse. Puede estar colgado o haber fallado silenciosamente.
+                                          </p>
+                                          <div className="flex gap-2 mt-2">
+                                            <button
+                                              onClick={() => {
+                                                if (mainJob?.id) {
+                                                  handleCancel(mainJob.id);
+                                                }
+                                              }}
+                                              className="text-xs px-2 py-1 bg-orange-100 hover:bg-orange-200 text-orange-800 rounded border border-orange-300"
+                                            >
+                                              Cancelar
+                                            </button>
+                                            <button
+                                              onClick={async () => {
+                                                if (mainJob?.id) {
+                                                  await handleForceProcess(mainJob.id);
+                                                }
+                                              }}
+                                              className="text-xs px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded border border-purple-300"
+                                              title="Forzar el procesamiento invocando directamente al RAG worker"
+                                            >
+                                              🔄 Forzar Procesamiento
+                                            </button>
+                                            <button
+                                              onClick={async () => {
+                                                if (mainJob?.id && file.id) {
+                                                  if (confirm('¿Deseas reintentar el procesamiento de este archivo? Se cancelará el job actual y se creará uno nuevo.')) {
+                                                    try {
+                                                      // Cancelar el job actual
+                                                      await handleCancel(mainJob.id);
+                                                      // Esperar un momento y luego reiniciar
+                                                      setTimeout(() => {
+                                                        handleAnalyze(file);
+                                                      }, 1000);
+                                                    } catch (err: any) {
+                                                      setError(err.message || 'Error al reintentar procesamiento');
+                                                    }
+                                                  }
+                                                }
+                                              }}
+                                              className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded border border-blue-300"
+                                            >
+                                              Reintentar
+                                            </button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
                                   )}
 
-                                  {/* Mensaje de completado */}
-                                  {isCompleted && (
-                                    <div className="flex items-center gap-2 text-green-700">
-                                      <CheckCircle2 className="w-4 h-4" />
-                                      <span className="font-medium">Procesamiento completado</span>
+                                  {/* Botón para forzar procesamiento si el job está en pending por más de 5 minutos */}
+                                  {mainJob?.status === 'pending' && !isStuck && (() => {
+                                    const createdAt = mainJob?.createdAt ? new Date(mainJob.createdAt) : null;
+                                    if (!createdAt) return false;
+                                    const now = new Date();
+                                    const minutesSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60);
+                                    return minutesSinceCreation > 5; // Mostrar botón después de 5 minutos
+                                  })() && (
+                                    <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mt-2">
+                                      <div className="flex items-start gap-2">
+                                        <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                                        <div className="flex-1">
+                                          <p className="text-sm font-medium text-yellow-800">⏳ Procesamiento en espera</p>
+                                          <p className="text-xs text-yellow-700 mt-1">
+                                            El job lleva {(() => {
+                                              const createdAt = mainJob?.createdAt ? new Date(mainJob.createdAt) : new Date();
+                                              const now = new Date();
+                                              const minutesSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60);
+                                              return `${Math.round(minutesSinceCreation)} minutos`;
+                                            })()} esperando en cola. Si parece estar atascado, puedes forzar el procesamiento.
+                                          </p>
+                                          <button
+                                            onClick={async () => {
+                                              if (mainJob?.id) {
+                                                await handleForceProcess(mainJob.id);
+                                              }
+                                            }}
+                                            className="text-xs px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded border border-purple-300 mt-2 font-medium"
+                                            title="Forzar el procesamiento invocando directamente al RAG worker"
+                                          >
+                                            🔄 Forzar Procesamiento
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Mostrar error si el job falló */}
+                                  {hasFailedJob && mainJob?.errorMessage && (
+                                    <div className="bg-red-50 border border-red-200 rounded p-2 mt-2">
+                                      <div className="flex items-start gap-2">
+                                        <XCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                                        <div className="flex-1">
+                                          <p className="text-sm font-medium text-red-800">❌ Error en el Procesamiento</p>
+                                          <p className="text-xs text-red-700 mt-1">
+                                            {mainJob.errorMessage || 'Ocurrió un error durante el procesamiento del archivo.'}
+                                          </p>
+                                          <div className="flex gap-2 mt-2">
+                                            <button
+                                              onClick={() => {
+                                                if (mainJob?.id && file.id) {
+                                                  handleDeleteFailed(mainJob.id, file.id);
+                                                }
+                                              }}
+                                              className="text-xs px-2 py-1 bg-red-100 hover:bg-red-200 text-red-800 rounded border border-red-300"
+                                            >
+                                              Eliminar
+                                            </button>
+                                            <button
+                                              onClick={async () => {
+                                                if (mainJob?.id && file.id) {
+                                                  try {
+                                                    // Eliminar el job fallido
+                                                    await handleDeleteFailed(mainJob.id, file.id);
+                                                    // Esperar un momento y luego reiniciar
+                                                    setTimeout(() => {
+                                                      handleAnalyze(file);
+                                                    }, 1000);
+                                                  } catch (err: any) {
+                                                    setError(err.message || 'Error al reintentar procesamiento');
+                                                  }
+                                                }
+                                              }}
+                                              className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded border border-blue-300"
+                                            >
+                                              Reintentar
+                                            </button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Etapa actual del procesamiento, barra de progreso y temporizador - todo en una sección */}
+                                  {(processingStage || (chunksTotal !== undefined && chunksTotal > 0 && chunksProcessed > 0) || (isProcessingJob && startTime) || (!mainJob?.status || mainJob?.status === 'pending')) && (
+                                    <div className="text-sm text-blue-700 bg-white rounded-lg px-3 py-2 border border-blue-300 shadow-sm">
+                                      <div className="flex items-start justify-between gap-4">
+                                        {/* Columna izquierda: Mensaje de etapa y barra de progreso */}
+                                        <div className="flex-1">
+                                          {/* Mensaje de etapa si existe, o "Iniciando..." si no hay processingStage pero el job está iniciando */}
+                                          {processingStage ? (
+                                            <div className="flex items-center gap-2 mb-2">
+                                              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                                              <div className="flex-1">
+                                                <span className="font-semibold">{processingStage}</span>
+                                                {chunksTotal && chunksTotal > 0 && chunksProcessed > 0 && (
+                                                  <div className="text-xs text-blue-600 mt-1">
+                                                    Velocidad: ~{Math.round(chunksProcessed / ((new Date().getTime() - new Date(mainJob.startedAt || mainJob.createdAt).getTime()) / 1000 / 60))} chunks/min
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                          ) : (!mainJob?.status || mainJob?.status === 'pending') ? (
+                                            <div className="flex items-center gap-2 mb-2">
+                                              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                                              <div className="flex-1">
+                                                <span className="font-semibold">Iniciando...</span>
+                                              </div>
+                                            </div>
+                                          ) : null}
+                                          
+                                          {/* Barra de progreso visual - mostrar siempre que tengamos datos reales de chunks */}
+                                          {chunksTotal !== undefined && chunksTotal > 0 && chunksProcessed > 0 && (
+                                            <div className={(processingStage || (!mainJob?.status || mainJob?.status === 'pending')) ? 'mt-2' : ''}>
+                                              <div className="flex justify-between text-sm mb-1">
+                                                <span className={`font-medium ${isProcessingJob ? 'text-blue-700' : 'text-green-700'}`}>
+                                                  {chunksProcessed} de {chunksTotal} chunks completados
+                                                </span>
+                                                <span className={`font-semibold ${isProcessingJob ? 'text-blue-700' : 'text-green-700'}`}>
+                                                  {Math.round((chunksProcessed / chunksTotal) * 100)}%
+                                                </span>
+                                              </div>
+                                              <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                                                <div
+                                                  className={`h-2.5 rounded-full transition-all duration-500 ease-out ${isProcessingJob
+                                                    ? 'bg-gradient-to-r from-blue-500 to-blue-600'
+                                                    : 'bg-gradient-to-r from-green-500 to-green-600'
+                                                    }`}
+                                                  style={{ width: `${Math.round((chunksProcessed / chunksTotal) * 100)}%` }}
+                                                />
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                        
+                                        {/* Columna derecha: Temporizador (solo Transcurrido) */}
+                                        {(isProcessingJob || (!mainJob?.status || mainJob?.status === 'pending')) && mainJob && startTime && (
+                                          <div className="flex-shrink-0">
+                                            <ProcessingTimer
+                                              startTime={startTime}
+                                              isProcessing={isProcessingJob || (!mainJob?.status || mainJob?.status === 'pending')}
+                                              estimatedMinutes={estimatedMinutes}
+                                              chunksProcessed={chunksProcessed}
+                                              chunksTotal={chunksTotal}
+                                              jobStatus={mainJob?.status}
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Mensaje de error si falló */}
+                                  {hasFailedJob && mainJob?.errorMessage && (
+                                    <div className="bg-red-50 border border-red-200 rounded p-2">
+                                      <div className="flex items-start gap-2">
+                                        <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                                        <div className="flex-1">
+                                          <p className="text-sm font-medium text-red-800">Error:</p>
+                                          <p className="text-xs text-red-700 mt-1">{mainJob.errorMessage}</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Mostrar tiempo estimado incluso si no está procesando y no hay startTime */}
+                                  {!isProcessingJob && estimatedMinutes && !startTime && (
+                                    <div className="flex items-center gap-2 text-sm text-gray-600 bg-white rounded px-2 py-1 border border-blue-200">
+                                      <Clock size={16} className="text-gray-500" />
+                                      <span className="font-medium">Tiempo estimado: {
+                                        estimatedMinutes >= 60 
+                                          ? `${Math.floor(estimatedMinutes / 60)}h ${Math.floor(estimatedMinutes % 60)}m`
+                                          : `${Math.floor(estimatedMinutes)}m`
+                                      }</span>
+                                    </div>
+                                  )}
+
+                                  {/* Mensaje de completado con detalles */}
+                                  {isCompletedJob && (
+                                    <div className="bg-green-50 border border-green-200 rounded p-2">
+                                      <div className="flex items-center gap-2 text-green-700">
+                                        <CheckCircle2 className="w-5 h-5" />
+                                        <span className="font-semibold">Procesamiento completado exitosamente</span>
+                                      </div>
+                                      {chunksTotal && (
+                                        <p className="text-xs text-green-600 mt-1 ml-7">
+                                          {chunksTotal} chunks procesados y listos para usar en el Tutor RAG
+                                        </p>
+                                      )}
                                     </div>
                                   )}
                                 </div>
@@ -1103,33 +2227,52 @@ export const FileProcessingPage: React.FC = () => {
                           {!selectedCourseId && (
                             <p className="text-xs text-red-600">Selecciona un curso primero</p>
                           )}
-                          {/* Botón de cancelar para jobs en procesamiento */}
-                          {isProcessing && fileJobs.length > 0 && (
-                            <button
-                              onClick={() => {
-                                const processingJob = fileJobs.find(j => j.status === 'processing' || j.status === 'pending');
-                                if (processingJob) {
-                                  handleCancel(processingJob.id);
-                                }
-                              }}
-                              className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm flex items-center space-x-1"
-                              title="Cancelar procesamiento"
-                            >
-                              <XCircle className="w-4 h-4" />
-                              <span>Cancelar</span>
-                            </button>
-                          )}
-                          {/* Botón para ocultar archivos fallados */}
-                          {hasFailed && (
-                            <button
-                              onClick={() => handleHideFile(file.id)}
-                              className="px-3 py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm flex items-center space-x-1"
-                              title="Ocultar este archivo de la lista"
-                            >
-                              <XCircle className="w-4 h-4" />
-                              <span>Ocultar</span>
-                            </button>
-                          )}
+                          {/* Botones de acción */}
+                          <div className="flex flex-col gap-2">
+                            {/* Botón de cancelar para jobs en procesamiento - más visible */}
+                            {isProcessing && fileJobs.length > 0 && (
+                              <button
+                                onClick={() => {
+                                  const processingJob = fileJobs.find(j => j.status === 'processing' || j.status === 'pending');
+                                  if (processingJob) {
+                                    handleCancel(processingJob.id);
+                                  }
+                                }}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center justify-center space-x-2 shadow-md"
+                                title="Cancelar procesamiento (se perderá el progreso actual)"
+                              >
+                                <XCircle className="w-4 h-4" />
+                                <span>Cancelar Procesamiento</span>
+                              </button>
+                            )}
+                            
+                            {/* Botones para archivos fallidos */}
+                            {hasFailed && fileJobs.length > 0 && (
+                              <div className="flex flex-col gap-2">
+                                <button
+                                  onClick={() => {
+                                    const failedJob = fileJobs.find(j => j.status === 'failed');
+                                    if (failedJob) {
+                                      handleDeleteFailed(failedJob.id, file.id);
+                                    }
+                                  }}
+                                  className="px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors text-sm font-medium flex items-center justify-center space-x-2 shadow-md"
+                                  title="Eliminar este procesamiento fallido permanentemente"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                  <span>Eliminar Fallido</span>
+                                </button>
+                                <button
+                                  onClick={() => handleHideFile(file.id)}
+                                  className="px-3 py-1.5 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-xs flex items-center justify-center space-x-1"
+                                  title="Ocultar este archivo de la lista"
+                                >
+                                  <XCircle className="w-3 h-3" />
+                                  <span>Ocultar</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
                           {canReanalyze ? (
                             <div className="flex flex-col items-end gap-2">
                               <button
@@ -1192,16 +2335,6 @@ export const FileProcessingPage: React.FC = () => {
                 })}
               </div>
             )}
-          </Card>
-
-          {/* Dashboard de estado */}
-          <Card>
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Estado de Procesamiento</h2>
-            <ProcessingProgress
-              jobs={jobs}
-              onHideFile={handleHideFile}
-              hiddenFileIds={hiddenFileIds}
-            />
           </Card>
         </div>
       )}
@@ -1333,3 +2466,4 @@ export const FileProcessingPage: React.FC = () => {
   );
 };
 
+export default FileProcessingPage;

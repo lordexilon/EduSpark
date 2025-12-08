@@ -136,10 +136,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
     } else if (date.toDateString() === yesterday.toDateString()) {
       return 'Ayer';
     } else {
-      return date.toLocaleDateString('es-ES', { 
-        weekday: 'long', 
-        day: 'numeric', 
-        month: 'long' 
+      return date.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long'
       });
     }
   };
@@ -162,10 +162,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
     try {
       const exportData = messages.map((msg) => ({
         id: msg.id,
-        remitente: msg.sender_id === user?.id 
+        remitente: msg.sender_id === user?.id
           ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
           : `${msg.sender?.first_name || ''} ${msg.sender?.last_name || ''}`.trim(),
-        email_remitente: msg.sender_id === user?.id 
+        email_remitente: msg.sender_id === user?.id
           ? (user.email || 'N/A')
           : (msg.sender?.email || 'N/A'),
         contenido: msg.content,
@@ -280,8 +280,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
             </button>
             {showExportMenu && (
               <>
-                <div 
-                  className="fixed inset-0 z-10" 
+                <div
+                  className="fixed inset-0 z-10"
                   onClick={() => setShowExportMenu(false)}
                 />
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
@@ -329,7 +329,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
             const previousMessage = index > 0 ? messages[index - 1] : null;
             const showAvatar = !isOwn && shouldShowAvatar(message, previousMessage);
             const showDateHeader = shouldShowDateHeader(message, previousMessage);
-            const showTime = index === messages.length - 1 || 
+            const showTime = index === messages.length - 1 ||
               message.sender_id !== messages[index + 1]?.sender_id ||
               new Date(messages[index + 1].created_at).getTime() - new Date(message.created_at).getTime() > 300000;
 
@@ -345,14 +345,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
                   </div>
                 )}
                 <div
-                  className={`flex items-end gap-2 ${isOwn ? 'justify-end' : 'justify-start'} ${
-                    showAvatar ? 'mt-4' : 'mt-1'
-                  }`}
+                  className={`flex items-end gap-2 ${isOwn ? 'justify-end' : 'justify-start'} ${showAvatar ? 'mt-4' : 'mt-1'
+                    }`}
                 >
                   {!isOwn && (
                     <div className={`flex-shrink-0 ${showAvatar ? 'w-8 h-8' : 'w-0 h-0'} transition-all duration-200`}>
                       {showAvatar && (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-primary/20 flex items-center justify-center shadow-sm border border-primary/20">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500/30 to-primary-500/20 flex items-center justify-center shadow-sm border border-primary-500/20">
                           {message.sender?.avatar_url ? (
                             <img
                               src={message.sender.avatar_url}
@@ -375,21 +374,18 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
                       </span>
                     )}
                     <div
-                      className={`px-4 py-2.5 rounded-2xl shadow-sm transition-all duration-200 ${
-                        isOwn
-                          ? 'bg-gradient-to-br from-primary to-primary/90 text-white rounded-br-sm'
-                          : 'bg-white text-gray-900 rounded-bl-sm border border-gray-200 shadow-md'
-                      }`}
+                      className={`px-4 py-2.5 rounded-2xl shadow-sm transition-all duration-200 ${isOwn
+                        ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-br-sm'
+                        : 'bg-white text-gray-900 rounded-bl-sm border border-gray-200 shadow-md'
+                        }`}
                     >
-                      <p className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${
-                        isOwn ? 'text-white' : 'text-gray-800'
-                      }`}>
+                      <p className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${isOwn ? 'text-white' : 'text-gray-800'
+                        }`}>
                         {message.content}
                       </p>
                       {showTime && (
-                        <p className={`text-xs mt-1.5 ${
-                          isOwn ? 'text-primary-100' : 'text-gray-500'
-                        }`}>
+                        <p className={`text-xs mt-1.5 ${isOwn ? 'text-primary-100' : 'text-gray-500'
+                          }`}>
                           {formatTime(message.created_at)}
                         </p>
                       )}
@@ -398,7 +394,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
                   {isOwn && (
                     <div className={`flex-shrink-0 ${showAvatar ? 'w-8 h-8' : 'w-0 h-0'} transition-all duration-200`}>
                       {showAvatar && (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-primary/20 flex items-center justify-center shadow-sm border border-primary/20">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500/30 to-primary-500/20 flex items-center justify-center shadow-sm border border-primary-500/20">
                           {user?.avatar_url ? (
                             <img
                               src={user.avatar_url}
@@ -436,7 +432,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
             }}
             placeholder="Escribe un mensaje..."
             rows={1}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
             style={{ minHeight: '44px', maxHeight: '120px' }}
           />
           <Button

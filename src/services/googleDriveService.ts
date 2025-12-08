@@ -668,32 +668,35 @@ export const googleDriveService = {
       const success: string[] = [];
       const failed: Array<{ email: string; error: string }> = [];
 
-      // Primero, actualizar el archivo para restringir descarga e impresión
-      try {
-        const updateResponse = await fetch(
-          `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,capabilities`,
-          {
-            method: 'PATCH',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              // Restricciones para prevenir descarga e impresión
-              copyRequiresWriterPermission: true, // Requiere permiso de escritor para copiar
-              viewersCanCopyContent: false, // Los visualizadores no pueden copiar contenido
-            }),
-          }
-        );
+      // Si el rol es 'reader', aplicar restricciones de solo lectura
+      if (role === 'reader') {
+        try {
+          const updateResponse = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${fileId}`,
+            {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                // Restricciones para prevenir descarga e impresión
+                copyRequiresWriterPermission: true, // Requiere permiso de escritor para copiar
+                viewersCanCopyContent: false, // Los visualizadores no pueden copiar contenido
+              }),
+            }
+          );
 
-        if (!updateResponse.ok) {
-          console.warn('⚠️ No se pudieron aplicar todas las restricciones al archivo:', await updateResponse.text().catch(() => 'Error desconocido'));
-        } else {
-          console.log('✅ Restricciones aplicadas al archivo (sin descarga/copia)');
+          if (!updateResponse.ok) {
+            const errorText = await updateResponse.text().catch(() => 'Error desconocido');
+            console.warn('⚠️ No se pudieron aplicar todas las restricciones al archivo:', errorText);
+          } else {
+            console.log('✅ Restricciones aplicadas al archivo (sin descarga/copia)');
+          }
+        } catch (updateError) {
+          console.warn('⚠️ Error aplicando restricciones al archivo:', updateError);
+          // Continuar con el compartir aunque falle la actualización de restricciones
         }
-      } catch (updateError) {
-        console.warn('⚠️ Error aplicando restricciones al archivo:', updateError);
-        // Continuar con el compartir aunque falle la actualización de restricciones
       }
 
       // Compartir con cada email
@@ -711,12 +714,6 @@ export const googleDriveService = {
                 role: role,
                 type: 'user',
                 emailAddress: email,
-                // Restricciones adicionales en el permiso
-                ...(role === 'reader' && {
-                  // Para lectores, asegurar que no puedan descargar
-                  // Nota: Google Drive API no tiene un campo directo para esto,
-                  // pero el archivo ya tiene copyRequiresWriterPermission: true
-                }),
               }),
             }
           );
@@ -742,6 +739,173 @@ export const googleDriveService = {
       return { success, failed };
     } catch (error: any) {
       console.error('Error compartiendo archivo:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Comparte un archivo de Google Drive con permisos de SOLO LECTURA (sin descarga ni impresión)
+   * Esta función aplica todas las restricciones posibles para prevenir descarga e impresión
+   * @param userId ID del usuario que comparte (debe ser el propietario)
+   * @param fileId ID del archivo en Google Drive
+   * @param emails Lista de emails de estudiantes
+   * @returns Resultado con enlace de vista previa y lista de emails compartidos
+   */
+  // Aplicar restricciones de solo lectura a un archivo sin compartir con usuarios específicos
+  async applyReadOnlyRestrictions(
+    userId: string,
+    fileId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const accessToken = await googleOAuthService.getAccessToken(userId, 'drive');
+      if (!accessToken) {
+        throw new Error('No hay token de acceso de Google Drive');
+      }
+
+      console.log(`[GoogleDrive] Aplicando restricciones de solo lectura al archivo: ${fileId}`);
+
+      // Aplicar restricciones al archivo para prevenir descarga e impresión
+      const updateResponse = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            // Restricciones máximas para solo lectura
+            copyRequiresWriterPermission: true, // Requiere permiso de escritor para copiar
+            viewersCanCopyContent: false, // Los visualizadores no pueden copiar contenido
+          }),
+        }
+      );
+
+      if (!updateResponse.ok) {
+        const errorText = await updateResponse.text().catch(() => 'Error desconocido');
+        console.error('[GoogleDrive] ❌ Error aplicando restricciones al archivo:', errorText);
+        return { success: false, error: errorText };
+      }
+
+      console.log('[GoogleDrive] ✅ Restricciones de solo lectura aplicadas exitosamente');
+      return { success: true };
+    } catch (error: any) {
+      console.error('[GoogleDrive] ❌ Error aplicando restricciones:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async shareFileReadOnly(
+    userId: string,
+    fileId: string,
+    emails: string[]
+  ): Promise<{ 
+    viewLink: string; 
+    success: string[]; 
+    failed: Array<{ email: string; error: string }> 
+  }> {
+    try {
+      const accessToken = await googleOAuthService.getAccessToken(userId, 'drive');
+      if (!accessToken) {
+        throw new Error('No hay token de acceso de Google Drive');
+      }
+
+      // 1. Aplicar restricciones al archivo para prevenir descarga e impresión
+      try {
+        const updateResponse = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${fileId}`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              // Restricciones máximas para solo lectura
+              copyRequiresWriterPermission: true, // Requiere permiso de escritor para copiar
+              viewersCanCopyContent: false, // Los visualizadores no pueden copiar contenido
+            }),
+          }
+        );
+
+        if (!updateResponse.ok) {
+          const errorText = await updateResponse.text().catch(() => 'Error desconocido');
+          console.warn('⚠️ No se pudieron aplicar todas las restricciones al archivo:', errorText);
+        } else {
+          console.log('✅ Restricciones de solo lectura aplicadas al archivo');
+        }
+      } catch (updateError) {
+        console.warn('⚠️ Error aplicando restricciones al archivo:', updateError);
+        // Continuar con el compartir aunque falle la actualización de restricciones
+      }
+
+      // 2. Compartir con cada email como lector
+      const success: string[] = [];
+      const failed: Array<{ email: string; error: string }> = [];
+
+      for (const email of emails) {
+        try {
+          const response = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                role: 'reader', // Solo lectura
+                type: 'user',
+                emailAddress: email,
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: { message: 'Error desconocido' } }));
+            const errorMessage = errorData.error?.message || 'Error desconocido';
+            
+            // Si el error es que el permiso ya existe, considerarlo como éxito
+            if (errorMessage.includes('already exists') || errorMessage.includes('Permission already exists')) {
+              success.push(email);
+            } else {
+              failed.push({ email, error: errorMessage });
+            }
+          } else {
+            success.push(email);
+          }
+        } catch (error: any) {
+          failed.push({ email, error: error.message || 'Error desconocido' });
+        }
+      }
+
+      // 3. Obtener el enlace de vista previa
+      let viewLink = `https://drive.google.com/file/d/${fileId}/view`;
+      try {
+        const fileResponse = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${fileId}?fields=webViewLink,webContentLink`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+            },
+          }
+        );
+
+        if (fileResponse.ok) {
+          const fileData = await fileResponse.json();
+          viewLink = fileData.webViewLink || viewLink;
+        }
+      } catch (error) {
+        console.warn('⚠️ No se pudo obtener el enlace de vista previa, usando enlace por defecto');
+      }
+
+      return {
+        viewLink,
+        success,
+        failed,
+      };
+    } catch (error: any) {
+      console.error('Error compartiendo archivo en modo solo lectura:', error);
       throw error;
     }
   },

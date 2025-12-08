@@ -5,6 +5,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase-shared';
+import { useAuth } from '../../src/hooks/useAuth';
+import { useUserInstitution } from '../../src/hooks/useUserInstitution';
 
 interface Course {
   id: string;
@@ -28,22 +30,40 @@ export const CourseSelector: React.FC<CourseSelectorProps> = ({
   isLoading = false,
   disabled = false
 }) => {
+  const { user } = useAuth();
+  const { institution } = useUserInstitution();
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Determinar si debemos filtrar por institución
+  const shouldFilterByInstitution = user?.role?.name && 
+    ['supervisor', 'admin-campus', 'coordinator', 'teacher'].includes(user.role.name);
+  const isAdmin = user?.role?.name === 'admin';
+
   // Cargar cursos disponibles
   useEffect(() => {
+    // Esperar a que la institución se cargue si es necesario
+    if (shouldFilterByInstitution && !institution) {
+      return;
+    }
     loadCourses();
-  }, []);
+  }, [institution, shouldFilterByInstitution]);
 
   const loadCourses = async () => {
     try {
       setIsLoadingCourses(true);
       setError(null);
 
-      // Cargar cursos reales desde Supabase
-      const { data: coursesData, error: coursesError } = await supabase
+      console.log('📚 CourseSelector: Cargando cursos', {
+        userRole: user?.role?.name,
+        institutionId: institution?.id,
+        shouldFilterByInstitution,
+        isAdmin
+      });
+
+      // Construir la consulta base
+      let query = supabase
         .from('courses')
         .select(`
           id,
@@ -51,19 +71,44 @@ export const CourseSelector: React.FC<CourseSelectorProps> = ({
           code,
           description,
           teacher_id,
+          institution_id,
           users!courses_teacher_id_fkey(first_name, last_name)
         `)
-        .eq('status', 'active')
+        .eq('status', 'active');
+
+      // Filtrar por institución si es necesario
+      if (shouldFilterByInstitution && institution?.id && !isAdmin) {
+        query = query.eq('institution_id', institution.id);
+        console.log('📚 CourseSelector: Filtrando por institución', institution.id);
+      }
+
+      // Ordenar y ejecutar
+      const { data: coursesData, error: coursesError } = await query
         .order('created_at', { ascending: false });
 
       if (coursesError) {
+        console.error('❌ CourseSelector: Error al cargar cursos', coursesError);
         throw coursesError;
       }
 
+      console.log('📚 CourseSelector: Resultado de consulta', {
+        totalCursos: coursesData?.length || 0,
+        cursos: coursesData,
+        filtroAplicado: shouldFilterByInstitution && institution?.id ? `institution_id = ${institution.id}` : 'ninguno'
+      });
+
       if (!coursesData || coursesData.length === 0) {
+        console.log('📚 CourseSelector: No se encontraron cursos', {
+          filtroInstitucion: shouldFilterByInstitution,
+          institutionId: institution?.id,
+          isAdmin,
+          query: query
+        });
         setCourses([]);
         return;
       }
+
+      console.log('📚 CourseSelector: Cursos encontrados', coursesData.length);
       
       // Convertir los cursos de Supabase al formato esperado
       const courses: Course[] = coursesData.map((course: any) => ({
@@ -77,7 +122,7 @@ export const CourseSelector: React.FC<CourseSelectorProps> = ({
 
       setCourses(courses);
     } catch (error) {
-      console.error('Error loading courses:', error);
+      console.error('❌ CourseSelector: Error loading courses:', error);
       setError('Error al cargar los cursos');
     } finally {
       setIsLoadingCourses(false);
@@ -175,7 +220,9 @@ export const CourseSelector: React.FC<CourseSelectorProps> = ({
           <div className="text-slate-400 text-4xl mb-4">📚</div>
           <p className="text-slate-300 mb-2">No hay cursos disponibles</p>
           <p className="text-slate-400 text-sm">
-            Contacta a tu administrador para obtener acceso a los cursos.
+            {shouldFilterByInstitution && institution
+              ? `No hay cursos activos para la institución ${institution.name}.`
+              : 'Contacta a tu administrador para obtener acceso a los cursos.'}
           </p>
         </div>
       )}

@@ -51,8 +51,17 @@ export const authAPI = {
 
         // Traducir errores comunes a mensajes más amigables y específicos
         let errorMessage = 'Error desconocido al iniciar sesión';
-        const errorCode = error.code || error.status;
-        const errorMsg = error.message?.toLowerCase() || '';
+        
+        // Extraer el código de error de diferentes formas posibles
+        const errorObj = error as any;
+        const errorCode = errorObj?.code || error.code || error.status;
+        const errorMsg = (error.message?.toLowerCase() || '').trim();
+        
+        // Si es un AuthApiError, también verificar su código interno
+        const authErrorCode = errorObj?.__isAuthError ? errorObj?.code : null;
+        const fullErrorCode = authErrorCode || errorCode;
+        
+        console.log('🔍 Analizando error:', { errorCode, authErrorCode, fullErrorCode, errorMsg, status: error.status });
 
         // Errores específicos de Supabase Auth
         if (errorCode === 'email_not_confirmed' ||
@@ -61,13 +70,18 @@ export const authAPI = {
           errorMsg.includes('email address not confirmed')) {
           errorMessage = 'Tu email no ha sido confirmado. Por favor, verifica tu correo electrónico o contacta al administrador para confirmarlo.';
         }
-        // Credenciales inválidas
-        else if (errorCode === 'invalid_credentials' ||
+        // Credenciales inválidas - verificar múltiples formas
+        else if (fullErrorCode === 'invalid_credentials' ||
+          fullErrorCode === 'invalid_grant' ||
+          errorCode === 'invalid_credentials' ||
           errorCode === 'invalid_grant' ||
+          (error.status === 400 && (errorMsg.includes('invalid login credentials') || errorMsg.includes('invalid_credentials'))) ||
           errorMsg.includes('invalid login credentials') ||
+          errorMsg.includes('invalid_credentials') ||
           errorMsg.includes('invalid password') ||
           errorMsg.includes('wrong password') ||
-          errorMsg.includes('incorrect password')) {
+          errorMsg.includes('incorrect password') ||
+          (error.status === 400 && errorMsg.includes('invalid'))) {
           errorMessage = 'Email o contraseña incorrectos. Por favor, verifica tus credenciales e intenta nuevamente.';
         }
         // Demasiados intentos
@@ -108,9 +122,13 @@ export const authAPI = {
           errorMsg.includes('fetch failed')) {
           errorMessage = 'Error de conexión. Por favor, verifica tu conexión a internet e intenta nuevamente.';
         }
-        // Error 400 genérico
+        // Error 400 genérico - verificar si es de credenciales primero
         else if (error.status === 400 || errorCode === 400) {
-          if (error.message) {
+          // Si el mensaje contiene "invalid" o "credentials", es un error de credenciales
+          if (errorMsg.includes('invalid') && (errorMsg.includes('credential') || errorMsg.includes('login') || errorMsg.includes('password'))) {
+            errorMessage = 'Email o contraseña incorrectos. Por favor, verifica tus credenciales e intenta nuevamente.';
+          }
+          else if (error.message) {
             // Intentar usar el mensaje original si es descriptivo
             const originalMsg = error.message;
             if (originalMsg.length < 100) {
@@ -635,8 +653,10 @@ export const usersAPI = {
   },
 
   // Crear usuario (admin) - Requiere password para crear cuenta en Supabase Auth
-  async createUser(userData: RegisterData): Promise<ApiResponse<User>> {
+  async createUser(userData: RegisterData, autoConfirmEmail: boolean = false): Promise<ApiResponse<User>> {
     try {
+      console.log('🔐 createUser: Creando usuario con autoConfirmEmail:', autoConfirmEmail);
+      
       // Primero crear el usuario en Supabase Auth con metadata
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email,
@@ -646,7 +666,8 @@ export const usersAPI = {
             first_name: userData.firstName,
             last_name: userData.lastName,
             role_id: userData.roleId
-          }
+          },
+          emailRedirectTo: undefined // No requerir confirmación de email
         }
       })
 
@@ -656,6 +677,21 @@ export const usersAPI = {
 
       if (!authData.user) {
         return { success: false, error: 'No se pudo crear el usuario en Supabase Auth' }
+      }
+
+      // Si se solicita auto-confirmar email, hacerlo inmediatamente
+      if (autoConfirmEmail && authData.user.id) {
+        console.log('📧 createUser: Auto-confirmando email para usuario:', authData.user.id);
+        
+        // Usar changeUserPassword con la misma contraseña para confirmar el email
+        const confirmResult = await this.changeUserPassword(authData.user.id, userData.password);
+        
+        if (!confirmResult.success) {
+          console.warn('⚠️ createUser: No se pudo auto-confirmar email, pero el usuario fue creado:', confirmResult.error);
+          // No fallar si no se puede confirmar, el usuario ya fue creado
+        } else {
+          console.log('✅ createUser: Email auto-confirmado exitosamente');
+        }
       }
 
       // El trigger automáticamente creará el registro en nuestra tabla
@@ -874,31 +910,103 @@ export const usersAPI = {
   },
 
   // Confirmar email de un usuario (solo para admins/coordinators)
+  // Solución temporal: Usa changeUserPassword con contraseña temporal para activar el usuario
+  // La función changeUserPassword ahora también confirma el email automáticamente
   async confirmUserEmail(userId: string): Promise<ApiResponse<{ email: string; email_confirmed_at: string | null }>> {
     try {
-      const { data, error } = await supabase
-        .rpc('admin_confirm_user_email', { p_user_id: userId })
-
-      if (error) {
-        console.error('Error al confirmar email:', error)
-        return { success: false, error: error.message || 'Error al confirmar el email del usuario' }
+      // Validar que userId sea un UUID válido
+      if (!userId || typeof userId !== 'string') {
+        return {
+          success: false,
+          error: 'ID de usuario inválido'
+        };
       }
 
-      if (!data || data.length === 0) {
-        return { success: false, error: 'No se pudo confirmar el email' }
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(userId)) {
+        return {
+          success: false,
+          error: 'El ID de usuario no tiene un formato válido'
+        };
       }
 
-      const result = data[0]
+      // Obtener token de autenticación de Supabase
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError || !session) {
+        console.error('❌ confirmUserEmail: Error obteniendo sesión:', sessionError);
+        return {
+          success: false,
+          error: 'No se pudo obtener la sesión de autenticación. Por favor, inicia sesión nuevamente.'
+        }
+      }
+
+      // URL de la Cloud Function confirmUserEmail
+      const CONFIRM_EMAIL_URL = import.meta.env.VITE_CONFIRM_EMAIL_URL || 
+        'https://us-central1-eduspark-py.cloudfunctions.net/confirmUserEmail'
+
+      console.log('📧 confirmUserEmail: Enviando solicitud a:', CONFIRM_EMAIL_URL);
+      console.log('📧 confirmUserEmail: userId:', userId);
+
+      const response = await fetch(CONFIRM_EMAIL_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          userId
+        })
+      });
+
+      console.log('📧 confirmUserEmail: Respuesta recibida:', { status: response.status, statusText: response.statusText, ok: response.ok });
+
+      const responseText = await response.text();
+      console.log('📧 confirmUserEmail: Texto de respuesta:', responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('📧 confirmUserEmail: Datos parseados:', data);
+      } catch (parseError) {
+        console.error('❌ confirmUserEmail: Error parseando respuesta:', parseError);
+        return {
+          success: false,
+          error: 'Error en la respuesta del servidor. Por favor, intenta nuevamente.'
+        };
+      }
+
+      if (!response.ok) {
+        console.error('❌ confirmUserEmail: Error en la respuesta:', data);
+        return {
+          success: false,
+          error: data.error || `Error al confirmar el email (${response.status})`
+        };
+      }
+
+      if (!data.success) {
+        console.error('❌ confirmUserEmail: La respuesta indica fallo:', data);
+        return {
+          success: false,
+          error: data.error || 'Error al confirmar el email del usuario'
+        };
+      }
+
+      console.log('✅ confirmUserEmail: Email confirmado exitosamente');
+
       return {
         success: true,
         data: {
-          email: result.email,
-          email_confirmed_at: result.email_confirmed_at
+          email: data.user?.email || '',
+          email_confirmed_at: data.user?.email_confirmed_at || new Date().toISOString()
         }
-      }
+      };
     } catch (error: any) {
-      console.error('Error al confirmar email:', error)
-      return { success: false, error: error?.message || 'Error interno del servidor' }
+      console.error('Error al confirmar email:', error);
+      return {
+        success: false,
+        error: error?.message || 'Error interno del servidor'
+      };
     }
   },
 
@@ -932,36 +1040,136 @@ export const usersAPI = {
   },
 
   // Cambiar contraseña de usuario (requiere admin)
-  // ⚠️ NOTA: Cambiar contraseñas requiere el service role key de Supabase
-  // que no está disponible desde el cliente por seguridad.
-  // Opciones: backend API o Supabase Dashboard
+  // Usa Google Cloud Function que tiene acceso al service role key
   async changeUserPassword(userId: string, newPassword: string): Promise<ApiResponse<void>> {
     try {
-      // Intentar usar Supabase Admin API (solo funciona si tienes service role key configurado)
-      // En el cliente normal, esto no funcionará por seguridad
-      if (supabase.auth.admin) {
-        const { error } = await supabase.auth.admin.updateUserById(
-          userId,
-          { password: newPassword }
-        )
+      // Validar que userId sea un UUID válido
+      if (!userId || typeof userId !== 'string') {
+        console.error('❌ changeUserPassword: userId inválido:', userId);
+        return {
+          success: false,
+          error: 'ID de usuario inválido. Por favor, recarga la página e intenta nuevamente.'
+        }
+      }
 
-        if (error) {
-          return { success: false, error: error.message }
+      // Validar formato UUID básico
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(userId)) {
+        console.error('❌ changeUserPassword: userId no es un UUID válido:', userId);
+        return {
+          success: false,
+          error: 'El ID de usuario no tiene un formato válido. Por favor, contacta al administrador.'
+        }
+      }
+
+      // Obtener token de autenticación de Supabase
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError || !session) {
+        console.error('❌ changeUserPassword: Error obteniendo sesión:', sessionError);
+        return {
+          success: false,
+          error: 'No se pudo obtener la sesión de autenticación. Por favor, inicia sesión nuevamente.'
+        }
+      }
+
+      // URL de la Cloud Function en Cloud Run (debe estar en variables de entorno)
+      const CHANGE_PASSWORD_URL = import.meta.env.VITE_CHANGE_PASSWORD_URL || 
+        'https://changeuserpassword-mcc5aevj6a-uc.a.run.app'
+
+      console.log('🔐 changeUserPassword: Enviando solicitud a:', CHANGE_PASSWORD_URL);
+      console.log('🔐 changeUserPassword: userId:', userId);
+      console.log('🔐 changeUserPassword: newPassword length:', newPassword.length);
+
+      const response = await fetch(CHANGE_PASSWORD_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          userId,
+          newPassword
+        })
+      })
+
+      console.log('🔐 changeUserPassword: Respuesta recibida:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
+      // Intentar parsear la respuesta como JSON, pero manejar errores si no es JSON
+      let data: any = {};
+      try {
+        const text = await response.text();
+        console.log('🔐 changeUserPassword: Texto de respuesta:', text);
+        if (text) {
+          data = JSON.parse(text);
+          console.log('🔐 changeUserPassword: Datos parseados:', data);
+        }
+      } catch (parseError) {
+        console.error('❌ changeUserPassword: Error parseando respuesta:', parseError);
+        // Si no se puede parsear, usar el texto como mensaje de error
+        data = { error: response.statusText || 'Error desconocido' };
+      }
+
+      if (!response.ok) {
+        // Mensajes de error más descriptivos según el código de estado
+        let errorMessage = data.error || 'Error al cambiar la contraseña';
+        
+        if (response.status === 400) {
+          if (data.error?.includes('userId') || data.error?.includes('newPassword')) {
+            errorMessage = 'Faltan datos requeridos. Por favor, verifica que todos los campos estén completos.';
+          } else if (data.error?.includes('no existe') || data.error?.includes('not found') || data.error?.includes('does not exist')) {
+            errorMessage = 'El usuario especificado no existe en el sistema de autenticación. Esto puede ocurrir si el usuario fue eliminado o si hay un problema con los datos. Por favor, verifica que el usuario esté activo.';
+            console.error('❌ changeUserPassword: Usuario no encontrado en Supabase Auth:', userId);
+          } else if (data.error?.includes('contraseña') || data.error?.includes('password')) {
+            errorMessage = data.error; // Usar el mensaje específico de la función
+          } else {
+            errorMessage = data.error || 'Datos inválidos. Por favor, verifica la información e intenta nuevamente.';
+          }
+        } else if (response.status === 401) {
+          errorMessage = 'No autorizado. Tu sesión puede haber expirado. Por favor, inicia sesión nuevamente.';
+        } else if (response.status === 403) {
+          errorMessage = 'No tienes permisos para cambiar contraseñas. Solo los administradores pueden realizar esta acción.';
+        } else if (response.status === 500) {
+          errorMessage = 'Error del servidor. Por favor, intenta nuevamente en unos momentos.';
         }
 
-        return { success: true }
+        console.error('❌ changeUserPassword: Error al cambiar contraseña:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: data.error,
+          message: errorMessage,
+          data: data
+        });
+
+        return { 
+          success: false, 
+          error: errorMessage
+        }
       }
 
-      // Si admin API no está disponible (normal en cliente), mostrar mensaje informativo
-      return {
-        success: false,
-        error: 'Para cambiar contraseñas, necesitas usar el Supabase Dashboard (Authentication > Users) o un endpoint backend con service role key. Por seguridad, esto no puede hacerse desde el cliente.'
-      }
+      console.log('✅ changeUserPassword: Contraseña cambiada exitosamente');
+      return { success: true }
     } catch (error: any) {
       console.error('Error al cambiar contraseña:', error)
+      
+      // Mensajes de error más específicos según el tipo de error
+      let errorMessage = 'No se pudo conectar con el servidor para cambiar la contraseña';
+      
+      if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+        errorMessage = 'Error de conexión. Por favor, verifica tu conexión a internet e intenta nuevamente.';
+      } else if (error.message?.includes('timeout')) {
+        errorMessage = 'La solicitud tardó demasiado. Por favor, intenta nuevamente.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       return {
         success: false,
-        error: 'No se pudo cambiar la contraseña. Por seguridad, usa el Supabase Dashboard o contacta al administrador del sistema.'
+        error: errorMessage
       }
     }
   },

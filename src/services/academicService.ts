@@ -23,6 +23,7 @@ export interface Career {
   code: string;
   description?: string;
   coordinator_id?: string;
+  institution_id?: number;
   duration_months: number;
   total_credits: number;
   degree_type: string;
@@ -34,6 +35,7 @@ export interface Career {
 export interface Subject {
   id: number;
   career_id?: number;
+  institution_id?: number;
   name: string;
   code: string;
   description?: string;

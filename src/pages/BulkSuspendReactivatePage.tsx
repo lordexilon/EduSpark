@@ -3,8 +3,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useUserInstitution } from '../hooks/useUserInstitution';
 import { bulkSuspendReactivateService, SuspendReactivateUserData, SuspendReactivateResult } from '../services/bulkSuspendReactivateService';
 import { paymentService, PaymentStatus } from '../services/paymentService';
+import { institutionService } from '../services/institutionService';
+import { supabase } from '../lib/supabase';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import { IconUpload, IconFileText, IconUsers, IconCheck, IconX, IconXCircle, IconDownload, IconAlertTriangle, IconBan, IconCheckCircle, IconDollarSign } from '../components/Icons';
@@ -12,6 +15,8 @@ import AdminRoute from '../components/AdminRoute';
 
 const BulkSuspendReactivatePage: React.FC = () => {
   const { user } = useAuth();
+  const { institution } = useUserInstitution();
+  const isSupervisor = user?.role?.name === 'supervisor';
   const [csvText, setCsvText] = useState('');
   const [users, setUsers] = useState<SuspendReactivateUserData[]>([]);
   const [processing, setProcessing] = useState(false);
@@ -72,7 +77,50 @@ const BulkSuspendReactivatePage: React.FC = () => {
     }
   };
 
-  const processParsedUsers = (parsedUsers: SuspendReactivateUserData[]) => {
+  const processParsedUsers = async (parsedUsers: SuspendReactivateUserData[]) => {
+    // Si es supervisor, validar que todos los usuarios pertenezcan a su institución
+    if (isSupervisor && institution) {
+      // Obtener los documentos de identidad de los usuarios parseados
+      const identityDocuments = parsedUsers.map(u => u.identity_document).filter(Boolean);
+      
+      if (identityDocuments.length > 0) {
+        // Buscar usuarios por documento de identidad
+        const { data: usersData, error: usersError } = await supabase
+          .from('users')
+          .select(`
+            id,
+            identity_document,
+            user_institutions!inner(institution_id)
+          `)
+          .in('identity_document', identityDocuments)
+          .eq('user_institutions.institution_id', institution.id);
+
+        if (usersError) {
+          console.error('Error validando usuarios por institución:', usersError);
+          alert('Error al validar usuarios. Por favor, intenta nuevamente.');
+          return;
+        }
+
+        // Crear un mapa de documentos válidos
+        const validDocuments = new Set((usersData || []).map((u: any) => u.identity_document));
+        
+        // Filtrar usuarios que no pertenecen a la institución
+        const usersFromOtherInstitution = parsedUsers.filter(u => 
+          u.identity_document && !validDocuments.has(u.identity_document)
+        );
+
+        if (usersFromOtherInstitution.length > 0) {
+          alert(`Error: ${usersFromOtherInstitution.length} usuario(s) no pertenecen a tu institución "${institution.name}":\n\n` +
+            usersFromOtherInstitution.map(u => `- ${u.identity_document}`).join('\n'));
+          
+          // Continuar solo con los usuarios válidos
+          parsedUsers = parsedUsers.filter(u => 
+            !u.identity_document || validDocuments.has(u.identity_document)
+          );
+        }
+      }
+    }
+
     // Validar cada usuario
     const validUsers: SuspendReactivateUserData[] = [];
     const invalidUsers: Array<{ identity_document: string; errors: string[] }> = [];
@@ -147,14 +195,42 @@ const BulkSuspendReactivatePage: React.FC = () => {
       setProcessing(true);
       setResult(null);
 
+      // Si es supervisor, validar nuevamente antes de procesar
+      if (isSupervisor && institution) {
+        const identityDocuments = users.map(u => u.identity_document).filter(Boolean);
+        
+        if (identityDocuments.length > 0) {
+          const { data: usersData } = await supabase
+            .from('users')
+            .select(`
+              id,
+              identity_document,
+              user_institutions!inner(institution_id)
+            `)
+            .in('identity_document', identityDocuments)
+            .eq('user_institutions.institution_id', institution.id);
+
+          const validDocuments = new Set((usersData || []).map((u: any) => u.identity_document));
+          const invalidUsers = users.filter(u => 
+            u.identity_document && !validDocuments.has(u.identity_document)
+          );
+
+          if (invalidUsers.length > 0) {
+            alert(`Error: No puedes procesar ${invalidUsers.length} usuario(s) que no pertenecen a tu institución.`);
+            setProcessing(false);
+            return;
+          }
+        }
+      }
+
       let processResult: SuspendReactivateResult;
       
       if (processingMode === 'payments') {
         // Procesar pagos y actualizar estados automáticamente
-        processResult = await bulkSuspendReactivateService.processPaymentsFromExcel(users);
+        processResult = await bulkSuspendReactivateService.processPaymentsFromExcel(users, isSupervisor && institution ? institution.id : undefined);
       } else {
         // Solo suspender/reactivar sin procesar pagos
-        processResult = await bulkSuspendReactivateService.bulkSuspendReactivateUsers(users);
+        processResult = await bulkSuspendReactivateService.bulkSuspendReactivateUsers(users, isSupervisor && institution ? institution.id : undefined);
       }
 
       setResult(processResult);

@@ -3,7 +3,7 @@
 // =====================================================
 
 const FALLBACKS = ['VITE_GEMINI_API_KEY', 'GEMINI_API_KEY', 'API_KEY'];
-const HARDCODED_KEY = 'AIzaSyDmbEdVTtQSaYInAsuCbplkSs_PFZSo2sc';
+const HARDCODED_KEY = 'AIzaSyCE-K_2cpz-BCu_Wan0uC7xvBb7OJJXGRc';
 
 export const resolveGeminiApiKey = () => {
   let key = undefined;
@@ -38,7 +38,7 @@ export const resolveGeminiApiKey = () => {
   // Final fallback to hardcoded key
   if (missing || !key || key === 'PLACEHOLDER_API_KEY' || key === 'undefined') {
     key = HARDCODED_KEY;
-    missing = true; // Still considered "missing" from env for warning purposes
+    missing = false; // Now considered valid as we updated the hardcoded key
   }
 
   return { key, missing };

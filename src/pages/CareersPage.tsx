@@ -4,11 +4,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { careerService, Career } from '../services/academicService';
+import { institutionService, Institution } from '../services/institutionService';
+import { useUserInstitution } from '../hooks/useUserInstitution';
 import Card from '../components/Card';
 import Button from '../components/Button';
 
 const CareersPage: React.FC = () => {
   const { user } = useAuth();
+  const { institution, loading: institutionLoading } = useUserInstitution();
+  const isAdminCampus = user?.role?.name === 'admin-campus';
   const [careers, setCareers] = useState<Career[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,14 +20,29 @@ const CareersPage: React.FC = () => {
   const [editingCareer, setEditingCareer] = useState<Career | null>(null);
 
   useEffect(() => {
+    // Si es admin-campus, esperar a que se cargue la institución
+    if (isAdminCampus && institutionLoading) {
+      return;
+    }
+    if (isAdminCampus && !institution) {
+      setError('No tienes una institución asignada. Por favor, contacta al administrador.');
+      setLoading(false);
+      return;
+    }
     loadCareers();
-  }, []);
+  }, [institution, institutionLoading, isAdminCampus]);
 
   const loadCareers = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await careerService.getAllCareers();
+      let data = await careerService.getAllCareers();
+      
+      // Si es admin-campus, filtrar por institución
+      if (isAdminCampus && institution) {
+        data = data.filter(career => (career as any).institution_id === institution.id);
+      }
+      
       setCareers(data);
     } catch (err: any) {
       setError(err.message || 'Error al cargar las carreras');
@@ -170,11 +189,15 @@ interface CareerFormProps {
 
 const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) => {
   const { user } = useAuth();
+  const { institution } = useUserInstitution();
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
+  const [loadingInstitutions, setLoadingInstitutions] = useState(true);
   const [formData, setFormData] = useState({
     name: career?.name || '',
     code: career?.code || '',
     description: career?.description || '',
     coordinator_id: career?.coordinator_id || user?.id || '',
+    institution_id: career?.institution_id || institution?.id || undefined,
     duration_months: career?.duration_months || 48,
     total_credits: career?.total_credits || 0,
     degree_type: career?.degree_type || 'bachelor',
@@ -182,6 +205,25 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadInstitutions = async () => {
+      try {
+        setLoadingInstitutions(true);
+        const data = await institutionService.getAllInstitutions();
+        setInstitutions(data);
+        // Si el usuario no es admin y tiene institución, pre-seleccionarla
+        if (!career && user?.role?.name !== 'admin' && institution) {
+          setFormData(prev => ({ ...prev, institution_id: institution.id }));
+        }
+      } catch (err) {
+        console.error('Error cargando instituciones:', err);
+      } finally {
+        setLoadingInstitutions(false);
+      }
+    };
+    loadInstitutions();
+  }, [career, user, institution]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,6 +269,46 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {user?.role?.name === 'admin' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Institución *
+              </label>
+              <select
+                required
+                value={formData.institution_id ? String(formData.institution_id) : ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ 
+                    ...formData, 
+                    institution_id: value ? parseInt(value, 10) : undefined 
+                  });
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={loadingInstitutions}
+              >
+                <option value="">Seleccionar institución</option>
+                {institutions.map(inst => (
+                  <option key={inst.id} value={inst.id}>{inst.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {user?.role?.name !== 'admin' && institution && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Institución
+              </label>
+              <input
+                type="text"
+                value={institution.name}
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600"
+              />
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Nombre *
@@ -274,8 +356,11 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
                 type="number"
                 required
                 min="1"
-                value={formData.duration_months}
-                onChange={(e) => setFormData({ ...formData, duration_months: parseInt(e.target.value) })}
+                value={formData.duration_months || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, duration_months: value ? parseInt(value, 10) : 0 });
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -287,8 +372,11 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
               <input
                 type="number"
                 min="0"
-                value={formData.total_credits}
-                onChange={(e) => setFormData({ ...formData, total_credits: parseInt(e.target.value) })}
+                value={formData.total_credits || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, total_credits: value ? parseInt(value, 10) : 0 });
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>

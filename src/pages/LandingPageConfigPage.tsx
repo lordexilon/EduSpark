@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { landingConfigService, LandingConfig, GalleryImage, FeaturedStudent } from '../services/landingConfigService';
 import { IconSave, IconPlus, IconTrash, IconAlertCircle } from '../components/Icons';
+import ImageUpload from '../components/ImageUpload';
 
 const LandingPageConfigPage: React.FC = () => {
     const { user } = useAuth();
@@ -24,6 +25,8 @@ const LandingPageConfigPage: React.FC = () => {
     const [notificationEnabled, setNotificationEnabled] = useState(true);
     const [primaryColor, setPrimaryColor] = useState('#2563eb');
     const [secondaryColor, setSecondaryColor] = useState('#1e40af');
+    const [galleryTitle, setGalleryTitle] = useState('Nuestra Casa de Estudios');
+    const [galleryDescription, setGalleryDescription] = useState('Un ambiente diseñado para el aprendizaje y la convivencia');
     const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
     const [featuredStudents, setFeaturedStudents] = useState<FeaturedStudent[]>([]);
     const [contactEmail, setContactEmail] = useState('');
@@ -57,6 +60,8 @@ const LandingPageConfigPage: React.FC = () => {
                 setNotificationEnabled(data.notification_enabled);
                 setPrimaryColor(data.primary_color);
                 setSecondaryColor(data.secondary_color);
+                setGalleryTitle(data.gallery_title || 'Nuestra Casa de Estudios');
+                setGalleryDescription(data.gallery_description || 'Un ambiente diseñado para el aprendizaje y la convivencia');
                 setGalleryImages(data.gallery_images || []);
                 setFeaturedStudents(data.featured_students || []);
                 setContactEmail(data.contact_email || '');
@@ -92,6 +97,8 @@ const LandingPageConfigPage: React.FC = () => {
                 notification_enabled: notificationEnabled,
                 primary_color: primaryColor,
                 secondary_color: secondaryColor,
+                gallery_title: galleryTitle,
+                gallery_description: galleryDescription,
                 gallery_images: galleryImages,
                 featured_students: featuredStudents,
                 contact_email: contactEmail,
@@ -206,15 +213,17 @@ const LandingPageConfigPage: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                URL del Logo (opcional)
+                                Logo
                             </label>
-                            <input
-                                type="text"
-                                value={logoUrl}
-                                onChange={(e) => setLogoUrl(e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="https://ejemplo.com/logo.png"
-                            />
+                            {config && (
+                                <ImageUpload
+                                    institutionId={config.institution_id}
+                                    section="logo"
+                                    currentImageUrl={logoUrl}
+                                    onImageUploaded={setLogoUrl}
+                                    helperText="Formato recomendado: PNG transparente, max 500x500px"
+                                />
+                            )}
                         </div>
                     </div>
                 </section>
@@ -247,15 +256,17 @@ const LandingPageConfigPage: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                URL de Imagen de Fondo
+                                Imagen de Fondo
                             </label>
-                            <input
-                                type="text"
-                                value={heroImageUrl}
-                                onChange={(e) => setHeroImageUrl(e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="https://ejemplo.com/hero.jpg"
-                            />
+                            {config && (
+                                <ImageUpload
+                                    institutionId={config.institution_id}
+                                    section="hero"
+                                    currentImageUrl={heroImageUrl}
+                                    onImageUploaded={setHeroImageUrl}
+                                    helperText="Formato recomendado: JPG/WebP, 1920x1080px"
+                                />
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -342,17 +353,43 @@ const LandingPageConfigPage: React.FC = () => {
                             Agregar Imagen
                         </button>
                     </div>
+                    <div className="space-y-4 mb-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Título de la Galería
+                            </label>
+                            <input
+                                type="text"
+                                value={galleryTitle}
+                                onChange={(e) => setGalleryTitle(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Descripción de la Galería
+                            </label>
+                            <input
+                                type="text"
+                                value={galleryDescription}
+                                onChange={(e) => setGalleryDescription(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
+                    </div>
                     <div className="space-y-4">
                         {galleryImages.map((img, index) => (
                             <div key={index} className="flex gap-3 items-start p-4 bg-gray-50 rounded-lg">
                                 <div className="flex-1 space-y-3">
-                                    <input
-                                        type="text"
-                                        value={img.url}
-                                        onChange={(e) => updateGalleryImage(index, 'url', e.target.value)}
-                                        placeholder="URL de la imagen"
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
+                                    {config && (
+                                        <ImageUpload
+                                            institutionId={config.institution_id}
+                                            section="gallery"
+                                            currentImageUrl={img.url}
+                                            onImageUploaded={(url) => updateGalleryImage(index, 'url', url)}
+                                            className="mb-2"
+                                        />
+                                    )}
                                     <input
                                         type="text"
                                         value={img.caption}
@@ -409,13 +446,15 @@ const LandingPageConfigPage: React.FC = () => {
                                         placeholder="Puesto/Logro"
                                         className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
-                                    <input
-                                        type="text"
-                                        value={student.image}
-                                        onChange={(e) => updateFeaturedStudent(index, 'image', e.target.value)}
-                                        placeholder="URL de foto"
-                                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
+                                    {config && (
+                                        <ImageUpload
+                                            institutionId={config.institution_id}
+                                            section="students"
+                                            currentImageUrl={student.image}
+                                            onImageUploaded={(url) => updateFeaturedStudent(index, 'image', url)}
+                                            helperText="Foto del estudiante"
+                                        />
+                                    )}
                                 </div>
                                 <button
                                     onClick={() => removeFeaturedStudent(index)}

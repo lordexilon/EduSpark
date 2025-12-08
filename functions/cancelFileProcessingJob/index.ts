@@ -2,23 +2,41 @@
 // Cloud Function para cancelar trabajos de procesamiento
 
 import { onRequest } from 'firebase-functions/v2/https';
-import { initializeApp } from 'firebase-admin/app';
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { createClient } from '@supabase/supabase-js';
 import { requireAuth } from './auth';
 
-// Inicializar Firebase Admin (lazy initialization)
-let db: ReturnType<typeof getFirestore> | null = null;
+// Valores por defecto para Supabase (se pueden sobrescribir con variables de entorno)
+const DEFAULT_SUPABASE_URL = 'https://mckfscukxcqwntpjagar.supabase.co';
+const DEFAULT_SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZzY3VreGNxd250cGphZ2FyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDc0NTQzNCwiZXhwIjoyMDc2MzIxNDM0fQ.gj8Pf2_xZRitw-MkrNKC0MqrzTHRYtnQmrSquTO5zu8';
 
-function getDb() {
-  if (!db) {
-    try {
-      initializeApp();
-    } catch (error) {
-      // App ya inicializado, ignorar
+// Inicializar Supabase (lazy initialization - solo cuando se necesite)
+let supabase: ReturnType<typeof createClient> | null = null;
+
+function getSupabase() {
+  // Inicialización lazy: solo cuando se llama la función, no durante el análisis del código
+  if (!supabase) {
+    // Usar variables de entorno si están disponibles, sino usar valores por defecto
+    const url = process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_KEY || DEFAULT_SUPABASE_SERVICE_KEY;
+    
+    if (!url || !key) {
+      console.error('[cancelFileProcessingJob] Variables de entorno faltantes:', {
+        hasUrl: !!url,
+        hasKey: !!key,
+        usingDefaults: !process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY
+      });
+      throw new Error('SUPABASE_URL y SUPABASE_SERVICE_KEY deben estar configurados');
     }
-    db = getFirestore();
+    
+    try {
+      supabase = createClient(url, key);
+      console.log('[cancelFileProcessingJob] Cliente de Supabase inicializado correctamente');
+    } catch (error) {
+      console.error('[cancelFileProcessingJob] Error inicializando Supabase:', error);
+      throw error;
+    }
   }
-  return db;
+  return supabase;
 }
 
 /**
@@ -83,10 +101,13 @@ export const cancelFileProcessingJob = onRequest(
       }
 
       // Obtener el job para verificar que pertenece al usuario
-      const jobRef = getDb().collection('file_processing_jobs').doc(jobId);
-      const jobDoc = await jobRef.get();
+      const { data: jobData, error: fetchError } = await getSupabase()
+        .from('file_processing_jobs')
+        .select('*')
+        .eq('id', jobId)
+        .single();
 
-      if (!jobDoc.exists) {
+      if (fetchError || !jobData) {
         setCorsHeaders();
         res.status(404).json({
           success: false,
@@ -95,10 +116,12 @@ export const cancelFileProcessingJob = onRequest(
         return;
       }
 
-      const jobData = jobDoc.data();
+      // Tipo para jobData
+      const job = jobData as any;
 
       // Verificar que el job pertenece al usuario
-      if (jobData?.metadata?.userId !== user.userId) {
+      const jobUserId = job.user_id || job.metadata?.userId;
+      if (jobUserId !== user.userId) {
         setCorsHeaders();
         res.status(403).json({
           success: false,
@@ -108,7 +131,7 @@ export const cancelFileProcessingJob = onRequest(
       }
 
       // Verificar que el job puede ser cancelado (no completado ni ya cancelado)
-      if (jobData?.status === 'completed') {
+      if (job.status === 'completed') {
         setCorsHeaders();
         res.status(400).json({
           success: false,
@@ -117,21 +140,32 @@ export const cancelFileProcessingJob = onRequest(
         return;
       }
 
-      if (jobData?.status === 'cancelled') {
-        setCorsHeaders();
-        res.status(400).json({
-          success: false,
-          error: 'El job ya está cancelado',
-        });
-        return;
+      if (job.status === 'cancelled' || job.status === 'failed') {
+        // Si ya está cancelado o fallido, verificar si el error es de cancelación manual
+        if (job.error_message === 'Cancelado por el usuario') {
+          setCorsHeaders();
+          res.status(400).json({
+            success: false,
+            error: 'El job ya está cancelado',
+          });
+          return;
+        }
       }
 
-      // Actualizar el job a estado 'cancelled'
-      await jobRef.update({
-        status: 'cancelled',
-        updatedAt: Timestamp.now(),
-        errorMessage: 'Cancelado por el usuario',
-      });
+      // Actualizar el job a estado 'cancelled' en Supabase
+      const { error: updateError } = await (getSupabase()
+        .from('file_processing_jobs') as any)
+        .update({
+          status: 'cancelled',
+          error_message: 'Cancelado por el usuario',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', jobId);
+
+      if (updateError) {
+        console.error('[cancelFileProcessingJob] Error actualizando job:', updateError);
+        throw updateError;
+      }
 
       console.log(`✅ Job ${jobId} cancelado por usuario ${user.userId}`);
 

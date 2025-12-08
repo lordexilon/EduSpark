@@ -27,6 +27,8 @@ export interface LandingConfig {
     notification_enabled: boolean;
     primary_color: string;
     secondary_color: string;
+    gallery_title: string;
+    gallery_description: string;
     gallery_images: GalleryImage[];
     featured_students: FeaturedStudent[];
     contact_email?: string;
@@ -52,6 +54,8 @@ export interface LandingConfigInput {
     notification_enabled?: boolean;
     primary_color?: string;
     secondary_color?: string;
+    gallery_title?: string;
+    gallery_description?: string;
     gallery_images?: GalleryImage[];
     featured_students?: FeaturedStudent[];
     contact_email?: string;
@@ -84,17 +88,13 @@ class LandingConfigService {
      * Get landing page configuration by institution slug (using name as fallback)
      */
     async getBySlug(slug: string): Promise<LandingConfig | null> {
-        // Since institutions table doesn't have a slug column, we'll search by name
-        // Convert slug to title case for matching (e.g., 'cec' -> 'CEC')
-        const institutionName = slug.toUpperCase();
-
         const { data, error } = await supabase
             .from('institution_landing_config')
             .select(`
                 *,
-                institutions!inner(name)
+                institutions!inner(slug)
             `)
-            .eq('institutions.name', institutionName)
+            .eq('institutions.slug', slug.toLowerCase())
             .maybeSingle();
 
         if (error) {

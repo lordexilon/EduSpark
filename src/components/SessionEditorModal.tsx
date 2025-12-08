@@ -58,6 +58,48 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
   const [transcriptionStatuses, setTranscriptionStatuses] = useState<Record<string, string>>({});
   const { user } = useAuth();
 
+  // Helper para convertir fecha ISO (UTC) a formato datetime-local (hora local)
+  const toLocalDatetimeString = (isoString: string | undefined): string => {
+    if (!isoString) return '';
+    try {
+      const date = new Date(isoString);
+      // Obtener componentes en hora local
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    } catch (e) {
+      console.error('Error convirtiendo fecha:', e);
+      return '';
+    }
+  };
+
+  // Helper para convertir datetime-local (hora local) a ISO string (UTC) preservando la hora exacta
+  const localDatetimeToISO = (localDatetimeString: string | undefined): string | undefined => {
+    if (!localDatetimeString) return undefined;
+    try {
+      // El input datetime-local devuelve un string en formato YYYY-MM-DDTHH:mm sin zona horaria
+      // Queremos guardar exactamente esa hora sin conversión de zona horaria
+      // Para esto, creamos el ISO string directamente usando UTC pero con la hora ingresada
+      const [datePart, timePart] = localDatetimeString.split('T');
+      if (!datePart || !timePart) return undefined;
+      
+      const [year, month, day] = datePart.split('-').map(Number);
+      const [hours, minutes] = timePart.split(':').map(Number);
+      
+      // Crear ISO string directamente con la hora ingresada (interpretándola como UTC)
+      // Esto preserva la hora exacta que el usuario ingresó
+      const isoString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00.000Z`;
+      
+      return isoString;
+    } catch (e) {
+      console.error('Error convirtiendo fecha local a ISO:', e);
+      return undefined;
+    }
+  };
+
   useEffect(() => {
     if (session) {
       setTitle(session.title);
@@ -68,8 +110,8 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
       setLearningObjectives(session.learning_objectives || []);
       setDurationMinutes(session.duration_minutes);
       setSessionType(session.session_type || 'lecture');
-      setStartsAt(session.starts_at ? new Date(session.starts_at).toISOString().slice(0, 16) : '');
-      setEndsAt(session.ends_at ? new Date(session.ends_at).toISOString().slice(0, 16) : '');
+      setStartsAt(toLocalDatetimeString(session.starts_at));
+      setEndsAt(toLocalDatetimeString(session.ends_at));
       setOrderIndex(session.order_index);
       setAutoCreateMeet(session.auto_create_meet || false);
       setGoogleMeetLink(session.google_meet_link || '');
@@ -374,8 +416,8 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
         learning_objectives: learningObjectives.length > 0 ? learningObjectives : undefined,
         duration_minutes: durationMinutes,
         session_type: sessionType,
-        starts_at: startsAt ? new Date(startsAt).toISOString() : undefined,
-        ends_at: endsAt ? new Date(endsAt).toISOString() : undefined,
+        starts_at: localDatetimeToISO(startsAt),
+        ends_at: localDatetimeToISO(endsAt),
         order_index: orderIndex || undefined,
         google_meet_link: googleMeetLink || undefined,
         google_calendar_event_id: googleCalendarEventId || undefined,
