@@ -1,96 +1,16 @@
-# Dockerfile para Cloud Run - Frontend optimizado
-# Build multi-stage para minimizar tamaño de imagen
+# Dockerfile optimizado para Cloud Run
+# Usa el build ya compilado localmente
 
-# ========================================
-# Stage 1: Build del Frontend
-# ========================================
-FROM node:20-alpine AS frontend-builder
+FROM nginx:alpine
 
-# Argumentos de build para variables de entorno - Supabase
-ARG VITE_SUPABASE_URL=https://mckfscukxcqwntpjagar.supabase.co
-ARG VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZzY3VreGNxd250cGphZ2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3NDU0MzQsImV4cCI6MjA3NjMyMTQzNH0.-5HFEuphwYhfa8HBW3FddQfu5b-JOCb6FLElKFwezBg
+# Copiar build compilado
+COPY dist /usr/share/nginx/html
 
-# Gemini API
-ARG VITE_GEMINI_API_KEY=AIzaSyCE-K_2cpz-BCu_Wan0uC7xvBb7OJJXGRc
-
-# Google OAuth
-ARG VITE_GOOGLE_CLIENT_ID=468517556859-qtbplkfnqqc6ru8ga7o3d1npo76t1b62.apps.googleusercontent.com
-ARG VITE_GOOGLE_CLIENT_SECRET=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
-ARG VITE_GOOGLE_REDIRECT_URI=https://eduspark-frontend-mcc5aevj6a-uc.a.run.app/auth/google/callback
-
-# Firebase
-ARG VITE_FIREBASE_API_KEY=AIzaSyAwcdqI2DJfmYY_CAuA35vnZYmYJtuL3rc
-ARG VITE_FIREBASE_AUTH_DOMAIN=eduspark-py.firebaseapp.com
-ARG VITE_FIREBASE_PROJECT_ID=eduspark-py
-ARG VITE_FIREBASE_STORAGE_BUCKET=eduspark-py.firebasestorage.app
-ARG VITE_FIREBASE_MESSAGING_SENDER_ID=470326625254
-ARG VITE_FIREBASE_APP_ID=1:470326625254:web:87632d5146a1d0332d0c27
-
-# Cloud Functions URLs
-ARG VITE_ANALYZE_FILE_URL=https://analyzefile-mcc5aevj6a-uc.a.run.app
-ARG VITE_CREATE_JOB_URL=https://createfileprocessingjob-mcc5aevj6a-uc.a.run.app
-ARG VITE_CHANGE_PASSWORD_URL=https://changeuserpassword-mcc5aevj6a-uc.a.run.app
-ARG VITE_CONFIRM_EMAIL_URL=https://confirmuseremail-mcc5aevj6a-uc.a.run.app
-ARG VITE_SERVE_PDF_READONLY_URL=https://servepdfreadonly-mcc5aevj6a-uc.a.run.app
-
-# Convertir ARG a ENV para que Vite las lea durante el build
-ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
-ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
-ENV VITE_GEMINI_API_KEY=$VITE_GEMINI_API_KEY
-ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
-ENV VITE_GOOGLE_CLIENT_SECRET=$VITE_GOOGLE_CLIENT_SECRET
-ENV VITE_GOOGLE_REDIRECT_URI=$VITE_GOOGLE_REDIRECT_URI
-ENV VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY
-ENV VITE_FIREBASE_AUTH_DOMAIN=$VITE_FIREBASE_AUTH_DOMAIN
-ENV VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID
-ENV VITE_FIREBASE_STORAGE_BUCKET=$VITE_FIREBASE_STORAGE_BUCKET
-ENV VITE_FIREBASE_MESSAGING_SENDER_ID=$VITE_FIREBASE_MESSAGING_SENDER_ID
-ENV VITE_FIREBASE_APP_ID=$VITE_FIREBASE_APP_ID
-ENV VITE_ANALYZE_FILE_URL=$VITE_ANALYZE_FILE_URL
-ENV VITE_CREATE_JOB_URL=$VITE_CREATE_JOB_URL
-ENV VITE_CHANGE_PASSWORD_URL=$VITE_CHANGE_PASSWORD_URL
-ENV VITE_CONFIRM_EMAIL_URL=$VITE_CONFIRM_EMAIL_URL
-ENV VITE_SERVE_PDF_READONLY_URL=$VITE_SERVE_PDF_READONLY_URL
-
-WORKDIR /app
-
-# Copiar solo archivos necesarios para instalar dependencias
-COPY package*.json ./
-COPY tsconfig.json ./
-COPY vite.config.ts ./
-COPY tailwind.config.cjs ./
-COPY postcss.config.cjs ./
-
-# Instalar dependencias (incluyendo devDependencies para build)
-RUN npm ci
-
-# Copiar código fuente
-COPY src ./src
-COPY index.html ./
-COPY audio-tutor ./audio-tutor
-COPY scripts ./scripts
-
-# Build del frontend con las variables de entorno ya configuradas
-RUN npm run build
-
-# ========================================
-# Stage 2: Nginx para servir archivos estáticos
-# ========================================
-FROM nginx:alpine AS frontend
-
-# Copiar build del frontend
-COPY --from=frontend-builder /app/dist /usr/share/nginx/html
-
-# Copiar configuración de nginx optimizada para Cloud Run
+# Copiar configuración de nginx
 COPY nginx-cloudrun.conf /etc/nginx/nginx.conf
 
-# Copiar script de inicio
-COPY start-nginx.sh /start-nginx.sh
-RUN chmod +x /start-nginx.sh
+# Cloud Run espera que el servicio escuche en $PORT
+ENV PORT=8080
 
-# Exponer puerto (Cloud Run usa PORT variable, por defecto 8080)
-EXPOSE 8080
-
-# Usar script de inicio que configura el puerto dinámicamente
-CMD ["/start-nginx.sh"]
-
+# Iniciar nginx en el puerto especificado
+CMD sed -i "s/listen 8080/listen ${PORT}/g" /etc/nginx/nginx.conf && nginx -g "daemon off;"

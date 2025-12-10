@@ -5,8 +5,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # Build outputs
-dist/
-build/
+# dist/ - INCLUIR: ya está compilado
+# build/
 .vite-temp/
 
 # Environment
@@ -35,11 +35,24 @@ Thumbs.db
 .git/
 .gitignore
 
-# Documentation
+# Documentation (EXCLUIR TODO)
 AI_CONTEXT/
 docs/
 *.md
 !README.md
+
+# Scripts y SQL (EXCLUIR)
+sql_scripts/
+functions/rag-worker/
+src/workers/file-processing-worker/
+
+# Backups y directorios de testing (EXCLUIR)
+backup_admin_system/
+MVP_PLAN/
+TEST_MATERIA/
+*.backup*
+*.temp*
+*.log
 
 # Scripts
 # scripts/ - COMENTADO: necesario para vite.config.ts

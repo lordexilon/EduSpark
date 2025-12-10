@@ -613,15 +613,25 @@ async function processRagJobs() {
         }
 
         // Finalizar
-        await supabase.from('file_processing_jobs').update({
+        const { error: jobUpdateError } = await supabase.from('file_processing_jobs').update({
             status: 'completed',
-            metadata: { ...job.metadata, phase: 'completed' },
+            metadata: { ...job.metadata, phase: 'completed', chunksProcessed: (job.metadata?.chunksTotal || chunks.length) },
             updated_at: new Date().toISOString()
         }).eq('id', job.id);
 
-        await supabase.from('materials').update({
+        if (jobUpdateError) {
+            console.error(`[RAG Worker VM] ❌ Error actualizando job a completed:`, jobUpdateError.message);
+        } else {
+            console.log(`[RAG Worker VM] ✅ Job ${job.id} marcado como completed en DB`);
+        }
+
+        const { error: materialUpdateError } = await supabase.from('materials').update({
             rag_status: 'completed'
         }).eq('id', materialId);
+
+        if (materialUpdateError) {
+            console.error(`[RAG Worker VM] ❌ Error actualizando material:`, materialUpdateError.message);
+        }
 
         console.log(`[RAG Worker VM] ✅ Job ${job.id} completado!`);
 

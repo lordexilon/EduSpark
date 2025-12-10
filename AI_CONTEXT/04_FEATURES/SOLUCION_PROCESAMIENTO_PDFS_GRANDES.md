@@ -125,12 +125,58 @@ await supabase.from('materials').update({
 Se han creado scripts en `functions/rag-worker/` para diagnóstico y recuperación:
 
 - `check_status.js`: Verifica estado real de un job.
+- `check_active_jobs.js`: Lista todos los jobs en `pending` o `processing`.
 - `reset_stuck_job.js`: Resetea jobs "zombie" a `pending`.
 - `manual_complete.js`: Fuerza el estado `completed` si hay desincronización.
+- `complete_all_done.js`: Marca automáticamente todos los jobs con 100% de chunks como completados.
 
-## 5. Conclusión
+### 🛑 Error 6: Archivo Incorrecto en Servicio Systemd (CRÍTICO)
+**El Bug:** Todos los fixes desplegados no tenían efecto. El worker seguía sin marcar jobs como `completed`.
+
+**Causa:** El servicio systemd ejecutaba `index.js`:
+```bash
+ExecStart=/usr/bin/node index.js
+```
+Pero nosotros editábamos y desplegábamos `index.vm.js` - **¡eran archivos DIFERENTES!**
+
+**Síntomas:**
+- Los logs mostraban "completado!" pero el status en DB permanecía en `processing`.
+- Los mensajes de diagnóstico del nuevo código nunca aparecían.
+
+**Solución:**
+```bash
+# Copiar el archivo correcto
+cp /opt/rag-worker/functions/rag-worker/index.vm.js /opt/rag-worker/functions/rag-worker/index.js
+
+# Reiniciar el servicio
+sudo systemctl restart rag-worker
+```
+
+**Prevención:**
+- **Verificar siempre** qué archivo ejecuta el servicio systemd antes de desplegar.
+- **Unificar archivos:** Usar solo un archivo `index.js` para evitar confusiones.
+- **CI/CD:** Automatizar el despliegue para que el proceso sea consistente.
+
+---
+
+## 5. Archivos Procesados Exitosamente
+
+| Archivo | Tamaño | Páginas | Chunks | Tiempo |
+|---------|--------|---------|--------|--------|
+| Williams Gineco | ~60MB | ~1,400 | 282 | ~5 min |
+| Harrison Medicina Interna | 137MB | 8,267 | 8,267 | ~64 min |
+| Manual Atención Neonatal | 6.24MB | 506 | 30 | ~2 min |
+| Williams Obstetricia | 45MB | 1,346 | 306 | ~45 min |
+| Schwartz Cirugía | ~100MB | N/A | 3,639 | ~2 hrs |
+
+---
+
+## 6. Conclusión
 
 Para el procesamiento de archivos pesados en sistemas limitados (Cloud Functions, VMs pequeñas), **nunca confiar en la memoria RAM**. Siempre preferir:
-1.  **Streaming** sobre Carga Completa.
-2.  **Archivos Temporales en Disco** sobre Buffers en Memoria.
-3.  **Herramientas Nativas (qpdf, ffmpeg)** sobre Librerías JS Puras para tareas pesadas.
+
+1. **Streaming** sobre Carga Completa.
+2. **Archivos Temporales en Disco** sobre Buffers en Memoria.
+3. **Herramientas Nativas (qpdf, ffmpeg)** sobre Librerías JS Puras para tareas pesadas.
+4. **Error Handling Explícito** - Supabase updates pueden fallar silenciosamente.
+5. **Verificar Despliegues** - Confirmar que el archivo correcto se está ejecutando.
