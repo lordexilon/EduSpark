@@ -81,6 +81,26 @@ export const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
     }
   };
 
+  // Obtener texto de la fase actual basado en metadata.phase
+  const getPhaseText = (job: FileProcessingJob): string | null => {
+    if (job.status !== 'processing') return null;
+
+    const phase = job.metadata?.phase;
+    switch (phase) {
+      case 'splitting':
+        return '✂️ Dividiendo PDF...';
+      case 'extracting_chunks':
+      case 'extracting':
+        return '📄 Extrayendo texto...';
+      case 'embedding':
+        return '🤖 Generando embeddings...';
+      case 'completed':
+        return '✅ Finalizando...';
+      default:
+        return '🔄 Iniciando procesamiento...';
+    }
+  };
+
   const calculateProgress = (fileJobs: FileProcessingJob[]) => {
     const total = fileJobs.length;
     const completed = fileJobs.filter(j => j.status === 'completed').length;
@@ -144,10 +164,10 @@ export const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
                 </div>
               </div>
               <span className={`px-3 py-1 rounded-full text-sm font-medium ${isStuck ? 'bg-orange-100 text-orange-800' :
-                  firstJob.status === 'completed' ? 'bg-green-100 text-green-700' :
-                    firstJob.status === 'failed' ? 'bg-red-100 text-red-700' :
-                      firstJob.status === 'processing' ? 'bg-blue-100 text-blue-700' :
-                        'bg-gray-100 text-gray-700'
+                firstJob.status === 'completed' ? 'bg-green-100 text-green-700' :
+                  firstJob.status === 'failed' ? 'bg-red-100 text-red-700' :
+                    firstJob.status === 'processing' ? 'bg-blue-100 text-blue-700' :
+                      'bg-gray-100 text-gray-700'
                 }`}>
                 {getStatusText(firstJob.status, isStuck)}
               </span>
@@ -158,16 +178,16 @@ export const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
               <div className="mb-3">
                 <div className="flex justify-between text-sm mb-1">
                   <span className={`font-medium ${isStuck ? 'text-orange-700' :
-                      firstJob.status === 'processing' ? 'text-blue-700' :
-                        firstJob.status === 'completed' ? 'text-green-700' :
-                          'text-gray-600'
+                    firstJob.status === 'processing' ? 'text-blue-700' :
+                      firstJob.status === 'completed' ? 'text-green-700' :
+                        'text-gray-600'
                     }`}>
                     {firstJob.chunksProcessed || 0} de {firstJob.chunksTotal} chunks completados
                   </span>
                   <span className={`font-semibold ${isStuck ? 'text-orange-700' :
-                      firstJob.status === 'processing' ? 'text-blue-700' :
-                        firstJob.status === 'completed' ? 'text-green-700' :
-                          'text-gray-600'
+                    firstJob.status === 'processing' ? 'text-blue-700' :
+                      firstJob.status === 'completed' ? 'text-green-700' :
+                        'text-gray-600'
                     }`}>
                     {Math.round(((firstJob.chunksProcessed || 0) / firstJob.chunksTotal) * 100)}%
                   </span>
@@ -175,12 +195,12 @@ export const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
                 <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
                   <div
                     className={`h-2.5 rounded-full transition-all duration-500 ease-out ${isStuck
-                        ? 'bg-orange-500'
-                        : firstJob.status === 'processing'
-                          ? 'bg-gradient-to-r from-blue-500 to-blue-600'
-                          : firstJob.status === 'completed'
-                            ? 'bg-gradient-to-r from-green-500 to-green-600'
-                            : 'bg-gray-400'
+                      ? 'bg-orange-500'
+                      : firstJob.status === 'processing'
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600'
+                        : firstJob.status === 'completed'
+                          ? 'bg-gradient-to-r from-green-500 to-green-600'
+                          : 'bg-gray-400'
                       }`}
                     style={{ width: `${Math.round(((firstJob.chunksProcessed || 0) / firstJob.chunksTotal) * 100)}%` }}
                   />
@@ -204,10 +224,15 @@ export const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
               </div>
             )}
 
-            {/* Información de procesamiento actual */}
-            {processingJob && processingJob.pageStart && processingJob.pageEnd && !isStuck && (
-              <div className="text-sm text-blue-600 bg-blue-50 rounded p-2">
-                Procesando páginas {processingJob.pageStart} - {processingJob.pageEnd}
+            {/* Indicador de fase actual */}
+            {processingJob && !isStuck && (
+              <div className="text-sm text-blue-600 bg-blue-50 rounded p-2 flex items-center gap-2">
+                <span>{getPhaseText(processingJob)}</span>
+                {processingJob.pageStart && processingJob.pageEnd && (
+                  <span className="text-blue-500">
+                    (páginas {processingJob.pageStart} - {processingJob.pageEnd})
+                  </span>
+                )}
               </div>
             )}
 
