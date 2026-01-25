@@ -1,6 +1,17 @@
-# EduSpark - Desarrollo Local
+# EduSpark 🎓✨
+### Plataforma Educativa Inteligente Multi-Agente
 
-## 🚀 Inicio Rápido (Windows)
+EduSpark es una plataforma de aprendizaje avanzada que integra Inteligencia Artificial Generativa y RAG (Retrieval-Augmented Generation) para ofrecer un tutor virtual personalizado 24/7. 
+
+**Características Principales:**
+- 🤖 **Tutor IA Multi-Agente:** Especialistas en pedagogía, contenido y voz.
+- 🎙️ **Interacción por Voz:** Respuestas expresivas usando Gemini 2.5 Flash TTS.
+- 📂 **RAG Basado en Sesiones:** Búsqueda inteligente en materiales de clase y transcripciones de videos.
+- 📊 **Análisis Docente:** Seguimiento detallado del progreso y comprensión de los estudiantes.
+
+---
+
+## 🚀 Inicio Rápido (Desarrollo Local)
 
 ### Opción 1: Script Automático (Recomendado) ✅
 
@@ -89,6 +100,7 @@ npm run dev:all
 
 - **RAG para Sesiones:** [`AI_CONTEXT/04_FEATURES/RAG_INDEXACION_SESIONES.md`](./AI_CONTEXT/04_FEATURES/RAG_INDEXACION_SESIONES.md)
 - **Gestión de Materiales:** [`AI_CONTEXT/03_GUIAS/MANUAL_GESTION_MATERIALES_RAG.md`](./AI_CONTEXT/03_GUIAS/MANUAL_GESTION_MATERIALES_RAG.md)
+- **Despliegue GCP:** [`AI_CONTEXT/05_DEPLOYMENT/GCP_DEPLOYMENT_GUIDE.md`](./AI_CONTEXT/05_DEPLOYMENT/GCP_DEPLOYMENT_GUIDE.md)
 - **Más documentación:** [`AI_CONTEXT/`](./AI_CONTEXT/)
 
 ## ✅ Verificar que Todo Funciona
