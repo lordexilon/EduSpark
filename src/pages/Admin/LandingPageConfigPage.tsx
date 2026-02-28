@@ -180,7 +180,6 @@ const LandingPageConfigPage: React.FC = () => {
                 contact_whatsapp: contactWhatsapp,
                 contact_address: contactAddress,
                 calendar_embed_url: calendarEmbedUrl,
-                calendar_embed_url: calendarEmbedUrl,
             };
 
             let currentInstitutionId = selectedInstitutionId;
