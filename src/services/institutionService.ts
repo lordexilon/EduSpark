@@ -1,5 +1,5 @@
 // services/institutionService.ts
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export interface Institution {
   id: number;
@@ -334,6 +334,23 @@ export const institutionService = {
       last_name: user.last_name,
       role: (user as any).roles
     }));
+  },
+
+  /**
+   * Obtener institución por Slug
+   */
+  async getBySlug(slug: string): Promise<Institution | null> {
+    const { data, error } = await supabase
+      .from('institutions')
+      .select('*')
+      .eq('slug', slug)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return data;
   }
 };
 
