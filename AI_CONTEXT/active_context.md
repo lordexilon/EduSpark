@@ -104,13 +104,12 @@
 - **RLS Cleanup**: Ejecutada migración `20260219_final_rls_cleanup.sql` que elimina políticas antiguas y centraliza el aislamiento institucional en `careers`, `subjects`, `courses`, `assessments`, `flashcards` y `users`.
 - **AI Quiz Generation**: Implementado sistema de generación automática de quizzes.
     - Code: Backend (Edge Function `generate-flashcards`), Frontend Service (`aiService.ts`), UI (`QuizBuilderPage.tsx`).
-    - Estado: Código base completado, pendiente confirmar despliegue de Edge Function.
+    - Estado: ✅ Código base completado y **Edge Function desplegada en Supabase Cloud**.
 
 ## 📝 PRÓXIMOS PASOS
 1. **Merge a main**: Evaluar crear PR de `feature/multi-institution-landings` → `main` cuando se validen todos los cambios consolidados.
-2. **Despliegue de Edge Function**: Confirmar si `generate-flashcards` ya fue desplegada a Supabase Cloud.
-3. **Módulos Universidad Paraguay**: Retomar la vista de malla curricular (`CurriculumGrid.tsx`).
-4. **Testing Landing Pages**: Verificar landing por slug en producción tras merge.
+2. **Módulos Universidad Paraguay**: Retomar la vista de malla curricular (`CurriculumGrid.tsx`).
+3. **Testing Landing Pages**: Verificar landing por slug en producción tras merge.
 
 ---
 
