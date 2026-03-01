@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { Subject } from '../../services/academicService';
 import Card from '../Common/Card';
 import { BookOpen, AlertCircle, CheckCircle, Lock } from 'lucide-react';
-import { cn } from '@/lib/utils'; // Si esta utilidad no existe, definiremos una local o simple string concat
 
 // Fallback por si cn no existe
 const classNames = (...classes: (string | undefined | null | false)[]) => {

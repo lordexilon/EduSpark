@@ -22,6 +22,16 @@
 - **Aislamiento**: `useAuth.tsx` inyecta `institution_id` en contexto global; `useUserInstitution.ts` lo consume.
 - **Servicios**: `institutionService.ts` y `landingConfigService.ts` soportan CRUD por slug e institution_id.
 
+### Customización de Temas (Settings)
+- **SettingsPage**: Mejorada la pestaña `Apariencia`. Se añadió un `Color Picker` Hexadecimal para inyección de `primaryColor` y `secondaryColor`.
+- **UI Developer Docs**: Se añadió un panel avanzado de tipo pseudo-terminal en la UI indicando paso a paso cómo hardcodear la nueva gama de colores en `index.css` y `tailwind.config.cjs` para implementaciones white-label.
+- **ThemeContext**: Ahora gestiona la inyección CSS en vivo y ajusta brillos en pseudoclases oscurecidas.
+
+### Bug Fixes - Reporte de Dispositivos (1 de Marzo)
+- **Fecha 1969 Fix (`DeviceTable.tsx`)**: Agregada validación de `u.last_access` pre-renderizado. Aquellos dispositivos sin fecha muestran visualmente "Sin accesos" para evitar cast `new Date(null)`.
+- **Admin-Campus Vacío (RPC Fix)**: Desarrollado script SQL (`20260301_fix_get_devices_campus.sql`) para reemplazar `get_devices_report_campus`, alineándolo con la arquitectura de aislamiento por `user_institutions` en vez de usar la antigua metadata JWT, que producía arreglos vacíos de usuarios.
+- **Mejoras UX y Exportación**: Implementado ordenamiento Ascendente/Descendente por columnas (Usuario, Email, Institución, Activos/Totales, Acceso). Migrada la exportación original de formato CSV a formato Excel `.xlsx` mediante la librería `xlsx`.
+
 ---
 
 ## 🧭 Refactorización UX del Sidebar (2026-03-01)
@@ -108,7 +118,7 @@
 
 ## 📝 PRÓXIMOS PASOS
 1. **Merge a main**: Evaluar crear PR de `feature/multi-institution-landings` → `main` cuando se validen todos los cambios consolidados.
-2. **Módulos Universidad Paraguay**: Retomar la vista de malla curricular (`CurriculumGrid.tsx`).
+2. **Módulos Universidad Paraguay**: ✅ Vista de malla curricular (`CurriculumGrid.tsx`) integrada y verificada.
 3. **Testing Landing Pages**: Verificar landing por slug en producción tras merge.
 
 ---
