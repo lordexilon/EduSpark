@@ -1,7 +1,7 @@
 // services/announcementService.ts
 // Servicio para gestionar el sistema de avisos (announcements)
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export interface Announcement {
   id: string;
@@ -19,6 +19,7 @@ export interface Announcement {
   expires_at?: string;
   attachments?: any[];
   metadata?: any;
+  institution_id?: number;
   created_at: string;
   updated_at: string;
   // Campos relacionados
@@ -68,6 +69,7 @@ export interface CreateAnnouncementData {
   target_course_id?: number;
   target_career_id?: number;
   target_role_id?: number;
+  institution_id?: number;
   priority?: 'low' | 'normal' | 'high' | 'urgent';
   is_pinned?: boolean;
   published_at?: string;
@@ -79,9 +81,9 @@ class AnnouncementService {
   /**
    * Obtener todos los avisos visibles para el usuario actual
    */
-  async getVisibleAnnouncements(userId?: string): Promise<Announcement[]> {
+  async getVisibleAnnouncements(userId?: string, institutionId?: number): Promise<Announcement[]> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('announcements')
         .select(`
           *,
@@ -109,6 +111,14 @@ class AnnouncementService {
         .or('expires_at.is.null,expires_at.gte.' + new Date().toISOString())
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false });
+
+      // Filtrar por institución si se proporciona
+      if (institutionId) {
+        // Mostrar avisos de la institución O globales (institution_id user null)
+        query = query.or(`institution_id.eq.${institutionId},institution_id.is.null`);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 

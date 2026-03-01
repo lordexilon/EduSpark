@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../hooks/useAuth';
-import Card from '../../components/Card';
-import Button from '../../components/Button';
-import { IconTrash, IconPlus } from '../../components/Icons';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
+import Card from '@/components/Common/Card';
+import Button from '@/components/Common/Button';
+import { IconTrash, IconPlus } from '@/components/Common/Icons';
 
 interface Role {
     id: number;

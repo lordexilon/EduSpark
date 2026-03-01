@@ -3,7 +3,7 @@
  * Combina funcionalidades de autenticación, usuarios y gestión de contenido
  */
 
-import { supabase, type User, type AuthUser } from '../lib/supabase'
+import { supabase, type User, type AuthUser } from '@/lib/supabase'
 
 // Configuración del backend de administración
 const ADMIN_API_BASE_URL = import.meta.env.VITE_ADMIN_API_URL || 'http://localhost:3001/api'
@@ -114,13 +114,18 @@ export const authAPI = {
           errorMsg.includes('banned')) {
           errorMessage = 'Tu cuenta ha sido deshabilitada. Por favor, contacta al administrador para más información.';
         }
-        // Error de red o conexión
+        // Error de red o conexión / timeout
         else if (errorCode === 'network_error' ||
+          errorCode === 'TimeoutError' ||
           errorMsg.includes('network') ||
           errorMsg.includes('connection') ||
           errorMsg.includes('timeout') ||
-          errorMsg.includes('fetch failed')) {
-          errorMessage = 'Error de conexión. Por favor, verifica tu conexión a internet e intenta nuevamente.';
+          errorMsg.includes('Timeout') ||
+          errorMsg.includes('fetch failed') ||
+          errorMsg.includes('signal is aborted') ||
+          errorMsg.includes('aborted without reason') ||
+          errorMsg.includes('tardó demasiado tiempo')) {
+          errorMessage = 'La solicitud tardó demasiado tiempo. Esto puede deberse a una conexión lenta o problemas temporales del servidor. Por favor, intenta nuevamente.';
         }
         // Error 400 genérico - verificar si es de credenciales primero
         else if (error.status === 400 || errorCode === 400) {
@@ -171,6 +176,16 @@ export const authAPI = {
 
       console.log('✅ Autenticación exitosa, obteniendo datos del usuario...');
 
+      // Helper: timeout para queries a Supabase (fetch no tiene timeout por defecto)
+      const withTimeout = async <T>(promise: Promise<T>, ms = 15000): Promise<T> => {
+        return await Promise.race([
+          promise,
+          new Promise<T>((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout')), ms)
+          ),
+        ]);
+      };
+
       // Obtener información completa del usuario desde nuestra tabla personalizada
       // Intentar primero con join de roles
       let userData: any = null;
@@ -179,20 +194,23 @@ export const authAPI = {
       // Intentar consulta con join de roles
       let userResponse;
       try {
-        userResponse = await supabase
-          .from('users')
-          .select(`
-            id,
-            email,
-            first_name,
-            last_name,
-            created_at,
-            updated_at,
-            role_id,
-            roles(id, name)
-          `)
-          .eq('id', data.user.id)
-          .maybeSingle();
+        userResponse = await withTimeout(
+          supabase
+            .from('users')
+            .select(`
+              id,
+              email,
+              first_name,
+              last_name,
+              created_at,
+              updated_at,
+              role_id,
+              roles(id, name)
+            `)
+            .eq('id', data.user.id)
+            .maybeSingle(),
+          15000
+        );
         
         userData = userResponse.data;
         userError = userResponse.error;
@@ -220,20 +238,26 @@ export const authAPI = {
           console.warn(`⚠️ Error con join de roles (${errorCode}), intentando consulta alternativa:`, errorMessage || 'Sin datos');
         }
 
-        const userResponseAlt = await supabase
-          .from('users')
-          .select('id, email, first_name, last_name, created_at, updated_at, role_id')
-          .eq('id', data.user.id)
-          .maybeSingle();
+        const userResponseAlt = await withTimeout(
+          supabase
+            .from('users')
+            .select('id, email, first_name, last_name, created_at, updated_at, role_id')
+            .eq('id', data.user.id)
+            .maybeSingle(),
+          15000
+        );
 
         if (userResponseAlt.data && !userResponseAlt.error) {
           // Obtener el rol por separado
           if (userResponseAlt.data.role_id) {
-            const roleResponse = await supabase
-              .from('roles')
-              .select('id, name')
-              .eq('id', userResponseAlt.data.role_id)
-              .single();
+            const roleResponse = await withTimeout(
+              supabase
+                .from('roles')
+                .select('id, name')
+                .eq('id', userResponseAlt.data.role_id)
+                .single(),
+              15000
+            );
 
             userData = {
               ...userResponseAlt.data,
@@ -250,13 +274,147 @@ export const authAPI = {
       }
 
       if (userError) {
-        console.error('❌ Error al obtener datos del usuario:', userError)
-        return { success: false, error: 'Error al obtener información del usuario' }
+        // No bloquear el login si la BD está lenta o hay un problema transitorio.
+        // Devolvemos un usuario básico y el hook de auth terminará de validar/actualizar en background.
+        console.warn('⚠️ No se pudieron obtener datos completos del usuario, usando fallback básico:', userError?.message || userError);
+        return {
+          success: true,
+          user: {
+            id: data.user.id,
+            email: data.user.email || email.trim().toLowerCase(),
+            first_name: (data.user.user_metadata as any)?.first_name || '',
+            last_name: (data.user.user_metadata as any)?.last_name || '',
+            avatar_url: (data.user.user_metadata as any)?.avatar_url || null,
+            role: { id: 3, name: 'student' },
+            created_at: (data.user as any).created_at || new Date().toISOString(),
+            updated_at: (data.user as any).updated_at || (data.user as any).created_at || new Date().toISOString(),
+          },
+          token: data.session?.access_token,
+        };
       }
 
       if (!userData) {
         console.error('⚠️ Usuario autenticado pero no encontrado en public.users');
-        return { success: false, error: 'Tu usuario no está registrado en el sistema. Por favor, contacta al administrador.' }
+        console.log('🔄 Intentando crear usuario en public.users automáticamente...');
+        
+        // Intentar crear el usuario en public.users automáticamente
+        try {
+          const metadata = data.user.user_metadata || {};
+          const { error: createError } = await supabase
+            .from('users')
+            .insert({
+              id: data.user.id,
+              email: data.user.email || email.trim().toLowerCase(),
+              first_name: metadata.first_name || '',
+              last_name: metadata.last_name || '',
+              role_id: metadata.role_id || 3, // Default: student
+              created_at: data.user.created_at || new Date().toISOString(),
+              updated_at: data.user.updated_at || data.user.created_at || new Date().toISOString()
+            });
+
+          if (createError) {
+            console.error('❌ Error creando usuario en public.users:', createError);
+            // Si falla, intentar obtener el usuario nuevamente (puede haber sido creado por el trigger)
+            const { data: retryData, error: retryError } = await supabase
+              .from('users')
+              .select(`
+                id,
+                email,
+                first_name,
+                last_name,
+                avatar_url,
+                created_at,
+                updated_at,
+                role_id,
+                roles (
+                  id,
+                  name
+                )
+              `)
+              .eq('id', data.user.id)
+              .single();
+
+            if (retryError || !retryData) {
+              // Si aún no existe, usar datos básicos del auth.user
+              console.warn('⚠️ Usuario aún no disponible en public.users, usando datos básicos');
+              return {
+                success: true,
+                user: {
+                  id: data.user.id,
+                  email: data.user.email || email.trim().toLowerCase(),
+                  first_name: metadata.first_name || '',
+                  last_name: metadata.last_name || '',
+                  avatar_url: metadata.avatar_url || null,
+                  role: { id: 3, name: 'student' },
+                  created_at: data.user.created_at || new Date().toISOString(),
+                  updated_at: data.user.updated_at || data.user.created_at || new Date().toISOString(),
+                },
+                token: data.session?.access_token,
+              };
+            }
+            
+            userData = retryData;
+          } else {
+            // Usuario creado exitosamente, obtenerlo
+            console.log('✅ Usuario creado en public.users, obteniendo datos...');
+            const { data: newUserData, error: fetchError } = await supabase
+              .from('users')
+              .select(`
+                id,
+                email,
+                first_name,
+                last_name,
+                avatar_url,
+                created_at,
+                updated_at,
+                role_id,
+                roles (
+                  id,
+                  name
+                )
+              `)
+              .eq('id', data.user.id)
+              .single();
+
+            if (fetchError || !newUserData) {
+              console.error('❌ Error obteniendo usuario recién creado:', fetchError);
+              // Usar datos básicos como fallback
+              return {
+                success: true,
+                user: {
+                  id: data.user.id,
+                  email: data.user.email || email.trim().toLowerCase(),
+                  first_name: metadata.first_name || '',
+                  last_name: metadata.last_name || '',
+                  avatar_url: metadata.avatar_url || null,
+                  role: { id: 3, name: 'student' },
+                  created_at: data.user.created_at || new Date().toISOString(),
+                  updated_at: data.user.updated_at || data.user.created_at || new Date().toISOString(),
+                },
+                token: data.session?.access_token,
+              };
+            }
+            
+            userData = newUserData;
+          }
+        } catch (syncError: any) {
+          console.error('❌ Error sincronizando usuario:', syncError);
+          // En caso de error, usar datos básicos del auth.user
+          return {
+            success: true,
+            user: {
+              id: data.user.id,
+              email: data.user.email || email.trim().toLowerCase(),
+              first_name: (data.user.user_metadata as any)?.first_name || '',
+              last_name: (data.user.user_metadata as any)?.last_name || '',
+              avatar_url: (data.user.user_metadata as any)?.avatar_url || null,
+              role: { id: 3, name: 'student' },
+              created_at: data.user.created_at || new Date().toISOString(),
+              updated_at: data.user.updated_at || data.user.created_at || new Date().toISOString(),
+            },
+            token: data.session?.access_token,
+          };
+        }
       }
 
       // Extraer el rol de la respuesta (puede venir como roles o role según la sintaxis)
@@ -1073,7 +1231,8 @@ export const usersAPI = {
         }
       }
 
-      // URL de la Cloud Function en Cloud Run (debe estar en variables de entorno)
+      // URL de la Cloud Function en Cloud Run (puede sobrescribirse con variable de entorno)
+      // Nota: Firebase Functions v2 se despliegan automáticamente a Cloud Run
       const CHANGE_PASSWORD_URL = import.meta.env.VITE_CHANGE_PASSWORD_URL || 
         'https://changeuserpassword-mcc5aevj6a-uc.a.run.app'
 

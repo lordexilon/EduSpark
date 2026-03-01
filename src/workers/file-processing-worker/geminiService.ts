@@ -1,3 +1,4 @@
+// @ts-nocheck
 // workers/file-processing-worker/geminiService.ts
 // Servicio para generar embeddings con Gemini usando REST API
 

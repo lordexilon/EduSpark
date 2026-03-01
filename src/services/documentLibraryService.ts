@@ -1,4 +1,4 @@
-import { supabase, supabaseAnonKey } from '../lib/supabase';
+import { supabase, supabaseAnonKey } from '@/lib/supabase';
 
 // =====================================================
 // TIPOS

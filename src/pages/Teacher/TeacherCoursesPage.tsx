@@ -10,6 +10,7 @@ import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
 import { IconEye, IconBookOpen, IconChevronRight } from '@/components/Common/Icons';
 import { RichTextDisplay } from '@/components/Common/RichTextDisplay';
+import { ActionMenu } from '@/components/Common/ActionMenu';
 
 interface CourseWithAcademic extends Course {
   subject?: Subject | null;
@@ -63,7 +64,10 @@ export const TeacherCoursesPage: React.FC = () => {
   const loadCourses = async () => {
     try {
       setLoading(true);
-      const data = await courseService.getMyCourses(user!.id);
+      const isAdmin = user?.role?.name === 'admin';
+      const data = isAdmin
+        ? await courseService.getAllCourses()
+        : await courseService.getMyCourses(user!.id);
 
       // Cargar información académica y unidades para cada curso
       const coursesWithAcademic: CourseWithAcademic[] = await Promise.all(
@@ -140,6 +144,7 @@ export const TeacherCoursesPage: React.FC = () => {
     try {
       await courseService.deleteCourse(id);
       setCourses(courses.filter(c => c.id !== id));
+      setAllCourses(allCourses.filter(c => c.id !== id));
     } catch (err) {
       setError('Error al eliminar el curso');
       console.error(err);
@@ -187,8 +192,14 @@ export const TeacherCoursesPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Mis Cursos</h1>
-          <p className="text-gray-600">Gestiona tus cursos y contenido académico</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {user?.role?.name === 'admin' ? 'Gestión de Cursos' : 'Mis Cursos'}
+          </h1>
+          <p className="text-gray-600">
+            {user?.role?.name === 'admin'
+              ? 'Administra todos los cursos de la institución'
+              : 'Gestiona tus cursos y contenido académico'}
+          </p>
         </div>
         <div className="flex gap-2">
           <Link to="/admin/subjects">
@@ -551,51 +562,75 @@ export const TeacherCoursesPage: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="flex space-x-2 mt-4 flex-wrap gap-2">
+                  {/* Acciones del curso - Diseño mejorado */}
+                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100">
+                    {/* Acciones principales */}
                     <Link
                       to={`/teacher/courses/${course.id}`}
-                      className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors text-center min-w-[120px]"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
                     >
+                      <IconBookOpen className="w-4 h-4" />
                       Ver Curso
                     </Link>
                     <Link
-                      to={`/teacher/courses/${course.id}/progress`}
-                      className="flex-1 bg-green-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-green-700 transition-colors text-center min-w-[120px]"
-                    >
-                      Progreso Estudiantes
-                    </Link>
-                    <Link
-                      to={`/teacher/courses/${course.id}/comprehensive-report`}
-                      className="flex-1 bg-indigo-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors text-center min-w-[120px]"
-                    >
-                      Informe Comprehensivo
-                    </Link>
-                    <Link
                       to={`/teacher/courses/${course.id}/modules`}
-                      className="flex-1 bg-purple-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-purple-700 transition-colors text-center min-w-[120px]"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors border border-gray-200"
                     >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
                       Módulos
                     </Link>
-                    <Link
-                      to={`/teacher/courses/${course.id}/edit`}
-                      className="flex-1 bg-gray-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors text-center min-w-[120px]"
-                    >
-                      Editar
-                    </Link>
-                    <Link
-                      to={`/courses/${course.id}`}
-                      className="flex-1 bg-sky-100 text-sky-700 px-3 py-2 rounded-md text-sm font-bold hover:bg-sky-200 transition-colors text-center min-w-[120px] border border-sky-200 flex items-center justify-center gap-2"
-                      target="_blank"
-                    >
-                      <IconEye className="w-4 h-4" />
-                      Vista Estudiante
-                    </Link>
-                    <button
-                      onClick={() => handleDeleteCourse(course.id)}
-                      className="bg-red-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-red-700 transition-colors min-w-[100px]"
-                    >
-                      Eliminar
-                    </button>
+
+                    {/* Menú de más opciones */}
+                    <ActionMenu
+                      triggerLabel="Más opciones"
+                      items={[
+                        {
+                          label: 'Progreso Estudiantes',
+                          icon: (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                          ),
+                          onClick: () => navigate(`/teacher/courses/${course.id}/progress`)
+                        },
+                        {
+                          label: 'Informe Comprehensivo',
+                          icon: (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          ),
+                          onClick: () => navigate(`/teacher/courses/${course.id}/comprehensive-report`)
+                        },
+                        {
+                          label: 'Vista Estudiante',
+                          icon: <IconEye className="w-5 h-5" />,
+                          onClick: () => window.open(`/courses/${course.id}`, '_blank')
+                        },
+                        {
+                          label: 'Editar Curso',
+                          icon: (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          ),
+                          onClick: () => navigate(`/teacher/courses/${course.id}/edit`)
+                        },
+                        {
+                          label: 'Eliminar Curso',
+                          icon: (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          ),
+                          onClick: () => handleDeleteCourse(course.id),
+                          variant: 'danger',
+                          dividerBefore: true
+                        }
+                      ]}
+                    />
                   </div>
                 </div>
               </Card>

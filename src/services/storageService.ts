@@ -1,13 +1,13 @@
 // services/storageService.ts
 // Servicio para manejar la subida de archivos a Supabase Storage
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 import {
   optimizeImage,
   shouldOptimizeInFrontend,
   ImageMimeType,
-} from '../utils/imageOptimization';
-import { compressPDF, shouldCompressPDF } from '../utils/pdfCompression';
+} from '@/utils/imageOptimization';
+import { compressPDF, shouldCompressPDF } from '@/utils/pdfCompression';
 
 const AVATAR_BUCKET = 'avatars';
 const COURSE_MEDIA_BUCKET = 'course-media';

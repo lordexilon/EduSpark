@@ -138,13 +138,23 @@ Propuestas de mejoras futuras
 
 ---
 
+### ⚠️ Funcionalidades Desactivadas
+
+- **Personalización por Estilos de Aprendizaje** (Desactivado: Enero 2026)
+  - La funcionalidad de personalización de respuestas del tutor basada en estilos de aprendizaje del estudiante (visual, auditivo, kinestésico, lectoescritor) ha sido **desactivada**
+  - El tutor ya **no menciona** "estudiante visual" o "tu estilo visual" en las respuestas
+  - Las respuestas son directas y claras, adaptadas al contenido del curso y contexto
+  - Ver detalles en: `04_FEATURES/ANALISIS_TUTOR_IA_DOCENTES.md`
+
+---
+
 ## 📊 Estadísticas del Proyecto
 
 **Tablas:** 38 (28 originales + 4 de quizzes + 1 de ponderación + 2 de tracking + 2 de mensajería + 1 de costos)  
 **Políticas RLS:** 80+  
 **Funciones:** 132+  
 **Triggers:** 10  
-**Cloud Functions:** 7 (analyzeFile, createFileProcessingJob, processFileJob, cancelFileProcessingJob, changeUserPassword, confirmUserEmail, rag-worker) - Todas desplegadas en Cloud Run  
+**Cloud Functions:** 7 (analyzeFile, createFileProcessingJob, processFileJob, cancelFileProcessingJob, changeUserPassword, confirmUserEmail, rag-worker) - Todas desplegadas en Cloud Run mediante Firebase Functions v2  
 
 ---
 

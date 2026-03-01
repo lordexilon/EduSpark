@@ -1,8 +1,8 @@
 // src/components/Admin/DeviceTable.tsx
 import React, { useState } from 'react';
-import { UserDeviceReport, DeviceReport } from '../../services/adminService';
+import { UserDeviceReport, DeviceReport } from '@/services/adminService';
 import DeviceDetailsModal from './DeviceDetailsModal';
-import { downloadCSV } from '../../utils/download';
+import { downloadCSV } from '@/utils/download';
 
 interface Props {
     data: UserDeviceReport[];

@@ -9,7 +9,7 @@ Sistema completo para crear usuarios masivamente sin confirmación de email, asi
 - ✅ Creación masiva de usuarios sin confirmación de email
 - ✅ Asignación automática a instituciones
 - ✅ Asignación a carreras, materias y cursos
-- ✅ Soporte para roles: `student`, `teacher`, `admin-campus`, `coordinator`
+- ✅ Soporte para roles: `student`, `teacher`, `admin`, `admin-campus`, `coordinator`
 - ✅ **Importación desde Excel (.xlsx, .xls)** ⭐ NUEVO
 - ✅ Importación desde CSV o ingreso manual
 - ✅ **Uso de nombres en lugar de IDs** (más fácil de usar) ⭐ NUEVO
@@ -131,7 +131,13 @@ La plantilla Excel incluye:
 - `career_name` (opcional) - **Nombre de la carrera** (no ID)
 - `subject_name` (opcional) - **Nombre de la materia** (no ID)
 - `course_name` (opcional) - **Nombre del curso** (no ID)
-- `role` (opcional, default: `student`) - Rol: `student`, `teacher`, `admin-campus`, `coordinator`
+- `role` (opcional, default: `student`) - Rol: `student`, `teacher`, `admin`, `admin-campus`, `coordinator`
+  - **Nota:** El sistema normaliza automáticamente nombres comunes:
+    - `administrador` → `admin`
+    - `admin-campos` → `admin-campus`
+    - `coordinador` → `coordinator`
+    - `docente`, `profesor` → `teacher`
+    - `estudiante`, `alumno` → `student`
 - `password` (opcional) - Contraseña (se genera automáticamente si está vacía)
 - `position` (opcional) - Cargo/posición en la institución
 

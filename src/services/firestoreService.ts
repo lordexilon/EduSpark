@@ -2,8 +2,8 @@
 // Servicio para interactuar con el sistema de procesamiento de archivos (Migrado a Supabase)
 // Mantenemos el nombre del archivo para compatibilidad, pero ahora usa Supabase
 
-import { supabase } from '../lib/supabase';
-import type { FileProcessingJob, JobStatus } from '../types/fileProcessing';
+import { supabase } from '@/lib/supabase';
+import type { FileProcessingJob, JobStatus } from '@/types/fileProcessing';
 
 /**
  * Convierte un registro de Supabase a FileProcessingJob

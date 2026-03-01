@@ -619,6 +619,23 @@ export const comprehensiveReportService = {
       averageTutorUsage: 0,
       efficiencyScore: 0
     };
+  },
+
+  /**
+   * Dispara manualmente la generación de reportes semanales (vía Edge Function)
+   */
+  async triggerWeeklyReportGeneration(): Promise<{ message: string; details?: any } | null> {
+    try {
+      const { data, error } = await supabase.functions.invoke('scheduled-weekly-reports', {
+        method: 'POST',
+      });
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error disparando generación de reportes semanales:', error);
+      return null;
+    }
   }
 };
 

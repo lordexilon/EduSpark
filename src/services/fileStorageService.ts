@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 const BUCKET_NAME = 'materials'; // Usamos el bucket 'materials' que ya existe
 

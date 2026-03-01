@@ -1,7 +1,7 @@
 // services/adminReportsService.ts
 // Servicio para reportes administrativos globales (solo para admin)
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { comprehensiveReportService, CourseComprehensiveReport } from './comprehensiveReportService';
 import { costService } from './costService';
 import { aiUsageService } from './aiUsageService';

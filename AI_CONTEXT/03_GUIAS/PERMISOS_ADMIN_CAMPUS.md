@@ -19,6 +19,7 @@ El rol **admin-campus** es un administrador de institución que solo puede ver y
   - Otros admin-campus de su institución
 - ✅ Crear nuevos usuarios y asignarlos a su institución
 - ✅ Actualizar información de usuarios de su institución
+- ✅ Cambiar contraseñas de usuarios de su institución ⭐ NUEVO
 - ✅ Cambiar roles de usuarios de su institución
 - ✅ Suspender/reactivar usuarios de su institución
 - ✅ Importar usuarios masivamente a su institución

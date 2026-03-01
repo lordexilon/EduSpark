@@ -1,5 +1,5 @@
-import { SESSIONS_DATA, MODULE_INFO, updateMockSessions as updateGlobalMockSessions } from '../constants.ts';
-import { CourseSession, ModuleInfo } from '../types.ts';
+import { SESSIONS_DATA, MODULE_INFO, updateMockSessions as updateGlobalMockSessions } from '@/constants';
+import { CourseSession, ModuleInfo } from '@/types';
 
 export const getModuleInfo = async (): Promise<ModuleInfo> => {
   // Simulate API call

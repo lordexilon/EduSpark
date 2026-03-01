@@ -1,7 +1,7 @@
 // services/googleOAuthService.ts
 // Servicio para manejar autenticación OAuth con Google Calendar
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export interface GoogleToken {
   id: string;

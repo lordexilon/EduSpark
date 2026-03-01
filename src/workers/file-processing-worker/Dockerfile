@@ -1,7 +1,7 @@
-# Usar una imagen base de Node.js
+# Imagen base
 FROM node:20-slim
 
-# Instalar dependencias del sistema necesarias para pdf-lib y canvas
+# Dependencias del sistema necesarias para pdf-lib/ocr
 RUN apt-get update && apt-get install -y \
     python3 \
     make \
@@ -14,20 +14,22 @@ RUN apt-get update && apt-get install -y \
     librsvg2-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Establecer directorio de trabajo
+# Directorio de trabajo
 WORKDIR /app
 
-# Copiar package.json
+# Copiar manifests e instalar deps (incluye dev para construir)
 COPY package*.json ./
+RUN npm ci
 
-# Instalar todas las dependencias (incluyendo ts-node)
-RUN npm ci && npm install -g ts-node typescript
-
-# Copiar el código fuente del worker
+# Copiar el código fuente
 COPY . .
 
-# Exponer el puerto 8080 (requerido por Cloud Run)
+# Compilar a JavaScript y luego quedarnos solo con deps de producción
+RUN npm run build && npm prune --production
+
+# Cloud Run expone PORT
+ENV PORT=8080
 EXPOSE 8080
 
-# Comando para iniciar el worker con ts-node (ejecutar TypeScript directamente)
-CMD ["node_modules/.bin/ts-node", "index.ts"]
+# Ejecutar la versión compilada
+CMD ["node", "dist/index.js"]

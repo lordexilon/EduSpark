@@ -1,7 +1,7 @@
 # 🔍 Diagnóstico: Errores de Login y Contraseña
 
 **Fecha:** Noviembre 2025  
-**Estado:** 🔧 EN DIAGNÓSTICO
+**Estado:** ✅ RESUELTO (Enero 2025)
 
 ---
 
@@ -63,8 +63,9 @@ El componente `LoginForm.tsx` tiene:
 
 1. **Admin cambia contraseña:**
    - Frontend llama a `usersAPI.changeUserPassword(userId, newPassword)`
-   - Se envía POST a `https://changeuserpassword-mcc5aevj6a-uc.a.run.app`
+   - Se envía POST a `https://changeuserpassword-mcc5aevj6a-uc.a.run.app` (Cloud Run)
    - Cloud Function ejecuta: `supabase.auth.admin.updateUserById(userId, { password: newPassword })`
+   - Si el ID no coincide, busca por email en `public.users` y luego en `auth.users` ⭐ SOLUCIÓN IMPLEMENTADA
    - Logs muestran: `✅ Contraseña cambiada exitosamente`
 
 2. **Usuario intenta login:**
@@ -140,9 +141,14 @@ El componente `LoginForm.tsx` tiene:
 
 ## 🔧 Comandos de Verificación
 
-### Verificar logs de cambio de contraseña:
+### Verificar logs de cambio de contraseña (Cloud Run):
 ```bash
 gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=changeuserpassword" --limit=20 --format="table(timestamp,severity,textPayload)" --freshness=2h
+```
+
+### Verificar logs de cambio de contraseña (Firebase Functions - alternativa):
+```bash
+firebase functions:log --only changeUserPassword --limit 20
 ```
 
 ### Verificar en Supabase:
@@ -167,5 +173,32 @@ gcloud logging read "resource.type=cloud_run_revision AND resource.labels.servic
 
 ---
 
-**Última actualización:** Noviembre 2025
+---
+
+## ✅ Solución Implementada (Enero 2025)
+
+### Problema Resuelto: "Usuario no encontrado"
+
+**Causa:** El ID de `public.users` no siempre coincide con el ID de `auth.users`.
+
+**Solución:** Implementada búsqueda por email como respaldo:
+1. Si el ID directo falla, busca el usuario en `public.users` por ID para obtener el email
+2. Busca el usuario en `auth.users` por email usando `listUsers()`
+3. Usa el ID correcto de `auth.users` para cambiar la contraseña
+
+### Permisos para Admin-Campus
+
+**Agregado:** El rol `admin-campus` ahora puede cambiar contraseñas de usuarios de su institución.
+
+**Roles permitidos:**
+- `admin`
+- `coordinator`
+- `admin-campus` ⭐ NUEVO
+- `supervisor` ⭐ NUEVO
+
+**Ver documentación completa:** `AI_CONTEXT/CORRECCION_CAMBIO_CONTRASENA_ADMIN_CAMPUS.md`
+
+---
+
+**Última actualización:** Enero 2025
 

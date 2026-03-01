@@ -3,7 +3,7 @@
 // Inspirado en la arquitectura A2A de AOIGO, adaptado para contexto educativo
 
 import { GoogleGenAI } from "@google/genai";
-import { resolveGeminiApiKey, isGeminiApiConfigured } from "../../audio-tutor/utils/env";
+import { resolveGeminiApiKey, isGeminiApiConfigured } from "@/modules/tutor/utils/env";
 
 // =====================================================
 // CONFIGURACIÓN Y CONSTANTES
@@ -98,17 +98,19 @@ function getClient(): { client: GoogleGenAI | null; missing: boolean } {
 
 /**
  * Determina si un error es recuperable (inspirado en AOIGO)
+ * NOTA: Errores 429 (cuota excedida) NO son recuperables a corto plazo
  */
 function isRetryableError(error: any): boolean {
   if (!error) return false;
 
-  // Errores de red son recuperables
-  if (error.name === 'NetworkError' || error.message?.includes('network')) {
-    return true;
+  // Errores 429 (rate limit / cuota) NO son recuperables a corto plazo
+  // La cuota se resetea después de un tiempo largo, no tiene sentido reintentar
+  if (error.status === 429 || error.code === '429' || error.message?.includes('429')) {
+    return false;
   }
 
-  // Errores 429 (rate limit) son recuperables
-  if (error.status === 429 || error.code === '429') {
+  // Errores de red son recuperables
+  if (error.name === 'NetworkError' || error.message?.includes('network')) {
     return true;
   }
 
@@ -170,7 +172,13 @@ async function executeWithRetry<T>(
 
       // Si no es recuperable, no reintentar
       if (!isRetryableError(error)) {
-        console.error(`❌ GeminiService: Error no recuperable en intento ${attempt}:`, error);
+        // Silenciar errores 429 - solo log como warning, no como error
+        const isQuotaError = error.status === 429 || error.code === '429' || error.message?.includes('429');
+        if (isQuotaError) {
+          console.warn('⚠️ GeminiService: Cuota de API excedida. Usando análisis de respaldo.');
+        } else {
+          console.error(`❌ GeminiService: Error no recuperable en intento ${attempt}:`, error);
+        }
         throw error;
       }
 
@@ -255,12 +263,16 @@ export async function generateContent(
         },
       };
     } catch (error: any) {
-      console.error('❌ GeminiService: Error generando contenido:', {
-        model,
-        error: error.message || error,
-        status: error.status,
-        code: error.code,
-      });
+      // Silenciar errores 429 (cuota excedida) - solo log como warning, no como error
+      const isQuotaError = error.status === 429 || error.code === '429' || error.message?.includes('429');
+      if (!isQuotaError) {
+        console.error('❌ GeminiService: Error generando contenido:', {
+          model,
+          error: error.message || error,
+          status: error.status,
+          code: error.code,
+        });
+      }
       throw error;
     }
   }, retryConfig);
@@ -679,3 +691,4 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 
 // Exportar por compatibilidad con código existente
 export const getTutorResponse = generateContent;
+

@@ -6,12 +6,21 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { courseService, unitService, sessionService, materialService, Course, CourseUnit, Session, Material } from '@/services/teacherCourses';
 import { subjectService, careerService, Subject, Career } from '@/services/academicService';
 import { courseEnrollmentService } from '@/services/academicService';
+import { gradingService } from '@/services/gradingService';
+import { assignmentService } from '@/services/assignments';
+import { getCourseMetrics, getStudentMetrics } from '@/services/tutorAnalyticsService';
+import { analyzeCoursePerformance } from '@/services/teacherAdvisorAgent';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
 import { UnitEditorModal } from '@/components/Features/UnitEditorModal';
 import { SessionEditorModal } from '@/components/Features/SessionEditorModal';
 import { CourseEditModal } from '@/components/Features/CourseEditModal';
-import { IconEye, IconCards, IconChevronDown, IconChevronUp, IconEdit } from '@/components/Common/Icons';
+import {
+  IconEye, IconCards, IconChevronDown, IconChevronUp, IconEdit,
+  IconChartBar, IconUserGroup, IconClipboardCheck, IconAlertCircle, IconSparkles,
+  IconBookOpen, IconVideo, IconFileText, IconPlus, IconRobot, IconStar,
+  IconGraduationCap, IconUsers
+} from '@/components/Common/Icons';
 import { uploadCourseMedia, uploadCourseDocument, UploadResult } from '@/services/storageService';
 import { VideoPlayer } from '@/components/Features/VideoPlayer';
 import { VideoTranscriptService } from '@/services/videoTranscriptService';
@@ -29,7 +38,8 @@ export const CourseEditorPage: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'units' | 'sessions' | 'materials'>('units');
+  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'assignments' | 'students'>('overview');
+  const [contentSubTab, setContentSubTab] = useState<'units' | 'sessions' | 'materials'>('units');
   const [subject, setSubject] = useState<Subject | null>(null);
   const [career, setCareer] = useState<Career | null>(null);
   const [enrolledCount, setEnrolledCount] = useState(0);
@@ -43,7 +53,18 @@ export const CourseEditorPage: React.FC = () => {
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set());
   const materialFileInputRef = useRef<HTMLInputElement | null>(null);
   const materialUploadAbortController = useRef<AbortController | null>(null);
-  const MAX_FILE_SIZE = 900 * 1024 * 1024; // 900MB - soporte para archivos muy grandes
+  const MAX_FILE_SIZE = 900 * 1024 * 1024; // 900MB
+
+  // Dashboard Stats State
+  const [dashboardStats, setDashboardStats] = useState({
+    avgGrade: 0,
+    pendingReview: 0,
+    atRisk: 0,
+    topTopic: null as string | null,
+    needingAttentionCount: 0,
+    aiHighlights: [] as string[]
+  });
+  const [showAIStatsMenu, setShowAIStatsMenu] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -52,15 +73,29 @@ export const CourseEditorPage: React.FC = () => {
   }, [id]);
 
   useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showAIStatsMenu && !((event.target as HTMLElement).closest('.relative'))) {
+        setShowAIStatsMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAIStatsMenu]);
+
+  useEffect(() => {
     return () => {
       materialUploadAbortController.current?.abort();
     };
   }, []);
 
   const loadCourseData = async () => {
+    if (!id) return;
+    const courseId = parseInt(id);
+
     try {
       setLoading(true);
-      const courseId = parseInt(id!);
       const isAdmin = user?.role?.name === 'admin' || user?.role?.name === 'coordinator';
 
       // Intentar cargar el curso
@@ -184,6 +219,72 @@ export const CourseEditorPage: React.FC = () => {
     } catch (error) {
       console.error('Error loading course data:', error);
     } finally {
+      // Cargar estadísticas del dashboard
+      try {
+        // 1. Promedio General y Estudiantes en Riesgo
+        // Obtenemos las notas finales de todos los estudiantes
+        const allGrades = await gradingService.calculateAllStudentsFinalGrades(courseId);
+
+        // Filtramos solo los que tienen nota final calculada
+        const validGrades = allGrades
+          .map(g => g.finalGrade)
+          .filter((g): g is number => g !== null);
+
+        let avgGrade = 0;
+        let atRisk = 0;
+
+        if (validGrades.length > 0) {
+          avgGrade = validGrades.reduce((sum, g) => sum + g, 0) / validGrades.length;
+          // Consideramos en riesgo si el promedio es menor a 60
+          atRisk = validGrades.filter(g => g < 60).length;
+        }
+
+        // 2. Pendientes de Revisión (Assignments)
+        const assignmentsWithSubs = await assignmentService.getAssignmentsWithSubmissions(courseId);
+        let pendingReview = 0;
+
+        assignmentsWithSubs.forEach(assignment => {
+          // Sumamos las entregas que no tienen calificación (grade === null)
+          const pendingCount = assignment.submissions.filter(s => s.grade === null).length;
+          pendingReview += pendingCount;
+        });
+        setDashboardStats(prev => ({
+          ...prev,
+          avgGrade: Math.round(avgGrade),
+          pendingReview,
+          atRisk
+        }));
+
+        // --- 3. Tutor & AI Insights ---
+        try {
+          const [tutorMetrics, sMetrics] = await Promise.all([
+            getCourseMetrics(courseId),
+            getStudentMetrics(courseId)
+          ]);
+
+          if (tutorMetrics) {
+            // Obtener el tema más consultado
+            const topTopic = tutorMetrics.topTopics?.[0]?.topic || null;
+            const needingAttention = tutorMetrics.studentsNeedingAttention?.length || 0;
+
+            // Análisis de IA (Advisor)
+            const aiAnalysis = await analyzeCoursePerformance(tutorMetrics, sMetrics || []);
+
+            setDashboardStats(prev => ({
+              ...prev,
+              topTopic,
+              needingAttentionCount: needingAttention,
+              aiHighlights: aiAnalysis.keyInsights.slice(0, 2)
+            }));
+          }
+        } catch (tutorError) {
+          console.error('Error cargando métricas del tutor:', tutorError);
+        }
+
+      } catch (statsError) {
+        console.error('Error loading dashboard stats:', statsError);
+      }
+
       setLoading(false);
     }
   };
@@ -603,392 +704,713 @@ export const CourseEditorPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200">
+      {/* Main Tabs Navigation */}
+      <div className="border-b border-gray-200 mb-6">
         <nav className="-mb-px flex space-x-8">
           <button
-            onClick={() => setActiveTab('units')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'units'
-              ? 'border-blue-500 text-blue-600'
+            onClick={() => setActiveTab('overview')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'overview'
+              ? 'border-brand-primary text-brand-primary'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
           >
-            Unidades ({units.length})
+            <IconChartBar className="w-5 h-5" />
+            Visión General
           </button>
           <button
-            onClick={() => setActiveTab('sessions')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'sessions'
-              ? 'border-blue-500 text-blue-600'
+            onClick={() => setActiveTab('content')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'content'
+              ? 'border-brand-primary text-brand-primary'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
           >
-            Sesiones ({sessions.length})
+            <IconBookOpen className="w-5 h-5" />
+            Contenido del Curso
           </button>
           <button
-            onClick={() => setActiveTab('materials')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'materials'
-              ? 'border-blue-500 text-blue-600'
+            onClick={() => setActiveTab('assignments')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'assignments'
+              ? 'border-brand-primary text-brand-primary'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
           >
-            Materiales ({materials.length})
+            <IconClipboardCheck className="w-5 h-5" />
+            Tareas y Calificaciones
+          </button>
+          <button
+            onClick={() => setActiveTab('students')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'students'
+              ? 'border-brand-primary text-brand-primary'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+          >
+            <IconUserGroup className="w-5 h-5" />
+            Estudiantes
           </button>
         </nav>
       </div>
 
-      {/* Content */}
-      {activeTab === 'units' && (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold">Unidades del Curso</h2>
-            <Button onClick={handleCreateUnit}>
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Nueva Unidad
-            </Button>
-          </div>
-
-          {units.length === 0 ? (
-            <Card>
-              <div className="text-center py-8">
-                <p className="text-gray-500">No hay unidades creadas</p>
+      {/* DASHBOARD OVERVIEW */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="p-6 border-l-4 border-l-purple-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Estudiantes</p>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <h3 className="text-3xl font-bold text-gray-900">{enrolledCount}</h3>
+                  </div>
+                </div>
+                <div className="p-3 bg-purple-50 rounded-full">
+                  <IconGraduationCap className="w-6 h-6 text-purple-600" />
+                </div>
               </div>
             </Card>
-          ) : (
-            <div className="space-y-3">
-              {units.map((unit) => {
-                const isExpanded = expandedUnits.has(unit.id);
-                const toggleUnit = () => {
-                  setExpandedUnits(prev => {
-                    const newSet = new Set(prev);
-                    if (newSet.has(unit.id)) {
-                      newSet.delete(unit.id);
-                    } else {
-                      newSet.add(unit.id);
-                    }
-                    return newSet;
-                  });
-                };
 
-                return (
-                  <Card key={unit.id}>
-                    <div className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <button
-                              onClick={toggleUnit}
-                              className="flex items-center gap-2 hover:bg-gray-100 rounded px-2 py-1 transition-colors"
-                              title={isExpanded ? "Plegar unidad" : "Desplegar unidad"}
-                            >
-                              {isExpanded ? (
-                                <IconChevronUp className="w-5 h-5 text-gray-600" />
-                              ) : (
-                                <IconChevronDown className="w-5 h-5 text-gray-600" />
+            <Card className="p-6 border-l-4 border-l-indigo-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Promedio General</p>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <h3 className="text-3xl font-bold text-gray-900">{dashboardStats.avgGrade}%</h3>
+                    {/* <span className="text-xs font-semibold text-green-600 bg-green-100 px-1.5 py-0.5 rounded">+{dashboardStats.avgGradeTrend}%</span> */}
+                  </div>
+                </div>
+                <div className="p-3 bg-indigo-50 rounded-full">
+                  <IconChartBar className="w-6 h-6 text-indigo-600" />
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-6 border-l-4 border-l-orange-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Pendientes de Revisión</p>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <h3 className="text-3xl font-bold text-gray-900">{dashboardStats.pendingReview}</h3>
+                    <span className="text-xs font-semibold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">Requiere acción</span>
+                  </div>
+                </div>
+                <div className="p-3 bg-orange-50 rounded-full">
+                  <IconClipboardCheck className="w-6 h-6 text-orange-600" />
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-6 border-l-4 border-l-red-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">En Riesgo</p>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <h3 className="text-3xl font-bold text-gray-900">{dashboardStats.atRisk}</h3>
+                    <span className="text-xs font-medium text-gray-500">Estudiantes</span>
+                  </div>
+                </div>
+                <div className="p-3 bg-red-50 rounded-full">
+                  <IconAlertCircle className="w-6 h-6 text-red-600" />
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* AI Insights Banner */}
+          <div className="relative rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-xl">
+            {/* Contenedor para elementos decorativos con clipping */}
+            <div className="absolute inset-0 overflow-hidden rounded-2xl">
+              <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-purple-500 opacity-20 rounded-full blur-2xl"></div>
+            </div>
+
+            <div className="relative z-10 p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <IconSparkles className="w-5 h-5 text-yellow-300" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-blue-200">AI Insights Ready</span>
+                </div>
+                <h2 className="text-2xl font-bold mb-2">EduSpark ha analizado el estado del curso</h2>
+                <div className="text-blue-100 max-w-2xl space-y-1">
+                  {dashboardStats.aiHighlights.length > 0 ? (
+                    dashboardStats.aiHighlights.map((insight, idx) => (
+                      <p key={idx} className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        {insight}
+                      </p>
+                    ))
+                  ) : (
+                    <p>
+                      {dashboardStats.topTopic
+                        ? `Dominio detectado: Gran interés en "${dashboardStats.topTopic.charAt(0).toUpperCase() + dashboardStats.topTopic.slice(1)}". `
+                        : 'Análisis de participación completado. '}
+                      {dashboardStats.needingAttentionCount > 0
+                        ? `Se recomienda revisar el progreso de ${dashboardStats.needingAttentionCount} estudiantes con baja actividad.`
+                        : 'El ritmo de aprendizaje es constante en todos los alumnos.'}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="relative">
+                <Button
+                  variant="secondary"
+                  className="whitespace-nowrap bg-white text-blue-700 hover:bg-blue-50 border-none shadow-lg"
+                  rightIcon={<IconChevronDown className={`w-4 h-4 ml-2 transition-transform ${showAIStatsMenu ? 'rotate-180' : ''}`} />}
+                  onClick={() => setShowAIStatsMenu(!showAIStatsMenu)}
+                >
+                  Opciones de Análisis
+                </Button>
+
+                {showAIStatsMenu && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-blue-100 overflow-hidden z-20 animate-in fade-in slide-in-from-top-2">
+                    <div className="p-2 border-b border-gray-100 bg-blue-50/50">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 px-2">Navegación Inteligente</span>
+                    </div>
+                    <button
+                      onClick={() => navigate(`/teacher/tutor-analytics?courseId=${id}`)}
+                      className="w-full flex items-center gap-3 p-3 text-left text-sm text-gray-700 hover:bg-blue-50 transition-colors group"
+                    >
+                      <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                        <IconRobot className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <div className="font-semibold">Análisis Tutora AI</div>
+                        <div className="text-[11px] text-gray-500 line-clamp-1">Insights y engagement del tutor</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => navigate(`/teacher/grades?courseId=${id}`)}
+                      className="w-full flex items-center gap-3 p-3 text-left text-sm text-gray-700 hover:bg-blue-50 transition-colors group"
+                    >
+                      <div className="p-2 bg-amber-100 rounded-lg group-hover:bg-amber-200 transition-colors">
+                        <IconStar className="w-4 h-4 text-amber-600" />
+                      </div>
+                      <div>
+                        <div className="font-semibold">Calificaciones</div>
+                        <div className="text-[11px] text-gray-500 line-clamp-1">Kardex y registro de notas</div>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Activity Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Alertas de Rendimiento</h3>
+              {dashboardStats.atRisk > 0 ? (
+                <div className="flex items-start gap-4 p-4 bg-orange-50 rounded-lg border border-orange-100">
+                  <div className="p-2 bg-white rounded-full text-orange-500 shadow-sm">
+                    <IconAlertCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-orange-900">Alerta de Rendimiento</h4>
+                    <p className="text-sm text-orange-700 mt-1">
+                      {dashboardStats.atRisk} {dashboardStats.atRisk === 1 ? 'estudiante está' : 'estudiantes están'} por debajo del promedio esperado (60%).
+                    </p>
+                    <button
+                      onClick={() => setActiveTab('students')}
+                      className="mt-2 text-sm font-semibold text-orange-600 hover:text-orange-800 underline"
+                    >
+                      Identificar estudiantes
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-4 p-4 bg-green-50 rounded-lg border border-green-100">
+                  <div className="p-2 bg-white rounded-full text-green-500 shadow-sm">
+                    <IconClipboardCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-green-900">Rendimiento Óptimo</h4>
+                    <p className="text-sm text-green-700 mt-1">
+                      No se detectan estudiantes en riesgo crítico actualmente.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </Card>
+
+            <Card className="p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Asistente de Calificación</h3>
+              {dashboardStats.pendingReview > 0 ? (
+                <div className="flex items-start gap-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                  <div className="p-2 bg-white rounded-full text-blue-500 shadow-sm">
+                    <IconSparkles className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-blue-900">{dashboardStats.pendingReview} Entregas Pendientes</h4>
+                    <p className="text-sm text-blue-700 mt-1">
+                      EduSpark puede ayudarte a generar borradores de feedback para agilizar tu revisión.
+                    </p>
+                    <button
+                      onClick={() => setActiveTab('assignments')}
+                      className="mt-2 text-sm font-semibold text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Empezar a calificar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="p-2 bg-white rounded-full text-gray-400 shadow-sm">
+                    <IconClipboardCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-600">Todo al día</h4>
+                    <p className="text-sm text-gray-500 mt-1">
+                      No hay entregas pendientes de revisión en este momento.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* CONTENT TAB - Contains previous Units/Sessions/Materials logic */}
+      {activeTab === 'content' && (
+        <div>
+          {/* Sub-tabs for content */}
+          <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-lg w-fit">
+            <button
+              onClick={() => setContentSubTab('units')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${contentSubTab === 'units' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              Unidades
+            </button>
+            <button
+              onClick={() => setContentSubTab('sessions')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${contentSubTab === 'sessions' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              Sesiones
+            </button>
+            <button
+              onClick={() => setContentSubTab('materials')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${contentSubTab === 'materials' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              Materiales
+            </button>
+          </div>
+
+
+
+          {/* Content */}
+          {activeTab === 'content' && contentSubTab === 'units' && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-semibold">Unidades del Curso</h2>
+                <Button onClick={handleCreateUnit}>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Nueva Unidad
+                </Button>
+              </div>
+
+              {units.length === 0 ? (
+                <Card>
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No hay unidades creadas</p>
+                  </div>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {units.map((unit) => {
+                    const isExpanded = expandedUnits.has(unit.id);
+                    const toggleUnit = () => {
+                      setExpandedUnits(prev => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(unit.id)) {
+                          newSet.delete(unit.id);
+                        } else {
+                          newSet.add(unit.id);
+                        }
+                        return newSet;
+                      });
+                    };
+
+                    return (
+                      <Card key={unit.id}>
+                        <div className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <button
+                                  onClick={toggleUnit}
+                                  className="flex items-center gap-2 hover:bg-gray-100 rounded px-2 py-1 transition-colors"
+                                  title={isExpanded ? "Plegar unidad" : "Desplegar unidad"}
+                                >
+                                  {isExpanded ? (
+                                    <IconChevronUp className="w-5 h-5 text-gray-600" />
+                                  ) : (
+                                    <IconChevronDown className="w-5 h-5 text-gray-600" />
+                                  )}
+                                  <h3 className="font-semibold">Unidad {unit.number}: {unit.title}</h3>
+                                </button>
+                                {unit.thumbnail_url && (
+                                  <img src={unit.thumbnail_url} alt={unit.title} className="w-16 h-16 object-cover rounded" />
+                                )}
+                              </div>
+                              {isExpanded && (
+                                <>
+                                  {unit.description && (
+                                    <p className="text-gray-600 text-sm mt-1">{unit.description}</p>
+                                  )}
+                                  {unit.content_html && (
+                                    <div className="mt-2 text-sm">
+                                      <RichTextDisplay content={unit.content_html} />
+                                    </div>
+                                  )}
+                                  {unit.learning_objectives && unit.learning_objectives.length > 0 && (
+                                    <div className="mt-2">
+                                      <p className="text-xs font-medium text-gray-700 mb-1">Objetivos:</p>
+                                      <ul className="text-xs text-gray-600 list-disc list-inside">
+                                        {unit.learning_objectives.map((obj, idx) => (
+                                          <li key={idx}>{obj}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                  {unit.duration_hours && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Duración: {unit.duration_hours} horas
+                                    </p>
+                                  )}
+                                </>
                               )}
-                              <h3 className="font-semibold">Unidad {unit.number}: {unit.title}</h3>
-                            </button>
-                            {unit.thumbnail_url && (
-                              <img src={unit.thumbnail_url} alt={unit.title} className="w-16 h-16 object-cover rounded" />
-                            )}
+                            </div>
+                            <div className="flex space-x-2 ml-4">
+                              <Link
+                                to={`/teacher/courses/${id}/modules/${unit.id}`}
+                                className="px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm font-medium"
+                              >
+                                🎥 Editar Unidad (con Videos)
+                              </Link>
+                              <Link
+                                to={`/teacher/courses/${id}/flashcards?unitId=${unit.id}`}
+                              >
+                                <Button size="sm" variant="secondary" leftIcon={<IconCards className="w-4 h-4" />}>
+                                  Flashcards
+                                </Button>
+                              </Link>
+                              <Button size="sm" variant="secondary" onClick={() => handleEditUnit(unit)}>
+                                Editar
+                              </Button>
+                              <Button size="sm" variant="danger" onClick={() => handleDeleteUnit(unit.id)}>
+                                Eliminar
+                              </Button>
+                            </div>
                           </div>
-                          {isExpanded && (
-                            <>
-                              {unit.description && (
-                                <p className="text-gray-600 text-sm mt-1">{unit.description}</p>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'content' && contentSubTab === 'sessions' && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-semibold">Sesiones del Curso</h2>
+                <Button onClick={handleCreateSession}>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Nueva Sesión
+                </Button>
+              </div>
+
+              {sessions.length === 0 ? (
+                <Card>
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No hay sesiones creadas</p>
+                  </div>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {sessions.map((session) => {
+                    const sessionUnit = units.find(u => u.id === session.unit_id);
+                    return (
+                      <Card key={session.id}>
+                        <div className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h3 className="font-semibold">{session.title}</h3>
+                                {session.session_type && (
+                                  <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
+                                    {session.session_type === 'lecture' ? 'Clase' :
+                                      session.session_type === 'practice' ? 'Práctica' :
+                                        session.session_type === 'lab' ? 'Lab' :
+                                          session.session_type === 'exam' ? 'Examen' :
+                                            session.session_type === 'discussion' ? 'Discusión' :
+                                              session.session_type === 'workshop' ? 'Taller' : 'Otro'}
+                                  </span>
+                                )}
+                              </div>
+                              {sessionUnit && (
+                                <p className="text-xs text-gray-500 mb-1">
+                                  Unidad {sessionUnit.number}: {sessionUnit.title}
+                                </p>
                               )}
-                              {unit.content_html && (
+                              {session.description && (
+                                <p className="text-gray-600 text-sm mt-1">{session.description}</p>
+                              )}
+                              {session.content_html && (
                                 <div className="mt-2 text-sm">
-                                  <RichTextDisplay content={unit.content_html} />
+                                  <RichTextDisplay content={session.content_html} />
                                 </div>
                               )}
-                              {unit.learning_objectives && unit.learning_objectives.length > 0 && (
+                              {session.learning_objectives && session.learning_objectives.length > 0 && (
                                 <div className="mt-2">
                                   <p className="text-xs font-medium text-gray-700 mb-1">Objetivos:</p>
                                   <ul className="text-xs text-gray-600 list-disc list-inside">
-                                    {unit.learning_objectives.map((obj, idx) => (
+                                    {session.learning_objectives.map((obj, idx) => (
                                       <li key={idx}>{obj}</li>
                                     ))}
                                   </ul>
                                 </div>
                               )}
-                              {unit.duration_hours && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Duración: {unit.duration_hours} horas
-                                </p>
-                              )}
-                            </>
-                          )}
+                              <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                                {session.starts_at && (
+                                  <span>Inicio: {new Date(session.starts_at).toLocaleString()}</span>
+                                )}
+                                {session.duration_minutes && (
+                                  <span>Duración: {session.duration_minutes} min</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex space-x-2 ml-4">
+                              <Link to={`/session/${session.id}`} target="_blank">
+                                <Button size="sm" variant="secondary" leftIcon={<IconEye className="w-4 h-4" />}>
+                                  Ver como Estudiante
+                                </Button>
+                              </Link>
+                              <Link
+                                to={`/teacher/courses/${id}/flashcards?sessionId=${session.id}${session.unit_id ? `&unitId=${session.unit_id}` : ''}`}
+                              >
+                                <Button size="sm" variant="secondary" leftIcon={<IconCards className="w-4 h-4" />}>
+                                  Flashcards
+                                </Button>
+                              </Link>
+                              <Button size="sm" variant="secondary" onClick={() => handleEditSession(session)}>
+                                Editar
+                              </Button>
+                              <Button size="sm" variant="danger" onClick={() => handleDeleteSession(session.id)}>
+                                Eliminar
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex space-x-2 ml-4">
-                          <Link
-                            to={`/teacher/courses/${id}/modules/${unit.id}`}
-                            className="px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm font-medium"
-                          >
-                            🎥 Editar Unidad (con Videos)
-                          </Link>
-                          <Link
-                            to={`/teacher/courses/${id}/flashcards?unitId=${unit.id}`}
-                          >
-                            <Button size="sm" variant="secondary" leftIcon={<IconCards className="w-4 h-4" />}>
-                              Flashcards
-                            </Button>
-                          </Link>
-                          <Button size="sm" variant="secondary" onClick={() => handleEditUnit(unit)}>
-                            Editar
-                          </Button>
-                          <Button size="sm" variant="danger" onClick={() => handleDeleteUnit(unit.id)}>
-                            Eliminar
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
+
+          {activeTab === 'content' && contentSubTab === 'materials' && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-semibold">Materiales del Curso</h2>
+                <div className="flex gap-2">
+                  <input
+                    ref={materialFileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handleSelectMaterialFile}
+                  />
+                  <Button
+                    variant="secondary"
+                    onClick={() => materialFileInputRef.current?.click()}
+                    disabled={uploadingMaterial}
+                  >
+                    {uploadingMaterial ? 'Subiendo...' : 'Subir archivo'}
+                  </Button>
+                  <Button onClick={handleCreateMaterial}>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Agregar enlace
+                  </Button>
+                </div>
+              </div>
+
+              {materials.length === 0 ? (
+                <Card>
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No hay materiales creados</p>
+                  </div>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {materials.map((material) => {
+                    const isVideo = material.kind === 'video';
+                    const transcriptService = new VideoTranscriptService();
+                    const platform = isVideo && material.url
+                      ? (material.video_platform || transcriptService.detectPlatform(material.url)?.name || 'other')
+                      : null;
+                    const videoId = isVideo && material.url && platform
+                      ? (material.video_id || transcriptService.detectPlatform(material.url)?.extractId(material.url) || undefined)
+                      : undefined;
+
+                    return (
+                      <Card key={material.id}>
+                        <div className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h3 className="font-semibold">{material.title}</h3>
+                              <p className="text-gray-600 text-sm mt-1">Tipo: {material.kind}</p>
+                              {(material.url || material.metadata?.sourceFileId) && (
+                                <p className="text-blue-600 text-sm mt-1 break-all">
+                                  {material.url || `https://drive.google.com/file/d/${material.metadata?.sourceFileId}/view`}
+                                </p>
+                              )}
+                              {material.mime_type && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {material.mime_type} · {material.size_bytes ? `${(material.size_bytes / 1024).toFixed(1)} KB` : 'tamaño desconocido'}
+                                </p>
+                              )}
+                              {material.metadata?.optimized && (
+                                <p className="text-xs text-gray-500">
+                                  {material.metadata.optimized}
+                                </p>
+                              )}
+                              {isVideo && material.transcription_status && (
+                                <div className="mt-2">
+                                  {material.transcription_status === 'completed' && (
+                                    <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">
+                                      ✓ Transcripción disponible
+                                    </span>
+                                  )}
+                                  {material.transcription_status === 'processing' && (
+                                    <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
+                                      ⏳ Extrayendo transcripción...
+                                    </span>
+                                  )}
+                                  {material.transcription_status === 'failed' && (
+                                    <span className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded">
+                                      ✗ Transcripción no disponible
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex space-x-2 ml-4">
+                              <Button size="sm" variant="secondary" onClick={() => handleEditMaterial(material)}>
+                                Editar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                onClick={() => handleDeleteMaterial(material.id)}
+                              >
+                                Eliminar
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Preview del video para el docente */}
+                          {isVideo && material.url && (
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                              <h4 className="text-sm font-semibold text-gray-700 mb-2">Vista Previa del Video:</h4>
+                              <div className="bg-gray-50 p-3 rounded-lg">
+                                <VideoPlayer
+                                  materialId={material.id}
+                                  url={material.url}
+                                  platform={platform || 'other'}
+                                  videoId={videoId}
+                                  title={material.title}
+                                  showProgress={false}
+                                  transcription={material.transcription}
+                                  transcriptionStatus={material.transcription_status}
+                                />
+                                <p className="text-xs text-gray-500 mt-2">
+                                  Así es como los estudiantes verán este video
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+              {materialUploadInfo && (
+                <p className="text-xs text-gray-500">{materialUploadInfo}</p>
+              )}
+            </div>
+          )}
+
         </div>
       )}
 
-      {activeTab === 'sessions' && (
-        <div className="space-y-4">
+      {/* ASSIGNMENTS TAB */}
+      {activeTab === 'assignments' && (
+        <div className="space-y-6 animate-fade-in">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold">Sesiones del Curso</h2>
-            <Button onClick={handleCreateSession}>
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Nueva Sesión
+            <h2 className="text-xl font-bold text-gray-900">Tareas y Calificaciones</h2>
+            <Link to="/teacher/assignments/new">
+              <Button leftIcon={<IconPlus className="w-4 h-4" />}>Nueva Tarea</Button>
+            </Link>
+          </div>
+
+          <Card className="p-8 text-center bg-gray-50 border-dashed border-2 border-gray-200">
+            <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+              <IconClipboardCheck className="w-8 h-8 text-blue-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900">Gestión de Tareas</h3>
+            <p className="text-gray-500 max-w-md mx-auto mt-2">
+              Aquí podrás ver todas las tareas asignadas, gestionar entregas y calificar el progreso de tus estudiantes.
+            </p>
+            <div className="mt-6 flex justify-center gap-4">
+              <Button variant="secondary" onClick={() => navigate('/teacher/assignments')}>
+                Ir al Panel de Tareas
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* STUDENTS TAB */}
+      {activeTab === 'students' && (
+        <div className="space-y-6 animate-fade-in">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold text-gray-900">Estudiantes Inscritos ({enrolledCount})</h2>
+            <Button variant="outline" leftIcon={<IconUserGroup className="w-4 h-4" />}>
+              Gestionar Lista
             </Button>
           </div>
 
-          {sessions.length === 0 ? (
-            <Card>
-              <div className="text-center py-8">
-                <p className="text-gray-500">No hay sesiones creadas</p>
-              </div>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {sessions.map((session) => {
-                const sessionUnit = units.find(u => u.id === session.unit_id);
-                return (
-                  <Card key={session.id}>
-                    <div className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold">{session.title}</h3>
-                            {session.session_type && (
-                              <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
-                                {session.session_type === 'lecture' ? 'Clase' :
-                                  session.session_type === 'practice' ? 'Práctica' :
-                                    session.session_type === 'lab' ? 'Lab' :
-                                      session.session_type === 'exam' ? 'Examen' :
-                                        session.session_type === 'discussion' ? 'Discusión' :
-                                          session.session_type === 'workshop' ? 'Taller' : 'Otro'}
-                              </span>
-                            )}
-                          </div>
-                          {sessionUnit && (
-                            <p className="text-xs text-gray-500 mb-1">
-                              Unidad {sessionUnit.number}: {sessionUnit.title}
-                            </p>
-                          )}
-                          {session.description && (
-                            <p className="text-gray-600 text-sm mt-1">{session.description}</p>
-                          )}
-                          {session.content_html && (
-                            <div className="mt-2 text-sm">
-                              <RichTextDisplay content={session.content_html} />
-                            </div>
-                          )}
-                          {session.learning_objectives && session.learning_objectives.length > 0 && (
-                            <div className="mt-2">
-                              <p className="text-xs font-medium text-gray-700 mb-1">Objetivos:</p>
-                              <ul className="text-xs text-gray-600 list-disc list-inside">
-                                {session.learning_objectives.map((obj, idx) => (
-                                  <li key={idx}>{obj}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                          <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                            {session.starts_at && (
-                              <span>Inicio: {new Date(session.starts_at).toLocaleString()}</span>
-                            )}
-                            {session.duration_minutes && (
-                              <span>Duración: {session.duration_minutes} min</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex space-x-2 ml-4">
-                          <Link to={`/session/${session.id}`} target="_blank">
-                            <Button size="sm" variant="secondary" leftIcon={<IconEye className="w-4 h-4" />}>
-                              Ver como Estudiante
-                            </Button>
-                          </Link>
-                          <Link
-                            to={`/teacher/courses/${id}/flashcards?sessionId=${session.id}${session.unit_id ? `&unitId=${session.unit_id}` : ''}`}
-                          >
-                            <Button size="sm" variant="secondary" leftIcon={<IconCards className="w-4 h-4" />}>
-                              Flashcards
-                            </Button>
-                          </Link>
-                          <Button size="sm" variant="secondary" onClick={() => handleEditSession(session)}>
-                            Editar
-                          </Button>
-                          <Button size="sm" variant="danger" onClick={() => handleDeleteSession(session.id)}>
-                            Eliminar
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
+          <Card className="p-8 text-center bg-gray-50 border-dashed border-2 border-gray-200">
+            <div className="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+              <IconUserGroup className="w-8 h-8 text-indigo-600" />
             </div>
-          )}
+            <h3 className="text-lg font-medium text-gray-900">Lista de Estudiantes</h3>
+            <p className="text-gray-500 max-w-md mx-auto mt-2">
+              Visualiza el progreso individual, asistencia y rendimiento de cada estudiante inscrito en este curso.
+            </p>
+            <div className="mt-6 flex justify-center gap-4">
+              <Button variant="secondary" onClick={() => navigate('/teacher/students')}>
+                Ver Todos los Estudiantes
+              </Button>
+            </div>
+          </Card>
         </div>
       )}
 
-      {activeTab === 'materials' && (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold">Materiales del Curso</h2>
-            <div className="flex gap-2">
-              <input
-                ref={materialFileInputRef}
-                type="file"
-                className="hidden"
-                onChange={handleSelectMaterialFile}
-              />
-              <Button
-                variant="secondary"
-                onClick={() => materialFileInputRef.current?.click()}
-                disabled={uploadingMaterial}
-              >
-                {uploadingMaterial ? 'Subiendo...' : 'Subir archivo'}
-              </Button>
-              <Button onClick={handleCreateMaterial}>
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Agregar enlace
-              </Button>
-            </div>
-          </div>
 
-          {materials.length === 0 ? (
-            <Card>
-              <div className="text-center py-8">
-                <p className="text-gray-500">No hay materiales creados</p>
-              </div>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {materials.map((material) => {
-                const isVideo = material.kind === 'video';
-                const transcriptService = new VideoTranscriptService();
-                const platform = isVideo && material.url
-                  ? (material.video_platform || transcriptService.detectPlatform(material.url)?.name || 'other')
-                  : null;
-                const videoId = isVideo && material.url && platform
-                  ? (material.video_id || transcriptService.detectPlatform(material.url)?.extractId(material.url) || undefined)
-                  : undefined;
-
-                return (
-                  <Card key={material.id}>
-                    <div className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h3 className="font-semibold">{material.title}</h3>
-                          <p className="text-gray-600 text-sm mt-1">Tipo: {material.kind}</p>
-                          {(material.url || material.metadata?.sourceFileId) && (
-                            <p className="text-blue-600 text-sm mt-1 break-all">
-                              {material.url || `https://drive.google.com/file/d/${material.metadata?.sourceFileId}/view`}
-                            </p>
-                          )}
-                          {material.mime_type && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              {material.mime_type} · {material.size_bytes ? `${(material.size_bytes / 1024).toFixed(1)} KB` : 'tamaño desconocido'}
-                            </p>
-                          )}
-                          {material.metadata?.optimized && (
-                            <p className="text-xs text-gray-500">
-                              {material.metadata.optimized}
-                            </p>
-                          )}
-                          {isVideo && material.transcription_status && (
-                            <div className="mt-2">
-                              {material.transcription_status === 'completed' && (
-                                <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">
-                                  ✓ Transcripción disponible
-                                </span>
-                              )}
-                              {material.transcription_status === 'processing' && (
-                                <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
-                                  ⏳ Extrayendo transcripción...
-                                </span>
-                              )}
-                              {material.transcription_status === 'failed' && (
-                                <span className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded">
-                                  ✗ Transcripción no disponible
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex space-x-2 ml-4">
-                          <Button size="sm" variant="secondary" onClick={() => handleEditMaterial(material)}>
-                            Editar
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="danger"
-                            onClick={() => handleDeleteMaterial(material.id)}
-                          >
-                            Eliminar
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Preview del video para el docente */}
-                      {isVideo && material.url && (
-                        <div className="mt-4 pt-4 border-t border-gray-200">
-                          <h4 className="text-sm font-semibold text-gray-700 mb-2">Vista Previa del Video:</h4>
-                          <div className="bg-gray-50 p-3 rounded-lg">
-                            <VideoPlayer
-                              materialId={material.id}
-                              url={material.url}
-                              platform={platform || 'other'}
-                              videoId={videoId}
-                              title={material.title}
-                              showProgress={false}
-                              transcription={material.transcription}
-                              transcriptionStatus={material.transcription_status}
-                            />
-                            <p className="text-xs text-gray-500 mt-2">
-                              Así es como los estudiantes verán este video
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-          {materialUploadInfo && (
-            <p className="text-xs text-gray-500">{materialUploadInfo}</p>
-          )}
-        </div>
-      )}
-
-      {/* Modales de edición */}
+      {/* Modales de edición (Moved outside tabs) */}
       {showUnitModal && course && (
         <UnitEditorModal
           unit={editingUnit}

@@ -5,14 +5,33 @@ cd functions/servePdfReadOnly
 # Instalar dependencias
 npm install
 
-# Configurar variables de entorno (reemplazar con tus valores reales)
-$env:SUPABASE_URL="https://mckfscukxcqwntpjagar.supabase.co"
-$env:SUPABASE_SERVICE_KEY="TU_SUPABASE_SERVICE_KEY_AQUI"
+# Configurar variables de entorno desde .env
+$envFile = "../../.env"
+if (Test-Path $envFile) {
+    Write-Host "Leyendo configuración desde $envFile..."
+    Get-Content $envFile | Foreach-Object {
+        $line = $_.Trim()
+        if ($line -match '^([^#=]+)=(.*)') {
+            $name = $matches[1]
+            $value = $matches[2]
+            if ($name -eq "VITE_SUPABASE_URL") { $env:SUPABASE_URL = $value }
+            if ($name -eq "VITE_SUPABASE_SERVICE_ROLE_KEY") { $env:SUPABASE_SERVICE_KEY = $value }
+        }
+    }
+} else {
+    Write-Warning "Archivo .env no encontrado en $envFile"
+}
+
+if (-not $env:SUPABASE_URL) { $env:SUPABASE_URL="https://mckfscukxcqwntpjagar.supabase.co" }
+if (-not $env:SUPABASE_SERVICE_KEY) { 
+    Write-Error "SUPABASE_SERVICE_KEY no encontrado en .env. Por favor verifica tu configuración."
+    exit 1
+}
 
 # Desplegar a Google Cloud Functions
 gcloud functions deploy servePdfReadOnly `
   --gen2 `
-  --runtime=nodejs18 `
+  --runtime=nodejs20 `
   --region=us-central1 `
   --source=. `
   --entry-point=servePdfReadOnly `

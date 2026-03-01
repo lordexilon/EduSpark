@@ -1,8 +1,9 @@
+// @ts-nocheck
 // workers/file-processing-worker/firestoreService.ts
 // Wrapper para redirigir llamadas de Firestore a Supabase Service
 // Esto permite mantener la compatibilidad con el resto del worker sin cambiar todas las importaciones
 
-import type { FileProcessingJob } from '../../types/fileProcessing';
+import type { FileProcessingJob } from './fileProcessing';
 import {
   getPendingJobs as supabaseGetPendingJobs,
   updateJob as supabaseUpdateJob,

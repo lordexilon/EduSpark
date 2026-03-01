@@ -1,7 +1,7 @@
 // services/teacherCourses.ts
 // Servicios para gestión de cursos del docente
 
-import { supabase, supabaseUrl } from '../lib/supabase';
+import { supabase, supabaseUrl } from '@/lib/supabase';
 
 export interface Course {
   id: number;
@@ -122,7 +122,7 @@ export const courseService = {
   async getMyCourses(teacherId: string): Promise<Course[]> {
     const { data, error } = await supabase
       .from('courses')
-      .select('*')
+      .select('id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at, thumbnail_url')
       .eq('teacher_id', teacherId)
       .order('created_at', { ascending: false });
 
@@ -134,7 +134,7 @@ export const courseService = {
   async getAllCourses(): Promise<Course[]> {
     const { data, error } = await supabase
       .from('courses')
-      .select('*')
+      .select('id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at, thumbnail_url')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -177,17 +177,6 @@ export const courseService = {
     delete updateData.id;
     delete updateData.created_at;
 
-    // Manejar thumbnail_url de forma segura (puede no existir como columna)
-    // Si se proporciona thumbnail_url, simplemente lo removemos del update
-    // ya que la columna no existe en la tabla
-    const thumbnailUrl = (updates as any).thumbnail_url;
-    if (thumbnailUrl !== undefined) {
-      // Remover thumbnail_url del update ya que la columna no existe
-      delete updateData.thumbnail_url;
-      // Nota: Si en el futuro se agrega la columna thumbnail_url o cover_image_url,
-      // se puede agregar aquí la lógica para guardarlo
-    }
-
     console.log('🔄 updateCourse - Iniciando actualización:', { id, updateData });
 
     // Primero ejecutar el UPDATE sin el SELECT para verificar que se ejecutó
@@ -213,7 +202,7 @@ export const courseService = {
     // Luego obtener el curso actualizado con una consulta separada
     const { data, error: selectError } = await supabase
       .from('courses')
-      .select('id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at')
+      .select('id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at, thumbnail_url')
       .eq('id', id)
       .maybeSingle(); // Usar maybeSingle en lugar de single para evitar error si no hay resultados
 
@@ -227,14 +216,6 @@ export const courseService = {
     if (!data) {
       console.error('❌ updateCourse - Curso no encontrado después de la actualización');
       throw new Error('El curso no se encontró después de la actualización. Puede ser un problema de permisos RLS.');
-    }
-
-    // Si se intentó actualizar thumbnail_url, agregarlo al resultado
-    // (aunque no se guarde en la BD, lo mantenemos en el objeto para consistencia)
-    if (thumbnailUrl !== undefined) {
-      (data as any).thumbnail_url = thumbnailUrl;
-    } else {
-      (data as any).thumbnail_url = null;
     }
 
     return data;
@@ -253,10 +234,9 @@ export const courseService = {
   // Obtener curso por ID
   async getCourse(id: number): Promise<Course | null> {
     // Usar select específico en lugar de * para evitar problemas con campos JSONB o tipos complejos
-    // Nota: thumbnail_url puede no existir en la tabla, se maneja opcionalmente
     const { data, error } = await supabase
       .from('courses')
-      .select('id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at')
+      .select('id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at, thumbnail_url')
       .eq('id', id)
       .maybeSingle(); // Usar maybeSingle en lugar de single para evitar error 406 si no hay resultados
 
@@ -268,12 +248,6 @@ export const courseService = {
       }
       console.error('Error obteniendo curso:', error);
       throw error;
-    }
-
-    // Si hay datos, establecer thumbnail_url como null por defecto
-    // (puede ser agregado después si la columna existe en la BD)
-    if (data) {
-      (data as any).thumbnail_url = null;
     }
 
     return data;
@@ -300,7 +274,7 @@ export const unitService = {
       .from('course_units')
       .select('*')
       .eq('course_id', courseId)
-      .order('order_index', { ascending: true, nullsLast: true })
+      .order('order_index', { ascending: true, nullsFirst: false })
       .order('number', { ascending: true });
 
     if (error) throw error;
@@ -714,8 +688,8 @@ export const sessionService = {
       .from('sessions')
       .select('*')
       .eq('course_id', courseId)
-      .order('order_index', { ascending: true, nullsLast: true })
-      .order('starts_at', { ascending: true, nullsLast: true });
+      .order('order_index', { ascending: true, nullsFirst: false })
+      .order('starts_at', { ascending: true, nullsFirst: false });
 
     if (error) throw error;
     return data || [];

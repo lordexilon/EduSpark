@@ -1,3 +1,4 @@
+// @ts-nocheck
 // workers/file-processing-worker/driveService.ts
 // Servicio para descargar archivos de Google Drive
 

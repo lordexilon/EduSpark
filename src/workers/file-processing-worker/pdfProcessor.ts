@@ -5,7 +5,7 @@
 import pdfParse from 'pdf-parse';
 import { PDFDocument } from 'pdf-lib';
 import { extractTextFromPdfPages } from './ocrService';
-import type { PdfType } from '../../types/fileProcessing';
+import type { PdfType } from './fileProcessing';
 
 /**
  * Detecta el tipo de PDF (texto vs escaneado)
@@ -52,6 +52,11 @@ export async function countPdfPages(pdfBuffer: Buffer): Promise<number> {
   }
 }
 
+export interface PageContent {
+  text: string;
+  pageNumber: number;
+}
+
 /**
  * Extrae texto de un rango de páginas
  * OPTIMIZADO: Procesa página por página para evitar "Invalid string length"
@@ -62,7 +67,7 @@ export async function extractTextFromPages(
   pageStart: number,
   pageEnd: number,
   pdfType: PdfType
-): Promise<string> {
+): Promise<PageContent[]> {
   if (pdfType === 'text') {
     // Extraer texto nativo página por página
     try {
@@ -75,7 +80,7 @@ export async function extractTextFromPages(
 
       console.log(`📄 Extrayendo páginas ${actualStart}-${actualEnd} de ${totalPages}`);
 
-      const pageTexts: string[] = [];
+      const pages: PageContent[] = [];
 
       // Procesar página por página
       for (let pageNum = actualStart; pageNum <= actualEnd; pageNum++) {
@@ -94,7 +99,10 @@ export async function extractTextFromPages(
           const pageText = pageData.text.trim();
 
           if (pageText.length > 0) {
-            pageTexts.push(pageText);
+            pages.push({
+              text: pageText,
+              pageNumber: pageNum
+            });
           }
 
           // Log de progreso cada 10 páginas
@@ -103,21 +111,28 @@ export async function extractTextFromPages(
           }
         } catch (pageError) {
           console.error(`⚠️ Error en página ${pageNum}:`, pageError);
-          // Continuar con la siguiente página
-          pageTexts.push(`[Error en página ${pageNum}]`);
+          pages.push({
+            text: `[Error en página ${pageNum}]`,
+            pageNumber: pageNum
+          });
         }
       }
 
-      console.log(`✅ Extracción completada: ${pageTexts.length} páginas con texto`);
-      return pageTexts.join('\n\n');
+      console.log(`✅ Extracción completada: ${pages.length} páginas con texto`);
+      return pages;
 
     } catch (error) {
       console.error('Error extrayendo texto nativo:', error);
       throw error;
     }
   } else if (pdfType === 'scanned') {
-    // Usar OCR
-    return await extractTextFromPdfPages(pdfBuffer, pageStart, pageEnd);
+    // Para escaneados (OCR) por ahora devolvemos como una sola "página" del rango
+    // ya que ocrService devuelve un string. Idealmente OCR también debería ser por página.
+    const text = await extractTextFromPdfPages(pdfBuffer, pageStart, pageEnd);
+    return [{
+      text,
+      pageNumber: pageStart // Aproximado para OCR por ahora
+    }];
   } else {
     throw new Error('Tipo de PDF desconocido');
   }

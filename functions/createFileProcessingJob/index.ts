@@ -18,7 +18,7 @@ function getSupabase() {
     // Usar variables de entorno si están disponibles, sino usar valores por defecto
     const url = process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_KEY || DEFAULT_SUPABASE_SERVICE_KEY;
-    
+
     if (!url || !key) {
       console.error('[createFileProcessingJob] Variables de entorno faltantes:', {
         hasUrl: !!url,
@@ -27,7 +27,7 @@ function getSupabase() {
       });
       throw new Error('SUPABASE_URL y SUPABASE_SERVICE_KEY deben estar configurados');
     }
-    
+
     try {
       supabase = createClient(url, key);
       console.log('[createFileProcessingJob] Cliente de Supabase inicializado correctamente');
@@ -47,28 +47,28 @@ function getSupabase() {
  */
 async function invokeRagWorkerWithRetry(jobId: string, maxRetries = 3): Promise<boolean> {
   const ragWorkerUrl = process.env.RAG_WORKER_URL || 'https://us-central1-eduspark-py.cloudfunctions.net/rag-worker';
-  
+
   console.log(`[createFileProcessingJob] 🔍 Configuración RAG Worker:`, {
     url: ragWorkerUrl,
     fromEnv: !!process.env.RAG_WORKER_URL,
     jobId: jobId
   });
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(`[createFileProcessingJob] 🔄 Intento ${attempt}/${maxRetries} de invocar RAG worker para job ${jobId} en URL: ${ragWorkerUrl}`);
-      
+
       // Usar AbortController para timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 segundos timeout
-      
+
       const requestBody = {
         jobId: jobId,
         action: 'process'
       };
-      
+
       console.log(`[createFileProcessingJob] 📤 Enviando request a RAG worker:`, requestBody);
-      
+
       const response = await fetch(ragWorkerUrl, {
         method: 'POST',
         headers: {
@@ -77,16 +77,16 @@ async function invokeRagWorkerWithRetry(jobId: string, maxRetries = 3): Promise<
         body: JSON.stringify(requestBody),
         signal: controller.signal
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       console.log(`[createFileProcessingJob] 📥 Respuesta recibida del RAG worker:`, {
         status: response.status,
         statusText: response.statusText,
         ok: response.ok,
         headers: Object.fromEntries(response.headers.entries())
       });
-      
+
       if (response.ok) {
         const responseText = await response.text();
         console.log(`[createFileProcessingJob] ✅ RAG worker invocado exitosamente en intento ${attempt} para job ${jobId}. Respuesta: ${responseText}`);
@@ -99,7 +99,7 @@ async function invokeRagWorkerWithRetry(jobId: string, maxRetries = 3): Promise<
           errorText: errorText,
           url: ragWorkerUrl
         });
-        
+
         // Si es un error 4xx (cliente), no reintentar
         if (response.status >= 400 && response.status < 500) {
           console.error(`[createFileProcessingJob] ❌ Error del cliente (${response.status}), no se reintentará. El job quedará en cola.`);
@@ -109,7 +109,7 @@ async function invokeRagWorkerWithRetry(jobId: string, maxRetries = 3): Promise<
     } catch (error: any) {
       const errorMessage = error.name === 'AbortError' ? 'Timeout después de 15 segundos' : error.message;
       const errorStack = error.stack || 'No stack trace';
-      
+
       console.error(`[createFileProcessingJob] ❌ Error en intento ${attempt}/${maxRetries}:`, {
         error: errorMessage,
         name: error.name,
@@ -117,7 +117,7 @@ async function invokeRagWorkerWithRetry(jobId: string, maxRetries = 3): Promise<
         url: ragWorkerUrl,
         jobId: jobId
       });
-      
+
       if (attempt < maxRetries) {
         // Exponential backoff: 1s, 2s, 4s
         const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
@@ -126,7 +126,7 @@ async function invokeRagWorkerWithRetry(jobId: string, maxRetries = 3): Promise<
       }
     }
   }
-  
+
   console.error(`[createFileProcessingJob] ❌ No se pudo invocar RAG worker después de ${maxRetries} intentos para job ${jobId}. El job quedará en cola y será procesado por el scheduler.`);
   console.error(`[createFileProcessingJob] ⚠️ IMPORTANTE: Verifica que el RAG worker esté desplegado y accesible en: ${ragWorkerUrl}`);
   return false;
@@ -228,38 +228,12 @@ export const createFileProcessingJob = onRequest(
       if (!courseId) missingFields.push('courseId');
       if (!category) missingFields.push('category');
       if (!materialId) missingFields.push('materialId'); // REQUERIDO: El material debe crearse antes
-      
+
       if (missingFields.length > 0) {
         setCorsHeaders();
         res.status(400).json({
           success: false,
           error: `Campos requeridos faltantes: ${missingFields.join(', ')}. El materialId es obligatorio y debe crearse antes de crear el job.`,
-        });
-        return;
-      }
-
-      // Validar que el materialId existe en la base de datos
-      const { data: materialData, error: materialError } = await getSupabase()
-        .from('materials')
-        .select('id, course_id')
-        .eq('id', materialId)
-        .single();
-
-      if (materialError || !materialData) {
-        setCorsHeaders();
-        res.status(400).json({
-          success: false,
-          error: `El materialId proporcionado (${materialId}) no existe en la base de datos. El material debe crearse antes de crear el job.`,
-        });
-        return;
-      }
-
-      // Validar que el material pertenece al curso correcto
-      if (materialData.course_id !== courseIdNum) {
-        setCorsHeaders();
-        res.status(400).json({
-          success: false,
-          error: `El materialId (${materialId}) no pertenece al curso especificado (${courseIdNum}).`,
         });
         return;
       }
@@ -296,9 +270,35 @@ export const createFileProcessingJob = onRequest(
         return;
       }
 
+      // Validar que el materialId existe en la base de datos
+      const { data: materialData, error: materialError } = await getSupabase()
+        .from('materials')
+        .select('id, course_id')
+        .eq('id', materialId)
+        .single();
+
+      if (materialError || !materialData) {
+        setCorsHeaders();
+        res.status(400).json({
+          success: false,
+          error: `El materialId proporcionado (${materialId}) no existe en la base de datos. El material debe crearse antes de crear el job.`,
+        });
+        return;
+      }
+
+      // Validar que el material pertenece al curso correcto
+      if ((materialData as any).course_id !== courseIdNum) {
+        setCorsHeaders();
+        res.status(400).json({
+          success: false,
+          error: `El materialId (${materialId}) no pertenece al curso especificado (${courseIdNum}).`,
+        });
+        return;
+      }
+
       // Usar userId del token autenticado (más seguro)
       const userId = requestUserId || user.userId;
-      
+
       // Verificar que el userId del request coincida con el del token (si se proporciona)
       if (requestUserId && requestUserId !== user.userId) {
         setCorsHeaders();
@@ -310,8 +310,8 @@ export const createFileProcessingJob = onRequest(
       }
 
       // Estimar número de chunks basado en totalPages
-      const estimatedChunks = analysis?.totalPages 
-        ? Math.ceil(analysis.totalPages / chunkSize) 
+      const estimatedChunks = analysis?.totalPages
+        ? Math.ceil(analysis.totalPages / chunkSize)
         : undefined;
 
       // Validar que chunkSize sea un número válido
@@ -378,10 +378,10 @@ export const createFileProcessingJob = onRequest(
           details: error.details,
           hint: error.hint
         });
-        
+
         // Mensajes de error más descriptivos
         let errorMessage = error.message || 'Error al crear el trabajo de procesamiento';
-        
+
         if (error.code === '23503') { // Foreign key violation
           errorMessage = 'Error: El curso o material especificado no existe. Por favor, verifica los datos.';
         } else if (error.code === '23505') { // Unique violation
@@ -391,7 +391,7 @@ export const createFileProcessingJob = onRequest(
         } else if (error.code === 'PGRST116') { // Row Level Security violation
           errorMessage = 'Error: No tienes permisos para crear trabajos de procesamiento.';
         }
-        
+
         throw new Error(errorMessage);
       }
 

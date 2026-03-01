@@ -1,7 +1,7 @@
 // services/costService.ts
 // Servicio para consultar costos de procesamiento desde Supabase
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export interface ProcessingCost {
   id: string;

@@ -5,8 +5,8 @@
 // =====================================================
 
 import React, { useState } from 'react';
-import SecurePDFViewer from '../components/SecurePDFViewer';
-import { Material } from '../services/teacherCourses';
+import SecurePDFViewer from '@/components/Features/SecurePDFViewer';
+import { Material } from '@/services/teacherCourses';
 
 // =====================================================
 // EJEMPLO 1: Integración Simple en Lista de Materiales
@@ -336,7 +336,7 @@ export const SupabaseURLExamples = {
 // Mostrar visor seguro solo a ciertos roles
 // =====================================================
 
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const RoleBasedPDFViewer: React.FC<{ material: Material }> = ({ material }) => {
     const { user } = useAuth();

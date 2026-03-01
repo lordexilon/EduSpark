@@ -39,15 +39,15 @@ export async function analyzeCoursePerformance(
         title: courseMetrics.courseTitle,
         totalStudents: courseMetrics.totalStudents,
         activeStudents: courseMetrics.activeStudents,
-        participationRate: courseMetrics.totalStudents > 0 
-          ? (courseMetrics.activeStudents / courseMetrics.totalStudents) * 100 
+        participationRate: courseMetrics.totalStudents > 0
+          ? (courseMetrics.activeStudents / courseMetrics.totalStudents) * 100
           : 0,
         totalInteractions: courseMetrics.totalInteractions,
         averageInteractionsPerStudent: courseMetrics.averageInteractionsPerStudent,
         totalCost: courseMetrics.totalCost,
         topTopics: courseMetrics.topTopics.slice(0, 5),
       },
-      students: studentMetrics.map(s => ({
+      students: studentMetrics.slice(0, 50).map(s => ({
         name: s.studentName,
         interactions: s.totalInteractions,
         tokens: s.totalTokens,
@@ -57,6 +57,7 @@ export async function analyzeCoursePerformance(
         needsAttention: courseMetrics.studentsNeedingAttention.includes(s.studentId),
       })),
       studentsNeedingAttention: courseMetrics.studentsNeedingAttention.length,
+      totalStudentsCount: studentMetrics.length,
     };
 
     // Crear prompt para el análisis
@@ -95,18 +96,28 @@ Responde SIEMPRE en español y en formato JSON válido.`;
     });
 
     return analysis;
-  } catch (error) {
-    console.error('Error analyzing course performance:', error);
-    
+  } catch (error: any) {
+    // Silenciar errores 429 (cuota) - el fallback se usará automáticamente
+    const isQuotaError = error?.status === 429 || error?.message?.includes('429');
+    if (!isQuotaError) {
+      console.error('Error analyzing course performance:', error);
+    }
+
     // Retornar análisis básico basado en reglas si falla la IA
     return generateFallbackAnalysis(courseMetrics, studentMetrics);
   }
 }
 
-/**
- * Crea el prompt para el análisis de IA
- */
 function createAnalysisPrompt(data: any): string {
+  const studentsText = data.students.length > 0
+    ? data.students.map((s: any) => `
+- ${s.name}: ${s.interactions} interacciones, ${s.tokens.toLocaleString()} tokens, $${s.cost.toFixed(4)}, 
+  Última interacción: ${s.lastInteraction || 'Nunca'}, 
+  Mejora de desempeño: ${s.performanceImprovement !== null ? s.performanceImprovement.toFixed(1) + '%' : 'N/A'},
+  Necesita atención: ${s.needsAttention ? 'Sí' : 'No'}
+`).join('')
+    : 'No hay datos de estudiantes disponibles.';
+
   return `Analiza los siguientes datos del curso "${data.course.title}" y genera un análisis completo con recomendaciones:
 
 **Métricas del Curso:**
@@ -120,13 +131,8 @@ function createAnalysisPrompt(data: any): string {
 
 **Estudiantes que Necesitan Atención:** ${data.studentsNeedingAttention}
 
-**Datos de Estudiantes:**
-${data.students.map((s: any) => `
-- ${s.name}: ${s.interactions} interacciones, ${s.tokens.toLocaleString()} tokens, $${s.cost.toFixed(4)}, 
-  Última interacción: ${s.lastInteraction || 'Nunca'}, 
-  Mejora de desempeño: ${s.performanceImprovement !== null ? s.performanceImprovement.toFixed(1) + '%' : 'N/A'},
-  Necesita atención: ${s.needsAttention ? 'Sí' : 'No'}
-`).join('')}
+**Datos de Estudiantes (Muestra de ${data.students.length} de ${data.totalStudentsCount}):**
+${studentsText}
 
 Genera un análisis en formato JSON con la siguiente estructura:
 {
@@ -154,31 +160,53 @@ Genera un análisis en formato JSON con la siguiente estructura:
  */
 function parseAnalysisResponse(text: string): AdvisorAnalysis {
   try {
-    // Intentar extraer JSON del texto (puede venir con markdown)
-    let jsonText = text.trim();
-    
-    // Remover markdown code blocks si existen
-    const jsonMatch = jsonText.match(/```json\s*([\s\S]*?)\s*```/) || 
-                     jsonText.match(/```\s*([\s\S]*?)\s*```/);
-    if (jsonMatch) {
-      jsonText = jsonMatch[1];
+    // Intentar extraer JSON del texto con una expresión regular más robusta
+    const jsonRegex = /\{[\s\S]*\}/;
+    const match = text.match(jsonRegex);
+
+    if (!match) {
+      throw new Error('No se encontró un objeto JSON válido en la respuesta');
     }
 
-    const parsed = JSON.parse(jsonText);
-    
-    return {
-      summary: parsed.summary || 'Análisis completado',
-      keyInsights: parsed.keyInsights || [],
-      recommendations: parsed.recommendations || [],
-      trends: parsed.trends || {
-        participationTrend: 'stable',
-        performanceTrend: 'stable',
-        costTrend: 'stable',
-      },
-    };
+    let jsonText = match[0].trim();
+
+    try {
+      const parsed = JSON.parse(jsonText);
+
+      return {
+        summary: parsed.summary || 'Análisis completado',
+        keyInsights: parsed.keyInsights || [],
+        recommendations: parsed.recommendations || [],
+        trends: parsed.trends || {
+          participationTrend: 'stable',
+          performanceTrend: 'stable',
+          costTrend: 'stable',
+        },
+      };
+    } catch (parseError) {
+      console.warn('⚠️ Error de sintaxis en el JSON de la IA, intentando limpieza básica...');
+
+      // Limpieza básica si falla (ej. comas extras al final de arrays)
+      jsonText = jsonText
+        .replace(/,\s*\]/g, ']')
+        .replace(/,\s*\}/g, '}');
+
+      const parsed = JSON.parse(jsonText);
+      return {
+        summary: parsed.summary || 'Análisis completado (recuperado)',
+        keyInsights: parsed.keyInsights || [],
+        recommendations: parsed.recommendations || [],
+        trends: parsed.trends || {
+          participationTrend: 'stable',
+          performanceTrend: 'stable',
+          costTrend: 'stable',
+        },
+      };
+    }
   } catch (error) {
-    console.error('Error parsing analysis response:', error);
-    throw new Error('No se pudo parsear la respuesta del análisis');
+    console.warn('⚠️ No se pudo parsear la respuesta de la IA (Advisor):', error instanceof Error ? error.message : 'Error desconocido');
+    // Lanzamos error para que sea capturado por el bloque catch de analyzeCoursePerformance y use el fallback
+    throw new Error('AI_PARSE_ERROR');
   }
 }
 
@@ -283,12 +311,12 @@ function generateFallbackAnalysis(
     summary: `Análisis del curso "${courseMetrics.courseTitle}". 
     ${courseMetrics.activeStudents} de ${courseMetrics.totalStudents} estudiantes han usado el Tutor IA, 
     con un total de ${courseMetrics.totalInteractions} interacciones. 
-    ${courseMetrics.studentsNeedingAttention.length > 0 
-      ? `${courseMetrics.studentsNeedingAttention.length} estudiante(s) requieren atención especial.` 
-      : 'Todos los estudiantes están participando activamente.'}`,
+    ${courseMetrics.studentsNeedingAttention.length > 0
+        ? `${courseMetrics.studentsNeedingAttention.length} estudiante(s) requieren atención especial.`
+        : 'Todos los estudiantes están participando activamente.'}`,
     keyInsights: [
-      `Tasa de participación: ${courseMetrics.totalStudents > 0 
-        ? ((courseMetrics.activeStudents / courseMetrics.totalStudents) * 100).toFixed(1) 
+      `Tasa de participación: ${courseMetrics.totalStudents > 0
+        ? ((courseMetrics.activeStudents / courseMetrics.totalStudents) * 100).toFixed(1)
         : 0}%`,
       `Promedio de ${courseMetrics.averageInteractionsPerStudent.toFixed(1)} interacciones por estudiante`,
       `Costo total: $${courseMetrics.totalCost.toFixed(2)}`,

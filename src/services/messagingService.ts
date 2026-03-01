@@ -1,7 +1,7 @@
 // services/messagingService.ts
 // Servicio para gestión de mensajería entre usuarios
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export interface Conversation {
   id: string;
@@ -49,7 +49,8 @@ export const messagingService = {
   async getOrCreateConversation(
     participant1Id: string,
     participant2Id: string,
-    courseId?: number
+    courseId?: number,
+    institutionId?: number
   ): Promise<Conversation> {
     const { data, error } = await supabase.rpc('get_or_create_conversation', {
       p_participant1_id: participant1Id,
@@ -59,8 +60,23 @@ export const messagingService = {
 
     if (error) throw error;
 
+    // Si se proporcionó institutionId y la conversación no lo tiene, actualizarlo
+    // Esto vincula conversaciones nuevas (o existentes huerfanas) a la institución actual
+    if (institutionId && !data.institution_id) {
+      try {
+        await supabase
+          .from('conversations')
+          .update({ institution_id: institutionId })
+          .eq('id', data.id);
+        // Actualizar dato local
+        data.institution_id = institutionId;
+      } catch (e) {
+        console.warn('Error vinculando conversación a institución:', e);
+      }
+    }
+
     // Obtener la conversación completa con información del otro usuario
-    return this.getConversation(data);
+    return this.getConversation(data.id); // Usar ID para obtener refresh completo
   },
 
   // Obtener una conversación por ID
@@ -129,15 +145,22 @@ export const messagingService = {
   },
 
   // Obtener todas las conversaciones del usuario actual
-  async getMyConversations(): Promise<Conversation[]> {
+  async getMyConversations(institutionId?: number): Promise<Conversation[]> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuario no autenticado');
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('conversations')
       .select('*')
       .or(`participant1_id.eq.${user.id},participant2_id.eq.${user.id}`)
       .order('last_message_at', { ascending: false });
+
+    // Filtrar por institución si está presente
+    if (institutionId) {
+      query = query.or(`institution_id.eq.${institutionId},institution_id.is.null`);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 
@@ -324,7 +347,7 @@ export const messagingService = {
     callback: (message: Message) => void
   ) {
     const channel = supabase
-      .channel(`messages:${conversationId}`)
+      .channel(`messages:${conversationId}-${Date.now()}`)
       .on(
         'postgres_changes',
         {
@@ -357,7 +380,7 @@ export const messagingService = {
         if (status === 'SUBSCRIBED') {
           console.log(`✅ Suscrito a mensajes de conversación ${conversationId}`);
         } else if (status === 'CHANNEL_ERROR') {
-          console.error(`❌ Error en canal de mensajes ${conversationId}`);
+          console.warn(`⚠️ Error en canal de mensajes ${conversationId}`);
         }
       });
 
@@ -370,7 +393,7 @@ export const messagingService = {
     if (!user) return null;
 
     const channel = supabase
-      .channel('conversations-updates')
+      .channel(`conversations-updates-${Date.now()}`)
       // Escuchar cambios en conversaciones (nuevas o actualizadas)
       .on(
         'postgres_changes',
@@ -448,11 +471,63 @@ export const messagingService = {
         if (status === 'SUBSCRIBED') {
           console.log('✅ Suscrito a actualizaciones de conversaciones');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Error en canal de conversaciones');
+          console.warn('⚠️ Error en canal de conversaciones');
         }
       });
 
     return channel;
+  },
+
+  // Obtener información básica de usuarios (con fallback seguro)
+  async getBasicUsersInfo(userIds: string[]): Promise<any[]> {
+    if (!userIds || userIds.length === 0) return [];
+
+    // Intentar usar RPC primero (para saltar RLS si es necesario)
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_basic_users_info', { user_ids: userIds });
+
+    if (!rpcError && rpcData) {
+      console.log('✅ [messagingService] Usuarios obtenidos vía RPC secure function');
+      return rpcData.map((u: any) => ({
+        id: u.id,
+        first_name: u.first_name,
+        last_name: u.last_name,
+        email: u.email,
+        avatar_url: u.avatar_url,
+        role_id: u.role_id,
+        role: {
+          id: u.role_id,
+          name: u.role_name
+        },
+        roles: { // Compatibilidad con código existente
+          id: u.role_id,
+          name: u.role_name
+        }
+      }));
+    }
+
+    if (rpcError) {
+      console.warn('⚠️ [messagingService] RPC get_basic_users_info falló o no existe, usando fallback directo:', rpcError.message);
+    }
+
+    // Fallback a consulta directa (puede fallar para estudiantes por RLS)
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select(`
+        id,
+        first_name,
+        last_name,
+        email,
+        avatar_url,
+        role_id,
+        roles(id, name)
+      `)
+      .in('id', userIds);
+
+    if (usersError) throw usersError;
+    return (users || []).map((u: any) => ({
+      ...u,
+      role: u.roles // Normalizar estructura
+    }));
   }
 };
 

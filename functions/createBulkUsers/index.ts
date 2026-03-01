@@ -48,16 +48,19 @@ serve(async (req) => {
       );
     }
 
-    // Verificar que el usuario es admin
+    // Verificar que el usuario es admin, admin-campus o coordinator
     const { data: userData } = await supabaseAdmin
       .from('users')
       .select('role_id, roles(name)')
       .eq('id', user.id)
       .single();
 
-    if (!userData || (userData as any).roles?.name !== 'admin') {
+    const authorizedRoles = ['admin', 'admin-campus', 'coordinator'];
+    const userRole = (userData as any)?.roles?.name;
+
+    if (!userData || !authorizedRoles.includes(userRole)) {
       return new Response(
-        JSON.stringify({ error: 'Solo administradores pueden crear usuarios masivamente' }),
+        JSON.stringify({ error: 'No tienes permisos suficientes para crear usuarios masivamente' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

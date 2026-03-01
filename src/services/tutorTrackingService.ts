@@ -1,7 +1,8 @@
 // services/tutorTrackingService.ts
 // Servicio para persistir interacciones del Tutor IA en la base de datos
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { saveGeneralKnowledgeResponse } from './tutorFeedbackService';
 
 export interface TutorInteraction {
   id?: string;
@@ -36,7 +37,9 @@ export async function trackTutorInteraction(
   answer: string,
   tokens: TokenUsage,
   responseTime: number,
-  conversationId?: string
+  conversationId?: string,
+  ragConfidence?: number,
+  responseSource?: 'RAG' | 'GENERAL' | 'HYBRID'
 ): Promise<TutorInteraction> {
   try {
     // Convertir courseId a número si es string (courses.id es INTEGER)
@@ -82,6 +85,22 @@ export async function trackTutorInteraction(
       cost: tokens.cost,
     });
 
+    // NUEVO: Guardar para retroalimentación si es conocimiento general
+    if (responseSource === 'GENERAL' || (ragConfidence !== undefined && ragConfidence < 0.5)) {
+      // Guardar de forma asíncrona (no bloquear flujo principal)
+      saveGeneralKnowledgeResponse(
+        studentId,
+        courseIdNum,
+        question,
+        answer,
+        tokens,
+        ragConfidence || 0.3,
+        data.id
+      ).catch((error) => {
+        console.warn('⚠️ Error saving feedback (no crítico):', error);
+      });
+    }
+
     return data;
   } catch (error) {
     console.warn('⚠️ Failed to track tutor interaction (no se interrumpe el flujo):', error);
@@ -99,6 +118,36 @@ export async function trackTutorInteraction(
       response_time_ms: responseTime,
       conversation_id: conversationId,
     } as TutorInteraction;
+  }
+}
+
+/**
+ * Actualiza la calificación automática de una interacción
+ */
+export async function updateTutorInteractionRating(
+  interactionId: string,
+  satisfactionRating: number
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('tutor_interactions')
+      .update({ satisfaction_rating: satisfactionRating })
+      .eq('id', interactionId);
+
+    if (error) {
+      console.warn('⚠️ Error actualizando satisfaction_rating:', error);
+      return false;
+    }
+
+    console.log('✅ Satisfaction rating actualizado:', {
+      interactionId,
+      satisfactionRating,
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Error in updateTutorInteractionRating:', error);
+    return false;
   }
 }
 

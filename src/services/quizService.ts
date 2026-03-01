@@ -1,7 +1,7 @@
 // services/quizService.ts
 // Servicios para gestión de quizzes y assessments
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export interface Assessment {
   id: string;

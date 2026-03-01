@@ -1,7 +1,7 @@
 // services/contentIndexingService.ts
 // Servicio para indexar contenido de texto (Unidades, Sesiones) en el RAG
 
-import { FileProcessingJob } from '../types/fileProcessing';
+import { FileProcessingJob } from '@/types/fileProcessing';
 
 // URL del worker local (para desarrollo)
 // En producción esto debería ser una Cloud Function o la misma URL si el worker está expuesto

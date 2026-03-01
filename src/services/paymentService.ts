@@ -1,7 +1,7 @@
 // services/paymentService.ts
 // Servicio para gestión de pagos y suscripciones de estudiantes
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export interface PaymentPlan {
   id: number;

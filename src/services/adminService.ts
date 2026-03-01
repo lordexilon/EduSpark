@@ -3,7 +3,7 @@
 // Servicio para generar reportes de dispositivos para administradores
 // ------------------------------------------------------------
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 /**
  * Información de un dispositivo registrado.

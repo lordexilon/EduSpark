@@ -1,7 +1,0 @@
-{
-  "name": "EduSpark Adaptive Audio Tutor",
-  "description": "Un sistema de audio inteligente y adaptativo que permite a los usuarios interactuar con la plataforma educativa EduSpark de forma fluida, con o sin audio. El sistema se adapta automáticamente a las preferencias del usuario y las capacidades del dispositivo.",
-  "requestFramePermissions": [
-    "microphone"
-  ]
-}

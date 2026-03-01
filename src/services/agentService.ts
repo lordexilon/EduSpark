@@ -105,7 +105,7 @@ async function getStudentProfileFromDB(
 ): Promise<StudentProfileData | null> {
   try {
     // Importación dinámica para evitar dependencias circulares
-    const { getStudentProfile } = await import('../../audio-tutor/services/supabaseService');
+    const { getStudentProfile } = await import('../modules/tutor/services/supabaseService');
     const result = await getStudentProfile(studentId, courseId);
 
     if (result.success && result.data) {
@@ -402,3 +402,4 @@ export async function getAgentAssistantResponse(
     throw error;
   }
 }
+

@@ -4,8 +4,8 @@
  * Implementa modelo ético de tres niveles de acceso
  */
 
-import { supabase } from '../lib/supabase';
-import { getDeviceFingerprint, getUserIP, type DeviceInfo } from '../utils/deviceFingerprint';
+import { supabase } from '@/lib/supabase';
+import { getDeviceFingerprint, getUserIP, type DeviceInfo } from '@/utils/deviceFingerprint';
 
 export interface UserDevice {
     id: string;
@@ -303,6 +303,52 @@ export const deviceService = {
         } catch (error) {
             console.error('❌ Error obteniendo dispositivo actual:', error);
             return null;
+        }
+    },
+
+    /**
+     * Reactivar un dispositivo inactivo
+     * Si ya hay 3 dispositivos activos, desactiva el más antiguo automáticamente
+     * @param userId - ID del usuario
+     * @param deviceId - ID del dispositivo a reactivar
+     * @returns {Promise<{success: boolean, message: string, removedDeviceName?: string}>}
+     */
+    async reactivateDevice(
+        userId: string,
+        deviceId: string
+    ): Promise<{ success: boolean; message: string; removedDeviceName?: string }> {
+        try {
+            console.log('🔄 Reactivando dispositivo:', deviceId);
+
+            const { data, error } = await supabase.rpc('reactivate_device', {
+                p_user_id: userId,
+                p_device_id: deviceId
+            });
+
+            if (error) {
+                console.error('❌ Error reactivando dispositivo:', error);
+                throw error;
+            }
+
+            if (!data || data.length === 0) {
+                throw new Error('No se recibió respuesta del servidor');
+            }
+
+            const result = data[0];
+
+            if (!result.success) {
+                throw new Error(result.message);
+            }
+
+            console.log('✅ Dispositivo reactivado:', result.message);
+            return {
+                success: result.success,
+                message: result.message,
+                removedDeviceName: result.removed_device_name || undefined
+            };
+        } catch (error: any) {
+            console.error('❌ Error en reactivateDevice:', error);
+            throw new Error(error.message || 'Error reactivando dispositivo');
         }
     }
 };

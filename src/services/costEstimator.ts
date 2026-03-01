@@ -1,7 +1,7 @@
 // services/costEstimator.ts
 // Estimación de costos para procesamiento de archivos
 
-import type { CostEstimate, PdfType } from '../types/fileProcessing';
+import type { CostEstimate, PdfType } from '@/types/fileProcessing';
 
 /**
  * Precios de servicios (USD)

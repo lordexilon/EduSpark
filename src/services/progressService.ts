@@ -1,7 +1,7 @@
 // services/progressService.ts
 // Servicio para calcular y actualizar el progreso de los estudiantes en los cursos
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 /**
  * Helper para obtener la clave del día según el timeframe
@@ -99,64 +99,24 @@ export const progressService = {
         }
       }
 
-      // 5. Contar sesiones completadas/visitadas
+      // 5. Contar sesiones completadas (SOLO is_completed = true)
       if (totalSessions > 0) {
-        let completedSessions = 0;
-        let hasSessionProgress = false;
-
         const { data: sessionProgressData, error: sessionProgressError } = await supabase
           .from('session_progress')
-          .select('session_id, is_completed')
+          .select('session_id')
           .eq('student_id', studentId)
-          .eq('course_id', courseId);
+          .eq('course_id', courseId)
+          .eq('is_completed', true); // SOLO sesiones marcadas como completadas
 
         if (!sessionProgressError && sessionProgressData && sessionProgressData.length > 0) {
-          hasSessionProgress = true;
           const completedSet = new Set(
             sessionProgressData
-              .filter((progress: any) => progress.is_completed)
               .map((progress: any) => progress.session_id)
               .filter(Boolean)
           );
-
-          completedSessions = completedSet.size;
-
-          // Si aún no hay sesiones completadas pero sí registros, contar como visitadas
-          if (completedSessions === 0) {
-            const visitedSet = new Set(
-              sessionProgressData
-                .map((progress: any) => progress.session_id)
-                .filter(Boolean)
-            );
-            completedSessions = Math.min(visitedSet.size, totalSessions);
-          }
+          const completedSessions = completedSet.size;
+          completedItems += Math.min(completedSessions, totalSessions);
         }
-
-        if (!hasSessionProgress) {
-          const { data: sessionIds } = await supabase
-            .from('sessions')
-            .select('id')
-            .eq('course_id', courseId);
-
-          const sessionIdSet = new Set((sessionIds || []).map(s => s.id));
-          if (sessionIdSet.size > 0 && totalAssessments > 0) {
-            const { data: completedAssessments } = await supabase
-              .from('assessment_attempts')
-              .select('assessments!inner(session_id)')
-              .eq('student_id', studentId)
-              .in('status', ['submitted', 'graded']);
-
-            const visitedSessionIds = new Set<string>();
-            (completedAssessments || []).forEach((attempt: any) => {
-              if (attempt.assessments?.session_id && sessionIdSet.has(attempt.assessments.session_id)) {
-                visitedSessionIds.add(attempt.assessments.session_id);
-              }
-            });
-            completedSessions = visitedSessionIds.size;
-          }
-        }
-
-        completedItems += Math.min(completedSessions, totalSessions);
       }
 
       // 7. Contar quizzes/trivias completados

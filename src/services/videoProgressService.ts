@@ -1,7 +1,7 @@
 // services/videoProgressService.ts
 // Servicio para tracking del progreso de visualización de videos
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 // =====================================================
 // TIPOS E INTERFACES

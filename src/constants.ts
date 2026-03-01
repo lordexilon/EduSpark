@@ -1,5 +1,5 @@
 import React from 'react';
-import { ModuleInfo, CourseSession, ActivityType, Assignment } from './types.ts';
+import { ModuleInfo, CourseSession, ActivityType, Assignment } from '@/types';
 // FIX: Import icons needed for ACTIVITY_TYPE_DETAILS
 import {
     IconBookOpen,
@@ -15,7 +15,7 @@ import {
     IconChartBar,
     IconClipboardCheck,
     IconCheckCircle
-} from './components/Icons.tsx';
+} from '@/components/Common/Icons';
 
 export const MODULE_INFO: ModuleInfo = {
   name: "Ética Profesional",

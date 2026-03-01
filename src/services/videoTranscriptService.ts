@@ -1,7 +1,7 @@
 // services/videoTranscriptService.ts
 // Servicio para extraer transcripciones de videos de YouTube y Vimeo
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 // =====================================================
 // TIPOS E INTERFACES

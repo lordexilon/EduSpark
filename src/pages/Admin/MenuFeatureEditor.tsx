@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase';
-import { type MenuFeature } from '../../services/menuFeatureService';
-import { useAuth } from '../../hooks/useAuth';
-import Card from '../../components/Card';
-import Button from '../../components/Button';
+import { supabase } from '@/lib/supabase';
+import { type MenuFeature } from '@/services/menuFeatureService';
+import { useAuth } from '@/hooks/useAuth';
+import Card from '@/components/Common/Card';
+import Button from '@/components/Common/Button';
 
 export const MenuFeatureEditor = () => {
     const { user, refreshMenuFeatures } = useAuth();

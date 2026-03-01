@@ -1,7 +1,7 @@
 // services/googleDriveService.ts
 // Servicio para gestionar la carpeta de Google Drive del usuario
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { googleOAuthService } from './googleOAuthService';
 
 export interface DriveFolderInfo {

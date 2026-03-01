@@ -57,6 +57,7 @@ import AIUsageReportPage from '@/pages/Admin/AIUsageReportPage';
 import ProcessingCostsDashboardPage from '@/pages/Admin/ProcessingCostsDashboardPage';
 import AdminComprehensiveReportsPage from '@/pages/Admin/AdminComprehensiveReportsPage';
 import { TutorFeedbackReportPage } from '@/pages/Admin/TutorFeedbackReportPage';
+import AIControlPanel from '@/pages/Admin/AIControlPanel';
 import { FlashcardBuilderPage } from '@/pages/Teacher/FlashcardBuilderPage';
 import { TeacherFlashcardsPage } from '@/pages/Teacher/TeacherFlashcardsPage';
 import { DocumentLibraryPage } from '@/pages/Admin/DocumentLibraryPage';
@@ -127,8 +128,9 @@ const TeacherRoutes: React.FC = () => {
                 <Route path="/admin/migrate-orphan-users" element={<AdminRoute><MigrateOrphanUsersPage /></AdminRoute>} />
                 <Route path="/admin/bulk-suspend-reactivate" element={<AdminRoute><BulkSuspendReactivatePage /></AdminRoute>} />
                 <Route path="/admin/payment-management" element={<AdminRoute><StudentPaymentManagementPage /></AdminRoute>} />
-                <Route path="/admin/ai-usage" element={<AdminRoute><AIUsageReportPage /></AdminRoute>} />
-                <Route path="/admin/processing-costs" element={<AdminRoute><ProcessingCostsDashboardPage /></AdminRoute>} />
+                <Route path="/admin/ai-usage" element={<AdminRoute allowedRoles={['admin']}><AIUsageReportPage /></AdminRoute>} />
+                <Route path="/admin/ai-control" element={<AdminRoute allowedRoles={['admin']}><AIControlPanel /></AdminRoute>} />
+                <Route path="/admin/processing-costs" element={<AdminRoute allowedRoles={['admin']}><ProcessingCostsDashboardPage /></AdminRoute>} />
                 <Route path="/admin/file-processing" element={<AdminRoute><FileProcessingPage /></AdminRoute>} />
                 <Route path="/admin/comprehensive-reports" element={<AdminRoute><AdminComprehensiveReportsPage /></AdminRoute>} />
                 <Route path="/admin/tutor-feedback" element={<AdminRoute><TutorFeedbackReportPage /></AdminRoute>} />

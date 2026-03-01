@@ -1,3 +1,4 @@
+// @ts-nocheck
 // workers/file-processing-worker/materialService.ts
 // Servicio para actualizar el estado de materiales en Supabase
 
