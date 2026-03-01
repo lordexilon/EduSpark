@@ -1,0 +1,203 @@
+{
+  "preguntas_estudiantes": [
+    {
+      "id": "pregunta_001",
+      "categoria": "conceptos_basicos",
+      "unidad": "unidad_1",
+      "pregunta": "¿Qué es una variable en álgebra y cómo se usa en contextos empresariales?",
+      "tipo_intencion": "pregunta_contenido",
+      "tono": "curioso",
+      "nivel_dificultad": "basico",
+      "contexto_empresarial": true
+    },
+    {
+      "id": "pregunta_002", 
+      "categoria": "operaciones_algebraicas",
+      "unidad": "unidad_1",
+      "pregunta": "¿Cómo se resuelve la expresión 3x + 5x - 2x?",
+      "tipo_intencion": "pregunta_contenido",
+      "tono": "neutro",
+      "nivel_dificultad": "basico",
+      "contexto_empresarial": false
+    },
+    {
+      "id": "pregunta_003",
+      "categoria": "factorizacion",
+      "unidad": "unidad_1", 
+      "pregunta": "¿Cómo factorizo x² - 16?",
+      "tipo_intencion": "pregunta_contenido",
+      "tono": "confundido",
+      "nivel_dificultad": "intermedio",
+      "contexto_empresarial": false
+    },
+    {
+      "id": "pregunta_004",
+      "categoria": "aplicaciones_empresariales",
+      "unidad": "unidad_1",
+      "pregunta": "Si una empresa tiene costos fijos de $1000 y costos variables de $50x, ¿cómo expreso el costo total?",
+      "tipo_intencion": "pregunta_contenido", 
+      "tono": "interesado",
+      "nivel_dificultad": "intermedio",
+      "contexto_empresarial": true
+    },
+    {
+      "id": "pregunta_005",
+      "categoria": "ecuaciones_lineales",
+      "unidad": "unidad_2",
+      "pregunta": "¿Cómo resuelvo la ecuación 2x + 5 = 13?",
+      "tipo_intencion": "pregunta_contenido",
+      "tono": "frustrado",
+      "nivel_dificultad": "basico",
+      "contexto_empresarial": false
+    },
+    {
+      "id": "pregunta_006",
+      "categoria": "sistemas_ecuaciones",
+      "unidad": "unidad_2",
+      "pregunta": "¿Cómo resuelvo un sistema de ecuaciones con dos incógnitas?",
+      "tipo_intencion": "pregunta_contenido",
+      "tono": "confundido",
+      "nivel_dificultad": "avanzado",
+      "contexto_empresarial": false
+    },
+    {
+      "id": "pregunta_007",
+      "categoria": "progresiones_aritmeticas",
+      "unidad": "unidad_3",
+      "pregunta": "¿Qué es una progresión aritmética y cómo se aplica en negocios?",
+      "tipo_intencion": "pregunta_contenido",
+      "tono": "curioso",
+      "nivel_dificultad": "intermedio",
+      "contexto_empresarial": true
+    },
+    {
+      "id": "pregunta_008",
+      "categoria": "progresiones_geometricas",
+      "unidad": "unidad_3",
+      "pregunta": "¿Cómo calculo el término n-ésimo de una progresión geométrica?",
+      "tipo_intencion": "pregunta_contenido",
+      "tono": "neutro",
+      "nivel_dificultad": "avanzado",
+      "contexto_empresarial": false
+    },
+    {
+      "id": "pregunta_009",
+      "categoria": "teoria_conjuntos",
+      "unidad": "unidad_4",
+      "pregunta": "¿Qué operaciones puedo realizar con conjuntos?",
+      "tipo_intencion": "pregunta_contenido",
+      "tono": "interesado",
+      "nivel_dificultad": "intermedio",
+      "contexto_empresarial": false
+    },
+    {
+      "id": "pregunta_010",
+      "categoria": "aplicaciones_conjuntos",
+      "unidad": "unidad_4",
+      "pregunta": "¿Cómo uso los conjuntos para resolver problemas de clasificación de clientes?",
+      "tipo_intencion": "pregunta_contenido",
+      "tono": "curioso",
+      "nivel_dificultad": "avanzado",
+      "contexto_empresarial": true
+    },
+    {
+      "id": "pregunta_011",
+      "categoria": "saludo",
+      "unidad": "general",
+      "pregunta": "Hola, ¿cómo estás?",
+      "tipo_intencion": "saludo",
+      "tono": "amigable",
+      "nivel_dificultad": "basico",
+      "contexto_empresarial": false
+    },
+    {
+      "id": "pregunta_012",
+      "categoria": "motivacion",
+      "unidad": "general",
+      "pregunta": "Estoy muy estresado con esta materia, no entiendo nada",
+      "tipo_intencion": "motivacion",
+      "tono": "ansioso",
+      "nivel_dificultad": "basico",
+      "contexto_empresarial": false
+    },
+    {
+      "id": "pregunta_013",
+      "categoria": "ayuda_general",
+      "unidad": "general",
+      "pregunta": "¿Puedes ayudarme a entender mejor esta materia?",
+      "tipo_intencion": "ayuda_general",
+      "tono": "solicitante",
+      "nivel_dificultad": "basico",
+      "contexto_empresarial": false
+    },
+    {
+      "id": "pregunta_014",
+      "categoria": "plan_estudio",
+      "unidad": "general",
+      "pregunta": "¿Cómo puedo organizar mi estudio para esta materia?",
+      "tipo_intencion": "plan_estudio",
+      "tono": "organizado",
+      "nivel_dificultad": "basico",
+      "contexto_empresarial": false
+    },
+    {
+      "id": "pregunta_015",
+      "categoria": "aplicaciones_empresariales",
+      "unidad": "unidad_1",
+      "pregunta": "¿Para qué sirve el álgebra en la administración de empresas?",
+      "tipo_intencion": "pregunta_contenido",
+      "tono": "curioso",
+      "nivel_dificultad": "intermedio",
+      "contexto_empresarial": true
+    }
+  ],
+  "metadata": {
+    "total_preguntas": 15,
+    "categorias": [
+      "conceptos_basicos",
+      "operaciones_algebraicas", 
+      "factorizacion",
+      "aplicaciones_empresariales",
+      "ecuaciones_lineales",
+      "sistemas_ecuaciones",
+      "progresiones_aritmeticas",
+      "progresiones_geometricas",
+      "teoria_conjuntos",
+      "aplicaciones_conjuntos",
+      "saludo",
+      "motivacion",
+      "ayuda_general",
+      "plan_estudio"
+    ],
+    "tipos_intencion": [
+      "pregunta_contenido",
+      "saludo", 
+      "motivacion",
+      "ayuda_general",
+      "plan_estudio"
+    ],
+    "tonos": [
+      "curioso",
+      "neutro", 
+      "confundido",
+      "interesado",
+      "frustrado",
+      "amigable",
+      "ansioso",
+      "solicitante",
+      "organizado"
+    ],
+    "niveles_dificultad": [
+      "basico",
+      "intermedio", 
+      "avanzado"
+    ],
+    "unidades": [
+      "unidad_1",
+      "unidad_2",
+      "unidad_3", 
+      "unidad_4",
+      "general"
+    ]
+  }
+}

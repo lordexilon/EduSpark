@@ -1,0 +1,91 @@
+[
+  {
+    "id": "69c36c20-c0bf-4cc3-ba64-9d5909f6831c",
+    "email": "alecaceres6@outlook.com",
+    "password": null,
+    "email_confirm": true,
+    "user_metadata": {
+      "first_name": "Alejandro",
+      "last_name": "Caceres",
+      "role_id": 1
+    }
+  },
+  {
+    "id": "ba7bfc03-1bab-47f0-9156-6b22c92b9191",
+    "email": "deisypinhanez97@gmail.com",
+    "password": null,
+    "email_confirm": true,
+    "user_metadata": {
+      "first_name": "Deisy",
+      "last_name": "Piñanez",
+      "role_id": 1
+    }
+  },
+  {
+    "id": "3076db90-51e1-4065-bb2d-d321ef6d7a48",
+    "email": "eduatobe96@gmail.com",
+    "password": null,
+    "email_confirm": true,
+    "user_metadata": {
+      "first_name": "Eduardo",
+      "last_name": "Atobe",
+      "role_id": 1
+    }
+  },
+  {
+    "id": "13d689b8-afa9-4db5-b057-da7bbb5d84fb",
+    "email": "florenciadelgado061@gmail.com",
+    "password": null,
+    "email_confirm": true,
+    "user_metadata": {
+      "first_name": "Florencia",
+      "last_name": "Delgado",
+      "role_id": 1
+    }
+  },
+  {
+    "id": "a7b71e72-e4c0-4916-9d1a-c175f0fd26e8",
+    "email": "jaraorregojosesebastian@gmail.com",
+    "password": null,
+    "email_confirm": true,
+    "user_metadata": {
+      "first_name": "Jose",
+      "last_name": "Jara jaraorrego",
+      "role_id": 1
+    }
+  },
+  {
+    "id": "85c02afb-0a6b-4a89-9e83-214955806909",
+    "email": "otihidalgo9@gmail.com",
+    "password": null,
+    "email_confirm": true,
+    "user_metadata": {
+      "first_name": "María",
+      "last_name": "Hidalgo",
+      "role_id": 1
+    }
+  },
+  {
+    "id": "9955437d-85e5-4c65-ba46-6752564cdb23",
+    "email": "palomaruizdiaz96@gmail.com",
+    "password": null,
+    "email_confirm": true,
+    "user_metadata": {
+      "first_name": "Paloma",
+      "last_name": "Ruiz Díaz",
+      "role_id": 1
+    }
+  },
+  {
+    "id": "afdcf53f-9256-44fd-afdd-e942647f20dc",
+    "email": "sebastian.riosv00@gmail.com",
+    "password": null,
+    "email_confirm": true,
+    "user_metadata": {
+      "first_name": "Sebastian",
+      "last_name": "Rios",
+      "role_id": 1
+    }
+  }
+]
+

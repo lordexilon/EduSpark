@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asset Generator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+
+        .asset-container {
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        /* Logo Container - renders the webp on white background for icon */
+        #logo-container {
+            width: 512px;
+            height: 512px;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #logo-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* Branding Text - Light Background Version */
+        #branding-text-light {
+            width: 600px;
+            height: 200px;
+            background: transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: sans-serif;
+            text-align: center;
+        }
+
+        .brand-title {
+            font-size: 48px;
+            font-weight: 800;
+            color: #1F2937;
+            /* Dark Gray */
+            margin: 0 0 10px 0;
+            letter-spacing: -1px;
+        }
+
+        .brand-subtitle {
+            font-size: 24px;
+            font-weight: 400;
+            color: #6B7280;
+            /* Gray */
+            margin: 0;
+        }
+
+        /* Branding Text - Dark Background Version (Text is White) */
+        #branding-text-dark {
+            width: 600px;
+            height: 200px;
+            background: transparent;
+            /* Transparent for dark mode overlay */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: sans-serif;
+            text-align: center;
+        }
+
+        #branding-text-dark .brand-title {
+            color: #FFFFFF;
+        }
+
+        #branding-text-dark .brand-subtitle {
+            color: #E5E7EB;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 1. Logo for Icon (Convert WebP to PNG) -->
+    <div id="logo-container" class="asset-container">
+        <img id="logo-img" src="assets/icon/cec_logo_original.webp" />
+    </div>
+
+    <!-- 2. Branding Text (Light Mode) -->
+    <div id="branding-text-light" class="asset-container">
+        <h1 class="brand-title">EduSpark</h1>
+        <p class="brand-subtitle">Tu solución para tu Institución</p>
+    </div>
+
+    <!-- 3. Branding Text (Dark Mode) -->
+    <div id="branding-text-dark" class="asset-container">
+        <h1 class="brand-title">EduSpark</h1>
+        <p class="brand-subtitle">Tu solución para tu Institución</p>
+    </div>
+
+</body>
+
+</html>

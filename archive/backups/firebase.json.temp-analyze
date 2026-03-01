@@ -1,0 +1,17 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore/indexes.json"
+  },
+  "functions": [
+    {
+      "source": "functions/analyzeFile",
+      "codebase": "analyze-file",
+      "runtime": "nodejs20",
+      "environmentVariables": {
+        "GOOGLE_CLIENT_ID": "468517556859-qtbplkfnqqc6ru8ga7o3d1npo76t1b62.apps.googleusercontent.com",
+        "GOOGLE_CLIENT_SECRET": "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"
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+project_id = "mckfscukxcqwntpjagar"
+
+[functions.scheduled-weekly-reports]
+enabled = true
+verify_jwt = false
+import_map = "./functions/scheduled-weekly-reports/deno.json"
+entrypoint = "./functions/scheduled-weekly-reports/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/scheduled-weekly-reports/*.html" ]
