@@ -3,12 +3,13 @@ import Card from '@/components/Common/Card';
 import { IconCog, IconPalette, IconCheck, IconSave, IconBuilding, IconMail, IconPhone, IconMapPin, IconGlobe } from '@/components/Common/Icons';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, Theme } from '@/context/ThemeContext';
+import { IconCode } from '@/components/Common/Icons';
 import { useUserInstitution } from '@/hooks/useUserInstitution';
 import { institutionService } from '@/services/institutionService';
 
 const SettingsPage: React.FC = () => {
   const { user } = useAuth();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, primaryColor, setPrimaryColor, secondaryColor, setSecondaryColor, resetPrimaryColor } = useTheme();
   const { institution, loading: loadingInst, refreshInstitution } = useUserInstitution();
 
   const [activeTab, setActiveTab] = useState<'general' | 'appearance'>('general');
@@ -230,34 +231,170 @@ const SettingsPage: React.FC = () => {
         )}
 
         {activeTab === 'appearance' && (
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <IconPalette className="w-5 h-5 text-gray-500" />
-              Tema de la interfaz
-            </h3>
-            <p className="text-gray-600 mb-6">Selecciona el esquema de colores que prefieres para la aplicación.</p>
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <IconPalette className="w-5 h-5 text-gray-500" />
+                Color de la Institución (Aplica a Botones, Tablas y Links)
+              </h3>
+              <p className="text-gray-600 mb-4 text-sm">Cambia el color principal (primary) usado en la interfaz de la plataforma en tu dispositivo.</p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {themes.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setTheme(t.id)}
-                  className={`relative p-4 rounded-lg border-2 text-left transition-all ${theme === t.id
-                    ? `border-primary ring-2 ring-primary/20 ${t.color}`
-                    : 'border-gray-200 hover:border-gray-300 bg-white'
-                    }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`font-semibold ${theme === t.id ? 'text-primary' : 'text-gray-700'}`}>
-                      {t.name}
-                    </span>
-                    {theme === t.id && <IconCheck className="w-5 h-5 text-primary" />}
+              <div className="flex flex-col sm:flex-row items-start gap-6 mb-4">
+                {/* Primer Picker: Primario */}
+                <div className="flex flex-col gap-1 w-full sm:w-auto">
+                  <label className="text-xs font-semibold text-gray-500 uppercase">Color Primario (Hex)</label>
+                  <p className="text-[10px] text-gray-400 mb-1">Botones principales y enlaces activos</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={primaryColor}
+                      onChange={(e) => setPrimaryColor(e.target.value)}
+                      className="h-10 w-16 p-1 rounded border border-gray-300 cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={primaryColor}
+                      onChange={(e) => setPrimaryColor(e.target.value)}
+                      className="h-10 w-28 px-3 border border-gray-300 rounded font-mono text-sm text-gray-700 uppercase"
+                    />
                   </div>
-                  <div className={`w-full h-12 rounded border ${t.border} ${t.color}`}></div>
-                </button>
-              ))}
-            </div>
-          </Card>
+                </div>
+
+                {/* Segundo Picker: Secundario */}
+                <div className="flex flex-col gap-1 w-full sm:w-auto">
+                  <label className="text-xs font-semibold text-gray-500 uppercase">Color Secundario (Hex)</label>
+                  <p className="text-[10px] text-gray-400 mb-1">Acentos menores y botones inactivos</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={secondaryColor}
+                      onChange={(e) => setSecondaryColor(e.target.value)}
+                      className="h-10 w-16 p-1 rounded border border-gray-300 cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={secondaryColor}
+                      onChange={(e) => setSecondaryColor(e.target.value)}
+                      className="h-10 w-28 px-3 border border-gray-300 rounded font-mono text-sm text-gray-700 uppercase"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1 self-start sm:self-end pt-4 sm:pt-0 pb-0">
+                  <button
+                    onClick={resetPrimaryColor}
+                    className="h-10 px-4 flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded transition-colors text-sm"
+                  >
+                    Restaurar Originales
+                  </button>
+                </div>
+              </div>
+
+              {/* Vista previa viva del color */}
+              <div className="mt-8 p-4 border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-800 shadow-sm">
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center justify-between">
+                  Vista Previa Interactiva:
+                  <span className="text-xs font-normal text-gray-500 bg-white px-2 py-1 rounded shadow-sm border border-gray-200">
+                    Cambia los colores arriba para ver el impacto
+                  </span>
+                </p>
+                <div className="flex flex-wrap items-center gap-6 p-4 border border-gray-100 bg-white dark:bg-gray-900 rounded shadow-sm">
+                  {/* Botón Principal alimentado por var(--primary) */}
+                  <div className="flex flex-col gap-2 items-center">
+                    <button
+                      className="text-white font-medium py-2 px-6 rounded transition-colors shadow-sm"
+                      style={{ backgroundColor: 'var(--primary)', borderColor: 'var(--primary)' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-hover)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}
+                    >
+                      Botón Primario
+                    </button>
+                    <span className="text-[10px] text-gray-400 font-mono">var(--primary)</span>
+                  </div>
+
+                  {/* Botón Secundario alimentado por var(--secondary) */}
+                  <div className="flex flex-col gap-2 items-center">
+                    <button
+                      className="text-white font-medium py-2 px-6 rounded transition-colors shadow-sm"
+                      style={{ backgroundColor: 'var(--secondary)' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--secondary-hover)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--secondary)'}
+                    >
+                      Botón Secundario
+                    </button>
+                    <span className="text-[10px] text-gray-400 font-mono">var(--secondary)</span>
+                  </div>
+
+                  {/* Enlace alimentado por var(--primary) */}
+                  <div className="flex flex-col gap-2 items-center mt-2 sm:mt-0">
+                    <span
+                      className="font-semibold cursor-pointer border-b-2"
+                      style={{ color: 'var(--primary)', borderColor: 'var(--primary)' }}
+                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-hover)'}
+                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--primary)'}
+                    >
+                      Enlace Activo
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <IconPalette className="w-5 h-5 text-gray-500" />
+                Tema del Fondo de la Interfaz
+              </h3>
+              <p className="text-gray-600 mb-6 text-sm">Selecciona el esquema de colores para el fondo de la pantalla y paneles de la aplicación en tu sesión.</p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {themes.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setTheme(t.id)}
+                    className={`relative p-4 rounded-lg border-2 text-left transition-all ${theme === t.id
+                      ? `border-primary ring-2 ring-primary/20 ${t.color}`
+                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                      }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`font-semibold ${theme === t.id ? 'text-primary' : 'text-gray-700'}`}>
+                        {t.name}
+                      </span>
+                      {theme === t.id && <IconCheck className="w-5 h-5 text-primary" />}
+                    </div>
+                    <div className={`w-full h-12 rounded border ${t.border} ${t.color}`}></div>
+                  </button>
+                ))}
+              </div>
+            </Card>
+
+            {/* Documentación avanzada solicitada */}
+            <Card className="p-6 bg-slate-800 text-white border-none shadow-xl mt-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-blue-300 border-b border-slate-700 pb-3">
+                <IconCode className="w-5 h-5 flex-shrink-0" />
+                Documentación para Desarrolladores (Hardcode a nivel Repositorio)
+              </h3>
+              <div className="text-sm text-gray-300 space-y-4 pt-2">
+                <p>
+                  Si deseas hardcodear o customizar 100% los valores por defecto del frontend para una implementación On-Premise o White-label a nivel de código de forma permanente, debes seguir estos pasos en el repositorio:
+                </p>
+                <div className="bg-slate-900 p-4 rounded border border-slate-700 shadow-inner">
+                  <h4 className="text-blue-400 font-bold mb-2 flex items-center gap-2">1. Definir Variables `src/index.css`</h4>
+                  <p className="mb-2">El bloque <code>:root</code> define las bases por defecto. Puedes editar permanentemente el color primario aquí:</p>
+                  <code className="text-pink-400 block bg-black p-3 rounded font-mono text-xs overflow-x-auto shadow-inner">:root &#123;<br />&nbsp;&nbsp;--primary: #tu_color_hex;<br />&nbsp;&nbsp;--primary-hover: #tu_color_mas_oscuro;<br />&#125;</code>
+                </div>
+                <div className="bg-slate-900 p-4 rounded border border-slate-700 shadow-inner">
+                  <h4 className="text-blue-400 font-bold mb-2 flex items-center gap-2">2. Declaración `tailwind.config.cjs`</h4>
+                  <p className="mb-2">Aquí se definen las variantes de paleta. En <code>theme.extend.colors</code> puedes mapear las variables a utilidades Tailwind custom:</p>
+                  <code className="text-pink-400 block bg-black p-3 rounded font-mono text-xs overflow-x-auto shadow-inner">colors: &#123;<br />&nbsp;&nbsp;primary: 'var(--primary)',<br />&nbsp;&nbsp;/* Agrega un objeto de colores 50-900 para usar clases como bg-primary-500 */<br />&#125;</code>
+                </div>
+                <div className="mt-4 flex items-start gap-2 text-gray-400 bg-slate-900/50 p-3 rounded">
+                  <span className="text-yellow-400 font-bold">⚠️ Nota:</span> Todo cambio estructural en `tailwind.config.cjs` requiere recompilar (reiniciar el terminal con `npm run dev` o hacer build `npm run build`) para que el motor JIT de Tailwind genere las nuevas clases CSS correspondientes.
+                </div>
+              </div>
+            </Card>
+          </div>
         )}
       </div>
     </div>
