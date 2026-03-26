@@ -2,7 +2,7 @@
 
 > **DOCUMENTO DINÁMICO**: Actualizar al inicio y fin de cada sesión.
 
-**Última actualización:** 2026-03-26 (A2A + Agent Skills en `.cursor/skills/` del repo EduSpark)
+**Última actualización:** 2026-03-26 (push GitHub: Agent Skills + SCA en `feature/multi-institution-landings`)
 **Fase Actual:** Optimización RAG, despliegue y límites de costo Tutor IA
 
 ## Tareas en Curso (WIP)
@@ -15,7 +15,7 @@
 | 💰 Control presupuesto Tutor IA (~$50/mes + tracking) | ⏳ SQL pendiente aplicar en BD | Equipo | Script: `sql_scripts/3_tutor_rag/112_control_presupuesto_50usd_mensual.sql` — tablas `tutor_cost_tracking`, `tutor_cost_limits`; RPCs `check_tutor_cost_limit`, `track_tutor_interaction_cost`, `get_user_cost_stats`. Cliente: `src/services/tutorCostService.ts` |
 
 ## Contexto de Sesión
-- **Agent Skills Cursor (proyecto EduSpark):** rutas canónicas `.cursor/skills/eduspark-ux-ui-flutter/SKILL.md`, `.cursor/skills/eduspark-compliance-regulatory/SKILL.md`, `.cursor/skills/edtech-ux-ui-web-flutter/SKILL.md`, `.cursor/skills/moodle-architect-paraguay-aneaes/SKILL.md`. Usar según tipo de tarea (Flutter EduSpark, cumplimiento PY/CONES, UX web/Flutter genérico, Moodle ANEAES); ver tabla en `AI_CONTEXT/instructions.md` § Agent Skills.
+- **Agent Skills Cursor (proyecto EduSpark):** rutas canónicas `.cursor/skills/eduspark-ux-ui-flutter/SKILL.md`, `.cursor/skills/eduspark-compliance-regulatory/SKILL.md`, `.cursor/skills/edtech-ux-ui-web-flutter/SKILL.md`, `.cursor/skills/moodle-architect-paraguay-aneaes/SKILL.md`. Usar según tipo de tarea (Flutter EduSpark, cumplimiento PY/CONES, UX web/Flutter genérico, Moodle ANEAES); ver tabla en `AI_CONTEXT/instructions.md` § Agent Skills. **Remoto:** commit `6061987` en rama `feature/multi-institution-landings` → `https://github.com/lordexilon/EduSpark`.
 - **Documentación A2A / Tutor (referencia principal):** `AI_CONTEXT/04_FEATURES/TUTOR_A2A_AGENTES_DOCUMENTACION_2026-03-26.md` — arquitectura AgentCoordinator + RAGAgent + ContextAgent + RAGService, flujo de mensaje, tabla de cambios con **motivo**, archivos y scripts SQL relacionados.
 - Se habilitó la recuperación de materiales globales (chunks con unit_id null).
 - Se corrigió el prompt para permitir que el AI use materiales de referencia como Harrison/Nelson en cualquier unidad.
