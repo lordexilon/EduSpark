@@ -1,0 +1,16 @@
+---
+description: Nucleo SCA para control de contexto y cierre de sesion
+alwaysApply: true
+---
+
+# SCA Core Context
+
+- Antes de editar, leer `AI_CONTEXT/instructions.md` y `AI_CONTEXT/active_context.md`.
+- Al terminar cambios relevantes, actualizar `AI_CONTEXT/active_context.md` con:
+  - fecha de actualizacion,
+  - tareas en curso (estado real),
+  - cambios tecnicos ejecutados,
+  - pendientes del usuario o despliegue.
+- Si hay scripts SQL nuevos o cambios de RPC, registrar referencia de archivo en `active_context`.
+- No dar por terminado sin verificar que la documentacion operativa SCA quedo sincronizada.
+- Mantener cambios pequenos, trazables y con rutas de archivo explicitas.

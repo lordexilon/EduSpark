@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'native_v2/app_theme.dart';
+import 'native_v2/screens/dashboard_screen.dart';
 import 'screens/login_screen.dart';
-import 'screens/webview_screen.dart';
 import 'services/auth_service.dart';
 
 void main() async {
@@ -24,11 +24,7 @@ class EduSparkApp extends StatelessWidget {
     return MaterialApp(
       title: 'EduSpark',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
-        textTheme: GoogleFonts.interTextTheme(),
-      ),
+      theme: AppTheme.darkTheme,
       home: const AuthWrapper(),
     );
   }
@@ -49,7 +45,7 @@ class AuthWrapper extends StatelessWidget {
 
         final session = snapshot.data?.session;
         if (session != null) {
-          return const WebViewScreen();
+          return const DashboardScreen();
         } else {
           return const LoginScreen();
         }

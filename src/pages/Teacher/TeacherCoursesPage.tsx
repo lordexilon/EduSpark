@@ -8,7 +8,7 @@ import { subjectService, careerService, Subject, Career } from '@/services/acade
 import { useAuth } from '@/hooks/useAuth';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
-import { IconEye, IconBookOpen, IconChevronRight } from '@/components/Common/Icons';
+import { IconEye, IconBookOpen, IconChevronRight, IconSparkles } from '@/components/Common/Icons';
 import { RichTextDisplay } from '@/components/Common/RichTextDisplay';
 import { ActionMenu } from '@/components/Common/ActionMenu';
 
@@ -192,10 +192,10 @@ export const TeacherCoursesPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-text-dark">
             {user?.role?.name === 'admin' ? 'Gestión de Cursos' : 'Mis Cursos'}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-text-light">
             {user?.role?.name === 'admin'
               ? 'Administra todos los cursos de la institución'
               : 'Gestiona tus cursos y contenido académico'}
@@ -205,6 +205,12 @@ export const TeacherCoursesPage: React.FC = () => {
           <Link to="/admin/subjects">
             <Button variant="outline">
               Ver Materias
+            </Button>
+          </Link>
+          <Link to="/teacher/courses/import">
+            <Button variant="outline" className="border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 hover:border-purple-300">
+              <IconSparkles className="w-4 h-4 mr-2" />
+              EduSpark AI
             </Button>
           </Link>
           <Link to="/teacher/courses/new">
@@ -219,10 +225,10 @@ export const TeacherCoursesPage: React.FC = () => {
       </div>
 
       {/* Sección explicativa de la jerarquía */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 border-blue-200 dark:border-blue-800/30">
         <div className="p-4">
-          <h3 className="text-sm font-semibold text-gray-900 mb-2">📚 Estructura Académica</h3>
-          <div className="text-xs text-gray-700 space-y-1">
+          <h3 className="text-sm font-semibold text-text-dark mb-2">📚 Estructura Académica</h3>
+          <div className="text-xs text-text-light space-y-1">
             <div className="flex items-center gap-2">
               <span className="font-medium">Carrera</span>
               <span>→</span>
@@ -232,8 +238,8 @@ export const TeacherCoursesPage: React.FC = () => {
               <span>→</span>
               <span className="font-medium">Unidades/Sesiones/Contenido</span>
             </div>
-            <p className="text-gray-600 mt-2">
-              Cada curso pertenece a una <strong>Materia</strong> que está dentro de una <strong>Carrera</strong>.
+            <p className="text-text-light mt-2">
+              Cada curso pertenece a una <strong className="text-text-dark">Materia</strong> que está dentro de una <strong className="text-text-dark">Carrera</strong>.
               El curso contiene el contenido (unidades, sesiones, materiales) que los estudiantes verán.
             </p>
             <div className="mt-3 flex gap-2">
@@ -259,7 +265,7 @@ export const TeacherCoursesPage: React.FC = () => {
         <Card>
           <div className="p-4">
             <div className="flex flex-wrap gap-4 items-center">
-              <span className="text-sm font-medium text-gray-700">Filtrar por:</span>
+              <span className="text-sm font-medium text-text-dark">Filtrar por:</span>
 
               <select
                 value={filterByCareer || ''}
@@ -275,7 +281,7 @@ export const TeacherCoursesPage: React.FC = () => {
                     }
                   }
                 }}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="px-3 py-2 border border-border bg-background text-text-dark rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
               >
                 <option value="">Todas las carreras</option>
                 {careers.map(career => (
@@ -286,7 +292,7 @@ export const TeacherCoursesPage: React.FC = () => {
               <select
                 value={filterBySubject || ''}
                 onChange={(e) => setFilterBySubject(e.target.value ? parseInt(e.target.value) : null)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="px-3 py-2 border border-border bg-background text-text-dark rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
                 disabled={filterByCareer ? false : false}
               >
                 <option value="">Todas las materias</option>
@@ -321,8 +327,8 @@ export const TeacherCoursesPage: React.FC = () => {
             <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No tienes cursos</h3>
-            <p className="mt-1 text-sm text-gray-500">Comienza creando tu primer curso.</p>
+            <h3 className="mt-2 text-sm font-medium text-text-dark">No tienes cursos</h3>
+            <p className="mt-1 text-sm text-text-light">Comienza creando tu primer curso.</p>
             <div className="mt-6">
               <Link to="/teacher/courses/new">
                 <Button>
@@ -385,27 +391,27 @@ export const TeacherCoursesPage: React.FC = () => {
                       <div className="flex items-center gap-3 mb-2">
                         <button
                           onClick={toggleCourse}
-                          className="flex items-center gap-2 hover:bg-gray-100 rounded px-2 py-1 transition-colors"
+                          className="flex items-center gap-2 hover:bg-background rounded px-2 py-1 transition-colors"
                           title={isCourseExpanded ? "Ocultar unidades" : "Mostrar unidades"}
                         >
                           <IconChevronRight
-                            className={`w-5 h-5 text-gray-600 transition-transform ${isCourseExpanded ? 'transform rotate-90' : ''
+                            className={`w-5 h-5 text-text-light transition-transform ${isCourseExpanded ? 'transform rotate-90' : ''
                               }`}
                           />
-                          <h3 className="text-lg font-semibold text-gray-900">{course.title}</h3>
+                          <h3 className="text-lg font-semibold text-text-dark">{course.title}</h3>
                         </button>
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(course.status)}`}>
                           {getStatusText(course.status)}
                         </span>
                       </div>
                       {course.code && (
-                        <p className="text-sm text-gray-500 ml-7">Código: {course.code}</p>
+                        <p className="text-sm text-text-light ml-7">Código: {course.code}</p>
                       )}
                       {courseWithData.subject && (
                         <div className="mt-2 ml-7 space-y-1">
                           {courseWithData.career && (
                             <div className="flex items-center gap-1 text-xs">
-                              <span className="text-gray-500">Carrera:</span>
+                              <span className="text-text-light">Carrera:</span>
                               <button
                                 onClick={(e) => {
                                   e.preventDefault();
@@ -418,7 +424,7 @@ export const TeacherCoursesPage: React.FC = () => {
                             </div>
                           )}
                           <div className="flex items-center gap-1 text-xs">
-                            <span className="text-gray-500">Materia:</span>
+                            <span className="text-text-light">Materia:</span>
                             <button
                               onClick={(e) => {
                                 e.preventDefault();
@@ -430,7 +436,7 @@ export const TeacherCoursesPage: React.FC = () => {
                             </button>
                           </div>
                           {course.academic_period && (
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-text-light">
                               Período: {course.academic_period}
                             </p>
                           )}
@@ -447,10 +453,10 @@ export const TeacherCoursesPage: React.FC = () => {
                   </div>
 
                   {course.description && (
-                    <p className="text-gray-600 text-sm mb-4 ml-7 line-clamp-2">{course.description}</p>
+                    <p className="text-text-light text-sm mb-4 ml-7 line-clamp-2">{course.description}</p>
                   )}
 
-                  <div className="text-xs text-gray-500 mb-4 ml-7">
+                  <div className="text-xs text-text-light mb-4 ml-7">
                     Creado: {new Date(course.created_at).toLocaleDateString()}
                     {courseUnits.length > 0 && (
                       <span className="ml-2">• {courseUnits.length} {courseUnits.length === 1 ? 'unidad' : 'unidades'}</span>
@@ -462,8 +468,8 @@ export const TeacherCoursesPage: React.FC = () => {
 
                   {/* Unidades del curso (formato similar a CourseViewPage) */}
                   {isCourseExpanded && courseUnits.length > 0 && (
-                    <div className="mt-4 ml-7 space-y-4 border-t border-gray-200 pt-4">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                    <div className="mt-4 ml-7 space-y-4 border-t border-border pt-4">
+                      <h4 className="text-sm font-semibold text-text-dark mb-3">
                         Unidades del Curso ({courseUnits.length})
                       </h4>
                       {courseUnits.map((unit) => {
@@ -473,7 +479,7 @@ export const TeacherCoursesPage: React.FC = () => {
                         return (
                           <Card key={unit.id} className="overflow-hidden">
                             <div
-                              className="cursor-pointer p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+                              className="cursor-pointer p-4 bg-background hover:bg-background/80 transition-colors"
                               onClick={() => toggleUnit(unit.id)}
                             >
                               <div className="flex items-center justify-between">
@@ -484,26 +490,26 @@ export const TeacherCoursesPage: React.FC = () => {
                                     </span>
                                   </div>
                                   <div>
-                                    <h5 className="text-lg font-semibold text-gray-900">
+                                    <h5 className="text-lg font-semibold text-text-dark">
                                       {unit.title}
                                     </h5>
                                     {unit.description && (
-                                      <p className="text-sm text-gray-600 mt-1">{unit.description}</p>
+                                      <p className="text-sm text-text-light mt-1">{unit.description}</p>
                                     )}
-                                    <p className="text-xs text-gray-500 mt-1">
+                                    <p className="text-xs text-text-light mt-1">
                                       {unitSessions.length} {unitSessions.length === 1 ? 'sesión' : 'sesiones'}
                                     </p>
                                   </div>
                                 </div>
                                 <IconChevronRight
-                                  className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'transform rotate-90' : ''
+                                  className={`w-5 h-5 text-text-light transition-transform ${isExpanded ? 'transform rotate-90' : ''
                                     }`}
                                 />
                               </div>
                             </div>
 
                             {isExpanded && (
-                              <div className="border-t border-gray-200 p-4 space-y-4">
+                              <div className="border-t border-border p-4 space-y-4">
                                 {/* Contenido de la Unidad */}
                                 {unit.content_html && (
                                   <div className="prose prose-sm max-w-none">
@@ -523,7 +529,7 @@ export const TeacherCoursesPage: React.FC = () => {
                                 )}
                                 {!unit.content_html && !unit.content_markdown && unit.description && (
                                   <div className="prose prose-sm max-w-none">
-                                    <p className="text-gray-700">{unit.description}</p>
+                                    <p className="text-text-dark">{unit.description}</p>
                                   </div>
                                 )}
 
@@ -542,7 +548,7 @@ export const TeacherCoursesPage: React.FC = () => {
                                 )}
 
                                 {unit.duration_hours && (
-                                  <p className="text-xs text-gray-500">
+                                  <p className="text-xs text-text-light">
                                     Duración: {unit.duration_hours} horas
                                   </p>
                                 )}
@@ -555,26 +561,26 @@ export const TeacherCoursesPage: React.FC = () => {
                   )}
 
                   {isCourseExpanded && courseUnits.length === 0 && (
-                    <div className="mt-4 ml-7 border-t border-gray-200 pt-4">
-                      <p className="text-sm text-gray-500 text-center py-4">
+                    <div className="mt-4 ml-7 border-t border-border pt-4">
+                      <p className="text-sm text-text-light text-center py-4">
                         Este curso aún no tiene unidades definidas.
                       </p>
                     </div>
                   )}
 
                   {/* Acciones del curso - Diseño mejorado */}
-                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100">
+                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-border">
                     {/* Acciones principales */}
                     <Link
                       to={`/teacher/courses/${course.id}`}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-hover transition-colors shadow-sm"
                     >
                       <IconBookOpen className="w-4 h-4" />
                       Ver Curso
                     </Link>
                     <Link
                       to={`/teacher/courses/${course.id}/modules`}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors border border-gray-200"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-surface text-text-dark rounded-lg text-sm font-medium hover:bg-background transition-colors border border-border"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />

@@ -632,7 +632,7 @@ export function getServiceInfo(): {
 /**
  * Genera un embedding para un texto usando Gemini Embedding API
  * @param text - Texto para generar embedding
- * @returns Array de números representando el embedding (768 dimensiones)
+ * @returns Array de números representando el embedding (512 dimensiones)
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
   const { client, missing } = getClient();
@@ -650,17 +650,19 @@ export async function generateEmbedding(text: string): Promise<number[]> {
       }
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:embedContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'models/text-embedding-004',
+            model: 'models/gemini-embedding-2-preview',
+            taskType: 'RETRIEVAL_DOCUMENT',
             content: {
               parts: [{ text }],
             },
+            outputDimensionality: 512,
           }),
         }
       );

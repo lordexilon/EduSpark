@@ -5,6 +5,50 @@ export interface AiLimitCheckResult {
     reason?: string;
 }
 
+// Type used by TutorVirtualPage for time-based limits
+export interface TutorLimits {
+    ttsEnabled: boolean;
+    dailyTimeLimitMinutes: number;
+    remainingTimeToday: number;
+    planType: string;
+}
+
+/**
+ * Namespace-style object for backward-compatible access from TutorVirtualPage.
+ * These are lightweight stubs – the real cost/limit enforcement happens in
+ * checkAiEligibility (RPC-based).
+ */
+export const tutorLimitsService = {
+    /** Returns effective limits for a user. Stub: returns generous defaults. */
+    async getEffectiveLimits(_userId: string): Promise<TutorLimits> {
+        // In the current architecture the real gate is check_ai_request_eligibility RPC.
+        // This stub keeps TutorVirtualPage functional without a dedicated limits table.
+        return {
+            ttsEnabled: false,
+            dailyTimeLimitMinutes: 120,
+            remainingTimeToday: 120,
+            planType: 'standard',
+        };
+    },
+
+    /** Estimate interaction time in minutes based on response length. */
+    estimateInteractionTime(responseLength: number, hasTTS: boolean): number {
+        // ~200 words per minute reading speed, plus TTS overhead
+        const readingMinutes = (responseLength / 5) / 200; // chars -> words -> minutes
+        const ttsOverhead = hasTTS ? readingMinutes * 0.5 : 0;
+        return readingMinutes + ttsOverhead;
+    },
+
+    /** Track time usage. Stub always succeeds. */
+    async trackTimeUsage(
+        _userId: string,
+        _minutes: number,
+        _hasTTS: boolean
+    ): Promise<{ limitExceeded: boolean }> {
+        return { limitExceeded: false };
+    },
+};
+
 export const checkAiEligibility = async (
     userId: string,
     institutionId?: string,

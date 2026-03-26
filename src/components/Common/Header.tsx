@@ -26,7 +26,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
       {onMenuClick && (
         <button
           onClick={onMenuClick}
-          className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           aria-label="Abrir menú"
         >
           <IconMenu className="w-6 h-6 text-text-dark" />
@@ -41,7 +41,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         <input
           type="text"
           placeholder="Buscar curso..."
-          className="w-full bg-background border border-border rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary/50 outline-none transition"
+          className="w-full bg-background border border-border rounded-lg py-2 pl-10 pr-4 text-sm text-text-dark focus:ring-2 focus:ring-primary/50 focus:border-primary/50 outline-none transition"
         />
       </div>
 

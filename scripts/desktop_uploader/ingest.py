@@ -371,10 +371,12 @@ def retry_operation(func, max_retries=10, delay=2, backoff=1.5):
     raise Exception(f"Falló después de {max_retries} intentos. Último error: {last_exception}")
 
 def generate_embedding(text: str, client: genai.Client) -> list:
-    """Genera embedding usando Gemini (nuevo SDK google-genai) con retries."""
+    """Genera embedding usando Gemini (nuevo SDK google-genai) con retries.
+    IMPORTANTE: Usar text-embedding-004 para compatibilidad con el RAG Service
+    que también usa text-embedding-004 para queries."""
     def _call():
         result = client.models.embed_content(
-            model="models/gemini-embedding-001",
+            model="models/text-embedding-004",
             contents=text,
             config=types.EmbedContentConfig(output_dimensionality=768),
         )
@@ -460,6 +462,33 @@ def ingest_pdf(
             if file_size == 0 and os.path.exists(pdf_path):
                 file_size = os.path.getsize(pdf_path)
 
+    # 1.5 Crear registro en tabla 'materials' para que el tutor pueda listar
+    # este PDF cuando el estudiante pregunte "¿qué materiales tenemos?"
+    if material_id is None and course_id:
+        try:
+            mat_data = {
+                "course_id": course_id,
+                "title": pdf_name,
+                "kind": "pdf",
+                "url": file_url or "",
+                "rag_status": "processing",
+                "metadata": {
+                    "uploadedVia": "desktop_uploader",
+                    "fileSize": file_size,
+                    "totalPages": total_pages,
+                    "uploadedBy": user_id
+                }
+            }
+            def _insert_material():
+                return db_client.table("materials").insert(mat_data).execute()
+            mat_res = retry_operation(_insert_material)
+            if mat_res.data:
+                material_id = mat_res.data[0]["id"]
+                console.print(f"[green]✓ Material registrado en catálogo: {material_id}[/green]")
+        except Exception as e:
+            console.print(f"[yellow]⚠️ No se pudo registrar en catálogo de materiales: {e}[/yellow]")
+            # Continuar sin material_id, los chunks se insertarán igual
+
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
@@ -493,8 +522,13 @@ def ingest_pdf(
                     "content": chunk["text"],
                     "embedding": embedding,
                     "metadata": {
+                        "sourceFileName": pdf_name,
                         "source": pdf_name,
-                        "page": chunk["page"],
+                        "pageStart": chunk["page"],
+                        "pageEnd": chunk["page"],
+                        "page_start": chunk["page"],
+                        "page_end": chunk["page"],
+                        "chunkIndex": chunk["chunk_index"],
                         "chunk_index": chunk["chunk_index"],
                         "hash": chunk["hash"],
                         "course_id": course_id,
@@ -603,7 +637,24 @@ def ingest_pdf(
                  "total_chunks": len(processed_hashes)
              }).eq("id", document_id).execute()
          except Exception as e:
-             console.print(f"[yellow]⚠️ Error actualizando estado final: {e}[/yellow]")
+             console.print(f"[yellow]⚠️ Error actualizando estado final (documento): {e}[/yellow]")
+
+    # Actualizar rag_status del material a 'completed'
+    if material_id:
+        try:
+            db_client.table("materials").update({
+                "rag_status": "completed",
+                "metadata": {
+                    "uploadedVia": "desktop_uploader",
+                    "ragProcessed": True,
+                    "lastProcessedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    "totalChunks": len(processed_hashes),
+                    "totalPages": total_pages
+                }
+            }).eq("id", material_id).execute()
+            console.print(f"[green]✓ Material actualizado: rag_status=completed[/green]")
+        except Exception as e:
+            console.print(f"[yellow]⚠️ Error actualizando estado final (material): {e}[/yellow]")
 
 # ============================================
 # CLI PRINCIPAL (Modo Interactivo)

@@ -1,5 +1,11 @@
 # Arquitectura del Audio-Tutor Multi-Agente
 
+## Documentación operativa actualizada (2026-03)
+
+El flujo RAG **no usa n8n** en la ruta principal: consultas directas vía **`RAGService`** (Supabase + Gemini). Para arquitectura A2A, flujo de mensajes, cambios recientes y **motivos** de cada ajuste, ver en el repo:
+
+`AI_CONTEXT/04_FEATURES/TUTOR_A2A_AGENTES_DOCUMENTACION_2026-03-26.md`
+
 ## Visión General
 
 El Audio-Tutor Multi-Agente implementa una arquitectura distribuida donde diferentes agentes especializados colaboran para proporcionar una experiencia de tutoría personalizada y contextual.

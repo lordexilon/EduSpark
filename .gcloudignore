@@ -1,40 +1,8 @@
-# Mobile App
+.gcloudignore
+.git
+.gitignore
+node_modules/
 eduspark_mobile/
 
-# Build outputs
-dist/
-build/
-.vite-temp/
-
-# Other
-node_modules/
-.agent/
-.cursor/
-AI_CONTEXT/
-docs/
-sql_scripts/
-functions/
-src/workers/
-backup_admin_system/
-MVP_PLAN/
-TEST_MATERIA/
-archive/
-
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-firebase-debug.log
-firestore-debug.log
-build_log.txt
-build_log_full.txt
-confirm-email-build.log
-rag-worker-build.log
-curl_out.txt
-doctor_init.txt
-doctor_output.txt
-sdk_check.txt
-flutter_create_final_attempt.txt
-flutter_create_log.txt
-
+# Do NOT ignore dist, we need it for the COPY command in Dockerfile
+!dist/

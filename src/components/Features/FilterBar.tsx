@@ -12,7 +12,7 @@ interface FilterBarProps {
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
-  
+
   // Filtros de dropdown
   filters?: Array<{
     key: string;
@@ -21,16 +21,16 @@ interface FilterBarProps {
     value?: string;
     onChange: (value: string) => void;
   }>;
-  
+
   // Ordenamiento
   sortOptions?: FilterOption[];
   sortValue?: string;
   onSortChange?: (value: string) => void;
-  
+
   // Limpiar filtros
   onClearFilters?: () => void;
   hasActiveFilters?: boolean;
-  
+
   className?: string;
 }
 
@@ -54,7 +54,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
   const hasFilters = filters.length > 0 || sortOptions.length > 0;
 
   return (
-    <div className={`bg-white rounded-lg border border-gray-200 p-4 ${className}`}>
+    <div className={`bg-surface rounded-lg border border-border p-4 ${className}`}>
       <div className="flex flex-col gap-4">
         {/* Fila principal: Búsqueda y botones */}
         <div className="flex items-center gap-3 flex-wrap">
@@ -69,7 +69,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                 value={searchValue}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full bg-background border border-border rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary/50 outline-none transition"
+                className="w-full bg-background border border-border rounded-lg py-2 pl-10 pr-4 text-sm text-text-dark focus:ring-2 focus:ring-primary/50 focus:border-primary/50 outline-none transition"
               />
             </div>
           )}
@@ -85,7 +85,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
               >
                 Filtros {hasActiveFilters && <span className="ml-1 text-primary">•</span>}
               </Button>
-              
+
               {hasActiveFilters && onClearFilters && (
                 <Button
                   variant="ghost"
@@ -102,17 +102,17 @@ const FilterBar: React.FC<FilterBarProps> = ({
 
         {/* Filtros expandibles */}
         {isExpanded && hasFilters && (
-          <div className="border-t border-gray-200 pt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="border-t border-border pt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Filtros de dropdown */}
             {filters.map((filter) => (
               <div key={filter.key}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-text-dark mb-1">
                   {filter.label}
                 </label>
                 <select
                   value={filter.value || ''}
                   onChange={(e) => filter.onChange(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary/50 outline-none transition"
+                  className="w-full bg-background border border-border text-text-dark rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary/50 outline-none transition"
                 >
                   <option value="">Todos</option>
                   {filter.options.map((option) => (
@@ -127,13 +127,13 @@ const FilterBar: React.FC<FilterBarProps> = ({
             {/* Ordenamiento */}
             {sortOptions.length > 0 && onSortChange && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-text-dark mb-1">
                   Ordenar por
                 </label>
                 <select
                   value={sortValue || ''}
                   onChange={(e) => onSortChange(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary/50 outline-none transition"
+                  className="w-full bg-background border border-border text-text-dark rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary/50 outline-none transition"
                 >
                   {sortOptions.map((option) => (
                     <option key={option.value} value={option.value}>

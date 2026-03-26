@@ -332,6 +332,7 @@ export class AgentCoordinator {
         metadata: {
           confidence: ragResponse.confidence,
           sources: ragResponse.sources,
+          sourceMetadata: ragResponse.metadata?.sourceMetadata ?? [],
           contextUsed: ragResponse.context
         }
       };
@@ -392,6 +393,7 @@ export class AgentCoordinator {
         metadata: {
           confidence: ragResponse.confidence,
           sources: ragResponse.sources,
+          sourceMetadata: ragResponse.metadata?.sourceMetadata ?? [],
           contextUsed: ragResponse.context,
           agentUsed: 'rag',
           userMessage: userMessage // Incluir el texto del mensaje del usuario para mostrarlo en el chat

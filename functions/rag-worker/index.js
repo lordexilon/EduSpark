@@ -25,59 +25,88 @@ const supabase = createClient(
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /**
- * Extrae texto de un PDF página por página
- * Esto evita el error "Invalid string length" con archivos grandes
- * @param {Buffer} pdfBuffer - Buffer del PDF
- * @returns {Object} - { text: string, numPages: number, pageTexts: string[] }
+ * Genera embeddings en lote usando Gemini REST API
+ * (Usamos REST para soportar parámetros nuevos como outputDimensionality en versiones antiguas del SDK)
+ */
+async function generateEmbeddingsBatch(texts, title) {
+    try {
+        const apiKey = process.env.GEMINI_API_KEY;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key=${apiKey}`;
+        
+        const requests = texts.map(text => ({
+            model: 'models/text-embedding-004',
+            taskType: 'RETRIEVAL_DOCUMENT',
+            title: title || 'Documento',
+            content: { parts: [{ text }] },
+            outputDimensionality: 512
+        }));
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requests })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Error en batch embedding: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        return data.embeddings.map(e => e.values);
+    } catch (error) {
+        console.error('[RAG Worker] ❌ Error generando embeddings en lote:', error.message);
+        throw error;
+    }
+}
+
+/**
+ * Extrae texto de una sola página (para paralelismo)
+ */
+async function extractSinglePage(pdfDoc, pageNum) {
+    try {
+        const singlePagePdf = await PDFDocument.create();
+        const [copiedPage] = await singlePagePdf.copyPages(pdfDoc, [pageNum - 1]);
+        singlePagePdf.addPage(copiedPage);
+        const singlePageBytes = await singlePagePdf.save();
+        const singlePageBuffer = Buffer.from(singlePageBytes);
+        const pageData = await pdfParse(singlePageBuffer);
+        return { pageNum, text: pageData.text || '', success: true };
+    } catch (e) {
+        console.warn(`[RAG Worker] ⚠️ Error en página ${pageNum}: ${e.message}`);
+        return { pageNum, text: '', success: false };
+    }
+}
+
+/**
+ * Extrae texto de un PDF página por página CON PARALELISMO
  */
 async function extractTextPageByPage(pdfBuffer) {
-    console.log('[RAG Worker] 📄 Iniciando extracción página por página...');
+    console.log('[RAG Worker] 📄 Iniciando extracción PARALELA...');
 
     const pdfDoc = await PDFDocument.load(pdfBuffer);
     const totalPages = pdfDoc.getPageCount();
-    console.log(`[RAG Worker] 📄 PDF tiene ${totalPages} páginas`);
+    const PARALLEL_BATCH = 5; // Procesar 5 páginas a la vez
+    
+    console.log(`[RAG Worker] 📄 PDF tiene ${totalPages} páginas. Batch size: ${PARALLEL_BATCH}`);
 
-    const pageTexts = [];
+    const pageTexts = new Array(totalPages);
     let failedPages = [];
 
-    for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-        try {
-            // Crear un nuevo documento con solo esta página
-            const singlePagePdf = await PDFDocument.create();
-            const [copiedPage] = await singlePagePdf.copyPages(pdfDoc, [pageNum - 1]);
-            singlePagePdf.addPage(copiedPage);
+    for (let i = 0; i < totalPages; i += PARALLEL_BATCH) {
+        const batch = [];
+        for (let j = i; j < Math.min(i + PARALLEL_BATCH, totalPages); j++) {
+            batch.push(extractSinglePage(pdfDoc, j + 1));
+        }
+        
+        const results = await Promise.all(batch);
+        for (const res of results) {
+            pageTexts[res.pageNum - 1] = { pageNum: res.pageNum, text: res.text };
+            if (!res.success) failedPages.push(res.pageNum);
+        }
 
-            // Convertir a buffer
-            const singlePageBytes = await singlePagePdf.save();
-            const singlePageBuffer = Buffer.from(singlePageBytes);
-
-            // Extraer texto de esta página
-            try {
-                const pageData = await pdfParse(singlePageBuffer);
-                pageTexts.push({
-                    pageNum: pageNum,
-                    text: pageData.text || ''
-                });
-            } catch (parseError) {
-                console.warn(`[RAG Worker] ⚠️ Error parseando página ${pageNum}: ${parseError.message}`);
-                pageTexts.push({
-                    pageNum: pageNum,
-                    text: ''
-                });
-                failedPages.push(pageNum);
-            }
-
-            // Log de progreso cada 50 páginas
-            if (pageNum % 50 === 0 || pageNum === totalPages) {
-                console.log(`[RAG Worker]   ✓ Procesadas ${pageNum}/${totalPages} páginas`);
-            }
-        } catch (pageError) {
-            console.warn(`[RAG Worker] ⚠️ Error en página ${pageNum}: ${pageError.message}`);
-            pageTexts.push({
-                pageNum: pageNum,
-                text: ''
-            });
-            failedPages.push(pageNum);
+        if ((i + PARALLEL_BATCH) % 50 === 0 || (i + PARALLEL_BATCH) >= totalPages) {
+            console.log(`[RAG Worker]   ✓ Procesadas ${Math.min(i + PARALLEL_BATCH, totalPages)}/${totalPages} páginas`);
         }
     }
 
@@ -85,16 +114,10 @@ async function extractTextPageByPage(pdfBuffer) {
         console.log(`[RAG Worker] ⚠️ ${failedPages.length} páginas no pudieron ser procesadas`);
     }
 
-    // Combinar todo el texto
     const fullText = pageTexts.map(p => p.text).join('\n\n');
+    console.log(`[RAG Worker] ✅ Extracción completada: ${fullText.length} caracteres`);
 
-    console.log(`[RAG Worker] ✅ Extracción completada: ${fullText.length} caracteres de ${totalPages} páginas`);
-
-    return {
-        text: fullText,
-        numPages: totalPages,
-        pageTexts: pageTexts
-    };
+    return { text: fullText, numPages: totalPages, pageTexts };
 }
 
 /**
@@ -104,29 +127,19 @@ functions.http('processRagJobs', async (req, res) => {
     // ========================================
     // CORS Configuration
     // ========================================
-    const allowedOrigins = [
-        'https://eduspark-frontend-xxt3dj5duq-uc.a.run.app', // URL actual
-        'https://cacavelos.com.py',
-        'http://localhost:5173',
-        'http://localhost:5174',
-        'http://localhost:3000'
-    ];
-
     const origin = req.headers.origin;
-    if (allowedOrigins.includes(origin)) {
-        res.set('Access-Control-Allow-Origin', origin);
-    } else if (origin?.includes('eduspark')) {
-        // Permitir variantes de eduspark
-        res.set('Access-Control-Allow-Origin', origin);
-    }
-
     res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-client-info, apikey');
     res.set('Access-Control-Max-Age', '3600');
+
+    if (origin) {
+        res.set('Access-Control-Allow-Origin', origin);
+    } else {
+        res.set('Access-Control-Allow-Origin', '*');
+    }
 
     // Handle preflight OPTIONS request
     if (req.method === 'OPTIONS') {
-        console.log('[RAG Worker] 🔍 Preflight CORS request recibido');
         return res.status(204).send('');
     }
 
@@ -207,12 +220,13 @@ functions.http('processRagJobs', async (req, res) => {
         if (!job.metadata.materialId) job.metadata.materialId = materialId;
 
         const startedAt = new Date().toISOString();
+        job.metadata = { ...job.metadata, startedAt };
         await supabase
             .from('file_processing_jobs')
             .update({
                 status: 'processing',
                 updated_at: startedAt,
-                metadata: { ...job.metadata, startedAt }
+                metadata: job.metadata
             })
             .eq('id', job.id);
 
@@ -328,8 +342,9 @@ functions.http('processRagJobs', async (req, res) => {
             return res.status(200).json({ success: true, jobId: job.id, message: 'Already completed' });
         }
 
+        job.metadata = { ...job.metadata, chunksTotal: chunks.length, chunksProcessed: startFromChunk };
         await supabase.from('file_processing_jobs').update({
-            metadata: { ...job.metadata, chunksTotal: chunks.length, chunksProcessed: startFromChunk },
+            metadata: job.metadata,
             updated_at: new Date().toISOString()
         }).eq('id', job.id);
 
@@ -341,29 +356,38 @@ functions.http('processRagJobs', async (req, res) => {
             const batch = chunks.slice(batchStart, batchEnd);
             const chunksToInsert = [];
 
-            for (let i = 0; i < batch.length; i++) {
-                const chunkData = batch[i];
-                const chunkIndex = batchStart + i;
-                try {
-                    const result = await model.embedContent(chunkData.content);
-                    chunksToInsert.push({
-                        course_id: materialInfo.course_id,
-                        unit_id: materialInfo.unit_id || null,
-                        session_id: materialInfo.session_id || null,
-                        content: chunkData.content,
-                        embedding: result.embedding.values,
-                        chunk_index: chunkIndex + 1,
-                        metadata: {
-                            material_id: materialId,
-                            pageStart: chunkData.pageStart,
-                            pageEnd: chunkData.pageEnd,
-                            file_name: job.file_name
-                        }
-                    });
-                    processedCount++;
-                } catch (e) {
-                    console.error(`❌ Error embedding chunk ${chunkIndex + 1}: ${e.message}`);
+            console.log(`[RAG Worker] 🧠 Generando embeddings para lote ${batchStart}-${batchEnd}...`);
+            
+            try {
+                const batchTexts = batch.map(c => c.content);
+                const batchEmbeddings = await generateEmbeddingsBatch(batchTexts, job.file_name);
+                
+                for (let i = 0; i < batch.length; i++) {
+                    const chunkData = batch[i];
+                    const chunkIndex = batchStart + i;
+                    const embedding = batchEmbeddings[i];
+                    
+                    if (embedding) {
+                        chunksToInsert.push({
+                            course_id: materialInfo.course_id,
+                            unit_id: materialInfo.unit_id || null,
+                            session_id: materialInfo.session_id || null,
+                            content: chunkData.content,
+                            embedding: embedding,
+                            chunk_index: chunkIndex + 1,
+                            metadata: {
+                                material_id: materialId,
+                                pageStart: chunkData.pageStart,
+                                pageEnd: chunkData.pageEnd,
+                                file_name: job.file_name
+                            }
+                        });
+                        processedCount++;
+                    }
                 }
+            } catch (e) {
+                console.error(`❌ Error en lote de embeddings: ${e.message}`);
+                throw e; // Detener si falla el lote
             }
 
             if (chunksToInsert.length > 0) {
@@ -383,8 +407,9 @@ functions.http('processRagJobs', async (req, res) => {
                 }
             }
 
+            job.metadata = { ...job.metadata, chunksTotal: chunks.length, chunksProcessed: processedCount };
             await supabase.from('file_processing_jobs').update({
-                metadata: { ...job.metadata, chunksTotal: chunks.length, chunksProcessed: processedCount },
+                metadata: job.metadata,
                 updated_at: new Date().toISOString()
             }).eq('id', job.id);
 
@@ -395,10 +420,11 @@ functions.http('processRagJobs', async (req, res) => {
         }
 
         const completedAt = new Date().toISOString();
+        job.metadata = { ...job.metadata, chunksTotal: chunks.length, chunksProcessed: processedCount, completedAt };
         await supabase.from('file_processing_jobs').update({
             status: 'completed',
             completed_at: completedAt,
-            metadata: { ...job.metadata, chunksTotal: chunks.length, chunksProcessed: processedCount, completedAt }
+            metadata: job.metadata
         }).eq('id', job.id);
 
         await supabase.from('materials').update({ rag_status: 'completed', updated_at: completedAt }).eq('id', materialId);
@@ -410,7 +436,7 @@ functions.http('processRagJobs', async (req, res) => {
         if (job?.id) {
             await supabase.from('file_processing_jobs').update({
                 status: 'failed',
-                error: error.message,
+                error_message: error.message,
                 updated_at: new Date().toISOString()
             }).eq('id', job.id);
         }

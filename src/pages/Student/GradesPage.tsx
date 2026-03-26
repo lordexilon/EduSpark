@@ -73,7 +73,7 @@ const GradesPage: React.FC = () => {
 
       // Obtener todas las preguntas de todos los assessments para calcular puntos reales
       const assessmentIds = [...new Set((attempts || []).map((a: any) => a.assessments?.id).filter(Boolean))];
-      
+
       const { data: allQuestions, error: questionsError } = await supabase
         .from('questions')
         .select('assessment_id, points')
@@ -92,11 +92,11 @@ const GradesPage: React.FC = () => {
       const gradesList: GradeItem[] = (attempts || []).map((attempt: any) => {
         const assessment = attempt.assessments;
         const course = assessment?.courses;
-        
+
         // Calcular puntos totales reales desde las preguntas
         const totalPointsFromQuestions = pointsByAssessment.get(assessment?.id) || 0;
         const totalPoints = totalPointsFromQuestions > 0 ? totalPointsFromQuestions : (assessment?.total_points || 0);
-        
+
         const score = attempt.score || 0;
         // Recalcular porcentaje basado en puntos reales (no usar el guardado si es incorrecto)
         const percentage = totalPoints > 0 ? (score / totalPoints) * 100 : 0;
@@ -108,12 +108,12 @@ const GradesPage: React.FC = () => {
           score: score > 0 ? score : null,
           totalPoints,
           percentage: percentage > 0 ? percentage : null,
-          date: attempt.submitted_at 
+          date: attempt.submitted_at
             ? new Date(attempt.submitted_at).toLocaleDateString('es-ES', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric'
-              })
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric'
+            })
             : 'Pendiente',
           status: attempt.status,
           assessmentId: assessment?.id || '',
@@ -169,9 +169,9 @@ const GradesPage: React.FC = () => {
 
           try {
             const finalGrade = await gradingService.calculateFinalGrade(user.id, course.id);
-            
+
             const subject = course.subjects;
-            const subjectName = subject 
+            const subjectName = subject
               ? `${subject.name}${subject.code ? ` (${subject.code})` : ''}`
               : undefined;
 
@@ -215,20 +215,20 @@ const GradesPage: React.FC = () => {
 
   const getTypeColor = (type: string) => {
     const colors: Record<string, string> = {
-      'quiz': 'bg-blue-100 text-blue-800',
-      'trivia': 'bg-purple-100 text-purple-800',
-      'exam': 'bg-red-100 text-red-800',
-      'assignment': 'bg-yellow-100 text-yellow-800',
-      'project': 'bg-green-100 text-green-800'
+      'quiz': 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+      'trivia': 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300',
+      'exam': 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
+      'assignment': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
+      'project': 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
     };
-    return colors[type] || 'bg-gray-100 text-gray-800';
+    return colors[type] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
   };
 
   const getScoreColor = (percentage: number | null) => {
-    if (percentage === null) return 'bg-amber-100 text-amber-800';
-    if (percentage >= 80) return 'bg-green-100 text-green-800';
-    if (percentage >= 60) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
+    if (percentage === null) return 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300';
+    if (percentage >= 80) return 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300';
+    if (percentage >= 60) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300';
+    return 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300';
   };
 
   const formatScore = (item: GradeItem) => {
@@ -254,8 +254,8 @@ const GradesPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-slate-800">Mis Calificaciones</h1>
-        <div className="flex items-center gap-2 text-sm text-gray-600">
+        <h1 className="text-3xl font-bold text-text-dark">Mis Calificaciones</h1>
+        <div className="flex items-center gap-2 text-sm text-text-light">
           <IconChartBar className="w-5 h-5" />
           <span>{grades.length} evaluación{grades.length !== 1 ? 'es' : ''}</span>
         </div>
@@ -265,11 +265,11 @@ const GradesPage: React.FC = () => {
       {finalGrades.length > 0 && (
         <Card>
           <div className="mb-4">
-            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+            <h2 className="text-xl font-semibold text-text-dark flex items-center gap-2">
               <IconTrophy className="w-5 h-5 text-yellow-500" />
               Notas Finales por Curso
             </h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-text-light mt-1">
               Calificaciones finales calculadas según la ponderación de cada materia
             </p>
           </div>
@@ -279,58 +279,57 @@ const GradesPage: React.FC = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
+              <table className="min-w-full divide-y divide-border">
+                <thead className="bg-background/50">
                   <tr>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Curso</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Materia</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Quizzes/Tareas</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Examen 1</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Examen 2</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Final</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Nota Final</th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-text-light uppercase">Curso</th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-text-light uppercase">Materia</th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-text-light uppercase">Quizzes/Tareas</th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-text-light uppercase">Examen 1</th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-text-light uppercase">Examen 2</th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-text-light uppercase">Final</th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-text-light uppercase">Nota Final</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-slate-200">
+                <tbody className="bg-surface divide-y divide-border">
                   {finalGrades.map((fg) => (
-                    <tr key={fg.courseId} className="hover:bg-gray-50">
-                      <td className="px-4 sm:px-6 py-4 text-sm font-medium text-slate-900">
+                    <tr key={fg.courseId} className="hover:bg-background/40 transition-colors">
+                      <td className="px-4 sm:px-6 py-4 text-sm font-medium text-text-dark">
                         {fg.courseTitle}
                       </td>
-                      <td className="px-4 sm:px-6 py-4 text-sm text-slate-500">
+                      <td className="px-4 sm:px-6 py-4 text-sm text-text-light">
                         {fg.subjectName || '-'}
                       </td>
-                      <td className="px-4 sm:px-6 py-4 text-sm text-slate-500">
+                      <td className="px-4 sm:px-6 py-4 text-sm text-text-light">
                         {fg.finalGrade?.quizzesAverage !== null && fg.finalGrade?.quizzesAverage !== undefined
                           ? `${fg.finalGrade.quizzesAverage.toFixed(1)}%`
                           : '-'}
                       </td>
-                      <td className="px-4 sm:px-6 py-4 text-sm text-slate-500">
+                      <td className="px-4 sm:px-6 py-4 text-sm text-text-light">
                         {fg.finalGrade?.exam1Score !== null && fg.finalGrade?.exam1Score !== undefined
                           ? `${fg.finalGrade.exam1Score.toFixed(1)}%`
                           : '-'}
                       </td>
-                      <td className="px-4 sm:px-6 py-4 text-sm text-slate-500">
+                      <td className="px-4 sm:px-6 py-4 text-sm text-text-light">
                         {fg.finalGrade?.exam2Score !== null && fg.finalGrade?.exam2Score !== undefined
                           ? `${fg.finalGrade.exam2Score.toFixed(1)}%`
                           : '-'}
                       </td>
-                      <td className="px-4 sm:px-6 py-4 text-sm text-slate-500">
+                      <td className="px-4 sm:px-6 py-4 text-sm text-text-light">
                         {fg.finalGrade?.finalExamScore !== null && fg.finalGrade?.finalExamScore !== undefined
                           ? `${fg.finalGrade.finalExamScore.toFixed(1)}%`
                           : '-'}
                       </td>
                       <td className="px-4 sm:px-6 py-4">
                         {fg.finalGrade?.finalGrade !== null && fg.finalGrade?.finalGrade !== undefined ? (
-                          <span className={`px-3 py-1 inline-flex text-sm font-semibold rounded-full ${
-                            fg.finalGrade.finalGrade >= 80 ? 'bg-green-100 text-green-800' :
-                            fg.finalGrade.finalGrade >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
+                          <span className={`px-3 py-1 inline-flex text-sm font-semibold rounded-full ${fg.finalGrade.finalGrade >= 80 ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
+                            fg.finalGrade.finalGrade >= 60 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' :
+                              'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+                            }`}>
                             {fg.finalGrade.finalGrade.toFixed(2)}%
                           </span>
                         ) : (
-                          <span className="text-sm text-gray-400">Sin datos suficientes</span>
+                          <span className="text-sm text-text-light opacity-60">Sin datos suficientes</span>
                         )}
                       </td>
                     </tr>
@@ -344,96 +343,95 @@ const GradesPage: React.FC = () => {
 
       {/* Sección de Calificaciones Individuales */}
       <div>
-        <h2 className="text-xl font-semibold text-slate-800 mb-4">Evaluaciones Individuales</h2>
+        <h2 className="text-xl font-semibold text-text-dark mb-4">Evaluaciones Individuales</h2>
         {grades.length === 0 ? (
-        <Card>
-          <div className="text-center py-12">
-            <IconBookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-slate-600 text-lg mb-2">No hay calificaciones disponibles aún.</p>
-            <p className="text-slate-500 text-sm">Completa quizzes y evaluaciones para ver tus calificaciones aquí.</p>
-          </div>
-        </Card>
-      ) : (
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Evaluación
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Tipo
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Puntaje
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Porcentaje
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Fecha
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Estado
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-slate-200">
-                {grades.map((grade) => (
-                  <tr key={grade.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="text-sm font-medium text-slate-900">{grade.title}</div>
-                        {grade.courseTitle && (
-                          <div className="text-xs text-slate-500">{grade.courseTitle}</div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTypeColor(grade.type)}`}>
-                        {getTypeLabel(grade.type)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                      {formatScore(grade)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getScoreColor(grade.percentage)}`}>
-                        {formatPercentage(grade)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                      {grade.date}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        grade.status === 'graded' 
-                          ? 'bg-green-100 text-green-800' 
-                          : grade.status === 'submitted'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {grade.status === 'graded' ? 'Calificado' : grade.status === 'submitted' ? 'En revisión' : 'Pendiente'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <Link
-                        to={`/quiz/${grade.assessmentId}/results/${grade.attemptId}`}
-                        className="text-primary hover:text-primary-dark"
-                      >
-                        Ver Resultados
-                      </Link>
-                    </td>
+          <Card>
+            <div className="text-center py-12">
+              <IconBookOpen className="w-16 h-16 text-text-light/30 mx-auto mb-4" />
+              <p className="text-text-dark text-lg mb-2">No hay calificaciones disponibles aún.</p>
+              <p className="text-text-light text-sm">Completa quizzes y evaluaciones para ver tus calificaciones aquí.</p>
+            </div>
+          </Card>
+        ) : (
+          <Card>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-border">
+                <thead className="bg-background/50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider">
+                      Evaluación
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider">
+                      Tipo
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider">
+                      Puntaje
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider">
+                      Porcentaje
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider">
+                      Fecha
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider">
+                      Estado
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider">
+                      Acciones
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                </thead>
+                <tbody className="bg-surface divide-y divide-border">
+                  {grades.map((grade) => (
+                    <tr key={grade.id} className="hover:bg-background/40 transition-colors">
+                      <td className="px-6 py-4">
+                        <div>
+                          <div className="text-sm font-medium text-text-dark">{grade.title}</div>
+                          {grade.courseTitle && (
+                            <div className="text-xs text-text-light opacity-70">{grade.courseTitle}</div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTypeColor(grade.type)}`}>
+                          {getTypeLabel(grade.type)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-dark">
+                        {formatScore(grade)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getScoreColor(grade.percentage)}`}>
+                          {formatPercentage(grade)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-light">
+                        {grade.date}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${grade.status === 'graded'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+                          : grade.status === 'submitted'
+                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'
+                            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                          }`}>
+                          {grade.status === 'graded' ? 'Calificado' : grade.status === 'submitted' ? 'En revisión' : 'Pendiente'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <Link
+                          to={`/quiz/${grade.assessmentId}/results/${grade.attemptId}`}
+                          className="text-primary hover:text-primary-dark"
+                        >
+                          Ver Resultados
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         )}
       </div>
     </div>

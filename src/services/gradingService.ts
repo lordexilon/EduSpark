@@ -2,6 +2,7 @@
 // Servicio para gestión de ponderaciones y cálculo de notas finales
 
 import { supabase } from '@/lib/supabase';
+import { getFlashcardMasteryPercentage } from './flashcardService';
 
 export interface SubjectGradingWeights {
   id: string;
@@ -262,7 +263,6 @@ export const gradingService = {
     let flashcardsScore: number | null = null;
     if (weights.flashcards_weight && weights.flashcards_weight > 0) {
       try {
-        const { getFlashcardMasteryPercentage } = await import('./flashcardService');
         flashcardsScore = await getFlashcardMasteryPercentage(studentId, courseId);
       } catch (e) {
         flashcardsScore = null;

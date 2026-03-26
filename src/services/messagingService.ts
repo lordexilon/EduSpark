@@ -60,23 +60,27 @@ export const messagingService = {
 
     if (error) throw error;
 
-    // Si se proporcionó institutionId y la conversación no lo tiene, actualizarlo
-    // Esto vincula conversaciones nuevas (o existentes huerfanas) a la institución actual
-    if (institutionId && !data.institution_id) {
+    // La RPC puede devolver un UUID string directo o un objeto con { id, ... }
+    const conversationId = typeof data === 'string' ? data : data?.id;
+
+    if (!conversationId) {
+      throw new Error('No se pudo obtener el ID de la conversación');
+    }
+
+    // Si se proporcionó institutionId, intentar vincular la conversación a la institución
+    if (institutionId) {
       try {
         await supabase
           .from('conversations')
           .update({ institution_id: institutionId })
-          .eq('id', data.id);
-        // Actualizar dato local
-        data.institution_id = institutionId;
+          .eq('id', conversationId);
       } catch (e) {
         console.warn('Error vinculando conversación a institución:', e);
       }
     }
 
     // Obtener la conversación completa con información del otro usuario
-    return this.getConversation(data.id); // Usar ID para obtener refresh completo
+    return this.getConversation(conversationId);
   },
 
   // Obtener una conversación por ID

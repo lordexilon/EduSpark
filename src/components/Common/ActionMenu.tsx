@@ -63,7 +63,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
         <div ref={menuRef} className={`relative inline-block ${className}`}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors border border-gray-200"
+                className="flex items-center gap-2 px-3 py-2 bg-background hover:bg-background/80 text-text-dark rounded-lg text-sm font-medium transition-colors border border-border"
                 aria-expanded={isOpen}
                 aria-haspopup="true"
             >
@@ -85,13 +85,13 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
 
             {isOpen && (
                 <div
-                    className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+                    className="absolute right-0 top-full mt-1 w-56 bg-surface rounded-lg shadow-lg border border-border py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
                     role="menu"
                 >
                     {items.map((item, index) => (
                         <React.Fragment key={index}>
                             {item.dividerBefore && (
-                                <div className="my-1 border-t border-gray-200" />
+                                <div className="my-1 border-t border-border" />
                             )}
                             <button
                                 onClick={() => {
@@ -99,8 +99,8 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
                                     setIsOpen(false);
                                 }}
                                 className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors ${item.variant === 'danger'
-                                        ? 'text-red-600 hover:bg-red-50'
-                                        : 'text-gray-700 hover:bg-gray-50'
+                                    ? 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30'
+                                    : 'text-text-dark hover:bg-background'
                                     }`}
                                 role="menuitem"
                             >

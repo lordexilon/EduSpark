@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js'
 
 // Configuración de Supabase - usar las mismas variables del sistema de admin
 export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://mckfscukxcqwntpjagar.supabase.co'
-export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZzY3VreGNxd250cGphZ2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3NDU0MzQsImV4cCI6MjA3NjMyMTQzNH0.4j8Pf2_xZRitw-MkrNKC0MqrzTHRYtnQmrSquTO5zu8'
+export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZzY3VreGNxd250cGphZ2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3NDU0MzQsImV4cCI6MjA3NjMyMTQzNH0.-5HFEuphwYhfa8HBW3FddQfu5b-JOCb6FLElKFwezBg'
 
 console.log('🔌 Inicializando Supabase:', {
   url: supabaseUrl,
@@ -43,17 +43,17 @@ const fetchWithTimeout: typeof fetch = async (input: RequestInfo | URL, init?: R
   // Detectar si es una operación de autenticación por la URL
   const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
   const isAuthOperation = url.includes('/auth/v1/');
-  
+
   // Timeout más largo para autenticación (45s), más corto para otras operaciones (30s)
-  const timeoutMs = isAuthOperation 
+  const timeoutMs = isAuthOperation
     ? Number(import.meta.env.VITE_SUPABASE_AUTH_TIMEOUT_MS || 45000)
     : Number(import.meta.env.VITE_SUPABASE_FETCH_TIMEOUT_MS || 30000);
-  
+
   // Si ya hay un signal en init, no agregar otro timeout para evitar conflictos
   if (init?.signal && init.signal instanceof AbortSignal) {
     return await fetch(input, init);
   }
-  
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
     if (!controller.signal.aborted) {
@@ -66,16 +66,16 @@ const fetchWithTimeout: typeof fetch = async (input: RequestInfo | URL, init?: R
       ...init,
       signal: controller.signal,
     });
-    
+
     // Si la respuesta indica un error de servidor (522, 503, etc.), lanzar un error más descriptivo
     if (!response.ok && (response.status === 522 || response.status === 503 || response.status === 504)) {
       throw new Error(`El servidor de Supabase no está respondiendo (código: ${response.status}). Por favor, intenta nuevamente en unos momentos.`);
     }
-    
+
     return response;
   } catch (error: any) {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-    
+
     // Log detallado del error para diagnóstico
     console.error('❌ Error en fetchWithTimeout:', {
       url: url.substring(0, 100),
@@ -83,31 +83,31 @@ const fetchWithTimeout: typeof fetch = async (input: RequestInfo | URL, init?: R
       errorMessage: error.message,
       errorStack: error.stack?.substring(0, 200)
     });
-    
+
     // Manejar errores de red de forma más específica
     if (error.name === 'TypeError' && error.message?.includes('Failed to fetch')) {
       const networkError = new Error('Error de conexión con Supabase. Verifica tu conexión a internet o si el servidor está disponible.');
       networkError.name = 'NetworkError';
       throw networkError;
     }
-    
+
     // Manejar errores de CORS (incluyendo cuando el servidor no responde)
-    if (error.message?.includes('CORS') || 
-        error.message?.includes('Access-Control-Allow-Origin') ||
-        error.message?.includes('ERR_FAILED 522') ||
-        error.message?.includes('net::ERR_FAILED')) {
+    if (error.message?.includes('CORS') ||
+      error.message?.includes('Access-Control-Allow-Origin') ||
+      error.message?.includes('ERR_FAILED 522') ||
+      error.message?.includes('net::ERR_FAILED')) {
       const corsError = new Error('El servidor de Supabase no está respondiendo correctamente. Esto puede ser un problema temporal del servidor. Por favor, verifica el estado de Supabase o intenta nuevamente en unos momentos.');
       corsError.name = 'CORSError';
       throw corsError;
     }
-    
+
     // Manejar errores de timeout
     if (error.name === 'AbortError' || error.message?.includes('aborted')) {
       const abortError = new Error(`La solicitud tardó demasiado tiempo (timeout: ${timeoutMs}ms). Esto puede deberse a una conexión lenta o problemas temporales del servidor.`);
       abortError.name = 'TimeoutError';
       throw abortError;
     }
-    
+
     throw error;
   } finally {
     clearTimeout(timeoutId);

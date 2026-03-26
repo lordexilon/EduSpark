@@ -535,12 +535,12 @@ const InstitutionManagementPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-transparent p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestión de Instituciones</h1>
-            <p className="mt-2 text-gray-600">Administra instituciones y asigna usuarios</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Gestión de Instituciones</h1>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">Administra instituciones y asigna usuarios</p>
           </div>
           {/* Solo admin global puede crear nuevas instituciones */}
           {user?.role?.name === 'admin' && (
@@ -570,57 +570,57 @@ const InstitutionManagementPage: React.FC = () => {
         {/* Formulario de creación/edición */}
         {showForm && (
           <Card className="p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
               {selectedInstitution ? 'Editar Institución' : 'Nueva Institución'}
             </h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Nombre de la Institución *
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   URL Slug (Identificador único)
                 </label>
                 <div className="flex">
-                  <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                  <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm">
                     /
                   </span>
                   <input
                     type="text"
                     value={formData.slug || ''}
                     onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-r-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
                     placeholder="cec"
                   />
                 </div>
-                <p className="mt-1 text-xs text-gray-500">Usado para la landing page: eduspark.com/{formData.slug || 'slug'}</p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Usado para la landing page: eduspark.com/{formData.slug || 'slug'}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Descripción
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
                   rows={3}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Logo de la Institución
                 </label>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -632,14 +632,14 @@ const InstitutionManagementPage: React.FC = () => {
                     />
                     <label
                       htmlFor="logo-upload"
-                      className={`flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${uploadingLogo ? 'opacity-50 cursor-not-allowed' : ''
+                      className={`flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm ${uploadingLogo ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                     >
                       <IconUpload className="w-4 h-4" />
                       {uploadingLogo ? 'Subiendo...' : 'Subir Logo'}
                     </label>
                     {formData.logo_url && (
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-green-600 dark:text-green-400 font-medium">
                         ✓ Logo cargado
                       </span>
                     )}
@@ -649,14 +649,14 @@ const InstitutionManagementPage: React.FC = () => {
                       <img
                         src={logoPreview || formData.logo_url}
                         alt="Preview"
-                        className="h-24 w-auto object-contain border border-gray-200 rounded bg-gray-50 p-2"
+                        className="h-24 w-auto object-contain border border-gray-200 dark:border-gray-700 rounded bg-gray-50 dark:bg-gray-900 p-2"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
                         }}
                       />
                     </div>
                   )}
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     También puedes ingresar una URL manualmente:
                   </p>
                   <input
@@ -666,43 +666,43 @@ const InstitutionManagementPage: React.FC = () => {
                       setFormData({ ...formData, logo_url: e.target.value });
                       setLogoPreview(e.target.value);
                     }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
                     placeholder="https://ejemplo.com/logo.png"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Sitio Web
                   </label>
                   <input
                     type="url"
                     value={formData.website}
                     onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Email de Contacto
                   </label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Dirección
                 </label>
                 <textarea
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
                   rows={2}
                 />
               </div>
@@ -765,7 +765,7 @@ const InstitutionManagementPage: React.FC = () => {
                     {user?.role?.name === 'admin' && (
                       <button
                         onClick={() => handleManageResources(institution)}
-                        className="p-2 text-purple-600 hover:bg-purple-50 rounded"
+                        className="p-2 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
                         title="Gestionar Recursos"
                       >
                         <IconSettings className="w-5 h-5" />
@@ -773,24 +773,24 @@ const InstitutionManagementPage: React.FC = () => {
                     )}
                     <button
                       onClick={() => handleManageUsers(institution)}
-                      className="p-2 text-green-600 hover:bg-green-50 rounded"
+                      className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
                       title="Gestionar Usuarios"
                     >
                       <IconUserGroup className="w-5 h-5" />
                     </button>
                     <button
                       onClick={() => handleEdit(institution)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                      className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                       title="Editar"
                     >
                       <IconEdit className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                   {institution.name}
                   {institution.slug && (
-                    <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded-full border border-gray-200">
+                    <span className="text-xs font-normal text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full border border-gray-200 dark:border-gray-700">
                       /{institution.slug}
                     </span>
                   )}
@@ -820,11 +820,11 @@ const InstitutionManagementPage: React.FC = () => {
                     </a>
                   )}
                 </div>
-                <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
                   <div className="flex items-center justify-between">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${institution.is_active
-                      ? 'text-green-600 bg-green-100'
-                      : 'text-gray-600 bg-gray-100'
+                      ? 'text-green-600 bg-green-100 dark:text-green-300 dark:bg-green-900/40'
+                      : 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-800'
                       }`}>
                       {institution.is_active ? 'Activa' : 'Inactiva'}
                     </span>
@@ -833,8 +833,8 @@ const InstitutionManagementPage: React.FC = () => {
                       <button
                         onClick={() => handleToggleActive(institution)}
                         className={`px-3 py-1 text-xs font-medium rounded transition-colors ${institution.is_active
-                          ? 'text-orange-600 bg-orange-50 hover:bg-orange-100'
-                          : 'text-green-600 bg-green-50 hover:bg-green-100'
+                          ? 'text-orange-600 bg-orange-50 hover:bg-orange-100 dark:text-orange-400 dark:bg-orange-900/20 dark:hover:bg-orange-900/40'
+                          : 'text-green-600 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/40'
                           }`}
                         title={institution.is_active ? 'Desactivar institución' : 'Activar institución'}
                       >
@@ -842,7 +842,7 @@ const InstitutionManagementPage: React.FC = () => {
                       </button>
                     )}
                   </div>
-                  <p className="mt-2 text-xs text-gray-500">
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                     {institution.is_active
                       ? '✓ Visible en la landing page'
                       : '✗ Oculta en la landing page'}
@@ -855,14 +855,14 @@ const InstitutionManagementPage: React.FC = () => {
 
         {/* Modal de Gestión de Usuarios */}
         {showUserModal && selectedInstitutionForUsers && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <Card className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <Card className="max-w-4xl w-full max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 border-border/50 shadow-2xl">
+              <div className="flex items-center justify-between mb-6 border-b dark:border-gray-800 pb-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                     Usuarios de {selectedInstitutionForUsers.name}
                   </h2>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     Gestiona los usuarios asignados a esta institución
                   </p>
                 </div>
@@ -874,15 +874,16 @@ const InstitutionManagementPage: React.FC = () => {
                     setSearchQuery('');
                     setSearchResults([]);
                   }}
-                  className="p-2 text-gray-400 hover:text-gray-600 rounded"
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
                 >
                   <IconX className="w-6 h-6" />
                 </button>
               </div>
 
               {/* Buscar y asignar usuarios */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              {/* Buscar y asignar usuarios */}
+              <div className="mb-6 p-5 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-800">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 px-1">
                   Buscar Usuario para Asignar
                 </label>
                 <div className="flex gap-2">
@@ -896,7 +897,7 @@ const InstitutionManagementPage: React.FC = () => {
                         handleSearchUsers(e.target.value);
                       }}
                       placeholder="Buscar por email, nombre o apellido..."
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 shadow-sm transition-all"
                     />
                   </div>
                 </div>
@@ -915,13 +916,13 @@ const InstitutionManagementPage: React.FC = () => {
                       {searchResults.map((user) => (
                         <div
                           key={user.id}
-                          className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
+                          className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors shadow-sm"
                         >
                           <div className="flex-1">
-                            <div className="font-medium text-gray-900">
+                            <div className="font-medium text-gray-900 dark:text-white">
                               {user.first_name} {user.last_name}
                             </div>
-                            <div className="text-sm text-gray-500">{user.email}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">{user.email}</div>
                             {user.role && (
                               <span className="text-xs text-gray-400 capitalize">
                                 {user.role.name}
@@ -936,7 +937,7 @@ const InstitutionManagementPage: React.FC = () => {
                               onChange={(e) => {
                                 setPositionInput({ ...positionInput, [user.id]: e.target.value });
                               }}
-                              className="px-2 py-1 text-sm border border-gray-300 rounded w-32"
+                              className="px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 w-32 focus:ring-1 focus:ring-blue-500 outline-none"
                             />
                             <button
                               onClick={() => handleAssignUser(user.id, false)}
@@ -958,13 +959,13 @@ const InstitutionManagementPage: React.FC = () => {
               </div>
 
               {/* Tabs: Usuarios y Estudiantes */}
-              <div className="mb-6 border-b border-gray-200">
+              <div className="mb-6 border-b border-gray-200 dark:border-gray-800">
                 <div className="flex gap-4">
                   <button
                     onClick={() => setShowStudentsTab(false)}
-                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${!showStudentsTab
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-all duration-200 ${!showStudentsTab
+                      ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                       }`}
                   >
                     <IconUsers className="w-4 h-4 inline mr-2" />
@@ -977,9 +978,9 @@ const InstitutionManagementPage: React.FC = () => {
                         loadInstitutionStudents(selectedInstitutionForUsers.id);
                       }
                     }}
-                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${showStudentsTab
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-all duration-200 ${showStudentsTab
+                      ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                       }`}
                   >
                     <IconGraduationCap className="w-4 h-4 inline mr-2" />
@@ -997,39 +998,39 @@ const InstitutionManagementPage: React.FC = () => {
                   </h3>
                   {loadingUsers ? (
                     <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                     </div>
                   ) : institutionUsers.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                       No hay usuarios asignados a esta institución
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {institutionUsers.map((item) => (
                         <div
                           key={item.user_id}
-                          className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200"
+                          className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <div className="font-medium text-gray-900">
+                              <div className="font-semibold text-gray-900 dark:text-white">
                                 {item.user?.first_name} {item.user?.last_name}
                               </div>
                               {item.is_primary && (
-                                <span className="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full flex items-center gap-1">
+                                <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300 rounded-full flex items-center gap-1">
                                   <IconStar className="w-3 h-3" />
                                   Primaria
                                 </span>
                               )}
                             </div>
-                            <div className="text-sm text-gray-500 mt-1">{item.user?.email}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{item.user?.email}</div>
                             {item.user?.role && (
                               <span className="text-xs text-gray-400 capitalize">
                                 {item.user.role.name}
                               </span>
                             )}
                             {item.position && (
-                              <div className="text-sm text-gray-600 mt-1">
+                              <div className="text-sm text-gray-600 dark:text-gray-300 mt-1 font-medium">
                                 Cargo: {item.position}
                               </div>
                             )}
@@ -1038,7 +1039,7 @@ const InstitutionManagementPage: React.FC = () => {
                             {!item.is_primary && (
                               <button
                                 onClick={() => handleSetPrimary(item.user_id)}
-                                className="px-3 py-1 text-sm text-yellow-600 bg-yellow-50 rounded hover:bg-yellow-100"
+                                className="px-3 py-1.5 text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/40 transition-colors"
                                 title="Marcar como institución primaria"
                               >
                                 <IconStar className="w-4 h-4" />
@@ -1046,7 +1047,7 @@ const InstitutionManagementPage: React.FC = () => {
                             )}
                             <button
                               onClick={() => handleRemoveUser(item.user_id)}
-                              className="px-3 py-1 text-sm text-red-600 bg-red-50 rounded hover:bg-red-100"
+                              className="px-3 py-1.5 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
                               title="Remover de la institución"
                             >
                               <IconTrash className="w-4 h-4" />
@@ -1060,38 +1061,38 @@ const InstitutionManagementPage: React.FC = () => {
               ) : (
                 /* Lista de estudiantes */
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     Estudiantes de la Institución ({institutionStudents.length})
                   </h3>
                   {loadingStudents ? (
                     <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                     </div>
                   ) : institutionStudents.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <IconGraduationCap className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                      <p>No hay estudiantes asignados a esta institución</p>
-                      <p className="text-sm mt-2">Asigna usuarios con rol "student" a esta institución para que aparezcan aquí</p>
+                    <div className="text-center py-12 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-black/20 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-800">
+                      <IconGraduationCap className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-3" />
+                      <p className="font-medium">No hay estudiantes asignados</p>
+                      <p className="text-xs mt-1 max-w-xs mx-auto">Asigna usuarios con rol "student" a esta institución para que aparezcan aquí</p>
                     </div>
                   ) : (
-                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                    <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                       {institutionStudents.map((student) => (
                         <div
                           key={student.id}
-                          className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200"
+                          className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
                         >
                           <div className="flex-1">
-                            <div className="font-medium text-gray-900">
+                            <div className="font-semibold text-gray-900 dark:text-white">
                               {student.first_name} {student.last_name}
                             </div>
-                            <div className="text-sm text-gray-500 mt-1">{student.email}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{student.email}</div>
                             <div className="flex items-center gap-2 mt-2">
                               {student.is_active ? (
-                                <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded">
+                                <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 rounded">
                                   Activo
                                 </span>
                               ) : (
-                                <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded">
+                                <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400 rounded">
                                   Inactivo
                                 </span>
                               )}
@@ -1109,14 +1110,14 @@ const InstitutionManagementPage: React.FC = () => {
 
         {/* Modal de Gestión de Recursos */}
         {showResourcesModal && selectedInstitutionForResources && user?.role?.name === 'admin' && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <Card className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <Card className="max-w-4xl w-full max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 border-border/50 shadow-2xl">
+              <div className="flex items-center justify-between mb-6 border-b dark:border-gray-800 pb-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                     Recursos de {selectedInstitutionForResources.name}
                   </h2>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     Asigna carreras y materias a esta institución
                   </p>
                 </div>
@@ -1129,7 +1130,7 @@ const InstitutionManagementPage: React.FC = () => {
                     setAssignedCareers([]);
                     setAssignedSubjects([]);
                   }}
-                  className="p-2 text-gray-400 hover:text-gray-600 rounded"
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
                 >
                   <IconX className="w-6 h-6" />
                 </button>
@@ -1143,8 +1144,8 @@ const InstitutionManagementPage: React.FC = () => {
                 <div className="space-y-6">
                   {/* Carreras */}
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <IconGraduationCap className="w-5 h-5" />
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                      <IconGraduationCap className="w-5 h-5 text-primary" />
                       Carreras ({assignedCareers.length} asignadas)
                     </h3>
                     {availableCareers.length === 0 ? (
@@ -1158,24 +1159,24 @@ const InstitutionManagementPage: React.FC = () => {
                           return (
                             <div
                               key={career.id}
-                              className={`flex items-center justify-between p-3 rounded-lg border ${isAssigned
-                                ? 'bg-green-50 border-green-200'
-                                : 'bg-white border-gray-200'
+                              className={`flex items-center justify-between p-4 rounded-xl border transition-all ${isAssigned
+                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/50'
+                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
                                 }`}
                             >
                               <div className="flex-1">
-                                <div className="font-medium text-gray-900">
+                                <div className="font-semibold text-gray-900 dark:text-white">
                                   {career.name} {career.code ? `(${career.code})` : ''}
                                 </div>
                                 {career.description && (
-                                  <div className="text-sm text-gray-600 mt-1 line-clamp-1">
+                                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-1">
                                     {career.description}
                                   </div>
                                 )}
                               </div>
                               <div className="flex items-center gap-2">
                                 {isAssigned ? (
-                                  <span className="px-3 py-1 text-sm font-medium bg-green-100 text-green-800 rounded">
+                                  <span className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 rounded-full">
                                     ✓ Asignada
                                   </span>
                                 ) : (
@@ -1196,8 +1197,8 @@ const InstitutionManagementPage: React.FC = () => {
 
                   {/* Materias */}
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <IconBookOpen className="w-5 h-5" />
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                      <IconBookOpen className="w-5 h-5 text-primary" />
                       Materias ({assignedSubjects.length} asignadas)
                     </h3>
                     {availableSubjects.length === 0 ? (
@@ -1211,24 +1212,24 @@ const InstitutionManagementPage: React.FC = () => {
                           return (
                             <div
                               key={subject.id}
-                              className={`flex items-center justify-between p-3 rounded-lg border ${isAssigned
-                                ? 'bg-green-50 border-green-200'
-                                : 'bg-white border-gray-200'
+                              className={`flex items-center justify-between p-4 rounded-xl border transition-all ${isAssigned
+                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/50'
+                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
                                 }`}
                             >
                               <div className="flex-1">
-                                <div className="font-medium text-gray-900">
+                                <div className="font-semibold text-gray-900 dark:text-white">
                                   {subject.name} {subject.code ? `(${subject.code})` : ''}
                                 </div>
                                 {subject.description && (
-                                  <div className="text-sm text-gray-600 mt-1 line-clamp-1">
+                                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-1">
                                     {subject.description}
                                   </div>
                                 )}
                               </div>
                               <div className="flex items-center gap-2">
                                 {isAssigned ? (
-                                  <span className="px-3 py-1 text-sm font-medium bg-green-100 text-green-800 rounded">
+                                  <span className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 rounded-full">
                                     ✓ Asignada
                                   </span>
                                 ) : (

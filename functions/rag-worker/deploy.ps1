@@ -32,20 +32,8 @@ Write-Host "⏳ Iniciando despliegue (esto puede tardar varios minutos)..." -For
 Write-Host ""
 
 # Comando de despliegue
-gcloud functions deploy rag-worker `
-  --gen2 `
-  --runtime=nodejs20 `
-  --region=us-central1 `
-  --source=. `
-  --entry-point=processRagJobs `
-  --trigger-http `
-  --allow-unauthenticated `
-  --timeout=3600s `
-  --memory=4GB `
-  --max-instances=10 `
-  --project=eduspark-py `
-  --set-env-vars="SUPABASE_URL=$SUPABASE_URL,SUPABASE_SERVICE_KEY=$SUPABASE_SERVICE_KEY,GEMINI_API_KEY=$GEMINI_API_KEY" `
-  2>&1 | Tee-Object -Variable deployOutput
+Write-Host "Ejecutando gcloud functions deploy..."
+gcloud functions deploy rag-worker --gen2 --runtime=nodejs20 --region=us-central1 --source=. --entry-point=processRagJobs --trigger-http --allow-unauthenticated --timeout=3600s --memory=4GB --max-instances=10 --project=eduspark-py --set-env-vars="SUPABASE_URL=$SUPABASE_URL,SUPABASE_SERVICE_KEY=$SUPABASE_SERVICE_KEY,GEMINI_API_KEY=$GEMINI_API_KEY"
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
@@ -60,6 +48,4 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "❌ Error en el despliegue" -ForegroundColor Red
     Write-Host "Revisa la salida anterior para más detalles"
     Write-Host ""
-    Write-Host "Salida del comando:"
-    Write-Host $deployOutput
 }

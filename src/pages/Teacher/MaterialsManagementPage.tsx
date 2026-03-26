@@ -8,6 +8,7 @@ import { materialService, Material, courseService, Course } from '@/services/tea
 import { MaterialAssignmentModal } from '@/components/Features/MaterialAssignmentModal';
 import { supabase } from '@/lib/supabase';
 import { subscribeToAllJobs } from '@/services/firestoreService';
+import { getAllJobs } from '@/services/firestoreService';
 import type { FileProcessingJob } from '@/types/fileProcessing';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
@@ -1169,6 +1170,58 @@ export const MaterialsManagementPage: React.FC = () => {
         </p>
       </div>
 
+      {/* Banner de App de Escritorio */}
+      <Card className="mb-8 bg-gradient-to-br from-indigo-600 via-purple-700 to-indigo-900 border-none shadow-xl overflow-hidden relative">
+        {/* Decoración de fondo */}
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-white opacity-5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-32 h-32 bg-indigo-400 opacity-10 rounded-full blur-2xl"></div>
+        
+        <div className="p-6 relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-6">
+            <div className="hidden sm:flex w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl items-center justify-center border border-white/20 shadow-inner">
+              <HardDrive className="w-10 h-10 text-indigo-100" />
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-full bg-indigo-500/30 border border-indigo-400/30 text-[10px] font-bold text-indigo-100 uppercase tracking-wider mb-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                Recomendado
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2 leading-tight">
+                EduSpark Desktop Uploader
+              </h2>
+              <p className="text-indigo-100 max-w-xl text-sm leading-relaxed opacity-90">
+                ¿Tienes libros pesados o documentos de cientos de páginas? Nuestra <strong>App para Windows</strong> utiliza el procesador local y el nuevo motor <strong>Gemini Embedding 2</strong> para procesar archivos masivos sin errores de navegador.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+            <a 
+              href="/downloads/EduSparkUploader.exe" 
+              download 
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-indigo-700 hover:bg-indigo-50 font-bold rounded-xl transition-all shadow-lg hover:shadow-indigo-500/20 active:scale-95 text-center"
+            >
+              <Download className="w-5 h-5" />
+              Descargar App
+            </a>
+            <button 
+              onClick={() => {
+                const info = 
+                  "VENTAJAS TÉCNICAS DEL UPLOADER:\n\n" +
+                  "• Motor Gemini 2: Utiliza el modelo 'gemini-embedding-2-preview' para mayor precisión semántica.\n" +
+                  "• Procesamiento Local: Extrae texto y genera vectores en tu PC, enviando solo datos optimizados a la nube.\n" +
+                  "• Capacidad Extendida: Procesa documentos de hasta 2000 páginas sin restricciones de memoria.\n" +
+                  "• Resiliencia: Sistema de reintentos automáticos ante micro-cortes de internet.\n" +
+                  "• Sincronización: Detecta automáticamente archivos pesados delegados desde la plataforma web.";
+                alert(info);
+              }}
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-500/20 hover:bg-indigo-500/30 text-white font-medium rounded-xl border border-white/10 transition-all text-center"
+            >
+              Más información
+            </button>
+          </div>
+        </div>
+      </Card>
+
       {/* Estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card className="p-6">
@@ -1321,7 +1374,6 @@ export const MaterialsManagementPage: React.FC = () => {
               setLoading(true);
               try {
                 // Sincronizar manualmente con jobs de Firestore
-                const { getAllJobs } = await import('@/services/firestoreService');
                 const jobs = await getAllJobs(user.id);
 
                 // Actualizar materiales basándose en jobs
@@ -1728,7 +1780,7 @@ export const MaterialsManagementPage: React.FC = () => {
                             <div className="flex items-center gap-2">
                               <Brain className="w-4 h-4 text-purple-500" />
                               <span className="text-sm font-medium text-purple-700" title={`Material ID: ${material.id}, Chunks en estado: ${materialChunks[material.id] ?? 'undefined'}`}>
-                                {materialChunks[material.id] ?? 0}
+                                {materialChunks[material.id] || material.metadata?.totalChunks || material.metadata?.chunksTotal || 0}
                               </span>
                               <button
                                 onClick={() => loadChunksForMaterial(material.id)}
@@ -1743,7 +1795,7 @@ export const MaterialsManagementPage: React.FC = () => {
                           )}
                         </td>
                         <td className="py-3 px-4 text-gray-600 text-sm">
-                          {formatFileSize(material.size_bytes)}
+                          {formatFileSize(material.size_bytes || material.metadata?.fileSize || material.metadata?.file_size_bytes)}
                         </td>
                         <td className="py-3 px-4">
                           <div className="relative action-menu-container">

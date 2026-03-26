@@ -647,7 +647,7 @@ const UsersManagementPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-transparent">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
@@ -707,14 +707,14 @@ const UsersManagementPage: React.FC = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6 flex justify-between items-center">
+      <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-text-dark mb-2">Gestión de Usuarios</h1>
-          <p className="text-text-light">Administra usuarios, roles y permisos del sistema</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Gestión de Usuarios</h1>
+          <p className="text-gray-600 dark:text-gray-400">Administra usuarios, roles y permisos del sistema</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
+          className="px-5 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2 font-medium"
         >
           <IconUserCheck className="w-5 h-5" />
           Crear Usuario
@@ -722,8 +722,8 @@ const UsersManagementPage: React.FC = () => {
       </div>
 
       {/* Filtros y búsqueda */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-white dark:bg-gray-900/50 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-5 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Búsqueda */}
           <div className="relative">
             <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -732,7 +732,7 @@ const UsersManagementPage: React.FC = () => {
               placeholder="Buscar por nombre o email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
             />
           </div>
 
@@ -741,11 +741,11 @@ const UsersManagementPage: React.FC = () => {
             <select
               value={roleFilter || ''}
               onChange={(e) => setRoleFilter(e.target.value ? parseInt(e.target.value) : null)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
             >
               <option value="">Todos los roles</option>
               {roles.map(role => (
-                <option key={role.id} value={role.id}>
+                <option key={role.id} value={role.id} className="dark:bg-gray-800">
                   {getRoleLabel(role.name)}
                 </option>
               ))}
@@ -757,7 +757,7 @@ const UsersManagementPage: React.FC = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
             >
               <option value="all">Todos los estados</option>
               <option value="active">Solo activos</option>
@@ -771,11 +771,11 @@ const UsersManagementPage: React.FC = () => {
               <select
                 value={institutionFilter || ''}
                 onChange={(e) => setInstitutionFilter(e.target.value ? parseInt(e.target.value) : null)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               >
                 <option value="">Todas las instituciones</option>
                 {institutions.map(inst => (
-                  <option key={inst.id} value={inst.id}>
+                  <option key={inst.id} value={inst.id} className="dark:bg-gray-800">
                     {inst.name}
                   </option>
                 ))}
@@ -786,58 +786,58 @@ const UsersManagementPage: React.FC = () => {
       </div>
 
       {/* Tabla de usuarios */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Usuario
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Email
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Rol
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Estado
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Fecha de registro
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Registro
                 </th>
                 {isAdminGlobal && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Institución
                   </th>
                 )}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Límites de Gasto
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Acciones
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-transparent divide-y divide-gray-200 dark:divide-gray-800">
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={isAdminGlobal ? 8 : 7} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                     No se encontraron usuarios
                   </td>
                 </tr>
               ) : (
                 filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
+                  <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
-                          <span className="text-primary font-semibold">
+                        <div className="flex-shrink-0 h-10 w-10 bg-primary/10 dark:bg-primary/20 rounded-xl flex items-center justify-center">
+                          <span className="text-primary font-bold">
                             {user.first_name?.[0]}{user.last_name?.[0]}
                           </span>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
                             {user.first_name} {user.last_name}
                           </div>
                         </div>
@@ -845,9 +845,9 @@ const UsersManagementPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-900">{user.email}</span>
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{user.email}</span>
                         {emailConfirmed[user.id] === false && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800" title="Email no confirmado">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300" title="Email no confirmado">
                             <IconMail className="w-3 h-3 mr-1" />
                             Pendiente
                           </span>
@@ -861,74 +861,74 @@ const UsersManagementPage: React.FC = () => {
                       <select
                         value={user.role?.id || ''}
                         onChange={(e) => handleChangeRole(user.id, parseInt(e.target.value))}
-                        className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="text-sm border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                         disabled={user.id === currentUser?.id}
                       >
                         {roles.map(role => (
-                          <option key={role.id} value={role.id}>
+                          <option key={role.id} value={role.id} className="dark:bg-gray-800 text-gray-900 dark:text-white">
                             {getRoleLabel(role.name)}
                           </option>
                         ))}
                       </select>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.is_active === true
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${user.is_active === true
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+                        : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
                         }`}>
                         {user.is_active === true ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {user.created_at
                         ? new Date(user.created_at).toLocaleDateString('es-ES')
                         : '-'}
                     </td>
                     {isAdminGlobal && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {(user as any).user_institutions?.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
                             {(user as any).user_institutions.map((ui: any) => {
                               const inst = institutions.find(i => i.id === ui.institution_id);
                               return inst ? (
-                                <span key={inst.id} className="bg-gray-100 px-2 py-0.5 rounded text-xs">
+                                <span key={inst.id} className="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-[10px] font-medium border border-gray-200 dark:border-gray-700">
                                   {inst.name}
                                 </span>
                               ) : null;
                             })}
                           </div>
                         ) : (
-                          <span className="text-red-400 italic">Ninguna</span>
+                          <span className="text-red-400 dark:text-red-500 italic text-xs">Ninguna</span>
                         )}
                       </td>
                     )}
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {loadingLimits[user.id] ? (
-                        <div className="w-5 h-5 border-2 border-gray-300 border-t-primary rounded-full animate-spin"></div>
+                        <div className="w-5 h-5 border-2 border-gray-300 dark:border-gray-700 border-t-primary rounded-full animate-spin"></div>
                       ) : userLimits[user.id] ? (
-                        <div className="space-y-1">
-                          <div className="text-xs">
-                            <span className="font-medium">Diario:</span> {userLimits[user.id].current_daily_queries || 0}/{userLimits[user.id].daily_queries || 50} consultas
-                            <span className="text-gray-500 ml-2">
-                              ${(userLimits[user.id].current_daily_cost || 0).toFixed(4)}/${(userLimits[user.id].daily_cost_limit || 0.05).toFixed(2)}
+                        <div className="space-y-1 text-gray-700 dark:text-gray-300">
+                          <div className="text-[11px] leading-tight">
+                            <span className="font-bold">Día:</span> {userLimits[user.id].current_daily_queries || 0}/{userLimits[user.id].daily_queries || 50} q
+                            <span className="text-gray-400 dark:text-gray-500 ml-1.5 font-medium">
+                              ${(userLimits[user.id].current_daily_cost || 0).toFixed(4)}
                             </span>
                           </div>
-                          <div className="text-xs">
-                            <span className="font-medium">Mensual:</span> {userLimits[user.id].current_monthly_queries || 0}/{userLimits[user.id].monthly_queries || 1000} consultas
-                            <span className="text-gray-500 ml-2">
-                              ${(userLimits[user.id].current_monthly_cost || 0).toFixed(4)}/${(userLimits[user.id].monthly_cost_limit || 1.00).toFixed(2)}
+                          <div className="text-[11px] leading-tight">
+                            <span className="font-bold">Mes:</span> {userLimits[user.id].current_monthly_queries || 0}/{userLimits[user.id].monthly_queries || 1000} q
+                            <span className="text-gray-400 dark:text-gray-500 ml-1.5 font-medium">
+                              ${(userLimits[user.id].current_monthly_cost || 0).toFixed(4)}
                             </span>
                           </div>
                         </div>
                       ) : (
-                        <span className="text-gray-400 text-xs">Por defecto</span>
+                        <span className="text-gray-400 dark:text-gray-600 text-[10px] font-medium uppercase tracking-wider">Por defecto</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                      <div className="flex items-center justify-end space-x-1">
                         <button
                           onClick={() => handleEditUser(user)}
-                          className="text-blue-600 hover:text-blue-900 p-1"
+                          className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                           title="Editar usuario"
                         >
                           <IconEdit className="w-5 h-5" />
@@ -938,8 +938,8 @@ const UsersManagementPage: React.FC = () => {
                             setEditingUser(user);
                             setShowLimitsModal(true);
                           }}
-                          className="text-green-600 hover:text-green-900 p-1"
-                          title="Configurar límites de gasto"
+                          className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                          title="Límites de gasto"
                         >
                           <IconDollarSign className="w-5 h-5" />
                         </button>
@@ -948,7 +948,7 @@ const UsersManagementPage: React.FC = () => {
                             setEditingUser(user);
                             setShowPasswordModal(true);
                           }}
-                          className="text-yellow-600 hover:text-yellow-900 p-1"
+                          className="p-1.5 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-lg transition-colors"
                           title="Cambiar contraseña"
                         >
                           <IconKey className="w-5 h-5" />
@@ -957,11 +957,11 @@ const UsersManagementPage: React.FC = () => {
                           <button
                             onClick={() => handleConfirmEmail(user)}
                             disabled={confirmingEmail === user.id}
-                            className="text-blue-600 hover:text-blue-900 p-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Confirmar email del usuario"
+                            className="p-1.5 text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all disabled:opacity-50"
+                            title="Confirmar email"
                           >
                             {confirmingEmail === user.id ? (
-                              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                              <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                             ) : (
                               <IconMail className="w-5 h-5" />
                             )}
@@ -969,9 +969,9 @@ const UsersManagementPage: React.FC = () => {
                         )}
                         <button
                           onClick={() => handleToggleStatus(user)}
-                          className={`p-1 ${user.is_active === true
-                            ? 'text-red-600 hover:text-red-900'
-                            : 'text-green-600 hover:text-green-900'
+                          className={`p-1.5 rounded-lg transition-colors ${user.is_active === true
+                            ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
+                            : 'text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
                             }`}
                           title={user.is_active === true ? 'Desactivar' : 'Activar'}
                         >
@@ -981,20 +981,6 @@ const UsersManagementPage: React.FC = () => {
                             <IconUserCheck className="w-5 h-5" />
                           )}
                         </button>
-                        {emailConfirmed[user.id] === false && (
-                          <button
-                            onClick={() => handleConfirmEmail(user)}
-                            disabled={confirmingEmail === user.id}
-                            className="text-blue-600 hover:text-blue-900 p-1 disabled:opacity-50"
-                            title="Confirmar email"
-                          >
-                            {confirmingEmail === user.id ? (
-                              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                            ) : (
-                              <IconMail className="w-5 h-5" />
-                            )}
-                          </button>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -1006,8 +992,20 @@ const UsersManagementPage: React.FC = () => {
       </div>
 
       {/* Resumen */}
-      <div className="mt-4 text-sm text-gray-600">
-        Mostrando {filteredUsers.length} de {users.length} usuarios
+      <div className="mt-6 p-4 bg-gray-50/50 dark:bg-gray-800/20 rounded-xl border border-gray-200/50 dark:border-gray-800/50 flex items-center justify-between text-sm">
+        <div className="text-gray-500 dark:text-gray-400 font-medium">
+          Mostrando <span className="text-gray-900 dark:text-white font-bold">{filteredUsers.length}</span> de <span className="text-gray-900 dark:text-white font-bold">{users.length}</span> usuarios
+        </div>
+        <div className="flex gap-4">
+          <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400 font-medium">
+            <span className="w-2 h-2 rounded-full bg-green-500"></span>
+            {users.filter(u => u.is_active).length} Activos
+          </div>
+          <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400 font-medium">
+            <span className="w-2 h-2 rounded-full bg-red-500"></span>
+            {users.filter(u => !u.is_active).length} Inactivos
+          </div>
+        </div>
       </div>
 
       {/* Modal de edición */}
@@ -1089,59 +1087,64 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onSave, onClose }) 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <h2 className="text-xl font-bold mb-4">Editar Usuario</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm shadow-2xl flex items-center justify-center z-[100] p-4 transition-all duration-300">
+      <div className="bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-md w-full shadow-2xl border border-gray-100 dark:border-gray-800 transform scale-100 animate-in fade-in zoom-in duration-200">
+        <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white flex items-center gap-3">
+          <div className="p-2 bg-blue-100 dark:bg-blue-900/40 rounded-xl text-blue-600 dark:text-blue-400">
+            <IconEdit className="w-6 h-6" />
+          </div>
+          Editar Usuario
+        </h2>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
               Nombre
             </label>
             <input
               type="text"
               value={formData.first_name}
               onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none"
               required
             />
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
               Apellido
             </label>
             <input
               type="text"
               value={formData.last_name}
               onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none"
               required
             />
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
               Email
             </label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none"
               required
             />
           </div>
-          <div className="flex justify-end space-x-3">
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+              className="px-5 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 font-semibold"
             >
-              Guardar
+              Guardar Cambios
             </button>
           </div>
         </form>
@@ -1171,44 +1174,61 @@ const PasswordModal: React.FC<PasswordModalProps> = ({
   onClose
 }) => {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <h2 className="text-xl font-bold mb-4">Cambiar Contraseña</h2>
-        <p className="text-sm text-gray-600 mb-4">Usuario: {user.email}</p>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Nueva contraseña
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => onPasswordChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-            required
-            minLength={6}
-          />
+    <div className="fixed inset-0 bg-black/60 shadow-2xl backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-md w-full border border-gray-100 dark:border-gray-800 shadow-2xl animate-in fade-in zoom-in duration-200">
+        <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white flex items-center gap-3">
+          <div className="p-2 bg-yellow-100 dark:bg-yellow-900/40 rounded-xl text-yellow-600 dark:text-yellow-400">
+            <IconKey className="w-6 h-6" />
+          </div>
+          Cambiar Contraseña
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 font-medium">
+          Usuario: <span className="text-gray-900 dark:text-gray-200">{user.email}</span>
+        </p>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
+              Nueva contraseña
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => onPasswordChange(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+              required
+              minLength={6}
+              placeholder="••••••••"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
+              Confirmar contraseña
+            </label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => onConfirmPasswordChange(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+              required
+              minLength={6}
+              placeholder="••••••••"
+            />
+          </div>
         </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Confirmar contraseña
-          </label>
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => onConfirmPasswordChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-            required
-            minLength={6}
-          />
-        </div>
+
         {password !== confirmPassword && password && confirmPassword && (
-          <p className="text-red-600 text-sm mb-4">Las contraseñas no coinciden</p>
+          <p className="text-red-500 text-xs mt-3 flex items-center gap-1 font-medium italic">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+            Las contraseñas no coinciden
+          </p>
         )}
-        <div className="flex justify-end space-x-3">
+
+        <div className="flex justify-end space-x-3 mt-8 pt-4 border-t border-gray-100 dark:border-gray-800">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="px-5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-600 dark:text-gray-400 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             Cancelar
           </button>
@@ -1216,9 +1236,9 @@ const PasswordModal: React.FC<PasswordModalProps> = ({
             type="button"
             onClick={onSave}
             disabled={!password || password !== confirmPassword || password.length < 6}
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-5 py-2.5 bg-yellow-500 text-white rounded-xl font-bold shadow-lg shadow-yellow-500/20 hover:bg-yellow-600 transition-all disabled:opacity-50 disabled:shadow-none"
           >
-            Cambiar contraseña
+            Actualizar Contraseña
           </button>
         </div>
       </div>
@@ -1265,59 +1285,66 @@ const LimitsModal: React.FC<LimitsModalProps> = ({ user, limits, onSave, onClose
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4 flex items-center">
-          <IconDollarSign className="w-6 h-6 mr-2 text-green-600" />
-          Configurar Límites de Gasto
+    <div className="fixed inset-0 bg-black/60 shadow-2xl backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-[2rem] p-8 max-w-2xl w-full border border-gray-100 dark:border-gray-800 shadow-2xl max-h-[90vh] overflow-y-auto transform animate-in fade-in zoom-in duration-200">
+        <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white flex items-center gap-3">
+          <div className="p-2 bg-green-100 dark:bg-green-900/40 rounded-xl text-green-600 dark:text-green-400">
+            <IconDollarSign className="w-6 h-6 " />
+          </div>
+          Límites de Gasto
         </h2>
-        <p className="text-sm text-gray-600 mb-6">Usuario: <span className="font-medium">{user.email}</span></p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 font-medium">
+          Usuario: <span className="text-gray-900 dark:text-gray-200">{user.email}</span>
+        </p>
 
         {/* Uso actual */}
         {(limits.current_daily_queries !== undefined || limits.current_monthly_queries !== undefined) && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <h3 className="font-semibold text-blue-900 mb-2">Uso Actual</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-blue-700 font-medium">Diario:</span>
-                <div className="text-blue-600">
-                  {limits.current_daily_queries || 0} consultas / ${(limits.current_daily_cost || 0).toFixed(4)}
+          <div className="bg-primary/5 dark:bg-primary/10 border border-primary/10 dark:border-primary/20 rounded-2xl p-6 mb-8">
+            <h3 className="font-bold text-primary dark:text-primary-light mb-4 text-sm uppercase tracking-wider">Uso Consumido Actual</h3>
+            <div className="grid grid-cols-2 gap-8">
+              <div className="space-y-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">DIARIO (Consultas / Costo)</span>
+                <div className="text-xl font-bold text-gray-900 dark:text-white flex items-baseline gap-1">
+                  {limits.current_daily_queries || 0} <span className="text-xs font-normal text-gray-400">q</span>
+                  <span className="mx-2 text-gray-200 dark:text-gray-700">|</span>
+                  <span className="text-primary">${(limits.current_daily_cost || 0).toFixed(4)}</span>
                 </div>
               </div>
-              <div>
-                <span className="text-blue-700 font-medium">Mensual:</span>
-                <div className="text-blue-600">
-                  {limits.current_monthly_queries || 0} consultas / ${(limits.current_monthly_cost || 0).toFixed(4)}
+              <div className="space-y-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">MENSUAL (Consultas / Costo)</span>
+                <div className="text-xl font-bold text-gray-900 dark:text-white flex items-baseline gap-1">
+                  {limits.current_monthly_queries || 0} <span className="text-xs font-normal text-gray-400">q</span>
+                  <span className="mx-2 text-gray-200 dark:text-gray-700">|</span>
+                  <span className="text-primary">${(limits.current_monthly_cost || 0).toFixed(4)}</span>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Límites diarios */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-gray-700 border-b pb-2">Límites Diarios</h3>
+            <div className="space-y-5">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 dark:border-gray-800 pb-2">Controles Diarios</h3>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Consultas diarias máximas
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
+                  Máx. Consultas
                 </label>
                 <input
                   type="number"
                   min="1"
                   value={formData.daily_queries}
                   onChange={(e) => setFormData({ ...formData, daily_queries: parseInt(e.target.value) || 1 })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">Número máximo de consultas por día</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Costo diario máximo (USD)
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
+                  Costo Máx. (USD)
                 </label>
                 <input
                   type="number"
@@ -1325,35 +1352,33 @@ const LimitsModal: React.FC<LimitsModalProps> = ({ user, limits, onSave, onClose
                   step="0.01"
                   value={formData.daily_cost_limit}
                   onChange={(e) => setFormData({ ...formData, daily_cost_limit: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">Costo máximo en dólares por día</p>
               </div>
             </div>
 
             {/* Límites mensuales */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-gray-700 border-b pb-2">Límites Mensuales</h3>
+            <div className="space-y-5">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 dark:border-gray-800 pb-2">Controles Mensuales</h3>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Consultas mensuales máximas
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
+                  Máx. Consultas
                 </label>
                 <input
                   type="number"
                   min="1"
                   value={formData.monthly_queries}
                   onChange={(e) => setFormData({ ...formData, monthly_queries: parseInt(e.target.value) || 1 })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">Número máximo de consultas por mes</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Costo mensual máximo (USD)
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
+                  Costo Máx. (USD)
                 </label>
                 <input
                   type="number"
@@ -1361,35 +1386,26 @@ const LimitsModal: React.FC<LimitsModalProps> = ({ user, limits, onSave, onClose
                   step="0.01"
                   value={formData.monthly_cost_limit}
                   onChange={(e) => setFormData({ ...formData, monthly_cost_limit: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">Costo máximo en dólares por mes</p>
               </div>
             </div>
           </div>
 
-          {/* Información adicional */}
-          <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-sm text-yellow-800">
-              <strong>Nota:</strong> Los límites diarios se resetean automáticamente cada día.
-              Los límites mensuales se resetean el día 1 de cada mes.
-            </p>
-          </div>
-
-          <div className="flex justify-end space-x-3 mt-6">
+          <div className="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-6 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-600 dark:text-gray-400 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              className="px-6 py-2.5 bg-green-600 text-white rounded-xl font-bold shadow-lg shadow-green-600/20 hover:bg-green-700 transition-all"
             >
-              Guardar Límites
+              Guardar Configuración
             </button>
           </div>
         </form>
@@ -1444,124 +1460,131 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ roles, onSave, onClos
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">Crear Nuevo Usuario</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+    <div className="fixed inset-0 bg-black/60 shadow-2xl backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-[2rem] p-8 max-w-lg w-full border border-gray-100 dark:border-gray-800 shadow-2xl max-h-[90vh] overflow-y-auto transform animate-in fade-in zoom-in duration-200">
+        <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white flex items-center gap-3">
+          <div className="p-2 bg-primary/10 dark:bg-primary/20 rounded-xl text-primary">
+            <IconUserCheck className="w-6 h-6" />
+          </div>
+          Crear Nuevo Usuario
+        </h2>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
+                Nombre *
+              </label>
+              <input
+                type="text"
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
+                Apellido *
+              </label>
+              <input
+                type="text"
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
               Email *
             </label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
               required
             />
           </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nombre *
-            </label>
-            <input
-              type="text"
-              value={formData.firstName}
-              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
+                Contraseña *
+              </label>
+              <input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                required
+                minLength={6}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
+                Confirmar *
+              </label>
+              <input
+                type="password"
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                required
+                minLength={6}
+              />
+            </div>
           </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Apellido *
-            </label>
-            <input
-              type="text"
-              value={formData.lastName}
-              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Contraseña *
-            </label>
-            <input
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-              required
-              minLength={6}
-            />
-            <p className="text-xs text-gray-500 mt-1">Mínimo 6 caracteres</p>
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Confirmar Contraseña *
-            </label>
-            <input
-              type="password"
-              value={formData.confirmPassword}
-              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-              required
-              minLength={6}
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
               Rol *
             </label>
             <select
               value={formData.roleId}
               onChange={(e) => setFormData({ ...formData, roleId: parseInt(e.target.value) })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
               required
             >
               {roles.map(role => (
-                <option key={role.id} value={role.id}>
+                <option key={role.id} value={role.id} className="dark:bg-gray-800">
                   {getRoleLabel(role.name)}
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="mb-4">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={formData.autoConfirm}
-                onChange={(e) => setFormData({ ...formData, autoConfirm: e.target.checked })}
-                className="mr-2 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-              />
-              <span className="text-sm text-gray-700">
-                Habilitar usuario directamente (sin confirmación de email)
+          <div className="py-2">
+            <label className="flex items-center group cursor-pointer">
+              <div className="relative flex items-center justify-center w-5 h-5 mr-3">
+                <input
+                  type="checkbox"
+                  checked={formData.autoConfirm}
+                  onChange={(e) => setFormData({ ...formData, autoConfirm: e.target.checked })}
+                  className="peer appearance-none w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded-md checked:bg-primary checked:border-primary transition-all cursor-pointer"
+                />
+                <IconCheckCircle className="absolute w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" />
+              </div>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-primary transition-colors">
+                Habilitar usuario directamente (sin confirmación)
               </span>
             </label>
-            <p className="text-xs text-gray-500 mt-1 ml-6">
-              Si está marcado, el usuario podrá iniciar sesión inmediatamente sin confirmar su correo electrónico.
-            </p>
           </div>
 
-          <div className="flex justify-end space-x-3">
+          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-100 dark:border-gray-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-6 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-600 dark:text-gray-400 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+              className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all"
             >
               Crear Usuario
             </button>

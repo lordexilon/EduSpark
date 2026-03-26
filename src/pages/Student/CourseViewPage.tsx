@@ -29,6 +29,7 @@ import { courseViewTutorial } from '@/config/tutorialConfigs';
 import { HelpCircle } from 'lucide-react';
 import { CourseScoreCard } from '@/components/Features/CourseScoreCard';
 import { AIInsightsBanner } from '@/components/Features/AIInsightsBanner';
+import { getFlashcardsByCourse, getFlashcardsWithProgress } from '@/services/flashcardService';
 
 export const CourseViewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -430,7 +431,6 @@ export const CourseViewPage: React.FC = () => {
       // Cargar flashcards del curso
       if (user?.id) {
         try {
-          const { getFlashcardsByCourse, getFlashcardsWithProgress } = await import('@/services/flashcardService');
           const allFlashcards = await getFlashcardsByCourse(courseId);
           setTotalFlashcards(allFlashcards.length);
 

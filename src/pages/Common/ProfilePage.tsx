@@ -4,8 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import Card from '@/components/Common/Card';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserInstitution } from '@/hooks/useUserInstitution';
-import { IconUserCircle, IconMail, IconBriefcase, IconUpload, IconX, IconEdit, IconSave, IconXCircle } from '@/components/Common/Icons';
+import { IconUserCircle, IconMail, IconBriefcase, IconUpload, IconX, IconEdit, IconSave, IconXCircle, IconSun, IconMoon, IconPalette, IconCheck } from '@/components/Common/Icons';
 import Button from '@/components/Common/Button';
+import { useTheme, Theme } from '@/context/ThemeContext';
 import { careerEnrollmentService } from '@/services/academicService';
 import { careerService } from '@/services/academicService';
 import { googleOAuthService } from '@/services/googleOAuthService';
@@ -18,6 +19,7 @@ import { auditService } from '@/services/auditService';
 
 const ProfilePage: React.FC = () => {
   const { user, logout, refreshUser, updateUser } = useAuth();
+  const { theme, setTheme } = useTheme();
   const { institution } = useUserInstitution();
   const navigate = useNavigate();
   const [careerName, setCareerName] = useState<string | null>(null);
@@ -415,7 +417,7 @@ const ProfilePage: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold text-slate-800 text-center">Mi Perfil</h1>
+      <h1 className="text-3xl font-bold text-text-dark text-center">Mi Perfil</h1>
 
       {/* Información Personal */}
       <Card>
@@ -429,7 +431,7 @@ const ProfilePage: React.FC = () => {
                 className="w-24 h-24 rounded-full object-cover border-4 border-slate-200"
               />
             ) : (
-              <IconUserCircle className="w-24 h-24 text-slate-400" />
+              <IconUserCircle className="w-24 h-24 text-text-light" />
             )}
           </div>
 
@@ -445,7 +447,7 @@ const ProfilePage: React.FC = () => {
             />
             <label
               htmlFor="avatar-upload"
-              className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors text-sm font-medium"
             >
               <IconUpload className="w-4 h-4" />
               {user.avatar_url ? 'Cambiar foto' : 'Subir foto'}
@@ -482,7 +484,7 @@ const ProfilePage: React.FC = () => {
           {!isEditing ? (
             <>
               <div className="flex items-center justify-center gap-2 mb-2">
-                <h2 className="text-2xl font-bold text-slate-800">
+                <h2 className="text-2xl font-bold text-text-dark">
                   {user.first_name} {user.last_name}
                 </h2>
                 <button
@@ -493,18 +495,18 @@ const ProfilePage: React.FC = () => {
                   <IconEdit className="w-5 h-5" />
                 </button>
               </div>
-              <p className="text-slate-600 mb-4">{displayRole(user.role)}</p>
+              <p className="text-text-light mb-4">{displayRole(user.role)}</p>
 
               <div className="w-full space-y-4 mt-6">
                 <div className="flex items-center gap-3">
-                  <IconMail className="w-5 h-5 text-slate-500" />
-                  <span className="text-slate-700">{user.email}</span>
+                  <IconMail className="w-5 h-5 text-text-light" />
+                  <span className="text-text-dark">{user.email}</span>
                 </div>
 
                 {user.identity_document && (
                   <div className="flex items-center gap-3">
-                    <IconBriefcase className="w-5 h-5 text-slate-500" />
-                    <span className="text-slate-700">
+                    <IconBriefcase className="w-5 h-5 text-text-light" />
+                    <span className="text-text-dark">
                       {(user as any).identity_document_type ? `${(user as any).identity_document_type}: ` : ''}
                       {user.identity_document}
                     </span>
@@ -513,8 +515,8 @@ const ProfilePage: React.FC = () => {
 
                 {careerName && (
                   <div className="flex items-center gap-3">
-                    <IconBriefcase className="w-5 h-5 text-slate-500" />
-                    <span className="text-slate-700">Carrera: {careerName}</span>
+                    <IconBriefcase className="w-5 h-5 text-text-light" />
+                    <span className="text-text-dark">Carrera: {careerName}</span>
                   </div>
                 )}
               </div>
@@ -522,35 +524,35 @@ const ProfilePage: React.FC = () => {
           ) : (
             <div className="w-full space-y-4 mt-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-text-dark mb-1">
                   Nombre *
                 </label>
                 <input
                   type="text"
                   value={editingProfile.first_name}
                   onChange={(e) => setEditingProfile({ ...editingProfile, first_name: e.target.value })}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border bg-background text-text-dark rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="Nombre"
                   disabled={saving}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-text-dark mb-1">
                   Apellido *
                 </label>
                 <input
                   type="text"
                   value={editingProfile.last_name}
                   onChange={(e) => setEditingProfile({ ...editingProfile, last_name: e.target.value })}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border bg-background text-text-dark rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="Apellido"
                   disabled={saving}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-text-dark mb-1">
                   Tipo de Documento
                 </label>
                 <select
@@ -559,7 +561,7 @@ const ProfilePage: React.FC = () => {
                     ...editingProfile,
                     identity_document_type: e.target.value || null as any
                   })}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border bg-background text-text-dark rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   disabled={saving}
                 >
                   <option value="">Seleccionar tipo</option>
@@ -572,32 +574,32 @@ const ProfilePage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-text-dark mb-1">
                   Número de Documento
                 </label>
                 <input
                   type="text"
                   value={editingProfile.identity_document}
                   onChange={(e) => setEditingProfile({ ...editingProfile, identity_document: e.target.value })}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border bg-background text-text-dark rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="Número de documento"
                   disabled={saving}
                 />
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-text-light mt-1">
                   Documento único e irrepetible. Mínimo 4 caracteres, sin espacios.
                 </p>
               </div>
 
               <div className="flex items-center gap-3">
-                <IconMail className="w-5 h-5 text-slate-500" />
-                <span className="text-slate-700">{user.email}</span>
-                <span className="text-xs text-slate-500">(No editable)</span>
+                <IconMail className="w-5 h-5 text-text-light" />
+                <span className="text-text-dark">{user.email}</span>
+                <span className="text-xs text-text-light">(No editable)</span>
               </div>
 
               {careerName && (
                 <div className="flex items-center gap-3">
-                  <IconBriefcase className="w-5 h-5 text-slate-500" />
-                  <span className="text-slate-700">Carrera: {careerName}</span>
+                  <IconBriefcase className="w-5 h-5 text-text-light" />
+                  <span className="text-text-dark">Carrera: {careerName}</span>
                 </div>
               )}
 
@@ -631,16 +633,84 @@ const ProfilePage: React.FC = () => {
         </div>
       </Card>
 
+      {/* Apariencia (Nuevo) */}
+      <Card>
+        <h3 className="text-xl font-bold text-text-dark mb-4 flex items-center gap-2">
+          <IconPalette className="w-6 h-6" />
+          Apariencia
+        </h3>
+
+        <div className="space-y-6">
+          {/* Modo Claro/Oscuro */}
+          <div>
+            <p className="text-sm font-medium text-text-dark mb-3">Modo de pantalla</p>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => setTheme('blue')}
+                className={`flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${theme !== 'dark'
+                  ? 'border-primary bg-primary/5 text-primary'
+                  : 'border-border bg-background text-text-light hover:border-gray-300'
+                  }`}
+              >
+                <IconSun className="w-5 h-5" />
+                <span className="font-semibold">Modo Claro</span>
+              </button>
+
+              <button
+                onClick={() => setTheme('dark')}
+                className={`flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${theme === 'dark'
+                  ? 'border-primary bg-primary/5 text-primary'
+                  : 'border-border bg-background text-text-light hover:border-gray-300'
+                  }`}
+              >
+                <IconMoon className="w-5 h-5" />
+                <span className="font-semibold">Modo Oscuro</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Temas de Color (solo si no es dark, o como acento) */}
+          <div>
+            <p className="text-sm font-medium text-text-dark mb-3">Tema de color institucional</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {[
+                { id: 'blue', label: 'Azul EduSpark', color: 'bg-blue-600' },
+                { id: 'indigo', label: 'Índigo Moderno', color: 'bg-indigo-600' },
+                { id: 'corporate', label: 'Corporativo', color: 'bg-slate-700' },
+                { id: 'slate', label: 'Pizarra Neutral', color: 'bg-slate-500' },
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTheme(t.id as Theme)}
+                  className={`relative flex flex-col items-center p-3 rounded-lg border transition-all ${theme === t.id
+                    ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
+                    : 'border-border bg-background hover:bg-gray-50'
+                    }`}
+                >
+                  <div className={`w-8 h-8 rounded-full ${t.color} mb-2 shadow-sm`}></div>
+                  <span className="text-xs font-medium text-text-dark">{t.label}</span>
+                  {theme === t.id && (
+                    <div className="absolute top-1 right-1">
+                      <IconCheck className="w-3 h-3 text-primary" />
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Card>
+
       {/* Integraciones */}
       <Card>
-        <h3 className="text-xl font-bold text-slate-800 mb-4">Integraciones</h3>
+        <h3 className="text-xl font-bold text-text-dark mb-4">Integraciones</h3>
 
         {/* Google Calendar */}
-        <div className="border-b border-gray-200 pb-4 mb-4">
+        <div className="border-b border-border pb-4 mb-4">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <h4 className="font-semibold text-slate-800">Google Calendar</h4>
-              <p className="text-sm text-slate-600">
+              <h4 className="font-semibold text-text-dark">Google Calendar</h4>
+              <p className="text-sm text-text-light">
                 {isTeacher
                   ? 'Conecta tu cuenta para crear videollamadas automáticamente en las sesiones'
                   : 'Conecta tu cuenta para sincronizar eventos y recordatorios'}
@@ -649,18 +719,18 @@ const ProfilePage: React.FC = () => {
           </div>
 
           {checkingGoogle ? (
-            <div className="flex items-center gap-2 text-sm text-gray-600 mt-3">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            <div className="flex items-center gap-2 text-sm text-text-light mt-3">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
               Verificando conexión...
             </div>
           ) : hasGoogleCalendarConnected ? (
             <div className="mt-3">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
+              <div className="bg-green-50/10 border border-green-500/30 rounded-lg p-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-sm font-medium text-green-800">
+                  <span className="text-sm font-medium text-green-600 dark:text-green-400">
                     Cuenta de Google Calendar conectada
                   </span>
                 </div>
@@ -690,27 +760,27 @@ const ProfilePage: React.FC = () => {
         <div>
           <div className="flex items-center justify-between mb-2">
             <div>
-              <h4 className="font-semibold text-slate-800">Google Drive</h4>
-              <p className="text-sm text-slate-600">
+              <h4 className="font-semibold text-text-dark">Google Drive</h4>
+              <p className="text-sm text-text-light">
                 Conecta tu cuenta para crear una carpeta personal donde se guardarán tus archivos y documentos
               </p>
             </div>
           </div>
 
           {checkingGoogle ? (
-            <div className="flex items-center gap-2 text-sm text-gray-600 mt-3">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            <div className="flex items-center gap-2 text-sm text-text-light mt-3">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
               Verificando conexión...
             </div>
           ) : hasGoogleDriveConnected ? (
             <div className="mt-3 space-y-2">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <div className="bg-green-50/10 border border-green-500/30 rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-sm font-medium text-green-800">
+                    <span className="text-sm font-medium text-green-600 dark:text-green-400">
                       Cuenta de Google Drive conectada
                     </span>
                   </div>
@@ -723,13 +793,13 @@ const ProfilePage: React.FC = () => {
                   </Button>
                 </div>
                 {driveFolderInfo && (
-                  <div className="mt-2 pt-2 border-t border-green-200">
-                    <p className="text-xs text-gray-600 mb-1">Carpeta vinculada:</p>
+                  <div className="mt-2 pt-2 border-t border-green-500/20">
+                    <p className="text-xs text-text-light mb-1">Carpeta vinculada:</p>
                     <a
                       href={driveFolderInfo.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:text-blue-700 underline flex items-center gap-1"
+                      className="text-sm text-primary hover:text-primary-hover underline flex items-center gap-1"
                     >
                       {driveFolderInfo.name}
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -755,7 +825,7 @@ const ProfilePage: React.FC = () => {
 
         {/* Opción para conectar ambos */}
         {(!hasGoogleCalendarConnected || !hasGoogleDriveConnected) && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="mt-4 pt-4 border-t border-border">
             <Button
               variant="secondary"
               size="sm"
@@ -769,20 +839,20 @@ const ProfilePage: React.FC = () => {
       </Card>
 
       {/* Privacidad y Datos (Zona de Peligro) */}
-      <Card className="border-red-100 bg-red-50/30">
-        <h3 className="text-xl font-bold text-red-800 mb-4 flex items-center gap-2">
+      <Card className="border-red-500/20 bg-red-500/5">
+        <h3 className="text-xl font-bold text-red-600 dark:text-red-400 mb-4 flex items-center gap-2">
           <IconShield className="w-6 h-6" />
           Privacidad y Datos
         </h3>
 
         <div className="space-y-4">
-          <div className="bg-white p-4 rounded-lg border border-red-100">
-            <h4 className="font-semibold text-slate-800 mb-2">Derecho al Olvido</h4>
-            <p className="text-sm text-slate-600 mb-4">
+          <div className="bg-background p-4 rounded-lg border border-red-500/10">
+            <h4 className="font-semibold text-text-dark mb-2">Derecho al Olvido</h4>
+            <p className="text-sm text-text-light mb-4">
               De acuerdo con la Ley No. 7593/2025 de Protección de Datos Personales, tienes derecho a solicitar la eliminación completa de tus datos personales de nuestros sistemas.
             </p>
 
-            <div className="flex items-start gap-3 p-3 bg-red-50 rounded text-sm text-red-800 mb-4">
+            <div className="flex items-start gap-3 p-3 bg-red-500/10 rounded text-sm text-red-700 dark:text-red-300 mb-4">
               <IconAlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <div>
                 <span className="font-bold">Advertencia:</span> Esta acción es irreversible después del periodo de gracia de 30 días.

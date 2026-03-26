@@ -8,20 +8,20 @@ import Button from '@/components/Common/Button';
 import Breadcrumbs from '@/components/Common/Breadcrumbs';
 import FilterBar from '@/components/Features/FilterBar';
 import { IconChevronRight, IconCalendar, IconBookOpen, IconPlusCircle, IconPencil, IconArrowLeft } from '@/components/Common/Icons';
-import { useAuth } from '@/hooks/useAuth'; 
+import { useAuth } from '@/hooks/useAuth';
 
 const SessionsListPage: React.FC = () => {
-  const { user } = useAuth(); 
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const courseIdParam = searchParams.get('courseId');
-  
+
   const [sessions, setSessions] = useState<Session[]>([]);
   const [course, setCourse] = useState<Course | null>(null);
   const [units, setUnits] = useState<CourseUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Estados de filtros
   const [searchQuery, setSearchQuery] = useState('');
   const [unitFilter, setUnitFilter] = useState<string>('');
@@ -42,7 +42,7 @@ const SessionsListPage: React.FC = () => {
       setLoading(true);
       setError(null);
       const courseId = parseInt(courseIdParam!);
-      
+
       const [courseData, sessionsData, unitsData] = await Promise.all([
         courseService.getCourse(courseId),
         sessionService.getCourseSessions(courseId),
@@ -80,8 +80,8 @@ const SessionsListPage: React.FC = () => {
     return (
       <div className="space-y-6">
         <div className="text-center py-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Selecciona un curso</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <h2 className="text-xl font-semibold text-text-dark mb-4">Selecciona un curso</h2>
+          <p className="text-text-light mb-4">{error}</p>
           <Button onClick={() => navigate('/my/courses')}>
             Ver Mis Cursos
           </Button>
@@ -95,7 +95,7 @@ const SessionsListPage: React.FC = () => {
       <div className="space-y-6">
         <div className="text-center py-8">
           <h2 className="text-xl font-semibold text-red-600 mb-4">Error</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <p className="text-text-light mb-4">{error}</p>
           <div className="flex gap-2 justify-center">
             <Button variant="secondary" onClick={() => navigate('/my/courses')}>
               Volver a Mis Cursos
@@ -123,15 +123,15 @@ const SessionsListPage: React.FC = () => {
               Volver al Curso
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{course.title}</h1>
-              <p className="text-gray-600">Sesiones del curso</p>
+              <h1 className="text-2xl font-bold text-text-dark">{course.title}</h1>
+              <p className="text-text-light">Sesiones del curso</p>
             </div>
           </div>
         )}
         <Card>
           <div className="text-center py-8">
-            <IconBookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-slate-600">Este curso aún no tiene sesiones publicadas.</p>
+            <IconBookOpen className="w-12 h-12 text-text-light/50 mx-auto mb-4" />
+            <p className="text-text-light">Este curso aún no tiene sesiones publicadas.</p>
             {user?.role?.name === 'teacher' && courseIdParam && (
               <Button
                 variant="primary"
@@ -152,7 +152,7 @@ const SessionsListPage: React.FC = () => {
     <div className="space-y-6">
       {/* Breadcrumbs */}
       {course && (
-        <Breadcrumbs 
+        <Breadcrumbs
           items={[
             { label: 'Dashboard', path: '/dashboard' },
             { label: 'Mis Cursos', path: '/my/courses' },
@@ -161,7 +161,7 @@ const SessionsListPage: React.FC = () => {
           ]}
         />
       )}
-      
+
       {/* Header con información del curso */}
       {course && (
         <div className="flex items-center gap-4 mb-4">
@@ -174,13 +174,13 @@ const SessionsListPage: React.FC = () => {
             Volver al Curso
           </Button>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900">{course.title}</h1>
-            <p className="text-gray-600">Sesiones del curso • {sessions.length} {sessions.length === 1 ? 'sesión' : 'sesiones'}</p>
+            <h1 className="text-2xl font-bold text-text-dark">{course.title}</h1>
+            <p className="text-text-light">Sesiones del curso • {sessions.length} {sessions.length === 1 ? 'sesión' : 'sesiones'}</p>
           </div>
           {user?.role?.name === 'teacher' && (
-            <Button 
-              variant="primary" 
-              leftIcon={<IconPlusCircle className="w-5 h-5"/>} 
+            <Button
+              variant="primary"
+              leftIcon={<IconPlusCircle className="w-5 h-5" />}
               onClick={() => navigate(`/teacher/courses/${course.id}`)}
             >
               Gestionar Sesiones
@@ -231,10 +231,9 @@ const SessionsListPage: React.FC = () => {
         // Filtro de búsqueda
         if (searchQuery.trim()) {
           const query = searchQuery.toLowerCase();
-          filtered = filtered.filter(s => 
+          filtered = filtered.filter(s =>
             s.title.toLowerCase().includes(query) ||
-            s.description?.toLowerCase().includes(query) ||
-            s.objective?.toLowerCase().includes(query)
+            s.description?.toLowerCase().includes(query)
           );
         }
 
@@ -302,8 +301,8 @@ const SessionsListPage: React.FC = () => {
           return (
             <Card>
               <div className="text-center py-8">
-                <IconBookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-slate-600">
+                <IconBookOpen className="w-12 h-12 text-text-light/50 mx-auto mb-4" />
+                <p className="text-text-light">
                   {searchQuery || unitFilter
                     ? 'No se encontraron sesiones con los filtros aplicados.'
                     : 'Este curso aún no tiene sesiones publicadas.'}
@@ -319,40 +318,100 @@ const SessionsListPage: React.FC = () => {
         return (
           <>
             {showFilteredCount && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+              <div className="bg-primary/5 border border-primary/30 rounded-lg p-3 text-sm text-primary">
                 Mostrando {filtered.length} de {sessions.length} sesiones
               </div>
             )}
-            
-                  {/* Mostrar sesiones agrupadas por módulo si hay módulos, sino todas juntas */}
+
+            {/* Mostrar sesiones agrupadas por módulo si hay módulos, sino todas juntas */}
             {units.length > 0 && Object.keys(filteredSessionsByUnit).length > 0 ? (
               // Agrupadas por módulo
               <div className="space-y-6">
                 {Object.entries(filteredSessionsByUnit)
-            .sort(([unitIdA], [unitIdB]) => {
-              if (unitIdA === 'sin-unidad') return 1;
-              if (unitIdB === 'sin-unidad') return -1;
-              const unitA = units.find(u => u.id === unitIdA);
-              const unitB = units.find(u => u.id === unitIdB);
-              if (!unitA || !unitB) return 0;
-              return unitA.number - unitB.number;
-            })
-            .map(([unitId, unitSessions]) => (
-              <div key={unitId}>
-                {unitId !== 'sin-unidad' && (
-                  <h2 className="text-lg font-semibold text-gray-800 mb-3">
-                    {getUnitTitle(unitId)}
-                  </h2>
-                )}
-                {unitId === 'sin-unidad' && unitSessions.length > 0 && (
-                  <h2 className="text-lg font-semibold text-gray-800 mb-3">
-                    Sesiones sin Módulo Asignado
-                  </h2>
-                )}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {unitSessions.map((session) => (
-                    <Card 
-                      key={session.id} 
+                  .sort(([unitIdA], [unitIdB]) => {
+                    if (unitIdA === 'sin-unidad') return 1;
+                    if (unitIdB === 'sin-unidad') return -1;
+                    const unitA = units.find(u => u.id === unitIdA);
+                    const unitB = units.find(u => u.id === unitIdB);
+                    if (!unitA || !unitB) return 0;
+                    return unitA.number - unitB.number;
+                  })
+                  .map(([unitId, unitSessions]) => (
+                    <div key={unitId}>
+                      {unitId !== 'sin-unidad' && (
+                        <h2 className="text-lg font-semibold text-text-dark mb-3">
+                          {getUnitTitle(unitId)}
+                        </h2>
+                      )}
+                      {unitId === 'sin-unidad' && unitSessions.length > 0 && (
+                        <h2 className="text-lg font-semibold text-text-dark mb-3">
+                          Sesiones sin Módulo Asignado
+                        </h2>
+                      )}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {unitSessions.map((session) => (
+                          <Card
+                            key={session.id}
+                            className="h-full flex flex-col justify-between hover:border-primary border-2 border-transparent transition-all group relative"
+                          >
+                            <Link to={`/session/${session.id}`} className="flex flex-col h-full">
+                              <div>
+                                <div className="flex items-center text-primary mb-2">
+                                  <IconBookOpen className="w-5 h-5 mr-2" />
+                                  <h3 className="text-lg font-semibold line-clamp-1">{session.title}</h3>
+                                </div>
+                                {session.description && (
+                                  <p className="text-sm text-text-light mb-3 line-clamp-2 flex-grow">
+                                    {session.description}
+                                  </p>
+                                )}
+                                {session.starts_at && (
+                                  <div className="flex items-center text-xs text-text-light opacity-60 mb-4">
+                                    <IconCalendar className="w-4 h-4 mr-1.5" />
+                                    <span>
+                                      {new Date(session.starts_at).toLocaleDateString('es-ES', {
+                                        weekday: 'long',
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                      })}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="mt-auto text-right">
+                                <span className="inline-flex items-center text-primary font-medium">
+                                  Ver Detalles <IconChevronRight className="w-5 h-5 ml-1 group-hover:translate-x-1 transition-transform" />
+                                </span>
+                              </div>
+                            </Link>
+                            {user?.role?.name === 'teacher' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="absolute top-2 right-2 !p-1 text-text-light opacity-40 hover:text-primary hover:opacity-100"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/session/editar/${session.id}`);
+                                }}
+                                aria-label="Editar Sesión"
+                              >
+                                <IconPencil className="w-5 h-5" />
+                              </Button>
+                            )}
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              // Todas las sesiones juntas si no hay módulos
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filtered
+                  .map((session) => (
+                    <Card
+                      key={session.id}
                       className="h-full flex flex-col justify-between hover:border-primary border-2 border-transparent transition-all group relative"
                     >
                       <Link to={`/session/${session.id}`} className="flex flex-col h-full">
@@ -361,13 +420,13 @@ const SessionsListPage: React.FC = () => {
                             <IconBookOpen className="w-5 h-5 mr-2" />
                             <h3 className="text-lg font-semibold line-clamp-1">{session.title}</h3>
                           </div>
-                          {(session.objective || session.description) && (
-                            <p className="text-sm text-gray-600 mb-3 line-clamp-2 flex-grow">
-                              {session.objective || session.description}
+                          {session.description && (
+                            <p className="text-sm text-text-light mb-3 line-clamp-2 flex-grow">
+                              {session.description}
                             </p>
                           )}
                           {session.starts_at && (
-                            <div className="flex items-center text-xs text-gray-500 mb-4">
+                            <div className="flex items-center text-xs text-text-light opacity-60 mb-4">
                               <IconCalendar className="w-4 h-4 mr-1.5" />
                               <span>
                                 {new Date(session.starts_at).toLocaleDateString('es-ES', {
@@ -390,7 +449,7 @@ const SessionsListPage: React.FC = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="absolute top-2 right-2 !p-1 text-gray-400 hover:text-primary"
+                          className="absolute top-2 right-2 !p-1 text-text-light opacity-40 hover:text-primary hover:opacity-100"
                           onClick={(e) => {
                             e.stopPropagation();
                             navigate(`/session/editar/${session.id}`);
@@ -402,73 +461,13 @@ const SessionsListPage: React.FC = () => {
                       )}
                     </Card>
                   ))}
-                </div>
               </div>
-            ))}
-        </div>
-              ) : (
-                // Todas las sesiones juntas si no hay módulos
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filtered
-                    .map((session) => (
-              <Card 
-                key={session.id} 
-                className="h-full flex flex-col justify-between hover:border-primary border-2 border-transparent transition-all group relative"
-              >
-                <Link to={`/session/${session.id}`} className="flex flex-col h-full">
-                  <div>
-                    <div className="flex items-center text-primary mb-2">
-                      <IconBookOpen className="w-5 h-5 mr-2" />
-                      <h3 className="text-lg font-semibold line-clamp-1">{session.title}</h3>
-                    </div>
-                    {(session.objective || session.description) && (
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2 flex-grow">
-                        {session.objective || session.description}
-                      </p>
-                    )}
-                    {session.starts_at && (
-                      <div className="flex items-center text-xs text-gray-500 mb-4">
-                        <IconCalendar className="w-4 h-4 mr-1.5" />
-                        <span>
-                          {new Date(session.starts_at).toLocaleDateString('es-ES', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-auto text-right">
-                    <span className="inline-flex items-center text-primary font-medium">
-                      Ver Detalles <IconChevronRight className="w-5 h-5 ml-1 group-hover:translate-x-1 transition-transform" />
-                    </span>
-                  </div>
-                </Link>
-                {user?.role?.name === 'teacher' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute top-2 right-2 !p-1 text-gray-400 hover:text-primary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/session/editar/${session.id}`);
-                    }}
-                    aria-label="Editar Sesión"
-                  >
-                    <IconPencil className="w-5 h-5" />
-                  </Button>
-                )}
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </>
-          );
-        })()}
-      </div>
-    );
-  };
+            )}
+          </>
+        );
+      })()}
+    </div>
+  );
+};
 
-  export default SessionsListPage;
+export default SessionsListPage;

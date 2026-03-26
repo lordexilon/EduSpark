@@ -4,11 +4,12 @@ import {
   IconBrain,
   IconUsers,
   IconChartBar,
-  IconRefreshCw,
+  IconSparkles,
   IconArrowRight,
   IconGlobe,
   IconTrendingUp,
-  IconBuilding
+  IconBuilding,
+  IconBookOpen
 } from '@/components/Common/Icons';
 import { institutionService, Institution } from '@/services/institutionService';
 
@@ -32,9 +33,9 @@ const LandingPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900">
+    <div className="min-h-screen bg-white dark:bg-gray-950 font-sans text-gray-900 dark:text-gray-100">
       {/* Navigation */}
-      <nav className="fixed w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm transition-all duration-300">
+      <nav className="fixed w-full z-50 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 shadow-sm transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <Link to="/" className="flex items-center space-x-3 group">
@@ -47,7 +48,7 @@ const LandingPage: React.FC = () => {
               </span>
             </Link>
             <div className="flex items-center space-x-4">
-              <Link to="/login" className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+              <Link to="/login" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                 Iniciar Sesión
               </Link>
               <Link to="/login" className="bg-blue-600 text-white px-6 py-2.5 rounded-full text-sm font-medium hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 shadow-md shadow-blue-600/20">
@@ -61,17 +62,17 @@ const LandingPage: React.FC = () => {
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <div className="inline-block mb-4 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-sm font-semibold tracking-wide uppercase animate-fade-in-up">
+          <div className="inline-block mb-4 px-4 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-sm font-semibold tracking-wide uppercase animate-fade-in-up">
             Revolucionando la Educación
           </div>
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-gray-900 tracking-tight mb-8 leading-tight">
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-8 leading-tight">
             Personalizando el futuro <br className="hidden sm:block" />
             de la educación con{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-300% animate-gradient">
               IA y <br className="hidden sm:block" /> Neurociencias
             </span>
           </h1>
-          <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl text-gray-600 dark:text-gray-300 mb-10 max-w-3xl mx-auto leading-relaxed">
             Nuestra misión es cerrar la brecha en la educación tradicional ofreciendo
             rutas de aprendizaje personalizadas impulsadas por neurociencia e
             Inteligencia Artificial.
@@ -81,7 +82,7 @@ const LandingPage: React.FC = () => {
               Probar Gratis
               <IconArrowRight className="w-5 h-5 ml-2" />
             </Link>
-            <button className="bg-white border-2 border-gray-200 text-gray-700 px-8 py-4 rounded-full text-lg font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm hover:shadow-md hover:-translate-y-1">
+            <button className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-8 py-4 rounded-full text-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all shadow-sm hover:shadow-md hover:-translate-y-1">
               Ver Demo
             </button>
           </div>
@@ -96,11 +97,11 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* El Problema Section */}
-      <section className="py-24 bg-white relative">
+      <section className="py-24 bg-white dark:bg-gray-950 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
-            <h2 className="text-4xl font-bold text-gray-900 mb-6">El Problema</h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">El Problema</h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">
               Educación uniforme y alta carga administrativa para docentes en Paraguay. Un
               sistema desactualizado que no se adapta a las necesidades individuales.
             </p>
@@ -109,31 +110,31 @@ const LandingPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {/* Item 1 */}
             <div className="flex flex-col items-center text-center group">
-              <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center mb-6 text-blue-600 group-hover:scale-110 group-hover:bg-blue-100 transition-all duration-300 shadow-sm">
+              <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/30 rounded-3xl flex items-center justify-center mb-6 text-blue-600 dark:text-blue-400 group-hover:scale-110 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-all duration-300 shadow-sm">
                 <IconUsers className="w-10 h-10" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Educación uniforme</h3>
-              <p className="text-gray-600 leading-relaxed">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Educación uniforme</h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                 Educación uniforme con la misma carga para maestros y docentes en Paraguay.
               </p>
             </div>
             {/* Item 2 */}
             <div className="flex flex-col items-center text-center group">
-              <div className="w-20 h-20 bg-purple-50 rounded-3xl flex items-center justify-center mb-6 text-purple-600 group-hover:scale-110 group-hover:bg-purple-100 transition-all duration-300 shadow-sm">
+              <div className="w-20 h-20 bg-purple-50 dark:bg-purple-900/30 rounded-3xl flex items-center justify-center mb-6 text-purple-600 dark:text-purple-400 group-hover:scale-110 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/50 transition-all duration-300 shadow-sm">
                 <IconChartBar className="w-10 h-10" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Analítica Predictiva</h3>
-              <p className="text-gray-600 leading-relaxed">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Analítica Predictiva</h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                 Identificación temprana de riesgos y adaptación a necesidades constantes.
               </p>
             </div>
             {/* Item 3 */}
             <div className="flex flex-col items-center text-center group">
-              <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center mb-6 text-blue-600 group-hover:scale-110 group-hover:bg-blue-100 transition-all duration-300 shadow-sm">
-                <IconRefreshCw className="w-10 h-10" />
+              <div className="w-20 h-20 bg-cyan-50 dark:bg-cyan-900/30 rounded-3xl flex items-center justify-center mb-6 text-cyan-600 dark:text-cyan-400 group-hover:scale-110 group-hover:bg-cyan-100 dark:group-hover:bg-cyan-900/50 transition-all duration-300 shadow-sm">
+                <IconSparkles className="w-10 h-10" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Adaptabilidad</h3>
-              <p className="text-gray-600 leading-relaxed">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Adaptabilidad</h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                 Evolución del perfil cognitivo interactiva con tutor virtual inteligente.
               </p>
             </div>
@@ -142,12 +143,12 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* La Solución Section */}
-      <section className="py-24 bg-gray-50 overflow-hidden">
+      <section className="py-24 bg-gray-50 dark:bg-gray-900 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-center gap-20">
             <div className="lg:w-1/2 space-y-8">
               <div>
-                <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 leading-tight block">
+                <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 dark:text-white leading-tight block">
                   La Solución:<br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
                     La Magia de EduSpark
@@ -155,29 +156,29 @@ const LandingPage: React.FC = () => {
                 </h2>
               </div>
 
-              <p className="text-gray-600 text-lg leading-relaxed">
+              <p className="text-gray-600 dark:text-gray-300 text-lg leading-relaxed">
                 Una plataforma diseñada con estándares de alta calidad, enfocada en ofrecer una solución integral para el aprendizaje personalizado mediante tecnología de vanguardia.
               </p>
 
               <div className="space-y-6">
-                <div className="flex gap-5 p-4 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex-shrink-0 w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
+                <div className="flex gap-5 p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex-shrink-0 w-14 h-14 bg-blue-100 dark:bg-blue-900/40 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400">
                     <IconBrain className="w-7 h-7" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Aprendizaje personalizado</h3>
-                    <p className="text-gray-600">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Aprendizaje personalizado</h3>
+                    <p className="text-gray-600 dark:text-gray-400">
                       Rutas de aprendizaje adaptativas asistidas por IA basadas en perfiles neurológicos para las necesidades individuales.
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-5 p-4 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex-shrink-0 w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center text-purple-600">
+                <div className="flex gap-5 p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex-shrink-0 w-14 h-14 bg-purple-100 dark:bg-purple-900/40 rounded-2xl flex items-center justify-center text-purple-600 dark:text-purple-400">
                     <IconGlobe className="w-7 h-7" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Contenido bilingüe</h3>
-                    <p className="text-gray-600">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Contenido bilingüe</h3>
+                    <p className="text-gray-600 dark:text-gray-400">
                       Contenido bilingüe integral accesible tanto en español como en inglés.
                     </p>
                   </div>
@@ -186,7 +187,7 @@ const LandingPage: React.FC = () => {
             </div>
 
             <div className="lg:w-1/2 w-full">
-              <div className="relative rounded-2xl shadow-2xl bg-white p-2 border border-gray-200 transform hover:scale-[1.02] transition-transform duration-500">
+              <div className="relative rounded-2xl shadow-2xl bg-white dark:bg-gray-800 p-2 border border-gray-200 dark:border-gray-700 transform hover:scale-[1.02] transition-transform duration-500">
                 <div className="bg-gray-900 rounded-xl aspect-video flex items-center justify-center relative overflow-hidden group">
                   <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 to-gray-900 opacity-95"></div>
 
@@ -233,7 +234,7 @@ const LandingPage: React.FC = () => {
                   </div>
                 </div>
                 {/* Laptop Base */}
-                <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 w-[120%] h-5 bg-gray-200 rounded-b-xl shadow-xl -z-10"></div>
+                <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 w-[120%] h-5 bg-gray-200 dark:bg-gray-700 rounded-b-xl shadow-xl -z-10"></div>
               </div>
             </div>
           </div>
@@ -290,7 +291,7 @@ const LandingPage: React.FC = () => {
               <div className="p-8 h-full flex flex-col items-center text-center">
                 <div className="w-full aspect-video bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-2xl mb-8 flex items-center justify-center border border-white/10 relative overflow-hidden shadow-inner group-hover:shadow-[0_0_30px_rgba(34,211,238,0.3)] transition-all">
                   <div className="absolute inset-0 bg-cyan-500/10 group-hover:bg-cyan-500/20 transition-colors"></div>
-                  <IconRefreshCw className="w-20 h-20 text-cyan-300 drop-shadow-[0_0_20px_rgba(103,232,249,0.6)]" />
+                  <IconSparkles className="w-20 h-20 text-cyan-300 drop-shadow-[0_0_20px_rgba(103,232,249,0.6)]" />
                 </div>
                 <h3 className="text-2xl font-bold mb-4 text-white">Adaptabilidad</h3>
                 <p className="text-gray-300 leading-relaxed">
@@ -303,41 +304,41 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* Modelo de Negocio Section */}
-      <section className="py-24 bg-white relative">
+      <section className="py-24 bg-white dark:bg-gray-950 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Modelo de Negocio</h2>
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Modelo de Negocio</h2>
             <div className="h-1 w-20 bg-blue-600 mx-auto rounded-full"></div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* B2B */}
-            <div className="bg-gradient-to-b from-blue-50 to-white rounded-2xl p-8 border border-blue-100 hover:shadow-xl transition-all duration-300 group hover:-translate-y-1">
-              <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+            <div className="bg-gradient-to-b from-blue-50 to-white dark:from-blue-900/20 dark:to-gray-900 rounded-2xl p-8 border border-blue-100 dark:border-blue-800/50 hover:shadow-xl transition-all duration-300 group hover:-translate-y-1">
+              <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/40 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                 <IconBuilding className="w-7 h-7" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">B2B (Escuelas)</h3>
-              <p className="text-gray-600 leading-relaxed">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">B2B (Escuelas)</h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                 Venta de licencias de software anuales de suscripción para instituciones educativas.
               </p>
             </div>
             {/* B2G */}
-            <div className="bg-white rounded-2xl p-8 border border-gray-100 hover:shadow-xl transition-all duration-300 group hover:-translate-y-1 hover:border-purple-100">
-              <div className="w-14 h-14 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 mb-6 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 border border-gray-100 dark:border-gray-800 hover:shadow-xl transition-all duration-300 group hover:-translate-y-1 hover:border-purple-100 dark:hover:border-purple-800">
+              <div className="w-14 h-14 bg-purple-50 dark:bg-purple-900/40 rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400 mb-6 group-hover:bg-purple-600 group-hover:text-white transition-colors">
                 <IconGlobe className="w-7 h-7" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">B2G (Sector Público)</h3>
-              <p className="text-gray-600 leading-relaxed">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">B2G (Sector Público)</h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                 Grandes licencias institucionales para entidades gubernamentales y educación pública.
               </p>
             </div>
             {/* B2C */}
-            <div className="bg-white rounded-2xl p-8 border border-gray-100 hover:shadow-xl transition-all duration-300 group hover:-translate-y-1 hover:border-green-100">
-              <div className="w-14 h-14 bg-green-50 rounded-xl flex items-center justify-center text-green-600 mb-6 group-hover:bg-green-600 group-hover:text-white transition-colors">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 border border-gray-100 dark:border-gray-800 hover:shadow-xl transition-all duration-300 group hover:-translate-y-1 hover:border-green-100 dark:hover:border-green-800">
+              <div className="w-14 h-14 bg-green-50 dark:bg-green-900/40 rounded-xl flex items-center justify-center text-green-600 dark:text-green-400 mb-6 group-hover:bg-green-600 group-hover:text-white transition-colors">
                 <IconUsers className="w-7 h-7" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">B2C (Padres)</h3>
-              <p className="text-gray-600 leading-relaxed">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">B2C (Padres)</h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                 Venta directa a representantes para el refuerzo escolar y autogestión del aprendizaje.
               </p>
             </div>
@@ -346,32 +347,32 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* Impacto Social Section */}
-      <section className="py-24 bg-gray-50 border-t border-gray-200">
+      <section className="py-24 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Impacto Social</h2>
-            <p className="text-lg text-gray-600 font-light">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Impacto Social</h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400 font-light">
               El impacto esperado en el ecosistema educativo de Paraguay.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            <div className="bg-white p-8 rounded-2xl flex items-center gap-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="flex-shrink-0 w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-                <IconUsers className="w-8 h-8" />
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl flex items-center gap-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
+              <div className="flex-shrink-0 w-16 h-16 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400">
+                <IconBookOpen className="w-8 h-8" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Alfabetización</h3>
-                <p className="text-gray-600">Mejora promovida del 50% en habilidades visuales y de lectura.</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Alfabetización</h3>
+                <p className="text-gray-600 dark:text-gray-400">Mejora promovida del 50% en habilidades visuales y de lectura.</p>
               </div>
             </div>
-            <div className="bg-white p-8 rounded-2xl flex items-center gap-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="flex-shrink-0 w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl flex items-center gap-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
+              <div className="flex-shrink-0 w-16 h-16 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center text-green-600 dark:text-green-400">
                 <IconTrendingUp className="w-8 h-8" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Mejora Lógica</h3>
-                <p className="text-gray-600">Incremento del 20% en lógica matemática y habilidades remediables.</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Mejora Lógica</h3>
+                <p className="text-gray-600 dark:text-gray-400">Incremento del 20% en lógica matemática y habilidades remediables.</p>
               </div>
             </div>
           </div>

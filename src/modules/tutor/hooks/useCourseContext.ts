@@ -16,6 +16,7 @@ import type {
   CourseImage,
   CourseContext
 } from '../types/pedagogical';
+import { supabase } from '@/lib/supabase';
 
 // =====================================================
 // Hook useCourseContext

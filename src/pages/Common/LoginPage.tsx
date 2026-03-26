@@ -12,7 +12,7 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center">
         {/* Panel izquierdo - Información */}
         <div className="hidden lg:block">
@@ -31,7 +31,7 @@ const LoginPage: React.FC = () => {
 
             <div className="space-y-6">
               <div className="flex items-start space-x-4">
-                <div className="bg-blue-100 p-3 rounded-lg">
+                <div className="bg-blue-100 dark:bg-blue-900/40 p-3 rounded-lg">
                   <BookOpen className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
@@ -41,7 +41,7 @@ const LoginPage: React.FC = () => {
               </div>
 
               <div className="flex items-start space-x-4">
-                <div className="bg-purple-100 p-3 rounded-lg">
+                <div className="bg-purple-100 dark:bg-purple-900/40 p-3 rounded-lg">
                   <GraduationCap className="w-6 h-6 text-purple-600" />
                 </div>
                 <div>
@@ -51,7 +51,7 @@ const LoginPage: React.FC = () => {
               </div>
 
               <div className="flex items-start space-x-4">
-                <div className="bg-green-100 p-3 rounded-lg">
+                <div className="bg-green-100 dark:bg-green-900/40 p-3 rounded-lg">
                   <Users className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
@@ -61,7 +61,7 @@ const LoginPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-8 p-6 bg-white/50 backdrop-blur-sm rounded-xl border border-white/20">
+            <div className="mt-8 p-6 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-white/20 dark:border-slate-700/50">
               <p className="text-gray-600 text-sm">
                 "EduSpark revoluciona la educación combinando inteligencia artificial con pedagogía moderna para crear experiencias de aprendizaje únicas."
               </p>
@@ -86,12 +86,12 @@ const LoginPage: React.FC = () => {
 
           {/* Formularios */}
           {isLogin ? (
-            <LoginForm 
+            <LoginForm
               onSuccess={handleSuccess}
               onSwitchToRegister={() => setIsLogin(false)}
             />
           ) : (
-            <RegisterForm 
+            <RegisterForm
               onSuccess={handleSuccess}
               onSwitchToLogin={() => setIsLogin(true)}
             />
@@ -101,7 +101,7 @@ const LoginPage: React.FC = () => {
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-500">
               ¿Necesitas ayuda?{' '}
-              <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
+              <a href="#" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
                 Contacta soporte
               </a>
             </p>

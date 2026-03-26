@@ -267,9 +267,11 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ collapsed = false, onTo
         {/* Branding Sutil */}
         {!collapsed && (
           <div className="px-4 pb-3 pt-0 flex items-center justify-center">
-            <div className="flex items-center gap-1.5 opacity-40 hover:opacity-100 transition-opacity cursor-default">
-              <IconEduSparkLogo className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-500">Powered by EduSpark</span>
+            <div className="flex items-center gap-1.5 opacity-50 hover:opacity-100 transition-opacity cursor-default group/brand">
+              <IconEduSparkLogo className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 group-hover/brand:text-primary transition-colors" />
+              <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 tracking-tight">
+                Powered by <span className="text-gray-900 dark:text-white group-hover/brand:text-primary transition-colors">EduSpark</span>
+              </span>
             </div>
           </div>
         )}

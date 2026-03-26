@@ -316,24 +316,24 @@ const AssignmentDetailModal: React.FC<{
       aria-labelledby="assignment-title"
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col"
+        className="bg-surface rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="p-4 border-b border-border flex justify-between items-center">
           <div className="flex-1">
             <h2 id="assignment-title" className="text-xl font-bold text-text-dark">{assignment.title}</h2>
             {assignment.course && (
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-text-light mt-1">
                 Curso: {assignment.course.title}
               </p>
             )}
             {assignment.unit && (
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-text-light">
                 Módulo: {assignment.unit.title}
               </p>
             )}
             {assignment.session && (
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-text-light">
                 Sesión: {assignment.session.title}
               </p>
             )}
@@ -363,7 +363,7 @@ const AssignmentDetailModal: React.FC<{
             <div className="text-right">
               {getStatusChip(assignment.submissionStatus)}
               {assignment.submission?.grade !== null && assignment.submission?.grade !== undefined && (
-                <p className="text-sm font-semibold text-gray-700 mt-1">
+                <p className="text-sm font-semibold text-text-dark mt-1">
                   Calificación: {assignment.submission.grade} / {assignment.max_points}
                 </p>
               )}
@@ -385,9 +385,9 @@ const AssignmentDetailModal: React.FC<{
                   [&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:mb-3 [&_ol]:space-y-1
                   [&_li]:mb-1
                   [&_a]:text-primary [&_a]:underline [&_a]:hover:text-primary-dark
-                  [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-3
-                  [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono
-                  [&_pre]:bg-gray-100 [&_pre]:p-3 [&_pre]:rounded [&_pre]:overflow-x-auto [&_pre]:my-3">
+                  [&_blockquote]:border-l-4 [&_blockquote]:border-border [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-3
+                  [&_code]:bg-background [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono [&_code]:border [&_code]:border-border
+                  [&_pre]:bg-background [&_pre]:p-3 [&_pre]:rounded [&_pre]:overflow-x-auto [&_pre]:my-3 [&_pre]:border [&_pre]:border-border">
                 <RichTextDisplay content={assignment.description} />
               </div>
             </div>
@@ -395,12 +395,12 @@ const AssignmentDetailModal: React.FC<{
 
           {/* Formulario de entrega */}
           {user?.role?.name === 'student' && (
-            <div className="border-t border-gray-200 pt-4">
+            <div className="border-t border-border pt-4">
               <h3 className="font-semibold text-text-dark mb-3">Entregar Tarea</h3>
               <div className="space-y-3">
                 {/* Subir archivo directamente */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-text-dark mb-2">
                     Subir Archivo
                   </label>
                   <div>
@@ -416,16 +416,16 @@ const AssignmentDetailModal: React.FC<{
                     <label
                       htmlFor="file-upload-submission"
                       className={`flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${uploadingFile
-                        ? 'border-gray-300 bg-gray-50 cursor-not-allowed'
-                        : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
+                        ? 'border-border bg-background cursor-not-allowed'
+                        : 'border-border hover:border-primary hover:bg-primary/5'
                         }`}
                     >
-                      <IconUpload className={`w-5 h-5 ${uploadingFile ? 'text-gray-400' : 'text-gray-600'}`} />
-                      <span className={`text-sm font-medium ${uploadingFile ? 'text-gray-400' : 'text-gray-700'}`}>
+                      <IconUpload className={`w-5 h-5 ${uploadingFile ? 'text-text-light' : 'text-text-light'}`} />
+                      <span className={`text-sm font-medium ${uploadingFile ? 'text-text-light' : 'text-text-dark'}`}>
                         {uploadingFile ? 'Subiendo archivo...' : 'Seleccionar archivo para subir'}
                       </span>
                     </label>
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-text-light">
                       Formatos permitidos: PDF, Word, Excel, PowerPoint, texto, archivos comprimidos. Tamaño máximo: 35MB
                     </p>
                   </div>
@@ -436,14 +436,14 @@ const AssignmentDetailModal: React.FC<{
                       {uploadedFiles.map((file, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                          className="flex items-center justify-between p-3 bg-background rounded-lg border border-border"
                         >
                           <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <IconFileText className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                            <IconFileText className="w-5 h-5 text-text-light flex-shrink-0" />
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
+                              <p className="text-sm font-medium text-text-dark truncate">{file.name}</p>
                               {file.size && (
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-text-light">
                                   {(file.size / 1024).toFixed(2)} KB
                                 </p>
                               )}
@@ -475,7 +475,7 @@ const AssignmentDetailModal: React.FC<{
 
                 {/* URL alternativa */}
                 <div>
-                  <label htmlFor="submission-url" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="submission-url" className="block text-sm font-medium text-text-dark mb-1">
                     URL (Google Drive, Dropbox, etc.) - Opcional
                   </label>
                   <div className="flex gap-2">
@@ -485,7 +485,7 @@ const AssignmentDetailModal: React.FC<{
                       value={submissionUrl}
                       onChange={(e) => setSubmissionUrl(e.target.value)}
                       placeholder="https://..."
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary"
+                      className="flex-1 px-3 py-2 border border-border bg-background text-text-dark rounded-md focus:ring-primary focus:border-primary"
                     />
                     {hasDriveConnected && (
                       <Button
@@ -513,7 +513,7 @@ const AssignmentDetailModal: React.FC<{
 
                 {/* Texto de entrega */}
                 <div>
-                  <label htmlFor="submission-text" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="submission-text" className="block text-sm font-medium text-text-dark mb-1">
                     Texto de la entrega (Opcional)
                   </label>
                   <textarea
@@ -522,7 +522,7 @@ const AssignmentDetailModal: React.FC<{
                     onChange={(e) => setSubmissionText(e.target.value)}
                     placeholder="Escribe tu respuesta aquí..."
                     rows={6}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary"
+                    className="w-full px-3 py-2 border border-border bg-background text-text-dark rounded-md focus:ring-primary focus:border-primary"
                   />
                 </div>
               </div>
@@ -531,9 +531,9 @@ const AssignmentDetailModal: React.FC<{
 
           {/* Historial de entregas */}
           {assignment.submission && (
-            <div className="space-y-2 border-t border-gray-200 pt-4">
+            <div className="space-y-2 border-t border-border pt-4">
               <h3 className="font-semibold text-text-dark">Tu Entrega</h3>
-              <div className="border border-border rounded-lg p-3 bg-gray-50">
+              <div className="border border-border rounded-lg p-3 bg-background">
                 <div className="flex justify-between items-center mb-2">
                   <div className="flex items-center gap-3">
                     {assignment.submission.url && (
@@ -554,7 +554,7 @@ const AssignmentDetailModal: React.FC<{
                     )}
                     {assignment.submission.text && !assignment.submission.url && (
                       <div>
-                        <p className="text-sm font-medium text-gray-700">Entrega de texto</p>
+                        <p className="text-sm font-medium text-text-dark">Entrega de texto</p>
                         <p className="text-xs text-text-light">Entregado: {formatDate(assignment.submission.submitted_at)}</p>
                       </div>
                     )}
@@ -562,8 +562,8 @@ const AssignmentDetailModal: React.FC<{
                   {getStatusChip(assignment.submissionStatus)}
                 </div>
                 {assignment.submission.text && (
-                  <div className="mt-3 p-3 bg-white rounded border border-gray-200">
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{assignment.submission.text}</p>
+                  <div className="mt-3 p-3 bg-surface rounded border border-border">
+                    <p className="text-sm text-text-dark whitespace-pre-wrap">{assignment.submission.text}</p>
                   </div>
                 )}
                 {assignment.submission.feedback && (
@@ -848,15 +848,15 @@ const AssignmentsPage: React.FC = () => {
             Volver al Curso
           </Button>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900">{course.title}</h1>
-            <p className="text-gray-600">Tareas del curso • {assignments.length} {assignments.length === 1 ? 'tarea' : 'tareas'}</p>
+            <h1 className="text-2xl font-bold text-text-dark">{course.title}</h1>
+            <p className="text-text-light">Tareas del curso • {assignments.length} {assignments.length === 1 ? 'tarea' : 'tareas'}</p>
           </div>
         </div>
       )}
 
       {!course && (
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-slate-800">Tareas</h1>
+          <h1 className="text-3xl font-bold text-text-dark">Tareas</h1>
           {courseIdParam && (
             <Button
               variant="ghost"
@@ -981,8 +981,8 @@ const AssignmentsPage: React.FC = () => {
           return (
             <Card>
               <div className="text-center py-8">
-                <IconClipboardList className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-slate-600">
+                <IconClipboardList className="w-12 h-12 text-text-light/50 mx-auto mb-4" />
+                <p className="text-text-light">
                   {searchQuery || statusFilter || moduleFilter || dateFilter
                     ? 'No se encontraron tareas con los filtros aplicados.'
                     : courseIdParam
@@ -997,7 +997,7 @@ const AssignmentsPage: React.FC = () => {
         return (
           <>
             {filtered.length < assignments.length && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+              <div className="bg-blue-50/10 border border-blue-500/30 rounded-lg p-3 text-sm text-blue-600 dark:text-blue-400">
                 Mostrando {filtered.length} de {assignments.length} tareas
               </div>
             )}
@@ -1012,23 +1012,23 @@ const AssignmentsPage: React.FC = () => {
                     <div className="flex items-center flex-1">
                       <IconClipboardList className="w-6 h-6 text-primary mr-3 flex-shrink-0" />
                       <div className="flex-1">
-                        <h2 className="text-xl font-semibold text-slate-700">{assignment.title}</h2>
+                        <h2 className="text-xl font-semibold text-text-dark">{assignment.title}</h2>
                         {!courseIdParam && assignment.course && (
-                          <p className="text-sm text-gray-600 mt-1">{assignment.course.title}</p>
+                          <p className="text-sm text-text-light mt-1">{assignment.course.title}</p>
                         )}
                         {assignment.unit && (
-                          <p className="text-xs text-gray-500 mt-1">Módulo: {assignment.unit.title}</p>
+                          <p className="text-xs text-text-light/70 mt-1">Módulo: {assignment.unit.title}</p>
                         )}
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center text-sm text-gray-600">
+                    <div className="flex items-center text-sm text-text-light">
                       <IconCalendar className="w-4 h-4 mr-2" />
                       <span>{formatDueDate(assignment.due_at)}</span>
                       {assignment.due_at && (
-                        <span className="ml-2 text-gray-400">
+                        <span className="ml-2 opacity-70">
                           ({new Date(assignment.due_at).toLocaleDateString('es-ES')})
                         </span>
                       )}
@@ -1036,7 +1036,7 @@ const AssignmentsPage: React.FC = () => {
 
                     {assignment.description && (
                       <p
-                        className="text-sm text-slate-500 line-clamp-2"
+                        className="text-sm text-text-light line-clamp-2"
                         dangerouslySetInnerHTML={{
                           __html: assignment.description
                             .replace(/<[^>]*>/g, '') // Remover tags HTML para preview

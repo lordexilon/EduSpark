@@ -56,11 +56,32 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-            'supabase': ['@supabase/supabase-js'],
-            'tiptap': ['@tiptap/react', '@tiptap/starter-kit'],
-            'icons': ['lucide-react']
+          manualChunks(id) {
+            // Vendor chunks
+            if (id.includes('node_modules')) {
+              if (id.includes('@supabase/supabase-js')) return 'vendor-supabase';
+              if (id.includes('@tiptap/')) return 'vendor-tiptap';
+              if (id.includes('react') || id.includes('scheduler')) return 'vendor-react';
+              if (id.includes('lucide-react')) return 'vendor-icons';
+              if (id.includes('xlsx')) return 'vendor-xlsx';
+              if (id.includes('jspdf')) return 'vendor-jspdf';
+              return 'vendor-misc';
+            }
+
+            // App domain chunks (helps reduce giant app chunk)
+            if (id.includes('/src/services/')) {
+              if (id.includes('google')) return 'app-google-services';
+              if (id.includes('tutor')) return 'app-tutor-services';
+              if (id.includes('supabase')) return 'app-supabase-services';
+              return 'app-services';
+            }
+            if (id.includes('/src/modules/tutor/')) return 'app-tutor-module';
+            if (id.includes('/src/pages/Admin/')) return 'app-pages-admin';
+            if (id.includes('/src/pages/Teacher/')) return 'app-pages-teacher';
+            if (id.includes('/src/pages/Student/')) return 'app-pages-student';
+            if (id.includes('/src/pages/Common/')) return 'app-pages-common';
+
+            return undefined;
           }
         }
       },

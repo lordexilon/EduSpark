@@ -10,7 +10,7 @@ interface FileAnalysisModalProps {
   analysis: FileAnalysis | null;
   isOpen: boolean;
   onClose: () => void;
-  onProcess: (ragProcessingType: 'full' | 'readonly') => void;
+  onProcess: (ragProcessingType: 'full' | 'readonly' | 'desktop') => void;
   onSaveWithoutProcessing?: () => void;
   isProcessing?: boolean;
 }
@@ -23,7 +23,7 @@ export const FileAnalysisModal: React.FC<FileAnalysisModalProps> = ({
   onSaveWithoutProcessing,
   isProcessing = false,
 }) => {
-  const [ragProcessingType, setRagProcessingType] = React.useState<'full' | 'readonly'>('full');
+  const [ragProcessingType, setRagProcessingType] = React.useState<'full' | 'readonly' | 'desktop'>('full');
   
   if (!isOpen || !analysis) return null;
 
@@ -129,13 +129,34 @@ export const FileAnalysisModal: React.FC<FileAnalysisModalProps> = ({
                   </div>
                 </div>
               </label>
+              <label className="flex items-start space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-green-50 transition-colors">
+                <input
+                  type="radio"
+                  name="ragProcessingType"
+                  value="desktop"
+                  checked={ragProcessingType === 'desktop'}
+                  onChange={(e) => setRagProcessingType(e.target.value as 'full' | 'readonly' | 'desktop')}
+                  className="mt-1"
+                />
+                <div className="flex-1">
+                  <div className="font-medium text-green-900 border-b border-green-200 pb-1 mb-1">
+                    💻 Procesamiento Local (App de Escritorio)
+                  </div>
+                  <div className="text-sm text-green-800 font-medium mb-1">
+                    ✨ Recomendado para archivos de más de 50MB o más de 500 páginas.
+                  </div>
+                  <div className="text-sm text-green-700">
+                    El archivo se dejará en cola especial. Al abrir "EduSpark Uploader" en tu computadora, se descargarán los datos crudos y tu propia PC se encargará del procesamiento pesado, evitando todos los cierres y límites de la nube.
+                  </div>
+                </div>
+              </label>
               <label className="flex items-start space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
                 <input
                   type="radio"
                   name="ragProcessingType"
                   value="readonly"
                   checked={ragProcessingType === 'readonly'}
-                  onChange={(e) => setRagProcessingType(e.target.value as 'full' | 'readonly')}
+                  onChange={(e) => setRagProcessingType(e.target.value as 'full' | 'readonly' | 'desktop')}
                   className="mt-1"
                 />
                 <div className="flex-1">
@@ -179,7 +200,9 @@ export const FileAnalysisModal: React.FC<FileAnalysisModalProps> = ({
               {isProcessing 
                 ? 'Procesando...' 
                 : ragProcessingType === 'full' 
-                  ? 'Procesar para RAG' 
+                  ? 'Procesar en Servidor'
+                  : ragProcessingType === 'desktop'
+                    ? 'Delegar a App de Escritorio' 
                   : 'Agregar como Solo Lectura'}
             </button>
           </div>

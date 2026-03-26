@@ -236,6 +236,8 @@ export const useAgentSystem = (courseId: string) => {
           metadata: {
             confidence: response.metadata?.confidence,
             sources: response.metadata?.sources,
+            sourceMetadata: response.metadata?.sourceMetadata,
+            contextUsed: response.metadata?.contextUsed,
             audioUrl: response.audioUrl
           }
         };
@@ -333,6 +335,8 @@ export const useAgentSystem = (courseId: string) => {
             metadata: {
               confidence: response.metadata?.confidence,
               sources: response.metadata?.sources,
+              sourceMetadata: response.metadata?.sourceMetadata,
+              contextUsed: response.metadata?.contextUsed,
               audioUrl: response.audioUrl
             }
           };

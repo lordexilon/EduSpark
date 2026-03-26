@@ -4,6 +4,9 @@
  * v2.0 - Con paralelismo para extracción de páginas
  */
 
+// Cargar variables de entorno automáticamente
+require('dotenv').config({ path: '.env.production' });
+
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -28,7 +31,7 @@ const MAX_FILE_SIZE = 900 * 1024 * 1024; // 900MB
 const DOWNLOAD_TIMEOUT = 30 * 60 * 1000; // 30 minutos
 const PARALLEL_PAGES = 4; // Procesar 4 páginas en paralelo (más conservador para PDFs muy grandes)
 const PROGRESS_UPDATE_INTERVAL = 50; // Actualizar progreso cada 50 páginas
-const SPLIT_THRESHOLD_MB = 50; // Dividir PDFs > 50 MB
+const SPLIT_THRESHOLD_MB = 100; // Dividir PDFs > 100 MB (Aumentado para evitar error de qpdf en Windows)
 const PAGES_PER_CHUNK = 500; // Páginas por chunk al dividir
 
 // Flag para evitar ejecuciones concurrentes
@@ -42,6 +45,33 @@ const supabase = createClient(
 );
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+/**
+ * Genera embeddings en lote usando Gemini REST API
+ */
+async function generateEmbeddingsBatch(texts, title) {
+    try {
+        const apiKey = process.env.GEMINI_API_KEY;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key=${apiKey}`;
+        
+        const requests = texts.map(text => ({
+            model: 'models/text-embedding-004',
+            taskType: 'RETRIEVAL_DOCUMENT',
+            title: title || 'Documento',
+            content: { parts: [{ text }] },
+            outputDimensionality: 512
+        }));
+
+        const response = await axios.post(url, { requests }, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        return response.data.embeddings.map(e => e.values);
+    } catch (error) {
+        console.error('[RAG Worker VM] ❌ Error generando embeddings en lote:', error.response?.data || error.message);
+        throw error;
+    }
+}
 
 /**
  * Refresca el token de Google usando el refresh_token
@@ -405,9 +435,11 @@ async function processRagJobs() {
             try { job.metadata = JSON.parse(job.metadata); } catch (e) { }
         }
 
+        job.metadata = { ...job.metadata, startedAt: new Date().toISOString() };
         await supabase.from('file_processing_jobs').update({
             status: 'processing',
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
+            metadata: job.metadata
         }).eq('id', job.id);
 
         const materialId = job.metadata?.materialId || job.material_id;
@@ -557,65 +589,72 @@ async function processRagJobs() {
         }
 
         // Actualizar metadata con fase de embedding
+        job.metadata = { ...job.metadata, chunksTotal: chunks.length, phase: 'embedding', pagesProcessed: totalPages, totalPages: totalPages };
         await supabase.from('file_processing_jobs').update({
-            metadata: { ...job.metadata, chunksTotal: chunks.length, phase: 'embedding', pagesProcessed: totalPages, totalPages: totalPages },
+            metadata: job.metadata,
             updated_at: new Date().toISOString()
         }).eq('id', job.id);
 
-        // Embeddings en batches
-        const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+        const BATCH_SIZE = 10;
         let processedCount = 0;
-        const BATCH_SIZE = 10; // Aumentado para mayor velocidad
 
         for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
             const batch = chunks.slice(i, i + BATCH_SIZE);
             const chunksToInsert = [];
 
-            // Procesar embeddings en paralelo dentro del batch
-            const embeddingPromises = batch.map(async (chunk, j) => {
-                try {
-                    const result = await model.embedContent(chunk.content);
-                    return {
-                        course_id: materialData.course_id,
-                        unit_id: materialData.unit_id,
-                        session_id: materialData.session_id,
-                        content: chunk.content,
-                        embedding: result.embedding.values,
-                        chunk_index: i + j + 1,
-                        metadata: {
-                            material_id: materialId,
-                            pageStart: chunk.pageStart,
-                            pageEnd: chunk.pageEnd,
-                            file_name: job.file_name
-                        }
-                    };
-                } catch (e) {
-                    console.error(`[RAG Worker VM] Error embedding chunk ${i + j + 1}: ${e.message}`);
-                    return null;
+            console.log(`[RAG Worker VM] 🧠 Generando embeddings para lote ${i/BATCH_SIZE + 1}...`);
+            
+            try {
+                const batchTexts = batch.map(c => c.content);
+                const batchEmbeddings = await generateEmbeddingsBatch(batchTexts, job.file_name);
+                
+                for (let j = 0; j < batch.length; j++) {
+                    const chunk = batch[j];
+                    const embedding = batchEmbeddings[j];
+                    
+                    if (embedding) {
+                        chunksToInsert.push({
+                            course_id: materialData.course_id,
+                            unit_id: materialData.unit_id,
+                            session_id: materialData.session_id,
+                            content: chunk.content,
+                            embedding: embedding,
+                            chunk_index: i + j + 1,
+                            metadata: {
+                                material_id: materialId,
+                                pageStart: chunk.pageStart,
+                                pageEnd: chunk.pageEnd,
+                                file_name: job.file_name
+                            }
+                        });
+                    }
                 }
-            });
-
-            const results = await Promise.all(embeddingPromises);
-            const validChunks = results.filter(r => r !== null);
-
-            if (validChunks.length > 0) {
-                await supabase.from('course_content_chunks').insert(validChunks);
+            } catch (e) {
+                console.error(`[RAG Worker VM] Error en lote ${i/BATCH_SIZE + 1}: ${e.message}`);
+                throw e;
             }
 
-            processedCount += validChunks.length;
+            if (chunksToInsert.length > 0) {
+                await supabase.from('course_content_chunks').insert(chunksToInsert);
+            }
+
+            processedCount += chunksToInsert.length;
             const progress = Math.round((processedCount / chunks.length) * 100);
             console.log(`[RAG Worker VM] 📊 Embeddings: ${processedCount}/${chunks.length} (${progress}%)`);
 
+            job.metadata = { ...job.metadata, chunksProcessed: processedCount, phase: 'embedding' };
             await supabase.from('file_processing_jobs').update({
-                metadata: { ...job.metadata, chunksProcessed: processedCount, chunksTotal: chunks.length, phase: 'embedding' },
+                metadata: job.metadata,
                 updated_at: new Date().toISOString()
             }).eq('id', job.id);
         }
 
         // Finalizar
+        job.metadata = { ...job.metadata, phase: 'completed', chunksProcessed: chunks.length };
         const { error: jobUpdateError } = await supabase.from('file_processing_jobs').update({
             status: 'completed',
-            metadata: { ...job.metadata, phase: 'completed', chunksProcessed: (job.metadata?.chunksTotal || chunks.length) },
+            metadata: job.metadata,
+            completed_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
         }).eq('id', job.id);
 
@@ -645,7 +684,7 @@ async function processRagJobs() {
         if (job) {
             await supabase.from('file_processing_jobs').update({
                 status: 'failed',
-                error: error.message,
+                error_message: error.message,
                 updated_at: new Date().toISOString()
             }).eq('id', job.id);
 

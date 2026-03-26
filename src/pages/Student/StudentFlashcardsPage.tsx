@@ -399,14 +399,14 @@ export const StudentFlashcardsPage: React.FC = () => {
           align-items: center;
           justify-content: center;
           min-height: 50vh;
-          color: #6b7280;
+          color: var(--text-light);
           font-size: 0.9rem;
         }
         .sfp-spinner {
           width: 36px;
           height: 36px;
-          border: 3px solid #e5e7eb;
-          border-top-color: #6366f1;
+          border: 3px solid var(--border);
+          border-top-color: var(--primary);
           border-radius: 50%;
           animation: sfp-spin 0.8s linear infinite;
           margin-bottom: 12px;
@@ -422,12 +422,12 @@ export const StudentFlashcardsPage: React.FC = () => {
         .sfp-title {
           font-size: 1.35rem;
           font-weight: 800;
-          color: #1f2937;
+          color: var(--text-dark);
           margin: 0 0 4px 0;
         }
         .sfp-subtitle {
           font-size: 0.8rem;
-          color: #6b7280;
+          color: var(--text-light);
           margin: 0;
         }
         @media (min-width: 640px) {
@@ -442,11 +442,11 @@ export const StudentFlashcardsPage: React.FC = () => {
           align-items: center;
           gap: 14px;
           padding: 40px 16px;
-          background: white;
+          background: var(--surface);
           border-radius: 16px;
-          border: 1.5px solid #e5e7eb;
+          border: 1.5px solid var(--border);
           text-align: center;
-          color: #6b7280;
+          color: var(--text-light);
           font-size: 0.9rem;
         }
 
@@ -456,9 +456,9 @@ export const StudentFlashcardsPage: React.FC = () => {
           align-items: center;
           gap: 8px;
           padding: 12px 14px;
-          background: white;
+          background: var(--surface);
           border-radius: 14px;
-          border: 1.5px solid #e5e7eb;
+          border: 1.5px solid var(--border);
           margin-bottom: 14px;
           flex-wrap: wrap;
         }
@@ -471,18 +471,18 @@ export const StudentFlashcardsPage: React.FC = () => {
         .sfp-selector-label {
           font-size: 0.8rem;
           font-weight: 600;
-          color: #374151;
+          color: var(--text-dark);
           white-space: nowrap;
         }
         .sfp-select {
           flex: 1;
           min-width: 0;
           padding: 8px 12px;
-          border: 1.5px solid #d1d5db;
+          border: 1.5px solid var(--border);
           border-radius: 10px;
           font-size: 0.85rem;
-          color: #1f2937;
-          background: #f9fafb;
+          color: var(--text-dark);
+          background: var(--background);
           -webkit-appearance: none;
           appearance: none;
           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
@@ -493,7 +493,7 @@ export const StudentFlashcardsPage: React.FC = () => {
         }
         .sfp-select:focus {
           outline: none;
-          border-color: #6366f1;
+          border-color: var(--primary);
           box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
         }
         .sfp-study-btn {
@@ -612,6 +612,13 @@ export const StudentFlashcardsPage: React.FC = () => {
           border-color: #c4b5fd;
           color: #7c3aed;
         }
+        
+        /* Dark mode overrides for stats blocks */
+        html.dark .sfp-stat-blue { background: rgba(29, 78, 216, 0.15); border-color: rgba(59, 130, 246, 0.4); color: #93c5fd; }
+        html.dark .sfp-stat-green { background: rgba(21, 128, 61, 0.15); border-color: rgba(34, 197, 94, 0.4); color: #86efac; }
+        html.dark .sfp-stat-yellow { background: rgba(161, 98, 7, 0.15); border-color: rgba(234, 179, 8, 0.4); color: #fde047; }
+        html.dark .sfp-stat-indigo { background: rgba(67, 56, 202, 0.15); border-color: rgba(99, 102, 241, 0.4); color: #a5b4fc; }
+        html.dark .sfp-stat-purple { background: rgba(124, 58, 237, 0.15); border-color: rgba(168, 85, 247, 0.4); color: #d8b4fe; }
 
         /* List header */
         .sfp-list-header {
@@ -624,7 +631,7 @@ export const StudentFlashcardsPage: React.FC = () => {
         }
         .sfp-list-count {
           font-size: 0.8rem;
-          color: #6b7280;
+          color: var(--text-light);
           margin: 0;
         }
         @media (min-width: 640px) {
@@ -650,16 +657,16 @@ export const StudentFlashcardsPage: React.FC = () => {
         }
 
         .sfp-card {
-          background: white;
+          background: var(--surface);
           border-radius: 14px;
-          border: 1.5px solid #e5e7eb;
+          border: 1.5px solid var(--border);
           padding: 14px;
           transition: all 0.2s;
           cursor: default;
         }
         .sfp-card:hover {
           box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-          border-color: #c7d2fe;
+          border-color: var(--primary);
         }
 
         .sfp-card-top {
@@ -675,7 +682,7 @@ export const StudentFlashcardsPage: React.FC = () => {
         .sfp-card-title {
           font-size: 0.85rem;
           font-weight: 700;
-          color: #1f2937;
+          color: var(--text-dark);
           margin: 0 0 4px 0;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -683,7 +690,7 @@ export const StudentFlashcardsPage: React.FC = () => {
         }
         .sfp-card-preview {
           font-size: 0.75rem;
-          color: #6b7280;
+          color: var(--text-light);
           margin: 0;
           overflow: hidden;
           display: -webkit-box;
@@ -708,7 +715,7 @@ export const StudentFlashcardsPage: React.FC = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #f9fafb;
+          background: var(--background);
         }
         .sfp-card-thumb-img {
           max-width: 100%;
@@ -722,9 +729,9 @@ export const StudentFlashcardsPage: React.FC = () => {
           justify-content: space-between;
           gap: 8px;
           font-size: 0.65rem;
-          color: #9ca3af;
+          color: var(--text-light);
           padding-top: 8px;
-          border-top: 1px solid #f3f4f6;
+          border-top: 1px solid var(--border);
         }
         .sfp-card-review {
           display: flex;
@@ -744,9 +751,9 @@ export const StudentFlashcardsPage: React.FC = () => {
         .sfp-show-more-btn {
           padding: 10px 24px;
           border-radius: 12px;
-          border: 1.5px solid #d1d5db;
-          background: white;
-          color: #4b5563;
+          border: 1.5px solid var(--border);
+          background: var(--surface);
+          color: var(--text-dark);
           font-size: 0.85rem;
           font-weight: 600;
           cursor: pointer;

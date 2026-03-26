@@ -30,6 +30,13 @@ interface RAGResponse {
     timestamp: string;
     confidence?: number;
     sources?: string[];
+    sourceMetadata?: Array<Record<string, any>>;
+    retrievalAudit?: {
+      textCount: number;
+      vectorCount: number;
+      combinedCount: number;
+      courseId: number;
+    };
     // Nuevos metadatos para UI
     truncated?: boolean;
     continuationHint?: string;
@@ -74,12 +81,15 @@ interface CourseContent {
  * para mejorar la relevancia de resultados específicos
  */
 const PRIORITY_MATERIALS: Record<number, string[]> = {
-  // Curso 12: Ginecología-Obstetricia
+  // Curso 12: Ginecología-Obstetricia + Medicina Interna
   12: [
     'Williams Gineco.pdf',
     'Williams Ginecología',
     'Williams Obstetricia',
-    'Williams Obstetricia 25a Edicion.pdf'
+    'Williams Obstetricia 25a Edicion.pdf',
+    'Harrison Principios de Medicina Interna',
+    'Harrison Principios de Medicina',
+    'Nelson'
   ],
 };
 
@@ -91,7 +101,8 @@ export class RAGService {
   private readonly model = 'gemini-2.5-flash';
   private readonly maxContextLength = 200000;
   private readonly maxSources = 20;
-  private readonly maxOutputTokens = 2048;
+  /** Margen amplio para respuestas pedagógicas completas (evita corte por MAX_TOKENS en explicaciones largas). */
+  private readonly maxOutputTokens = 4096;
   private lastFinishReason: string | null = null;
   private lastResponseTail: string | null = null;
 
@@ -106,6 +117,12 @@ export class RAGService {
   private readonly MAX_CACHE_SIZE = 500;
 
   private currentContext: ConversationContext | null = null;
+  private lastRetrievalAudit: {
+    textCount: number;
+    vectorCount: number;
+    combinedCount: number;
+    courseId: number;
+  } = { textCount: 0, vectorCount: 0, combinedCount: 0, courseId: 0 };
 
   /**
    * Procesa una consulta RAG con contexto personalizado
@@ -137,10 +154,12 @@ export class RAGService {
         }
       }
 
-      // 1. Caché
+      // DEBUG: Forzar búsqueda real (saltar caché)
       const cacheKey = this.generateCacheKey(query, context);
+      /*
       const cachedResponse = this.getCachedResponse(cacheKey);
       if (cachedResponse) return cachedResponse;
+      */
 
       // 2. Intención
       if (this.isGeneralQuery(userQuestion.toLowerCase().trim())) {
@@ -149,11 +168,24 @@ export class RAGService {
         return { data: this.formatRAGResponse(response, []), error: null, success: true };
       }
 
+      // 2.5 Meta-query: preguntas sobre estructura del curso, materiales disponibles, etc.
+      const courseIdInt = parseInt(context.courseId, 10);
+      // DEBUG: Saltar meta-query para forzar búsqueda de contenido médico
+      /*
+      if (this.isCourseMetaQuery(userQuestion.toLowerCase().trim())) {
+        console.log('📋 Detected meta-query about course structure/materials');
+        const metaResponse = await this.handleCourseMetaQuery(userQuestion, courseIdInt, query);
+        if (metaResponse) {
+          this.saveToCache(cacheKey, metaResponse);
+          return metaResponse;
+        }
+      }
+      */
+
       // 3. Contenido
       const pageRange = this.detectPageRange(userQuestion);
 
       // Obtener estructura básica del curso (siempre útil)
-      const courseIdInt = parseInt(context.courseId, 10);
       const [{ data: courseInfo }, { data: courseUnits }] = await Promise.all([
         supabase.from('courses').select('title, description').eq('id', courseIdInt).single(),
         supabase.from('course_units').select('number, title').eq('course_id', courseIdInt).order('number', { ascending: true })
@@ -199,9 +231,10 @@ export class RAGService {
       const courseIdInt = parseInt(courseId, 10);
       const pageRange = this.detectPageRange(query);
       const startTime = Date.now();
-
+      
       const promises = [
-        this.searchChunksByText(query, courseIdInt),
+        this.searchChunksByText(query, courseIdInt, moduleId),
+        this.searchChunksByVector(query, courseIdInt, moduleId), // Nueva búsqueda semántica
         supabase.from('courses').select('id, title, description').eq('id', courseIdInt).single(),
         supabase.from('course_units').select('id, number, title, description, content_html').eq('course_id', courseIdInt),
         this.fetchSessionsWithFilter(courseIdInt, moduleId),
@@ -209,28 +242,56 @@ export class RAGService {
         this.fetchCourseMaterialsWithFilter(courseIdInt, moduleId)
       ];
 
-      const [textSearchData, courseRes, unitsRes, sessionsRes, materialsRes, courseMaterialsRes] = await Promise.all(promises);
-      console.log(`⏱️ Data loaded in ${Date.now() - startTime}ms`);
+      const [textSearchData, vectorSearchData, courseRes, unitsRes, sessionsRes, materialsRes, courseMaterialsRes] = await Promise.all(promises);
+      
+      const { chunks: textChunks = [], error: textError } = textSearchData as any;
+      const { chunks: vectorChunks = [], error: vectorError } = vectorSearchData as any;
+      
+      console.log('📊 [RAG_AUDIT] Resultados de Supabase:', {
+        query,
+        courseId: courseIdInt,
+        textCount: textChunks.length,
+        vectorCount: vectorChunks.length,
+        errors: { text: textError, vector: vectorError }
+      });
 
-      let vectorChunks: CourseContent[] = [];
-      const { chunks: textChunksQueryResult, error: textError } = textSearchData as { chunks: any[], error: any };
-      let textChunks = textChunksQueryResult || [];
+      if (!vectorError && vectorChunks.length === 0 && textChunks.length > 0) {
+        console.warn(
+          '📭 [RAG_VECTOR_HINT] La RPC vectorial devolvió 0 filas pero la búsqueda textual sí tiene resultados. ' +
+            'Causas frecuentes: columna `embedding` NULL en `course_content_chunks`, dimensión distinta a 512 en BD, o firma antigua de `search_course_content_chunks`. ' +
+            'Diagnóstico SQL: `sql_scripts/4_diagnostics/176_diagnostic_embedding_por_curso.sql`.'
+        );
+      }
+      
+      // Combinar resultados (Deduplicar por ID)
+      let combinedChunks = [...textChunks];
+      vectorChunks.forEach((vc: any) => {
+        if (!combinedChunks.find(tc => tc.id === vc.id)) {
+          combinedChunks.push(vc);
+        }
+      });
+      this.lastRetrievalAudit = {
+        textCount: textChunks.length,
+        vectorCount: vectorChunks.length,
+        combinedCount: combinedChunks.length,
+        courseId: courseIdInt
+      };
 
-      if (!textError && textChunks.length > 0) {
+      if (combinedChunks.length > 0) {
         // Boost Prioritarios
-        const priorityChunks = textChunks.filter(c => this.isPriorityMaterial(c, courseIdInt));
-        const otherChunks = textChunks.filter(c => !this.isPriorityMaterial(c, courseIdInt));
-        textChunks = [...priorityChunks, ...otherChunks].slice(0, 15);
+        const priorityChunks = combinedChunks.filter(c => this.isPriorityMaterial(c, courseIdInt));
+        const otherChunks = combinedChunks.filter(c => !this.isPriorityMaterial(c, courseIdInt));
+        combinedChunks = [...priorityChunks, ...otherChunks].slice(0, 20); // Aumentamos a 20 chunks para mayor contexto
 
         // Fetch material titles
-        const materialIds = [...new Set(textChunks.map(c => c.metadata?.material_id).filter(Boolean))];
+        const materialIds = [...new Set(combinedChunks.map(c => c.metadata?.material_id).filter(Boolean))];
         let materialTitles: Record<string, string> = {};
         if (materialIds.length > 0) {
           const { data: materials } = await supabase.from('materials').select('id, title').in('id', materialIds);
           if (materials) materialTitles = materials.reduce((acc: any, m: any) => ({ ...acc, [m.id]: m.title }), {});
         }
 
-        vectorChunks = textChunks.map(chunk => ({
+        const finalChunks: CourseContent[] = combinedChunks.map(chunk => ({
           id: `chunk-${chunk.id}`,
           title: materialTitles[chunk.metadata?.material_id] || chunk.metadata?.sourceFileName || 'Documento',
           content: chunk.content,
@@ -245,59 +306,20 @@ export class RAGService {
           }
         }));
 
-        // Búsqueda expandida por páginas
+        // Búsqueda expandida por páginas (si aplica)
         if (pageRange) {
           const expanded = await this.searchChunksInPageRange(query, courseIdInt, pageRange.start, pageRange.end);
-          const existingIds = new Set(vectorChunks.map(c => c.originalId));
-          vectorChunks = [...vectorChunks, ...expanded.filter(c => !existingIds.has(c.originalId))];
+          const existingIds = new Set(finalChunks.map(c => c.originalId));
+          finalChunks.push(...expanded.filter(c => !existingIds.has(c.originalId)));
         }
+
+        return finalChunks;
       }
 
-      // Fallback vectorial if needed
-      if (vectorChunks.length < 2) {
-        const { key } = resolveGeminiApiKey();
-        if (key) {
-          const embedding = await this.getQueryEmbedding(query, key);
-          if (embedding) {
-            const { data: vChunks } = await supabase.rpc('search_course_content_chunks', {
-              query_embedding: `[${embedding.join(',')}]`,
-              course_id_param: courseId,
-              match_threshold: 0.1,
-              match_count: 15
-            });
-            if (vChunks) {
-              const vectorResults = vChunks.map((chunk: any) => ({
-                id: `chunk-v-${chunk.id}`,
-                title: chunk.metadata?.sourceFileName || 'Documento Vectorial',
-                content: chunk.content,
-                type: 'material' as const,
-                difficulty: 'intermediate' as const,
-                topics: this.extractTopics(chunk.content),
-                originalId: chunk.id,
-                metadata: chunk.metadata
-              }));
-              vectorChunks = [...vectorChunks, ...vectorResults];
-            }
-          }
-        }
-      }
-
-      // Combine with structured data
-      const sessions = (sessionsRes as any).data || [];
-      const units = (unitsRes as any).data || [];
-      const materials = (materialsRes as any).data || [];
-
-      const structuredContent: CourseContent[] = [
-        ...units.map((u: any) => ({ id: `u-${u.id}`, title: u.title, content: u.content_html || u.description, type: 'unit', difficulty: 'intermediate', topics: [] })),
-        ...sessions.map((s: any) => ({ id: `s-${s.id}`, title: s.title, content: s.content_html || s.description, type: 'session', difficulty: 'intermediate', topics: [] })),
-        ...materials.map((m: any) => ({ id: `m-${m.id}`, title: m.title, content: m.url || '', type: 'material', difficulty: 'intermediate', topics: [] }))
-      ];
-
-      const allCombined = [...vectorChunks, ...structuredContent];
-      return this.filterRelevantContent(query, allCombined).slice(0, this.maxSources);
+      return [];
 
     } catch (error) {
-      console.error('Error fetching content:', error);
+      console.error('getRelevantContent error:', error);
       return [];
     }
   }
@@ -335,17 +357,37 @@ export class RAGService {
     if (this.embeddingCache.has(cacheKey)) return this.embeddingCache.get(cacheKey)!.embedding;
 
     try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${key}`, {
+      console.log('🧪 Iniciando embedding de Google...', query.substring(0, 30));
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:embedContent?key=${key}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'models/text-embedding-004', content: { parts: [{ text: query }] }, taskType: 'RETRIEVAL_QUERY' })
+        body: JSON.stringify({ 
+          model: 'models/gemini-embedding-2-preview', 
+          content: { parts: [{ text: query }] }, 
+          taskType: 'RETRIEVAL_QUERY',
+          outputDimensionality: 512
+        })
       });
-      if (!res.ok) return null;
+      
+      if (!res.ok) {
+        const err = await res.json();
+        console.error('❌ [EMBEDDING_ERROR]', {
+          status: res.status,
+          statusText: res.statusText,
+          error: err
+        });
+        return null;
+      }
+      
       const data = await res.json();
       const embedding = data.embedding.values;
+      console.log('✅ Embedding generado exitosamente (dim: 512)');
       this.embeddingCache.set(cacheKey, { embedding, timestamp: Date.now() });
       return embedding;
-    } catch { return null; }
+    } catch (e) { 
+      console.error('❌ [EMBEDDING_FATAL_ERROR]', e);
+      return null; 
+    }
   }
 
   private filterRelevantContent(query: string, content: CourseContent[]): CourseContent[] {
@@ -364,31 +406,44 @@ export class RAGService {
   }
 
   private buildPersonalizedPrompt(query: string, context: ConversationContext, content: CourseContent[], isComplex: boolean, courseSummary?: any): string {
-    const contentText = content.map(c => `[${c.title}${c.metadata?.pageStart ? ` | p.${c.metadata.pageStart}` : ''}]\n${c.content.substring(0, 5000)}`).join('\n\n');
-    let summaryText = '';
+    // 1. Enriquecer los chunks con metadata pedagógica 
+    const contentText = content.map(c => {
+      let header = `[Material: ${c.title}`;
+      if (c.metadata?.pageStart) header += ` | pág. ${c.metadata.pageStart}`;
+      if (c.type === 'unit') header = `[Estructura del Curso: Unidad - ${c.title}`;
+      if (c.type === 'session') header = `[Estructura del Curso: Sesión - ${c.title}`;
+      header += `]`;
+      return `${header}\n${c.content.substring(0, 5000)}`;
+    }).join('\n\n');
 
+    let summaryText = '';
     if (courseSummary) {
-      summaryText = `Información del Curso: "${courseSummary.title}"\n`;
+      summaryText = `Información del Curso Activo: "${courseSummary.title}"\n`;
       if (courseSummary.units && courseSummary.units.length > 0) {
-        summaryText += `Estructura (Unidades):\n${courseSummary.units.join('\n')}\n\n`;
+        summaryText += `Estructura Global (Unidades del curso):\n${courseSummary.units.join('\n')}\n\n`;
       }
     }
 
-    return `Eres EduSpark. Tu tarea es responder la pregunta del estudiante analizando CUIDADOSAMENTE TODO el contexto proporcionado abajo.
-
-IMPORTANTE: El contexto puede ser largo y contener múltiples temas médicos. Busca información en CUALQUIER parte del texto, incluso si aparece al final.
+    return `Eres EduSpark, el tutor de inteligencia artificial experto y empático de este curso CONAREM. Tu tarea es responder la duda del estudiante analizando CUIDADOSAMENTE el contexto proporcionado.
 
 ${summaryText}
-CONTEXTO DEL MATERIAL (Busca aquí con detalle):
-${contentText}
 
-Pregunta: ${query}
+CONTEXTO DEL MATERIAL (Fuentes para tu respuesta):
+===========================================
+${contentText || 'No hay materiales específicos disponibles en este momento.'}
+===========================================
+
+Pregunta del Estudiante: ${query}
 
 Instrucciones de respuesta:
-1. Responde de forma amable y profesional.
-2. Si la información está en el contexto, proporciónala con precisión médica.
-3. Si la información NO está en el contexto después de revisar con atención, di EXACTAMENTE: "No encuentro esa información en el material del curso."
-4. Usa SIEMPRE "Unidades" y "Sesiones", NUNCA digas "Módulos".`;
+1. Responde de forma cálida, profesional y pedagógica.
+2. Prioriza la información de las Sesiones y Unidades. Si no está allí, usa los libros de referencia global etiquetados como "Material:" (como Harrison o Nelson).
+3. Si la información NO está en NINGUNO de los materiales proporcionados, di: "No encuentro esa información específica en los materiales disponibles en este momento."
+4. Usa SIEMPRE los términos "Unidades" y "Sesiones", NUNCA la palabra "Módulos".
+5. Cita explícita en el cuerpo de la respuesta: al desarrollar el tema, indica de qué material proviene la idea usando el nombre que aparece en el contexto (líneas que empiezan con [Material: ...] o [Estructura del Curso: ...]) y, si en esa línea figura "| pág. N" o rango de páginas, menciónalo (ej. "Según el Harrison (pág. 245)…"). Si no hay número de página en el fragmento, cita solo el nombre del material o unidad/sesión.
+6. Incluye al final una sección titulada exactamente **Fuentes** con 2-5 entradas, cada una en una línea, formato: nombre del archivo o material tal como en el contexto, seguido de " — pág. X" o " — págs. X–Y" si aplica; si no hay página en el fragmento usado, solo el nombre del material.
+7. Desarrolla cada idea en frases y párrafos completos: no cortes a mitad de explicación (evita terminar en "la red…", "se debe a…" sin concluir). Cierra el concepto antes de pasar a otro tema o a Fuentes.
+`;
   }
 
   private async generateResponse(prompt: string): Promise<string> {
@@ -474,7 +529,25 @@ Instrucciones de respuesta:
       });
 
       const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No pude generar respuesta.';
+      const candidate = data.candidates?.[0];
+      const parts = candidate?.content?.parts ?? [];
+      // Gemini puede devolver varias partes de texto; usar solo la primera descarta el resto y deja respuestas "entrecortadas".
+      const textFromParts = parts
+        .map((p: { text?: string }) => (typeof p?.text === 'string' ? p.text : ''))
+        .filter((t: string) => t.length > 0)
+        .join('');
+      let text = textFromParts.trim() || 'No pude generar respuesta.';
+
+      const finishReason = candidate?.finishReason as string | undefined;
+      if (finishReason && finishReason !== 'STOP' && import.meta.env.DEV) {
+        console.warn('⚠️ [RAG_GEMINI] finishReason:', finishReason, {
+          parts: parts.length,
+          textLength: text.length
+        });
+      }
+      if (!candidate && import.meta.env.DEV && data.promptFeedback) {
+        console.warn('⚠️ [RAG_GEMINI] Sin candidato:', data.promptFeedback);
+      }
 
       // Token logging
       if (this.currentContext?.studentId) {
@@ -507,15 +580,39 @@ Instrucciones de respuesta:
   }
 
   private formatRAGResponse(response: string, sources: CourseContent[]): RAGResponse {
+    const sourceMetadata = sources.map((s) => {
+      const pageStart = s.metadata?.pageStart ?? s.metadata?.page_start;
+      const pageEnd = s.metadata?.pageEnd ?? s.metadata?.page_end;
+      return {
+        title: s.title,
+        sourceFileName: s.metadata?.sourceFileName || s.title,
+        materialId: s.metadata?.material_id || s.originalId || null,
+        pageStart: pageStart ?? null,
+        pageEnd: pageEnd ?? null
+      };
+    });
+
+    const sourceLabels = sourceMetadata.map((s) => {
+      if (s.pageStart && s.pageEnd && s.pageEnd !== s.pageStart) {
+        return `${s.sourceFileName} - págs. ${s.pageStart}-${s.pageEnd}`;
+      }
+      if (s.pageStart) {
+        return `${s.sourceFileName} - pág. ${s.pageStart}`;
+      }
+      return s.sourceFileName;
+    });
+
     return {
       success: true,
       message: response,
       metadata: {
         model: this.model,
         source: 'A2A RAG',
-        contextUsed: sources.map(s => s.title).join(', '),
+        contextUsed: sourceLabels.slice(0, 5).join(', '),
         timestamp: new Date().toISOString(),
-        sources: sources.map(s => s.title)
+        sources: sourceLabels,
+        sourceMetadata,
+        retrievalAudit: this.lastRetrievalAudit
       }
     };
   }
@@ -535,8 +632,150 @@ Instrucciones de respuesta:
     this.responseCache.set(key, { data, timestamp: Date.now() });
   }
 
-  private async searchChunksByText(query: string, courseId: number) {
-    const { data, error } = await supabase.rpc('search_course_content_chunks_text_clean', { search_query: query, course_id_param: courseId, result_limit: 30, min_relevance: 0.001 });
+  private async searchChunksByText(query: string, courseId: number, moduleId?: string) {
+    const isUuid = moduleId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(moduleId);
+    const cleanSearchQuery = this.buildSearchQuery(query);
+    const rpcParams: any = { search_query: cleanSearchQuery, course_id_param: courseId, result_limit: 30, min_relevance: 0.001 };
+    if (isUuid) rpcParams.p_module_id = moduleId;
+
+    // 1) Ruta principal (RPC limpia)
+    const primary = await supabase.rpc('search_course_content_chunks_text_clean', rpcParams);
+    if (!primary.error) {
+      return { chunks: primary.data || [], error: null };
+    }
+
+    console.warn('⚠️ [RAG_TEXT_RPC_ERROR] search_course_content_chunks_text_clean falló:', primary.error);
+
+    const isStatementTimeout =
+      primary.error && String((primary.error as any).code || '') === '57014';
+
+    // 2) Fallback por firmas antiguas — omitir si ya hubo timeout (misma consulta pesada en BD)
+    if (isStatementTimeout) {
+      console.warn('⚠️ [RAG_TEXT_SKIP_LEGACY_RPC] Timeout 57014: se omite segunda llamada a text_clean.');
+    }
+    const fallbackParams = { search_query: cleanSearchQuery, course_id_param: courseId, result_limit: 30 };
+    const secondary = !isStatementTimeout
+      ? await supabase.rpc('search_course_content_chunks_text_clean', fallbackParams as any)
+      : { data: null, error: { message: 'skipped after timeout' } as any };
+    if (!secondary.error) {
+      return { chunks: secondary.data || [], error: null };
+    }
+
+    // 3) Fallback de emergencia: query directa SIN ilike en SQL (evita timeout)
+    const keywords = this.extractFallbackKeywords(cleanSearchQuery);
+    let directQuery = supabase
+      .from('course_content_chunks')
+      .select('id, course_id, content, metadata, created_at, unit_id, session_id')
+      .eq('course_id', courseId)
+      .order('created_at', { ascending: false })
+      .limit(400);
+
+    if (isUuid) {
+      directQuery = directQuery.or(
+        `unit_id.eq.${moduleId},session_id.eq.${moduleId},and(unit_id.is.null,session_id.is.null)`
+      );
+    }
+
+    const direct = await directQuery;
+
+    if (!direct.error) {
+      const directRows = (direct.data || []) as any[];
+      let locallyFiltered = this.filterChunksByKeywords(directRows, keywords);
+      if (locallyFiltered.length === 0 && keywords.length > 0) {
+        let secondPage = supabase
+          .from('course_content_chunks')
+          .select('id, course_id, content, metadata, created_at, unit_id, session_id')
+          .eq('course_id', courseId)
+          .order('created_at', { ascending: false })
+          .range(400, 999);
+        if (isUuid) {
+          secondPage = secondPage.or(
+            `unit_id.eq.${moduleId},session_id.eq.${moduleId},and(unit_id.is.null,session_id.is.null)`
+          );
+        }
+        const more = await secondPage;
+        if (!more.error && more.data?.length) {
+          const extra = this.filterChunksByKeywords(more.data as any[], keywords);
+          locallyFiltered = extra;
+        }
+      }
+      console.warn('⚠️ [RAG_TEXT_FALLBACK] Usando query directa + filtro local por fallo RPC.', {
+        pulled: directRows.length,
+        filtered: locallyFiltered.length,
+        keywords
+      });
+      return { chunks: locallyFiltered.slice(0, 30), error: null };
+    }
+
+    return { chunks: [], error: primary.error || secondary.error || direct.error };
+  }
+
+  /** Alinea acentos entre consulta y contenido (ej. afasia vs afasía) para el fallback local. */
+  private normalizeTextForMatch(s: string): string {
+    return String(s || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  private extractFallbackKeywords(cleanSearchQuery: string): string[] {
+    return cleanSearchQuery
+      .split(/\s+/)
+      .map((w) => this.normalizeTextForMatch(w))
+      .filter((w) => w.length > 2);
+  }
+
+  private filterChunksByKeywords(rows: any[], keywords: string[]): any[] {
+    if (keywords.length === 0) return rows;
+    const normalizedKeys = keywords.map((k) => this.normalizeTextForMatch(k));
+    return rows.filter((row) => {
+      const text = this.normalizeTextForMatch(
+        `${row.content || ''} ${row.metadata?.title || ''}`
+      );
+      return normalizedKeys.some((k) => text.includes(k));
+    });
+  }
+
+  private buildSearchQuery(query: string): string {
+    const normalized = query
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const stopwords = new Set([
+      'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'de', 'del', 'al',
+      'y', 'o', 'u', 'que', 'segun', 'sobre', 'para', 'con', 'sin', 'por',
+      'explicame', 'explica', 'curso', 'material', 'materiales'
+    ]);
+
+    const tokens = normalized
+      .split(' ')
+      .filter((t) => t.length >= 4 && !stopwords.has(t));
+
+    if (tokens.length === 0) return normalized || query.trim();
+    return tokens.slice(0, 3).join(' ');
+  }
+
+  private async searchChunksByVector(query: string, courseId: number, moduleId?: string) {
+    const { key } = resolveGeminiApiKey();
+    if (!key) return { chunks: [], error: 'API Key missing' };
+
+    const embedding = await this.getQueryEmbedding(query, key);
+    if (!embedding) return { chunks: [], error: 'Failed to generate embedding' };
+
+    const isUuid = moduleId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(moduleId);
+    const rpcParams: any = { 
+      query_embedding: `[${embedding.join(',')}]`, 
+      course_id_param: courseId, 
+      match_threshold: -1.0,
+      match_count: 30 
+    };
+    if (isUuid) rpcParams.p_module_id = moduleId;
+
+    const { data, error } = await supabase.rpc('search_course_content_chunks', rpcParams);
     return { chunks: data || [], error };
   }
 
@@ -551,7 +790,11 @@ Instrucciones de respuesta:
 
   private async fetchMaterialsWithFilter(courseId: number, moduleId?: string) {
     let q = supabase.from('materials').select('id, title, kind, url, unit_id, session_id').eq('course_id', courseId);
-    if (moduleId) q = q.eq('unit_id', moduleId);
+    if (moduleId) {
+      // Incluir materiales de la unidad específica Y materiales globales (sin unit_id)
+      // Los materiales globales son libros de referencia como Harrison que aplican a todo el curso
+      q = q.or(`unit_id.eq.${moduleId},unit_id.is.null`);
+    }
     return q.limit(50);
   }
 
@@ -563,6 +806,119 @@ Instrucciones de respuesta:
 
   private isGeneralQuery(q: string) {
     return /^(hola|gracias|ok|entendido|hi|hello|thanks)/i.test(q) || q.length < 3;
+  }
+
+  /**
+   * Detecta si la pregunta es sobre la estructura del curso o materiales disponibles
+   * (no sobre el contenido en sí, sino sobre qué hay disponible)
+   */
+  private isCourseMetaQuery(q: string): boolean {
+    const metaPatterns = [
+      /qu[eé]\s+(materiales?|pdf|archivos?|documentos?|recursos?)\s+(tenemos|hay|est[aá]n|existen|tiene)/i,
+      /qu[eé]\s+(tenemos|hay)\s+(disponible|para\s+estudiar|para\s+revisar|de\s+material)/i,
+      /cu[aá]les\s+son\s+los\s+(materiales?|pdf|archivos?|documentos?|recursos?)/i,
+      /lista(r|me)?\s+(los\s+)?(materiales?|pdf|archivos?|documentos?|recursos?)/i,
+      /materiales?\s+(disponibles?|del\s+curso|que\s+tenemos)/i,
+      /pdfs?\s+(disponibles?|del\s+curso|que\s+tenemos)/i,
+      /qu[eé]\s+(unidades|sesiones|temas)\s+(tiene|hay|tenemos)/i,
+      /cu[aá]l\s+es\s+(la\s+estructura|el\s+contenido|el\s+temario)/i,
+      /mostrar(me)?\s+(los\s+)?(materiales?|pdf|recursos?|contenido)/i,
+      /de\s+qu[eé]\s+trata\s+(el\s+curso|este\s+curso)/i,
+      /qu[eé]\s+vamos\s+a\s+(estudiar|ver|revisar|aprender)/i,
+    ];
+    return metaPatterns.some(pattern => pattern.test(q));
+  }
+
+  /**
+   * Maneja preguntas meta sobre el curso consultando directamente las tablas de estructura
+   */
+  private async handleCourseMetaQuery(
+    userQuestion: string,
+    courseId: number,
+    fullQuery: string
+  ): Promise<SupabaseResponse<RAGResponse> | null> {
+    try {
+      // Consultar datos reales de la estructura del curso
+      const [courseRes, unitsRes, sessionsRes, materialsRes] = await Promise.all([
+        supabase.from('courses').select('title, description').eq('id', courseId).single(),
+        supabase.from('course_units').select('id, number, title, description').eq('course_id', courseId).order('number', { ascending: true }),
+        supabase.from('sessions').select('id, title, description, unit_id').eq('course_id', courseId),
+        supabase.from('materials').select('id, title, kind, url, unit_id, session_id').eq('course_id', courseId)
+      ]);
+
+      const course = courseRes.data;
+      const units = unitsRes.data || [];
+      const sessions = sessionsRes.data || [];
+      const materials = materialsRes.data || [];
+
+      // Construir un resumen estructurado REAL
+      let structureText = `INFORMACIÓN REAL DEL CURSO (datos de la base de datos):\n`;
+      structureText += `Curso: "${course?.title || 'Sin título'}"\n`;
+      structureText += `Descripción: ${course?.description || 'Sin descripción'}\n\n`;
+
+      if (units.length > 0) {
+        structureText += `UNIDADES DEL CURSO (${units.length} unidades):\n`;
+        units.forEach(u => {
+          structureText += `  - Unidad ${u.number}: ${u.title}\n`;
+          const unitSessions = sessions.filter(s => s.unit_id === u.id);
+          if (unitSessions.length > 0) {
+            unitSessions.forEach(s => {
+              structureText += `    • Sesión: ${s.title}\n`;
+            });
+          }
+          const unitMaterials = materials.filter(m => m.unit_id === u.id);
+          if (unitMaterials.length > 0) {
+            unitMaterials.forEach(m => {
+              structureText += `    📄 Material: ${m.title} (${m.kind || 'documento'})\n`;
+            });
+          }
+        });
+      }
+
+      // Materiales sin unidad asignada
+      const unassignedMaterials = materials.filter(m => !m.unit_id);
+      if (unassignedMaterials.length > 0) {
+        structureText += `\nMATERIALES GENERALES DEL CURSO:\n`;
+        unassignedMaterials.forEach(m => {
+          structureText += `  📄 ${m.title} (${m.kind || 'documento'})\n`;
+        });
+      }
+
+      if (materials.length === 0) {
+        structureText += `\nNOTA: No hay materiales (PDFs, documentos) cargados en este curso todavía.\n`;
+      } else {
+        structureText += `\nTOTAL DE MATERIALES: ${materials.length}\n`;
+        const pdfMaterials = materials.filter(m => m.kind === 'pdf' || m.url?.endsWith('.pdf'));
+        if (pdfMaterials.length > 0) {
+          structureText += `PDFs disponibles: ${pdfMaterials.length}\n`;
+        }
+      }
+
+      // Prompt especializado para meta-queries
+      const metaPrompt = `Eres EduSpark. El estudiante pregunta sobre la estructura o los materiales del curso.
+
+IMPORTANTE: Responde ÚNICAMENTE con la información proporcionada abajo. NO inventes ni asumas materiales que no están listados.
+Si no hay materiales cargados, dilo honestamente: "Aún no se han cargado materiales en este curso."
+
+${structureText}
+
+Pregunta del estudiante: ${userQuestion}
+
+Instrucciones:
+1. Lista SOLO los materiales que aparecen arriba. NO inventes nombres de libros, capítulos o PDFs.
+2. Si la lista está vacía, indica que aún no hay materiales cargados.
+3. Organiza la respuesta por Unidades si aplica.
+4. Usa SIEMPRE "Unidades" y "Sesiones", NUNCA digas "Módulos".
+5. Sé amable y profesional.`;
+
+      const response = await this.generateResponse(metaPrompt);
+      const ragResponse = this.formatRAGResponse(response, []);
+      return { data: ragResponse, error: null, success: true };
+
+    } catch (error) {
+      console.error('Error handling meta-query:', error);
+      return null; // Fallback al flujo normal
+    }
   }
 
   async healthCheck() {

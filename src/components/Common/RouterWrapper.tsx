@@ -152,16 +152,20 @@ const NavigationHandler: React.FC = () => {
           console.warn('🚨 Detección de problema de carga inicial, recargando...');
           window.location.reload();
         }
-      }, 1500); // Reducido a 1.5 segundos
+      }, 5000); // Aumentado a 5 segundos para dar más tiempo a conexiones lentas
 
-      // Verificación adicional más agresiva
+      // Verificación adicional más agresiva - RELAJADA
       const aggressiveCheck = setTimeout(() => {
         const appElement = document.querySelector('#root');
+        // Solo recargar si no hay NINGUNA estructura en root después de 10 segundos
         if (!appElement || appElement.children.length === 0) {
-          console.warn('🚨 Verificación agresiva: Sin contenido detectado, forzando recarga...');
-          window.location.href = window.location.href;
+          console.warn('🚨 Verificación agresiva: Sin contenido detectado después de 10s, forzando recarga...');
+          // Evitar bucle infinito si la página está realmente vacía por diseño
+          if (window.location.search.includes('no-retry')) return;
+          const separator = window.location.href.includes('?') ? '&' : '?';
+          window.location.href = window.location.href + separator + 'no-retry=1';
         }
-      }, 3000); // Reducido a 3 segundos
+      }, 10000); // Aumentado a 10 segundos para evitar bucles durante fallos de red o auth
 
       return () => {
         clearTimeout(checkInitialLoad);
@@ -182,10 +186,10 @@ const NavigationHandler: React.FC = () => {
       });
     }
 
-    // Limpiar LocalStorage de caché si existe
+    // Limpiar LocalStorage de caché si existe (solo Vite, NO auth)
     try {
-      const cacheKeys = Object.keys(localStorage).filter(key => 
-        key.includes('vite') || key.includes('cache')
+      const cacheKeys = Object.keys(localStorage).filter(key =>
+        key.includes('vite')
       );
       cacheKeys.forEach(key => localStorage.removeItem(key));
     } catch (e) {
@@ -195,12 +199,9 @@ const NavigationHandler: React.FC = () => {
     // Forzar recarga si hay problemas de navegación
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // Verificar si la página se cargó correctamente
-        const currentPath = window.location.pathname;
-        if (currentPath) {
-          // Forzar navegación si es necesario
-          navigate(currentPath, { replace: true });
-        }
+        // Solo log, no forzar navegación - React Router maneja esto correctamente
+        // Forzar navigate causaba bucles de redirección durante fallos de autenticación
+        console.debug('📱 Tab visible, path:', window.location.pathname);
       }
     };
 
@@ -209,22 +210,22 @@ const NavigationHandler: React.FC = () => {
       if (reloadTimeoutRef.current) {
         clearTimeout(reloadTimeoutRef.current);
       }
-      
+
       reloadTimeoutRef.current = setTimeout(() => {
-        // Si después de 5 segundos aún estamos en estado de carga, recargar
+        // Si después de 15 segundos aún estamos en estado de carga, recargar
         const loadingElement = document.querySelector('[data-loading="true"]');
         if (loadingElement) {
-          console.warn('Página colgada en estado "Cargando", recargando...');
+          console.warn('Página colgada en estado "Cargando" demasiado tiempo, recargando...');
           window.location.reload();
         }
-      }, 5000);
+      }, 15000); // Aumentado a 15 segundos
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     // Detectar hangs de página
     detectHangTimeout();
-    
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (reloadTimeoutRef.current) {
@@ -284,14 +285,14 @@ const RouterWrapper: React.FC<RouterWrapperProps> = ({ children }) => {
     const handleUnhandled = (e: PromiseRejectionEvent) => {
       const msg = String((e as any)?.reason || '')
       const errorMsg = msg.toLowerCase();
-      
+
       // Detectar varios tipos de errores relacionados con extensiones
-      const isExtensionError = 
+      const isExtensionError =
         errorMsg.includes('listener indicated an asynchronous response') ||
         errorMsg.includes('message channel closed') ||
         errorMsg.includes('runtime.lasterror') ||
         errorMsg.includes('extension context invalidated');
-      
+
       if (isExtensionError) {
         e.preventDefault();
         // Solo mostrar en modo desarrollo para no contaminar logs en producción
@@ -302,11 +303,11 @@ const RouterWrapper: React.FC<RouterWrapperProps> = ({ children }) => {
       }
       return false;
     };
-    
+
     // Manejar errores globales de JavaScript
     const handleError = (e: ErrorEvent) => {
       const msg = String(e.message || '').toLowerCase();
-      
+
       // Detectar errores de extensiones en el mensaje
       if (
         msg.includes('listener indicated an asynchronous response') ||
@@ -328,7 +329,7 @@ const RouterWrapper: React.FC<RouterWrapperProps> = ({ children }) => {
     const originalConsoleError = console.error;
     console.error = (...args: any[]) => {
       const errorMsg = String(args[0] || '').toLowerCase();
-      
+
       // Filtrar errores de extensiones
       if (
         errorMsg.includes('unchecked runtime.lasterror') ||
@@ -341,7 +342,7 @@ const RouterWrapper: React.FC<RouterWrapperProps> = ({ children }) => {
         }
         return;
       }
-      
+
       // Mostrar otros errores normalmente
       originalConsoleError.apply(console, args);
     };

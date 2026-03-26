@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-export type Theme = 'blue' | 'slate' | 'gray' | 'indigo' | 'corporate';
+export type Theme = 'blue' | 'slate' | 'gray' | 'indigo' | 'corporate' | 'dark';
 
 interface ThemeContextType {
     theme: Theme;
@@ -84,17 +84,24 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         localStorage.removeItem('eduspark-secondary-color');
     };
 
-    // Efecto para cambiar el fondo base
+    // Efecto para cambiar el fondo base y manejar dark mode
     useEffect(() => {
         const root = document.documentElement;
         let color = '#eff6ff'; // Default blue
 
-        switch (theme) {
-            case 'blue': color = '#eff6ff'; break;
-            case 'slate': color = '#f8fafc'; break;
-            case 'gray': color = '#f3f4f6'; break;
-            case 'indigo': color = '#eef2ff'; break;
-            case 'corporate': color = '#eef2f6'; break;
+        // Manejar dark mode: agregar/quitar clase 'dark' en <html>
+        if (theme === 'dark') {
+            root.classList.add('dark');
+            color = '#0f172a';
+        } else {
+            root.classList.remove('dark');
+            switch (theme) {
+                case 'blue': color = '#eff6ff'; break;
+                case 'slate': color = '#f8fafc'; break;
+                case 'gray': color = '#f3f4f6'; break;
+                case 'indigo': color = '#eef2ff'; break;
+                case 'corporate': color = '#eef2f6'; break;
+            }
         }
 
         root.style.setProperty('--background', color);

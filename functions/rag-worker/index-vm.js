@@ -26,6 +26,33 @@ const supabase = createClient(
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+/**
+ * Genera embeddings en lote usando Gemini REST API
+ */
+async function generateEmbeddingsBatch(texts, title) {
+    try {
+        const apiKey = process.env.GEMINI_API_KEY;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key=${apiKey}`;
+        
+        const requests = texts.map(text => ({
+            model: 'models/text-embedding-004',
+            taskType: 'RETRIEVAL_DOCUMENT',
+            title: title || 'Documento',
+            content: { parts: [{ text }] },
+            outputDimensionality: 512
+        }));
+
+        const response = await axios.post(url, { requests }, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        return response.data.embeddings.map(e => e.values);
+    } catch (error) {
+        console.error('[RAG Worker VM] ❌ Error generando embeddings en lote:', error.response?.data || error.message);
+        throw error;
+    }
+}
+
 console.log('[RAG Worker VM] 🚀 Iniciando servidor...');
 console.log(`[RAG Worker VM] SUPABASE_URL: ${process.env.SUPABASE_URL ? 'Configurado' : '❌ NO CONFIGURADO'}`);
 console.log(`[RAG Worker VM] GEMINI_API_KEY: ${process.env.GEMINI_API_KEY ? 'Configurado' : '❌ NO CONFIGURADO'}`);
@@ -122,12 +149,13 @@ async function processRagJobs() {
         job.metadata.materialId = materialId;
 
         // Marcar como processing
+        job.metadata = { ...job.metadata, startedAt: new Date().toISOString() };
         await supabase
             .from('file_processing_jobs')
             .update({
                 status: 'processing',
                 updated_at: new Date().toISOString(),
-                metadata: { ...job.metadata, startedAt: new Date().toISOString() }
+                metadata: job.metadata
             })
             .eq('id', job.id);
 
@@ -241,52 +269,56 @@ async function processRagJobs() {
         console.log(`[RAG Worker VM] ✅ Creados ${chunks.length} chunks`);
 
         // Actualizar metadata con total
+        job.metadata = { ...job.metadata, chunksTotal: chunks.length, chunksProcessed: 0 };
         await supabase
             .from('file_processing_jobs')
             .update({
-                metadata: { ...job.metadata, chunksTotal: chunks.length, chunksProcessed: 0 },
+                metadata: job.metadata,
                 updated_at: new Date().toISOString()
             })
             .eq('id', job.id);
 
-        // Generar embeddings
-        const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
-        console.log(`[RAG Worker VM] 🔄 Generando embeddings...`);
-
-        let processedCount = 0;
         const BATCH_SIZE = 10;
+        let processedCount = 0;
 
         for (let batchStart = 0; batchStart < chunks.length; batchStart += BATCH_SIZE) {
             const batchEnd = Math.min(batchStart + BATCH_SIZE, chunks.length);
             const batch = chunks.slice(batchStart, batchEnd);
 
             const chunksToInsert = [];
+            
+            console.log(`[RAG Worker VM] 🧠 Generando embeddings para lote ${batchStart/BATCH_SIZE + 1}...`);
 
-            for (let i = 0; i < batch.length; i++) {
-                const chunkData = batch[i];
-                const chunkIndex = batchStart + i;
+            try {
+                const batchTexts = batch.map(c => c.content);
+                const batchEmbeddings = await generateEmbeddingsBatch(batchTexts, job.file_name);
+                
+                for (let i = 0; i < batch.length; i++) {
+                    const chunkData = batch[i];
+                    const chunkIndex = batchStart + i;
+                    const embedding = batchEmbeddings[i];
 
-                try {
-                    const result = await model.embedContent(chunkData.content);
-
-                    chunksToInsert.push({
-                        course_id: materialInfo.course_id,
-                        unit_id: materialInfo.unit_id || null,
-                        session_id: materialInfo.session_id || null,
-                        content: chunkData.content,
-                        embedding: result.embedding.values,
-                        chunk_index: chunkIndex + 1,
-                        metadata: {
-                            material_id: materialId,
-                            pageStart: chunkData.pageStart,
-                            pageEnd: chunkData.pageEnd,
-                            file_name: job.file_name
-                        }
-                    });
-                    processedCount++;
-                } catch (err) {
-                    console.error(`[RAG Worker VM] ❌ Error en chunk ${chunkIndex + 1}: ${err.message}`);
+                    if (embedding) {
+                        chunksToInsert.push({
+                            course_id: materialInfo.course_id,
+                            unit_id: materialInfo.unit_id || null,
+                            session_id: materialInfo.session_id || null,
+                            content: chunkData.content,
+                            embedding: embedding,
+                            chunk_index: chunkIndex + 1,
+                            metadata: {
+                                material_id: materialId,
+                                pageStart: chunkData.pageStart,
+                                pageEnd: chunkData.pageEnd,
+                                file_name: job.file_name
+                            }
+                        });
+                        processedCount++;
+                    }
                 }
+            } catch (err) {
+                console.error(`[RAG Worker VM] ❌ Error en lote ${batchStart/BATCH_SIZE + 1}: ${err.message}`);
+                throw err;
             }
 
             if (chunksToInsert.length > 0) {
@@ -300,10 +332,11 @@ async function processRagJobs() {
             }
 
             // Actualizar progreso
+            job.metadata = { ...job.metadata, chunksTotal: chunks.length, chunksProcessed: processedCount };
             await supabase
                 .from('file_processing_jobs')
                 .update({
-                    metadata: { ...job.metadata, chunksTotal: chunks.length, chunksProcessed: processedCount },
+                    metadata: job.metadata,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', job.id);
@@ -312,13 +345,14 @@ async function processRagJobs() {
         }
 
         // Marcar como completado
+        job.metadata = { ...job.metadata, chunksTotal: chunks.length, chunksProcessed: processedCount };
         await supabase
             .from('file_processing_jobs')
             .update({
                 status: 'completed',
                 completed_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
-                metadata: { ...job.metadata, chunksTotal: chunks.length, chunksProcessed: processedCount }
+                metadata: job.metadata
             })
             .eq('id', job.id);
 
@@ -337,6 +371,13 @@ async function processRagJobs() {
 
     } catch (error) {
         console.error(`[RAG Worker VM] ❌ Error: ${error.message}`);
+        if (job) {
+            await supabase.from('file_processing_jobs').update({
+                status: 'failed',
+                error_message: error.message,
+                updated_at: new Date().toISOString()
+            }).eq('id', job.id);
+        }
         return { success: false, error: error.message };
     }
 }

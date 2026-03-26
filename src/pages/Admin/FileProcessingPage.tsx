@@ -8,6 +8,7 @@ import { googleDriveService } from '@/services/googleDriveService';
 import { googleOAuthService } from '@/services/googleOAuthService';
 import { subscribeToAllJobs } from '@/services/firestoreService';
 import { cancelJob } from '@/services/firestoreService';
+import { getAllJobs, createJob } from '@/services/firestoreService';
 import { estimateCosts } from '@/services/costEstimator';
 import { FileAnalysisModal } from '@/components/Features/FileAnalysisModal';
 import { ProcessingTimer } from '@/components/Features/ProcessingTimer';
@@ -27,7 +28,9 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
-  RefreshCw
+  RefreshCw,
+  HardDrive,
+  Download
 } from 'lucide-react';
 import { FolderManager } from '@/components/Features/FolderManager';
 import { supabase } from '@/lib/supabase';
@@ -578,7 +581,6 @@ export const FileProcessingPage: React.FC = () => {
     // Función para recargar jobs
     const reloadJobs = async () => {
       try {
-        const { getAllJobs } = await import('@/services/firestoreService');
         const updatedJobs = await getAllJobs(user.id);
 
         // Solo loggear si hay cambios significativos (evitar spam)
@@ -863,7 +865,6 @@ export const FileProcessingPage: React.FC = () => {
       setTimeout(async () => {
         console.log('[FileProcessing] Forzando recarga de jobs después de eliminar job...');
         try {
-          const { getAllJobs } = await import('@/services/firestoreService');
           const allJobs = await getAllJobs(user?.id || '');
           console.log(`[FileProcessing] Jobs cargados después de eliminar: ${allJobs.length}`, allJobs.map(j => ({
             id: j.id,
@@ -936,7 +937,6 @@ export const FileProcessingPage: React.FC = () => {
       // Recargar jobs después de un momento
       setTimeout(async () => {
         try {
-          const { getAllJobs } = await import('@/services/firestoreService');
           const allJobs = await getAllJobs(user.id);
           setJobs(allJobs);
         } catch (err) {
@@ -1107,9 +1107,6 @@ export const FileProcessingPage: React.FC = () => {
         const materialKind = isImage ? 'other' : 'pdf'; // Las imágenes se guardan como 'other'
         const mimeType = file?.mimeType || 'application/pdf';
 
-        // Determinar rag_status según el tipo de procesamiento
-        // Para materiales de solo lectura, rag_status debe ser NULL (no se procesan para RAG)
-        // La constraint solo permite: 'pending', 'processing', 'completed', 'failed', NULL
         const ragStatus = ragProcessingType === 'readonly' ? null : 'pending';
 
         // Establecer purpose según el tipo de procesamiento
@@ -1287,10 +1284,9 @@ export const FileProcessingPage: React.FC = () => {
         },
       };
 
+      // Si es desktop, terminar el proceso aquí o saltar a la creación del material/job adecuado
+      // Evitamos llamar a la cloud function o esperar respuesta síncrona de ella
       console.log('[FileProcessing] Creando job directamente en Supabase (evitando Cloud Function antigua)');
-
-      // Importar createJob solo cuando se necesite
-      const { createJob } = await import('@/services/firestoreService');
 
       const jobData = {
         courseId: selectedCourseId,
@@ -1311,6 +1307,11 @@ export const FileProcessingPage: React.FC = () => {
           },
         },
       };
+
+      if (ragProcessingType === 'desktop') {
+        jobData.jobType = 'desktop_processing' as any;
+        jobData.metadata.ragProcessingType = 'desktop';
+      }
 
       console.log('[FileProcessing] Datos del job a crear:', jobData);
 
@@ -1342,7 +1343,6 @@ export const FileProcessingPage: React.FC = () => {
       // Limpiar jobs antiguos fallidos para el mismo archivo (opcional, no bloqueante)
       (async () => {
         try {
-          const { getAllJobs } = await import('@/services/firestoreService');
           const allJobs = await getAllJobs(user.id);
 
           // Encontrar jobs antiguos fallidos para el mismo archivo
@@ -1384,7 +1384,6 @@ export const FileProcessingPage: React.FC = () => {
       setTimeout(async () => {
         console.log('[FileProcessing] Forzando recarga de jobs después de crear job...');
         try {
-          const { getAllJobs } = await import('@/services/firestoreService');
           const allJobs = await getAllJobs(user.id);
           console.log(`[FileProcessing] Jobs cargados manualmente: ${allJobs.length}`, allJobs);
           setJobs(allJobs);
@@ -1454,10 +1453,10 @@ export const FileProcessingPage: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">
           Motor de Ingesta Asíncrono para RAG
         </h1>
-        <p className="text-gray-600">
+        <p className="text-gray-600 dark:text-gray-300">
           Clasifica y procesa materiales educativos para alimentar el Tutor RAG de tus cursos
         </p>
       </div>
@@ -1467,7 +1466,7 @@ export const FileProcessingPage: React.FC = () => {
         <div className="mb-6 space-y-2">
           <div className="flex items-center space-x-2 mb-2">
             <Bell size={20} className="text-blue-500" />
-            <h2 className="text-lg font-semibold text-gray-800">Notificaciones</h2>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Notificaciones</h2>
           </div>
           {notifications
             .filter(job => !dismissedNotifications.has(job.id))
@@ -1606,14 +1605,14 @@ export const FileProcessingPage: React.FC = () => {
 
       {/* Mensaje si no hay carpeta de Google Drive vinculada */}
       {!loading && !folderId && (
-        <Card className="mb-8 bg-yellow-50 border-yellow-200">
+        <Card className="mb-8 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
           <div className="flex items-start space-x-4">
-            <AlertCircle className="text-yellow-600 flex-shrink-0 mt-1" size={24} />
+            <AlertCircle className="text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-1" size={24} />
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+              <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-300 mb-2">
                 Google Drive no vinculado
               </h3>
-              <p className="text-yellow-700 mb-4">
+              <p className="text-yellow-700 dark:text-yellow-400 mb-4">
                 Para procesar materiales, necesitas vincular una carpeta de Google Drive.
                 Esto te permitirá acceder a tus archivos PDF y PPT para procesarlos con el Tutor RAG.
               </p>
@@ -1630,34 +1629,55 @@ export const FileProcessingPage: React.FC = () => {
         </Card>
       )}
 
-      {/* Advertencia para archivos grandes */}
+      {/* Banner de App de Escritorio */}
       {folderId && (
-        <Card className="mb-8 bg-amber-50 border-amber-200">
-          <div className="flex items-start space-x-4">
-            <AlertCircle className="text-amber-600 flex-shrink-0 mt-1" size={24} />
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-amber-800 mb-2">
-                📚 ¿Tienes libros o documentos muy grandes?
-              </h3>
-              <p className="text-amber-700 mb-3">
-                Para libros de texto o PDFs de más de 100MB (como manuales universitarios),
-                te recomendamos usar nuestra <strong>herramienta de escritorio</strong> que procesa localmente
-                y evita problemas de memoria en la nube.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <a
-                  href="https://drive.google.com/uc?export=download&id=11XQJieebEoFqKMCPG_vNzEDh06YzFGos"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
-                >
-                  <ExternalLink size={16} className="mr-2" />
-                  Descargar EduSpark Desktop Uploader
-                </a>
-                <span className="text-amber-600 text-sm self-center">
-                  (Ideal para PDFs de más de 100 páginas)
-                </span>
+        <Card className="mb-8 bg-gradient-to-br from-indigo-600 via-purple-700 to-indigo-900 border-none shadow-xl overflow-hidden relative">
+          {/* Decoración de fondo */}
+          <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-white opacity-5 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-32 h-32 bg-indigo-400 opacity-10 rounded-full blur-2xl"></div>
+          
+          <div className="p-6 relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              <div className="hidden sm:flex w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl items-center justify-center border border-white/20 shadow-inner">
+                <HardDrive className="w-10 h-10 text-indigo-100" />
               </div>
+              <div>
+                <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-full bg-indigo-500/30 border border-indigo-400/30 text-[10px] font-bold text-indigo-100 uppercase tracking-wider mb-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                  Recomendado para PDFs Grandes
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2 leading-tight">
+                  EduSpark Desktop Uploader
+                </h2>
+                <p className="text-indigo-100 max-w-xl text-sm leading-relaxed opacity-90">
+                  Para libros de texto o manuales pesados, nuestra <strong>App para Windows</strong> utiliza el procesador local y el motor <strong>Gemini Embedding 2</strong>. Es más estable y evita problemas de memoria en la nube.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+              <a 
+                href="/downloads/EduSparkUploader.exe" 
+                download 
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-indigo-700 hover:bg-indigo-50 font-bold rounded-xl transition-all shadow-lg hover:shadow-indigo-500/20 active:scale-95 text-center"
+              >
+                <Download className="w-5 h-5" />
+                Descargar para Windows
+              </a>
+              <button 
+                onClick={() => {
+                  const info = 
+                    "DETALLES TÉCNICOS DEL PROCESAMIENTO:\n\n" +
+                    "• Motor de Ingesta: Basado en Gemini Embedding 2 para mayor precisión en la recuperación (RAG).\n" +
+                    "• Eficiencia: Pre-procesamiento local que optimiza el uso de tokens y reduce la carga del servidor.\n" +
+                    "• Robustez: Capacidad para documentos extensos (hasta 2000 páginas) con gestión de errores avanzada.\n" +
+                    "• Seguridad: Extracción de texto local segura antes de la vectorización.\n" +
+                    "• Multitarea: Permite procesar múltiples archivos pesados en paralelo sin afectar la interfaz web.";
+                  alert(info);
+                }}
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-500/20 hover:bg-indigo-500/30 text-white font-medium rounded-xl border border-white/10 transition-all text-center"
+              >
+                Más información
+              </button>
             </div>
           </div>
         </Card>
@@ -1738,7 +1758,7 @@ export const FileProcessingPage: React.FC = () => {
           {/* Lista de archivos - Ocupa todo el ancho disponible */}
           <Card>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-800">Archivos Disponibles</h2>
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Archivos Disponibles</h2>
               {hiddenFileIds.size > 0 && (
                 <button
                   onClick={() => {
@@ -1763,11 +1783,11 @@ export const FileProcessingPage: React.FC = () => {
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="animate-spin text-blue-500" size={24} />
-                <span className="ml-2 text-gray-600">Cargando archivos...</span>
+                <span className="ml-2 text-gray-600 dark:text-gray-300">Cargando archivos...</span>
               </div>
             ) : files.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <FileText className="mx-auto mb-2 text-gray-400" size={48} />
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <FileText className="mx-auto mb-2 text-gray-400 dark:text-gray-500" size={48} />
                 <p>No se encontraron archivos PDF, PPT o imágenes en tu carpeta de Google Drive</p>
               </div>
             ) : (
@@ -1910,12 +1930,12 @@ export const FileProcessingPage: React.FC = () => {
                     <div
                       key={`file-${file.id}-${fileIndex}`}
                       className={`border rounded-lg p-4 transition-all ${isCompleted
-                        ? 'border-green-300 bg-green-50'
+                        ? 'border-green-300 bg-green-50 dark:border-green-800/50 dark:bg-green-900/10'
                         : isProcessing
-                          ? 'border-blue-300 bg-blue-50'
+                          ? 'border-blue-300 bg-blue-50 dark:border-blue-800/50 dark:bg-blue-900/10'
                           : hasFailed
-                            ? 'border-red-300 bg-red-50'
-                            : 'border-gray-200 hover:bg-gray-50'
+                            ? 'border-red-300 bg-red-50 dark:border-red-800/50 dark:bg-red-900/10'
+                            : 'border-gray-200 hover:bg-gray-50 dark:border-gray-700/50 dark:hover:bg-gray-800/30'
                         }`}
                     >
                       <div className="flex items-start gap-4">
@@ -1939,7 +1959,7 @@ export const FileProcessingPage: React.FC = () => {
                               />
                             </div>
                           ) : (
-                            <div className="w-20 h-20 flex items-center justify-center bg-gray-100 rounded border">
+                            <div className="w-20 h-20 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded border dark:border-gray-700">
                               {getFileIcon(file.mimeType)}
                             </div>
                           )}
@@ -1949,25 +1969,25 @@ export const FileProcessingPage: React.FC = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-gray-800 mb-1 truncate" title={file.name}>
+                              <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-1 truncate" title={file.name}>
                                 {file.name}
                               </h3>
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                <span className="px-2 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded text-xs font-medium">
                                   {fileTypeLabel}
                                 </span>
                                 {isCompleted && (
-                                  <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium flex items-center gap-1">
+                                  <span className="px-2 py-0.5 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 rounded text-xs font-medium flex items-center gap-1">
                                     <CheckCircle2 className="w-3 h-3" />
                                     Completado
                                   </span>
                                 )}
                                 {isProcessing && (
                                   <span className={`px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1 ${hasStuckJob
-                                    ? 'bg-orange-100 text-orange-800'
+                                    ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
                                     : fileJobs.some(j => j.status === 'pending')
-                                      ? 'bg-yellow-100 text-yellow-800'
-                                      : 'bg-blue-100 text-blue-800'
+                                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
                                     }`}>
                                     {hasStuckJob ? (
                                       <>
@@ -1988,13 +2008,13 @@ export const FileProcessingPage: React.FC = () => {
                                   </span>
                                 )}
                                 {fileJobs.some(j => j.status === 'cancelled') && (
-                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-800 rounded text-xs font-medium flex items-center gap-1">
+                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300 rounded text-xs font-medium flex items-center gap-1">
                                     <XCircle className="w-3 h-3" />
                                     Cancelado
                                   </span>
                                 )}
                                 {hasFailed && (
-                                  <span className="px-2 py-0.5 bg-red-100 text-red-800 rounded text-xs font-medium flex items-center gap-1">
+                                  <span className="px-2 py-0.5 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 rounded text-xs font-medium flex items-center gap-1">
                                     <XCircle className="w-3 h-3" />
                                     Fallido
                                   </span>

@@ -123,8 +123,8 @@ const CareersPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Carreras</h1>
-          <p className="text-gray-600">Administra los programas académicos</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Carreras</h1>
+          <p className="text-gray-600 dark:text-gray-400">Administra los programas académicos</p>
         </div>
         <Button onClick={() => { setEditingCareer(null); setShowForm(true); }}>
           <span className="mr-2">+</span>
@@ -152,16 +152,16 @@ const CareersPage: React.FC = () => {
 
       {/* Modal Visualizador de Malla */}
       {showCurriculum && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
-            <div className="p-6 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col border border-border/50">
+            <div className="p-6 border-b dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50 rounded-t-xl">
               <div>
-                <h2 className="text-2xl font-bold text-gray-800">Malla Curricular</h2>
-                <p className="text-sm text-gray-600 font-medium">{showCurriculum.name} ({showCurriculum.code})</p>
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Malla Curricular</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">{showCurriculum.name} ({showCurriculum.code})</p>
               </div>
               <button
                 onClick={() => setShowCurriculum(null)}
-                className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-200 rounded-full transition-colors"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -169,7 +169,7 @@ const CareersPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="flex-1 overflow-auto p-6 bg-gray-100/50">
+            <div className="flex-1 overflow-auto p-6 bg-gray-100/50 dark:bg-black/20">
               {loadingCurriculum ? (
                 <div className="flex justify-center py-20">
                   <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
@@ -182,7 +182,7 @@ const CareersPage: React.FC = () => {
               )}
             </div>
 
-            <div className="p-4 border-t bg-white rounded-b-xl flex justify-end">
+            <div className="p-4 border-t dark:border-gray-800 bg-white dark:bg-gray-900 rounded-b-xl flex justify-end">
               <Button onClick={() => setShowCurriculum(null)} variant="secondary">
                 Cerrar
               </Button>
@@ -208,23 +208,23 @@ const CareersPage: React.FC = () => {
               <Card className="hover:shadow-lg transition-shadow h-full flex flex-col">
                 <div className="flex flex-col h-full">
                   <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{career.name}</h3>
-                      <p className="text-sm text-gray-500 mt-1">Código: {career.code}</p>
+                    <div className="min-w-0 pr-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate" title={career.name}>{career.name}</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Código: {career.code}</p>
                     </div>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${career.is_active
-                        ? 'text-green-600 bg-green-100'
-                        : 'text-gray-600 bg-gray-100'
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${career.is_active
+                      ? 'text-green-600 bg-green-100 dark:text-green-300 dark:bg-green-900/40'
+                      : 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-800'
                       }`}>
                       {career.is_active ? 'Activa' : 'Inactiva'}
                     </span>
                   </div>
 
                   {career.description && (
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{career.description}</p>
+                    <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">{career.description}</p>
                   )}
 
-                  <div className="text-xs text-gray-500 mb-4 space-y-1 flex-grow">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-4 space-y-1 flex-grow">
                     <div>Duración: {career.duration_months} meses</div>
                     <div>Créditos: {career.total_credits}</div>
                     <div>Tipo: {DEGREE_TYPES.find(d => d.value === career.degree_type)?.label || career.degree_type}</div>
@@ -234,7 +234,7 @@ const CareersPage: React.FC = () => {
                     <Button
                       onClick={() => loadCurriculum(career)}
                       variant="ghost"
-                      className="w-full text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 border border-dashed border-indigo-200"
+                      className="w-full text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 border border-dashed border-indigo-200 dark:border-indigo-800/50"
                       size="sm"
                     >
                       <span className="mr-2">🗺️</span> Ver Malla Curricular
@@ -252,8 +252,8 @@ const CareersPage: React.FC = () => {
                     <Button
                       onClick={() => handleToggleActive(career)}
                       className={`flex-1 ${career.is_active
-                          ? '' // Default primary looks fine, maybe warn color?
-                          : ''
+                        ? '' // Default primary looks fine, maybe warn color?
+                        : ''
                         }`}
                       variant={career.is_active ? 'danger' : 'primary'} // Danger if active (to deactivate)
                       size="sm"
@@ -340,13 +340,13 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
     <Card className="mb-6">
       <div className="p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             {career ? 'Editar Carrera' : 'Nueva Carrera'}
           </h2>
           <button
             onClick={onClose}
             type="button"
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -363,7 +363,7 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
         <form onSubmit={handleSubmit} className="space-y-4">
           {user?.role?.name === 'admin' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Institución *
               </label>
               <select
@@ -376,7 +376,7 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
                     institution_id: value ? parseInt(value, 10) : undefined
                   });
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={loadingInstitutions}
               >
                 <option value="">Seleccionar institución</option>
@@ -389,20 +389,20 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
 
           {user?.role?.name !== 'admin' && institution && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Institución
               </label>
               <input
                 type="text"
                 value={institution.name}
                 disabled
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
               />
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Nombre *
             </label>
             <input
@@ -410,12 +410,12 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Código *
             </label>
             <input
@@ -423,25 +423,25 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
               required
               value={formData.code}
               onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Descripción
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Duración (meses) *
               </label>
               <input
@@ -453,12 +453,12 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
                   const value = e.target.value;
                   setFormData({ ...formData, duration_months: value ? parseInt(value, 10) : 0 });
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Créditos Totales
               </label>
               <input
@@ -469,19 +469,19 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
                   const value = e.target.value;
                   setFormData({ ...formData, total_credits: value ? parseInt(value, 10) : 0 });
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Tipo de Grado
             </label>
             <select
               value={formData.degree_type}
               onChange={(e) => setFormData({ ...formData, degree_type: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {DEGREE_TYPES.map(dt => (
                 <option key={dt.value} value={dt.value}>{dt.label}</option>
@@ -495,9 +495,9 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
               id="is_active"
               checked={formData.is_active}
               onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
             />
-            <label htmlFor="is_active" className="ml-2 block text-sm text-gray-700">
+            <label htmlFor="is_active" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
               Carrera activa
             </label>
           </div>

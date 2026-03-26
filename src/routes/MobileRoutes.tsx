@@ -9,9 +9,9 @@ const MobileRoutes: React.FC = () => {
     return (
         <Routes>
             <Route element={<MobileAppLayout />}>
-                <Route path="/" element={<MobileDashboardPage />} />
-                <Route path="/chat" element={<MobileChatPage />} />
-                <Route path="/flashcards" element={<MobileFlashcardsPage />} />
+                <Route path="/mobile" element={<MobileDashboardPage />} />
+                <Route path="/mobile/chat" element={<MobileChatPage />} />
+                <Route path="/mobile/flashcards" element={<MobileFlashcardsPage />} />
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/mobile" replace />} />
             </Route>

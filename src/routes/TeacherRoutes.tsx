@@ -4,6 +4,8 @@ import { useAuth } from '@/hooks/useAuth';
 import TeacherLayout from '@/components/Common/TeacherLayout';
 import AdminRoute from '@/components/Common/AdminRoute';
 
+import { CourseImportWizardPage } from '@/pages/Teacher/CourseImportWizardPage';
+
 // Pages
 import DashboardPage from '@/pages/Common/DashboardPage';
 import SessionsListPage from '@/pages/Teacher/SessionsListPage';
@@ -87,6 +89,7 @@ const TeacherRoutes: React.FC = () => {
                 <Route path="/teacher/courses" element={<TeacherCoursesPage />} />
                 <Route path="/courses/:id" element={<CourseViewPage />} />
                 <Route path="/teacher/courses/new" element={<CreateCoursePage />} />
+                <Route path="/teacher/courses/import" element={<CourseImportWizardPage />} />
                 <Route path="/teacher/courses/:id" element={<CourseEditorPage />} />
                 <Route path="/teacher/courses/:id/edit" element={<CreateCoursePage />} />
                 <Route path="/teacher/courses/:id/modules" element={<CourseModulesPage />} />

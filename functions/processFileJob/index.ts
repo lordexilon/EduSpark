@@ -749,23 +749,45 @@ function splitIntoChunks(
 }
 
 /**
- * Genera embedding usando Gemini
+ * Genera embeddings en lote usando Gemini
  */
-async function generateEmbedding(text: string): Promise<number[]> {
+async function generateEmbeddingsBatch(texts: string[], title?: string): Promise<number[][]> {
   try {
-    const genAI = await getGenAI();
-    const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
-    
-    const result = await model.embedContent(text);
-    const embedding = result.embedding.values;
-    
-    if (!embedding || embedding.length === 0) {
-      throw new Error('Embedding vacío recibido de Gemini');
+    const apiKey = geminiApiKey.value();
+    if (!apiKey) {
+      throw new Error('GEMINI_API_KEY debe estar configurado');
     }
+
+    // Usar el endpoint de batch para mayor eficiencia
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key=${apiKey}`;
     
-    return embedding;
+    const requests = texts.map(text => ({
+      model: 'models/text-embedding-004',
+      taskType: 'RETRIEVAL_DOCUMENT',
+      title: title,
+      content: { parts: [{ text }] },
+      outputDimensionality: 512
+    }));
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error en batch embedding: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    if (!data.embeddings || !Array.isArray(data.embeddings)) {
+      throw new Error('Respuesta de embeddings inválida de Gemini');
+    }
+
+    return data.embeddings.map((e: any) => e.values);
   } catch (error) {
-    console.error('Error generando embedding:', error);
+    console.error('Error generando embeddings en lote:', error);
     throw error;
   }
 }
@@ -1188,22 +1210,28 @@ export const processFileJob = onDocumentCreated(
         
         console.log(`  Procesando lote ${Math.floor(batchStart / EMBEDDING_BATCH_SIZE) + 1}: chunks ${batchStart + 1}-${batchEnd} de ${chunks.length}`);
         
-        // Generar embeddings para este lote
-        for (let i = 0; i < batch.length; i++) {
-          const chunk = batch[i];
-          const chunkIndex = batchStart + i;
+        // Generar embeddings para este lote (BATCH)
+        console.log(`    [${new Date().toISOString()}] Generando embeddings en lote para ${batch.length} chunks...`);
+        
+        try {
+          const batchTexts = batch.map(c => c.text);
+          const embeddingStartTime = Date.now();
+          const batchEmbeddings = await generateEmbeddingsBatch(batchTexts, jobData.sourceFileName);
+          const embeddingTime = Date.now() - embeddingStartTime;
           
-          console.log(`    [${new Date().toISOString()}] Generando embedding ${chunkIndex + 1}/${chunks.length} (páginas ${chunk.pageStart}-${chunk.pageEnd})...`);
+          console.log(`    ✅ Lote de ${batchEmbeddings.length} embeddings generado en ${embeddingTime}ms`);
           
-          try {
-            const embeddingStartTime = Date.now();
-            const embedding = await generateEmbedding(chunk.text);
-            const embeddingTime = Date.now() - embeddingStartTime;
+          for (let i = 0; i < batch.length; i++) {
+            const chunk = batch[i];
+            const chunkIndex = batchStart + i;
+            const embedding = batchEmbeddings[i];
             
-            console.log(`    ✅ Embedding ${chunkIndex + 1} generado en ${embeddingTime}ms`);
-            
+            if (!embedding) {
+              console.warn(`    ⚠️ No se pudo obtener embedding para chunk ${chunkIndex + 1}`);
+              continue;
+            }
+
             // Optimizado: reducir metadatos para ahorrar almacenamiento
-            // Eliminamos sourceFileId y sourceFileName (ya están en materials)
             chunksToInsert.push({
               course_id: parseInt(jobData.courseId),
               content: chunk.text,
@@ -1211,7 +1239,6 @@ export const processFileJob = onDocumentCreated(
               chunk_index: chunkIndex,
               metadata: {
                 material_id: jobData.metadata?.materialId,
-                // sourceFileId y sourceFileName eliminados - disponibles en materials
                 pdfType: jobData.pdfType,
                 category: jobData.metadata?.category,
                 page_start: chunk.pageStart,
@@ -1219,21 +1246,12 @@ export const processFileJob = onDocumentCreated(
                 total_pages: actualTotalPages,
               },
             });
-            
-            // Actualizar progreso después de cada 5 chunks generados (para feedback más frecuente)
-            if ((i + 1) % 5 === 0 || i === batch.length - 1) {
-              const currentProgress = totalProcessed + i + 1;
-              console.log(`    📊 Progreso parcial: ${currentProgress}/${chunks.length} chunks procesados (${Math.round((currentProgress / chunks.length) * 100)}%)`);
-            }
-            
-            // Pequeña pausa para no sobrecargar APIs
-            if (i < batch.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, 200));
-            }
-          } catch (embeddingError) {
-            console.error(`    ❌ Error generando embedding para chunk ${chunkIndex + 1}:`, embeddingError);
-            // Continuar con los demás chunks
           }
+        } catch (batchError) {
+          console.error(`    ❌ Error en generación por lote:`, batchError);
+          // Opcional: Fallback a uno por uno si el batch falla? 
+          // Por ahora fallamos el batch para mantener consistencia Pareto
+          throw batchError; 
         }
         
         // Insertar este lote inmediatamente para liberar memoria

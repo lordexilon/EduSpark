@@ -36,9 +36,9 @@ export class RAGAgent {
         context.studentProfile
       );
 
-      // Enviar consulta al servicio RAG con contexto enriquecido
+      // Enviar consulta al servicio RAG con la pregunta limpia, el contexto de personalidad se manejará después
       const response = await this.ragService.processQueryWithContext(
-        enrichedContext,
+        question,
         context
       );
 
@@ -435,7 +435,9 @@ export class RAGAgent {
    * Agrega elementos auditivos a la respuesta
    */
   private addAuditoryElements(response: string): string {
-    return response.replace(/\./g, '... '); // Pausas más largas
+    // No mutar el texto del chat: reemplazar todos los "." rompe markdown, URLs y frases;
+    // las pausas para TTS deben ir en el pipeline de voz, no aquí.
+    return response;
   }
 
   /**
@@ -452,12 +454,7 @@ export class RAGAgent {
    * Agrega elementos de lectura a la respuesta
    */
   private addReadingElements(response: string): string {
-    if (!response.includes('1.') && !response.includes('•')) {
-      return response.replace(/(\w+)/g, (match, index) => {
-        if (index === 0) return `1. ${match}`;
-        return match;
-      });
-    }
+    // El callback de replace recibía el offset como "index", no el índice de palabra: corría riesgo de corromper el texto.
     return response;
   }
 }

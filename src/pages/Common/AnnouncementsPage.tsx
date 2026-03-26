@@ -118,15 +118,15 @@ const AnnouncementsPage: React.FC = () => {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'urgent':
-        return 'bg-red-100 text-red-800 border-red-300';
+        return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50';
       case 'high':
-        return 'bg-orange-100 text-orange-800 border-orange-300';
+        return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-900/50';
       case 'normal':
-        return 'bg-blue-100 text-blue-800 border-blue-300';
+        return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/50';
       case 'low':
-        return 'bg-gray-100 text-gray-800 border-gray-300';
+        return 'bg-muted text-text-light border-border';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
+        return 'bg-muted text-text-light border-border';
     }
   };
 
@@ -171,7 +171,7 @@ const AnnouncementsPage: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -181,8 +181,8 @@ const AnnouncementsPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Tablero de Avisos</h1>
-          <p className="text-sm text-gray-600 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-text-dark">Tablero de Avisos</h1>
+          <p className="text-sm text-text-light opacity-70 mt-1">
             Mantente informado sobre las últimas noticias y actualizaciones
           </p>
         </div>
@@ -216,9 +216,9 @@ const AnnouncementsPage: React.FC = () => {
       {announcements.length === 0 ? (
         <Card>
           <div className="text-center py-12">
-            <IconBell className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay avisos</h3>
-            <p className="text-gray-600">
+            <IconBell className="w-16 h-16 text-text-light opacity-30 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-text-dark mb-2">No hay avisos</h3>
+            <p className="text-text-light opacity-70">
               {isTeacher
                 ? 'Crea tu primer aviso para comunicarte con los estudiantes'
                 : 'No hay avisos disponibles en este momento'}
@@ -235,8 +235,8 @@ const AnnouncementsPage: React.FC = () => {
             return (
               <Card
                 key={announcement.id}
-                className={`transition-all hover:shadow-lg ${!isRead ? 'border-l-4 border-l-blue-500 bg-blue-50/50' : ''
-                  } ${announcement.is_pinned ? 'border-2 border-yellow-300 bg-yellow-50/30' : ''}`}
+                className={`transition-all hover:shadow-lg ${!isRead ? 'border-l-4 border-l-primary bg-primary/5 dark:bg-primary/10' : ''
+                  } ${announcement.is_pinned ? 'ring-2 ring-yellow-400/50 bg-yellow-400/5 dark:bg-yellow-400/10' : ''}`}
               >
                 <div className="p-6">
                   {/* Header del aviso */}
@@ -244,16 +244,16 @@ const AnnouncementsPage: React.FC = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         {announcement.is_pinned && (
-                          <IconPin className="w-5 h-5 text-yellow-600" />
+                          <IconPin className="w-5 h-5 text-yellow-600 dark:text-yellow-500" />
                         )}
-                        <h2 className="text-xl font-bold text-gray-900">{announcement.title}</h2>
+                        <h2 className="text-xl font-bold text-text-dark">{announcement.title}</h2>
                         {!isRead && (
-                          <span className="px-2 py-1 bg-blue-500 text-white text-xs font-semibold rounded-full">
+                          <span className="px-2 py-1 bg-primary text-white text-[10px] tracking-wider uppercase font-black rounded-lg">
                             Nuevo
                           </span>
                         )}
                       </div>
-                      <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-text-light opacity-70">
                         <div className="flex items-center gap-1">
                           <IconUser className="w-4 h-4" />
                           <span>
@@ -282,13 +282,12 @@ const AnnouncementsPage: React.FC = () => {
                   </div>
 
                   {/* Contenido */}
-                  <div className="prose max-w-none mb-4">
-                    <p className="text-gray-700 whitespace-pre-wrap">{announcement.content}</p>
+                  <div className="prose max-w-none mb-4 dark:prose-invert">
+                    <p className="text-text-dark/90 whitespace-pre-wrap leading-relaxed">{announcement.content}</p>
                   </div>
 
-                  {/* Footer */}
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                    <div className="text-xs text-gray-500">
+                  <div className="flex items-center justify-between pt-4 border-t border-border">
+                    <div className="text-xs text-text-light opacity-50">
                       {announcement.expires_at && (
                         <span>
                           Expira: {formatDate(announcement.expires_at)}
@@ -307,7 +306,7 @@ const AnnouncementsPage: React.FC = () => {
                         </Button>
                       )}
                       {isRead && (
-                        <span className="text-xs text-green-600 flex items-center gap-1">
+                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1 bg-emerald-500/10 px-2 py-1 rounded-lg">
                           <IconCheck className="w-4 h-4" />
                           Leído
                         </span>
@@ -319,7 +318,7 @@ const AnnouncementsPage: React.FC = () => {
                             size="sm"
                             variant="secondary"
                             onClick={() => handleEdit(announcement.id)}
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            className="bg-primary/10 text-primary hover:bg-primary/20"
                           >
                             <IconEdit className="w-4 h-4 mr-1" />
                             Editar
@@ -328,7 +327,7 @@ const AnnouncementsPage: React.FC = () => {
                             size="sm"
                             variant="secondary"
                             onClick={() => handleDelete(announcement.id)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="bg-red-500/10 text-red-600 hover:bg-red-500/20"
                           >
                             <IconTrash className="w-4 h-4 mr-1" />
                             Eliminar

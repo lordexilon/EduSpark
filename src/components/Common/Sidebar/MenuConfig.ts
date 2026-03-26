@@ -116,7 +116,6 @@ const SUPERVISOR_BASE_ITEMS: MenuItem[] = [
         name: 'Materiales',
         icon: IconFileText,
         children: [
-            { name: 'Procesar Materiales', path: '/teacher/file-processing', icon: IconUpload },
             { name: 'Administrar Materiales', path: '/teacher/materials', icon: IconFileText },
         ]
     },
@@ -138,7 +137,6 @@ const TEACHER_BASE_ITEMS: MenuItem[] = [
         icon: IconBookOpen,
         children: [
             { name: 'Mis Cursos', path: '/teacher/courses', icon: IconBookOpen },
-            { name: 'Procesar Materiales', path: '/teacher/file-processing', icon: IconUpload },
             { name: 'Administrar Materiales', path: '/teacher/materials', icon: IconFileText },
         ]
     },

@@ -4,18 +4,11 @@
 > Describe el stack técnico y la arquitectura.
 
 ## Stack Tecnológico
-- **Frontend:** React 18, Vite, TypeScript, TailwindCSS
-- **Backend:** Supabase (PostgreSQL) + Firebase (Firestore/Auth)
-- **Functions:** Google Cloud Functions / Edge Functions
-- **Herramientas:** Lucide React, Tiptap, jsPDF
-- **Infraestructural:** Google Cloud Run (Containerized)
+- **Lenguaje:** Markdown (Documentación Técnica)
+- **Base de Datos:** N/A (Sistema de Archivos)
+- **Tipo:** Plantilla de Arquitectura (Framework Cognitivo para IA)
 
 ## Mapa de Arquitectura
-- `src/` - Código fuente de la aplicación.
-  - `pages/Admin` - Gestión de Usuarios, Reportes, Configuración.
-  - `pages/Student` - Cursos, Exámenes, Flashcards, Tutor Virtual.
-  - `pages/Teacher` - Gestión de Cursos, Calificaciones, Materiales.
-  - `components/` - Componentes reutilizables.
-- `supabase/` - Configuraciones y Migraciones de Supabase.
-- `AI_CONTEXT/` - Reglas y Contexto del Agente SCA-Compliant.
-- `package.json` - Dependencias del proyecto.
+- `templates/` - Estructuras de carpetas listas para copiar (en/es).
+- `README.md` - Documentación principal y guía de uso.
+- `AI_CONTEXT/` - (Este directorio) Definición de reglas y contexto.

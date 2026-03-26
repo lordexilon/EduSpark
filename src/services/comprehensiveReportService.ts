@@ -7,6 +7,7 @@ import { getStudentMetrics, getCourseMetrics, StudentMetrics } from './tutorAnal
 import { courseEnrollmentService } from './academicService';
 import { unitService, sessionService } from './teacherCourses';
 import { quizService } from './quizService';
+import { getFlashcardsByCourse } from './flashcardService';
 
 // ============================================
 // TIPOS E INTERFACES
@@ -97,7 +98,6 @@ async function getAcademicProgress(
     ]);
 
     // Obtener flashcards del curso ⭐ NUEVO
-    const { getFlashcardsByCourse } = await import('./flashcardService');
     const flashcards = await getFlashcardsByCourse(courseId);
 
     const totalUnits = units.length;

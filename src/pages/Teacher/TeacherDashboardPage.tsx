@@ -8,9 +8,8 @@ import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
 import {
   IconBookOpen,
-  IconStudent,
   IconClipboardList,
-  IconGraduationCap,
+  IconCheckCircle,
   IconPlusCircle,
   IconMessage,
   IconCalendar,
@@ -191,13 +190,13 @@ const TeacherDashboardPage: React.FC = () => {
       {/* 1. Header con Acciones (Estilo Image 2) */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+          <div className="flex items-center gap-2 text-sm text-text-light mb-1">
             <span className="uppercase tracking-wider">PANEL DE CONTROL</span>
             <span>›</span>
             <span className="font-semibold text-brand-primary">VISTA GENERAL</span>
           </div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-text-dark">
               {user?.role?.name === 'admin' ? 'Panel de Administración' : 'Panel de Docente'}
             </h1>
             <span className={`text-sm font-semibold px-3 py-1 rounded-full ${user?.role?.name === 'admin'
@@ -213,14 +212,14 @@ const TeacherDashboardPage: React.FC = () => {
         <div className="flex gap-3">
           {user?.role?.name === 'admin' ? (
             <Link to="/admin/users">
-              <Button variant="outline" className="bg-white">
+              <Button variant="outline" className="bg-surface text-text-dark border-border hover:bg-background">
                 <IconUserGroup className="w-4 h-4 mr-2" />
                 Usuarios
               </Button>
             </Link>
           ) : (
             <Link to="/teacher/forums">
-              <Button variant="outline" className="bg-white border-gray-200 text-gray-700 hover:bg-gray-50">
+              <Button variant="outline" className="bg-surface border-border text-text-dark hover:bg-background">
                 <IconMessage className="w-4 h-4 mr-2" />
                 Gestionar Foros
               </Button>
@@ -238,56 +237,56 @@ const TeacherDashboardPage: React.FC = () => {
 
       {/* 2. Stats Cards (Estilo Image 2 - Icon Box + Number) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200">
+        <Card className="p-5 border-border shadow-sm hover:shadow-md transition-all duration-200">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
               <IconBookOpen className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">
+              <p className="text-sm font-medium text-text-light mb-1">
                 {user?.role?.name === 'admin' ? 'Cursos Totales' : 'Mis Cursos'}
               </p>
-              <h3 className="text-3xl font-bold text-gray-900">{stats.totalCourses}</h3>
+              <h3 className="text-3xl font-bold text-text-dark">{stats.totalCourses}</h3>
             </div>
           </div>
         </Card>
 
-        <Card className="p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200">
+        <Card className="p-5 border-border shadow-sm hover:shadow-md transition-all duration-200">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
-              <IconGraduationCap className="h-6 w-6" />
+              <IconCheckCircle className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Cursos Activos</p>
-              <h3 className="text-3xl font-bold text-gray-900">{stats.activeCourses}</h3>
+              <p className="text-sm font-medium text-text-light mb-1">Cursos Activos</p>
+              <h3 className="text-3xl font-bold text-text-dark">{stats.activeCourses}</h3>
             </div>
           </div>
         </Card>
 
-        <Card className="p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200">
+        <Card className="p-5 border-border shadow-sm hover:shadow-md transition-all duration-200">
           <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600">
-              <IconStudent className="h-6 w-6" />
+            <div className="flex-shrink-0 w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+              <IconUserGroup className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">
+              <p className="text-sm font-medium text-text-light mb-1">
                 {user?.role?.name === 'admin' ? 'Usuarios' : 'Estudiantes'}
               </p>
-              <h3 className="text-3xl font-bold text-gray-900">{stats.totalStudents}</h3>
+              <h3 className="text-3xl font-bold text-text-dark">{stats.totalStudents}</h3>
             </div>
           </div>
         </Card>
 
-        <Card className="p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200">
+        <Card className="p-5 border-border shadow-sm hover:shadow-md transition-all duration-200">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600">
               <IconClipboardList className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">
+              <p className="text-sm font-medium text-text-light mb-1">
                 {user?.role?.name === 'admin' ? 'Actividad' : 'Por Calificar'}
               </p>
-              <h3 className="text-3xl font-bold text-gray-900">{stats.pendingAssignments}</h3>
+              <h3 className="text-3xl font-bold text-text-dark">{stats.pendingAssignments}</h3>
             </div>
           </div>
         </Card>
@@ -369,7 +368,7 @@ const TeacherDashboardPage: React.FC = () => {
         {/* Column 1 & 2: Recent Courses (Wider) */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-900">Mis Cursos Recientes</h2>
+            <h2 className="text-xl font-bold text-text-dark">Mis Cursos Recientes</h2>
             <Link to="/teacher/courses">
               <span className="text-sm font-medium text-blue-600 hover:text-blue-700 cursor-pointer">Ver todos</span>
             </Link>
@@ -389,7 +388,7 @@ const TeacherDashboardPage: React.FC = () => {
               </Card>
             ) : (
               courses.slice(0, 3).map((course) => (
-                <div key={course.id} className="group bg-white rounded-xl border border-gray-100 shadow-sm p-4 hover:shadow-md transition-all duration-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div key={course.id} className="group bg-surface rounded-xl border border-border shadow-sm p-4 hover:shadow-md transition-all duration-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div className="flex items-center gap-4">
                     {course.thumbnail_url ? (
                       <img
@@ -403,9 +402,9 @@ const TeacherDashboardPage: React.FC = () => {
                       </div>
                     )}
                     <div>
-                      <h4 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{course.title}</h4>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                        <span className={`px-2 py-0.5 rounded-full ${course.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                      <h4 className="font-bold text-text-dark group-hover:text-primary transition-colors">{course.title}</h4>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-text-light">
+                        <span className={`px-2 py-0.5 rounded-full ${course.status === 'active' ? 'bg-success/10 text-success' : 'bg-background text-text-light'}`}>
                           {course.status === 'active' ? 'Activo' : 'Borrador'}
                         </span>
                         <span>•</span>
@@ -428,7 +427,7 @@ const TeacherDashboardPage: React.FC = () => {
         {/* Column 3: Forums (Narrower) */}
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-900">Foros Recientes</h2>
+            <h2 className="text-xl font-bold text-text-dark">Foros Recientes</h2>
             <Link to="/teacher/forums">
               <span className="text-sm font-medium text-blue-600 hover:text-blue-700 cursor-pointer">Ver todos</span>
             </Link>
@@ -441,23 +440,23 @@ const TeacherDashboardPage: React.FC = () => {
               </div>
             ) : (
               recentForums.map((topic) => (
-                <div key={topic.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200">
+                <div key={topic.id} className="bg-surface p-4 rounded-xl border border-border shadow-sm hover:shadow-md transition-all duration-200">
                   <div className="flex items-start gap-3">
                     <div className="mt-1">
-                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                      <div className="w-2 h-2 rounded-full bg-primary"></div>
                     </div>
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 hover:text-blue-600 cursor-pointer">
+                      <h4 className="text-sm font-semibold text-text-dark line-clamp-2 hover:text-primary cursor-pointer">
                         <Link to={`/forum/${topic.id}`}>{topic.title}</Link>
                       </h4>
-                      <p className="text-xs text-gray-500 mt-2 flex items-center gap-2">
+                      <p className="text-xs text-text-light mt-2 flex items-center gap-2">
                         <IconCalendar className="w-3 h-3" />
                         {formatRelativeTime(topic.last_message_at)}
                       </p>
                     </div>
                   </div>
-                  <div className="mt-3 pt-3 border-t border-gray-50 flex justify-end">
-                    <Link to={`/forum/${topic.id}`} className="text-xs font-medium text-blue-600 hover:underline">
+                  <div className="mt-3 pt-3 border-t border-border flex justify-end">
+                    <Link to={`/forum/${topic.id}`} className="text-xs font-medium text-primary hover:underline">
                       Responder →
                     </Link>
                   </div>
@@ -466,12 +465,12 @@ const TeacherDashboardPage: React.FC = () => {
             )}
 
             {/* Quick Calendar Placeholder (from image design) */}
-            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm mt-6">
-              <h3 className="text-sm font-bold text-gray-900 mb-4">Próximas Sesiones</h3>
+            <div className="bg-surface p-6 rounded-xl border border-border shadow-sm mt-6">
+              <h3 className="text-sm font-bold text-text-dark mb-4">Próximas Sesiones</h3>
               <div className="flex flex-col items-center justify-center py-4 text-center">
-                <IconCalendar className="w-10 h-10 text-gray-300 mb-2" />
-                <p className="text-xs text-gray-500">No tienes sesiones programadas hoy.</p>
-                <Button variant="ghost" size="sm" className="mt-2 text-blue-600">Ver Calendario</Button>
+                <IconCalendar className="w-10 h-10 text-border mb-2" />
+                <p className="text-xs text-text-light">No tienes sesiones programadas hoy.</p>
+                <Button variant="ghost" size="sm" className="mt-2 text-primary">Ver Calendario</Button>
               </div>
             </div>
           </div>

@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Flashcard, getFlashcardsByCourse } from '@/services/flashcardService';
+import { Flashcard, getFlashcardsByCourse, deleteFlashcard } from '@/services/flashcardService';
 import { courseService, Course } from '@/services/teacherCourses';
 import { useAuth } from '@/hooks/useAuth';
 import Card from '@/components/Common/Card';
@@ -74,7 +74,6 @@ export const TeacherFlashcardsPage: React.FC = () => {
     }
 
     try {
-        const { deleteFlashcard } = await import('@/services/flashcardService');
       await deleteFlashcard(id);
       loadFlashcards();
     } catch (err: any) {

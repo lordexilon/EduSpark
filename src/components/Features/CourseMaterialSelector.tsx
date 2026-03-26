@@ -106,7 +106,7 @@ export const CourseMaterialSelector: React.FC<CourseMaterialSelectorProps> = ({
     <div className="space-y-4">
       {/* Selector de Curso */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Curso para el Tutor RAG
         </label>
         <div className="relative">
@@ -114,7 +114,7 @@ export const CourseMaterialSelector: React.FC<CourseMaterialSelectorProps> = ({
             type="button"
             onClick={() => !disabled && setShowCourseDropdown(!showCourseDropdown)}
             disabled={disabled}
-            className="w-full px-4 py-2 bg-white text-gray-800 rounded-md border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
+            className="w-full px-4 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-md border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
           >
             <span>
               {selectedCourse
@@ -125,11 +125,11 @@ export const CourseMaterialSelector: React.FC<CourseMaterialSelectorProps> = ({
           </button>
 
           {showCourseDropdown && !disabled && (
-            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-auto">
               {loading ? (
-                <div className="px-4 py-2 text-gray-600">Cargando cursos...</div>
+                <div className="px-4 py-2 text-gray-600 dark:text-gray-400">Cargando cursos...</div>
               ) : courses.length === 0 ? (
-                <div className="px-4 py-2 text-gray-600">No tienes cursos disponibles</div>
+                <div className="px-4 py-2 text-gray-600 dark:text-gray-400">No tienes cursos disponibles</div>
               ) : (
                 courses.map((course) => (
                   <button
@@ -139,7 +139,7 @@ export const CourseMaterialSelector: React.FC<CourseMaterialSelectorProps> = ({
                       onSelect(String(course.id), selectedCategory || 'book');
                       setShowCourseDropdown(false);
                     }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-800"
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200"
                   >
                     {course.title}
                     {course.code && <span className="text-gray-500 ml-2">({course.code})</span>}
@@ -154,7 +154,7 @@ export const CourseMaterialSelector: React.FC<CourseMaterialSelectorProps> = ({
 
       {/* Selector de Categoría */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Categoría del Material
         </label>
         <div className="relative">
@@ -162,7 +162,7 @@ export const CourseMaterialSelector: React.FC<CourseMaterialSelectorProps> = ({
             type="button"
             onClick={() => !disabled && setShowCategoryDropdown(!showCategoryDropdown)}
             disabled={disabled || !selectedCourseId}
-            className="w-full px-4 py-2 bg-white text-gray-800 rounded-md border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
+            className="w-full px-4 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-md border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
           >
             <span className="flex items-center space-x-2">
               {selectedCategoryData ? (
@@ -178,7 +178,7 @@ export const CourseMaterialSelector: React.FC<CourseMaterialSelectorProps> = ({
           </button>
 
           {showCategoryDropdown && !disabled && selectedCourseId && (
-            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-lg">
               {categories.map((category) => (
                 <button
                   key={category.value}
@@ -187,7 +187,7 @@ export const CourseMaterialSelector: React.FC<CourseMaterialSelectorProps> = ({
                     onSelect(selectedCourseId, category.value);
                     setShowCategoryDropdown(false);
                   }}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-800 flex items-center space-x-3"
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 flex items-center space-x-3"
                 >
                   {category.icon}
                   <div>
@@ -203,8 +203,8 @@ export const CourseMaterialSelector: React.FC<CourseMaterialSelectorProps> = ({
 
       {/* Información */}
       {selectedCourseId && selectedCategory && (
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-          <p className="text-sm text-blue-800">
+        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+          <p className="text-sm text-blue-800 dark:text-blue-300">
             ✓ El material se procesará y estará disponible en el Tutor RAG del curso{' '}
             <strong>{selectedCourse?.title}</strong> como{' '}
             <strong>{selectedCategoryData?.label}</strong>

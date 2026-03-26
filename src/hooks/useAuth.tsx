@@ -248,8 +248,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔐 Auth state changed:', event, !!session);
+
       if (!initCompleteRef.current) {
         pendingSessionRef.current = session;
+        return;
+      }
+
+      // Handle failed token refresh and sign out events
+      if (event === 'TOKEN_REFRESHED' && !session) {
+        // Token refresh failed (e.g., 400 error) — sign out cleanly
+        console.warn('⚠️ Token refresh failed, signing out cleanly...');
+        setUser(null);
+        invalidateCache();
+        return;
+      }
+
+      if (event === 'SIGNED_OUT') {
+        console.log('🔓 User signed out');
+        setUser(null);
+        invalidateCache();
         return;
       }
 
@@ -257,7 +275,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (userRef.current?.id !== session.user.id) {
           validateAndUpdateUser(session.user.id);
         }
-      } else {
+      } else if (event !== 'INITIAL_SESSION') {
+        // Only clear user for non-initial events with no session
         setUser(null);
         invalidateCache();
       }

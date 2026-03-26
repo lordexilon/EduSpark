@@ -1,3 +1,4 @@
+import { googleOAuthService } from './googleOAuthService';
 // services/googleCalendarService.ts
 // Servicio para integración con Google Calendar API y Google Meet
 
@@ -308,7 +309,6 @@ export const googleAuthHelper = {
   async storeAccessToken(userId: string, accessToken: string, refreshToken?: string): Promise<void> {
     console.warn('googleAuthHelper.storeAccessToken está deprecado. Usa googleOAuthService.saveTokens');
     // Delegar al nuevo servicio
-    const { googleOAuthService } = await import('./googleOAuthService');
     await googleOAuthService.saveTokens(
       userId,
       accessToken,
@@ -324,7 +324,6 @@ export const googleAuthHelper = {
    */
   async getAccessToken(userId: string): Promise<string | null> {
     console.warn('googleAuthHelper.getAccessToken está deprecado. Usa googleOAuthService.getAccessToken');
-    const { googleOAuthService } = await import('./googleOAuthService');
     return await googleOAuthService.getAccessToken(userId);
   },
 
@@ -334,7 +333,6 @@ export const googleAuthHelper = {
    */
   async refreshAccessToken(refreshToken: string): Promise<string> {
     console.warn('googleAuthHelper.refreshAccessToken está deprecado. Usa googleOAuthService.refreshAccessToken');
-    const { googleOAuthService } = await import('./googleOAuthService');
     const result = await googleOAuthService.refreshAccessToken(refreshToken);
     return result.access_token;
   },

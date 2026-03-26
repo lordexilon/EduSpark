@@ -2,6 +2,7 @@
 // Servicio para indexar contenido de texto (Unidades, Sesiones) en el RAG
 
 import { FileProcessingJob } from '@/types/fileProcessing';
+import { createJob } from './firestoreService';
 
 // URL del worker local (para desarrollo)
 // En producción esto debería ser una Cloud Function o la misma URL si el worker está expuesto
@@ -35,8 +36,6 @@ async function createJobViaApi(jobData: any): Promise<string> {
     } catch (error) {
         console.error('❌ createJobViaApi - Error llamando a worker API:', error);
         // Fallback: Intentar crear directamente (fallará si las reglas son estrictas)
-        // Importamos dinámicamente para evitar problemas si no se usa
-        const { createJob } = await import('./firestoreService');
         return await createJob(jobData);
     }
 }

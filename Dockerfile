@@ -1,16 +1,18 @@
-# Dockerfile optimizado para Cloud Run
-# Usa el build ya compilado localmente
-
 FROM nginx:alpine
 
-# Copiar build compilado
+# Copiar el build del frontend
 COPY dist /usr/share/nginx/html
 
-# Copiar configuración de nginx
+# Copiar configuración de Nginx para Cloud Run
 COPY nginx-cloudrun.conf /etc/nginx/nginx.conf
 
-# Cloud Run espera que el servicio escuche en $PORT
-ENV PORT=8080
+# El script de inicio si es necesario, pero nginx:alpine ya tiene uno bueno.
+# Si prefieres usar el script personalizado:
+# COPY start-nginx.sh /start-nginx.sh
+# RUN chmod +x /start-nginx.sh
+# CMD ["/start-nginx.sh"]
 
-# Iniciar nginx en el puerto especificado
-CMD sed -i "s/listen 8080/listen ${PORT}/g" /etc/nginx/nginx.conf && nginx -g "daemon off;"
+# Exponer el puerto que Cloud Run espera
+EXPOSE 8080
+
+CMD ["nginx", "-g", "daemon off;"]

@@ -36,31 +36,31 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
   const [roles, setRoles] = useState<Role[]>([]);
   const [loadingRoles, setLoadingRoles] = useState(true);
 
-          // Cargar roles disponibles solo si es administrador
-          useEffect(() => {
-            if (isAdmin) {
-              const loadRoles = async () => {
-                try {
-                  const result = await rolesAPI.getRoles();
-                  
-                  if (result.success && result.data) {
-                    setRoles(result.data);
-                  } else {
-                    console.error('Error al cargar roles:', result.error);
-                  }
-                } catch (error) {
-                  console.error('Error al cargar roles:', error);
-                } finally {
-                  setLoadingRoles(false);
-                }
-              };
+  // Cargar roles disponibles solo si es administrador
+  useEffect(() => {
+    if (isAdmin) {
+      const loadRoles = async () => {
+        try {
+          const result = await rolesAPI.getRoles();
 
-              loadRoles();
-            } else {
-              // Si no es admin, no necesita cargar roles
-              setLoadingRoles(false);
-            }
-          }, [isAdmin]);
+          if (result.success && result.data) {
+            setRoles(result.data);
+          } else {
+            console.error('Error al cargar roles:', result.error);
+          }
+        } catch (error) {
+          console.error('Error al cargar roles:', error);
+        } finally {
+          setLoadingRoles(false);
+        }
+      };
+
+      loadRoles();
+    } else {
+      // Si no es admin, no necesita cargar roles
+      setLoadingRoles(false);
+    }
+  }, [isAdmin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,7 +96,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
         password: formData.password,
         roleId: roleIdToUse
       });
-      
+
       if (result.success) {
         // Limpiar el formulario
         setFormData({
@@ -127,7 +127,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/50 p-8">
         <div className="text-center mb-6">
           <div className="flex items-center justify-between mb-4">
             {onSwitchToLogin && (
@@ -170,7 +170,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
                   name="firstName"
                   value={formData.firstName}
                   onChange={handleChange}
-                  className="w-full px-3 py-3 pl-10 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/50 backdrop-blur-sm transition-all duration-200"
+                  className="w-full px-3 py-3 pl-10 border border-gray-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/50 dark:bg-slate-700/50 dark:text-white backdrop-blur-sm transition-all duration-200"
                   placeholder="Nombre"
                   required
                 />
@@ -187,7 +187,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
-                className="w-full px-3 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/50 backdrop-blur-sm transition-all duration-200"
+                className="w-full px-3 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/50 dark:bg-slate-700/50 dark:text-white backdrop-blur-sm transition-all duration-200"
                 placeholder="Apellido"
                 required
               />
@@ -206,7 +206,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-3 py-3 pl-10 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/50 backdrop-blur-sm transition-all duration-200"
+                className="w-full px-3 py-3 pl-10 border border-gray-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/50 dark:bg-slate-700/50 dark:text-white backdrop-blur-sm transition-all duration-200"
                 placeholder="tu@email.com"
                 required
               />
@@ -224,7 +224,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
                 name="roleId"
                 value={formData.roleId}
                 onChange={handleChange}
-                className="w-full px-3 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/50 backdrop-blur-sm transition-all duration-200"
+                className="w-full px-3 py-3 border border-gray-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/50 dark:bg-slate-700/50 dark:text-white backdrop-blur-sm transition-all duration-200"
                 disabled={loadingRoles}
                 required
               >
@@ -237,9 +237,9 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
                     <option value="">Selecciona un rol</option>
                     {roles.map((role) => (
                       <option key={role.id} value={role.id}>
-                        {role.name === 'admin' ? 'Administrador' : 
-                         role.name === 'teacher' ? 'Docente' : 
-                         role.name === 'student' ? 'Estudiante' : role.name}
+                        {role.name === 'admin' ? 'Administrador' :
+                          role.name === 'teacher' ? 'Docente' :
+                            role.name === 'student' ? 'Estudiante' : role.name}
                       </option>
                     ))}
                   </>
@@ -249,13 +249,13 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
                 Como administrador, puedes asignar el rol del nuevo usuario
               </p>
             </div>
-           ) : (
-             <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
-               <p className="text-sm text-blue-800">
-                 <strong>Nota:</strong> Todas las cuentas nuevas se crean como <strong>Estudiante</strong>. Un administrador puede cambiar tu rol después del registro si es necesario.
-               </p>
-             </div>
-           )}
+          ) : (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+              <p className="text-sm text-blue-800">
+                <strong>Nota:</strong> Todas las cuentas nuevas se crean como <strong>Estudiante</strong>. Un administrador puede cambiar tu rol después del registro si es necesario.
+              </p>
+            </div>
+          )}
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
@@ -269,7 +269,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full px-3 py-3 pl-10 pr-10 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/50 backdrop-blur-sm transition-all duration-200"
+                className="w-full px-3 py-3 pl-10 pr-10 border border-gray-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/50 dark:bg-slate-700/50 dark:text-white backdrop-blur-sm transition-all duration-200"
                 placeholder="Mínimo 6 caracteres"
                 required
               />
@@ -295,7 +295,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className="w-full px-3 py-3 pl-10 pr-10 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/50 backdrop-blur-sm transition-all duration-200"
+                className="w-full px-3 py-3 pl-10 pr-10 border border-gray-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/50 dark:bg-slate-700/50 dark:text-white backdrop-blur-sm transition-all duration-200"
                 placeholder="Repite tu contraseña"
                 required
               />
@@ -335,12 +335,12 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
                 <div className="w-full border-t border-gray-200"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">¿Ya tienes cuenta?</span>
+                <span className="px-2 bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400">¿Ya tienes cuenta?</span>
               </div>
             </div>
             <button
               onClick={onSwitchToLogin}
-              className="mt-4 w-full bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-medium py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center"
+              className="mt-4 w-full bg-white dark:bg-transparent border-2 border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 font-medium py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center"
             >
               Iniciar sesión
             </button>
