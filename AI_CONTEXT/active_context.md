@@ -1,131 +1,47 @@
-﻿# CONTEXTO ACTIVO
+# CONTEXTO ACTIVO
 
 > **DOCUMENTO DINÁMICO**: Actualizar al inicio y fin de cada sesión.
 
-**Última actualización:** 2026-03-01 12:12
-**Fase Actual:** Consolidación de Rama & Landing Pages Institucionales
+**Última actualización:** 2026-03-26 (A2A + Agent Skills en `.cursor/skills/` del repo EduSpark)
+**Fase Actual:** Optimización RAG, despliegue y límites de costo Tutor IA
 
----
+## Tareas en Curso (WIP)
+| Tarea | Estado | Responsable | Notas |
+|-------|--------|-------------|-------|
+| 📚 Agent Skills Cursor (repo EduSpark) | ✅ Completado | Cursor | Canónicos en **`.cursor/skills/<nombre>/SKILL.md`**: `edtech-ux-ui-web-flutter`, `eduspark-ux-ui-flutter`, `eduspark-compliance-regulatory`, `moodle-architect-paraguay-aneaes`. Versionados con git; perfil personal `~/.cursor/skills/` solo como respaldo si falta copia local del repo. Detalle: `AI_CONTEXT/instructions.md` § Agent Skills. |
+| 🛠️ Optimización RAG (Harrison/Libros) | ✅ Completado | Antigravity | Implementado búsqueda híbrida (Vector + Keyword) |
+| 🚀 Despliegue Cloud Run | ✅ Completado | Antigravity | Frontend actualizado y desplegado en GCP |
+| 🗄️ Actualización Supabase RPC | ⏳ Pendiente Usuario | Usuario | Ejecutar `178_hotfix_text_clean_bounded_cte.sql` en SQL Editor si persiste 57014 en `search_course_content_chunks_text_clean` (174 aplica ILIKE sobre toda la tabla). |
+| 💰 Control presupuesto Tutor IA (~$50/mes + tracking) | ⏳ SQL pendiente aplicar en BD | Equipo | Script: `sql_scripts/3_tutor_rag/112_control_presupuesto_50usd_mensual.sql` — tablas `tutor_cost_tracking`, `tutor_cost_limits`; RPCs `check_tutor_cost_limit`, `track_tutor_interaction_cost`, `get_user_cost_stats`. Cliente: `src/services/tutorCostService.ts` |
 
-## 🚀 Consolidación Git & Landing Pages (2026-03-01)
+## Contexto de Sesión
+- **Agent Skills Cursor (proyecto EduSpark):** rutas canónicas `.cursor/skills/eduspark-ux-ui-flutter/SKILL.md`, `.cursor/skills/eduspark-compliance-regulatory/SKILL.md`, `.cursor/skills/edtech-ux-ui-web-flutter/SKILL.md`, `.cursor/skills/moodle-architect-paraguay-aneaes/SKILL.md`. Usar según tipo de tarea (Flutter EduSpark, cumplimiento PY/CONES, UX web/Flutter genérico, Moodle ANEAES); ver tabla en `AI_CONTEXT/instructions.md` § Agent Skills.
+- **Documentación A2A / Tutor (referencia principal):** `AI_CONTEXT/04_FEATURES/TUTOR_A2A_AGENTES_DOCUMENTACION_2026-03-26.md` — arquitectura AgentCoordinator + RAGAgent + ContextAgent + RAGService, flujo de mensaje, tabla de cambios con **motivo**, archivos y scripts SQL relacionados.
+- Se habilitó la recuperación de materiales globales (chunks con unit_id null).
+- Se corrigió el prompt para permitir que el AI use materiales de referencia como Harrison/Nelson en cualquier unidad.
+- Se unificó la firma de las funciones de búsqueda en Supabase para soportar embeddings de 512 dimensiones.
+- **SCA / smart_context:** El workflow `.agent/workflows/smart_context.md` debe leer `AI_CONTEXT/instructions.md` y este archivo (`AI_CONTEXT/active_context.md`) al reanudar sin saldo en Cursor; conviene refrescar ambos al cerrar una sesión con cambios relevantes.
+- Se consolidó auditoría formal del impasse RAG en `AI_CONTEXT/04_FEATURES/REPORTE_EVALUACION_RAG_2026-03-26.md` (causas, fixes, estado y prueba final de cierre).
+- Se ajustó `src/modules/tutor/services/ragService.ts` para reforzar citación en salida (`Fuentes` con pág./págs.), exponer `sourceMetadata` y adjuntar `retrievalAudit` (text/vector/combined) en metadata de respuesta.
+- Hotfix defensivo aplicado en `ragService.ts`: fallback de búsqueda textual si falla la RPC `search_course_content_chunks_text_clean` (firma alternativa y query directa).
+- Script SQL preparado para resolver el 500 de raíz: `sql_scripts/5_fixes/174_hotfix_search_text_clean_rpc_500.sql` (pendiente ejecutar en Supabase SQL Editor).
+- Ajuste adicional en `ragService.ts`: limpieza semántica de consulta para búsqueda textual (ej. "afasia") y `match_threshold` vectorial reducido a `-1.0` para evitar `vectorCount=0` por umbral estricto.
+- Ajuste de resiliencia: fallback textual ahora evita `ilike` en SQL (que disparaba timeout) y aplica filtrado por keywords en TypeScript sobre lote acotado por curso.
+- Ajuste de build en `vite.config.ts`: `manualChunks` migrado a función por dominios (`vendor-*`, `app-services`, `app-pages-*`, `app-tutor-module`) para reducir presión del chunk principal.
+- Verificación ejecutada con `npm run build`: build OK, pero persisten warnings de Vite por mezcla de imports dinámicos + estáticos en módulos (`googleOAuthService`, `geminiService`, `flashcardService`, `firestoreService`); requiere refactor de estrategia de imports.
+- Refactor aplicado para build warnings: se eliminó mezcla dynamic/static import en `googleCalendarService.ts`, `videoTranscriptService.ts`, `comprehensiveReportService.ts`, `gradingService.ts`, `CourseViewPage.tsx`, `TeacherFlashcardsPage.tsx`, `contentIndexingService.ts`, `FileProcessingPage.tsx` y `MaterialsManagementPage.tsx`.
+- Verificación posterior con `npm run build`: desaparecieron warnings de "dynamic import will not move module into another chunk"; permanece solo warning global de chunks > 1000 kB.
+- Tutor (`TutorVirtualPage.tsx`): corregido uso de un solo ref mezclando `initKey` (`12-no-module`) con `moduleId` UUID, que provocaba `moduleChanged: true` permanente y ruido en logs; ahora `lastInitKeyRef` + `lastSyncedModuleIdRef`. Sin curso: `console.debug` en DEV en lugar de `warn`.
+- RAG (`ragService.ts`): si hay resultados textuales pero vectorial = 0 sin error RPC, se emite `RAG_VECTOR_HINT` con causas probables y ruta al SQL de diagnóstico.
+- SQL diagnóstico embeddings: `sql_scripts/4_diagnostics/176_diagnostic_embedding_por_curso.sql` (conteo con/sin embedding por curso + firma RPC).
+- Hotfix vectorial aplicado y verificado (2026-03-26): `sql_scripts/5_fixes/177_hotfix_search_course_content_chunks_unificar_rpc.sql` — diagnóstico `176_diagnostic_embedding_por_curso.sql` muestra **una sola** RPC `search_course_content_chunks(query_embedding text, match_threshold double precision, match_count integer, course_id_param integer, p_module_id uuid)`.
+- RPC textual timeout (57014): script **`sql_scripts/5_fixes/178_hotfix_text_clean_bounded_cte.sql`** — CTE limita filas antes de ILIKE (sustituye el cuerpo agresivo de `174` si sigue el timeout en producción).
+- Cliente `ragService.ts`: ante 57014 no se reintenta la misma RPC con firma corta; fallback directo con `limit(400)`, segunda página `range(400,999)` si el filtro local da 0, y coincidencia **sin acentos** (`normalizeTextForMatch`) para términos como afasia/afasía.
+- `TutorVirtualPage.tsx`: dependencias del `useEffect` de inicialización sin el objeto `agentSystem` completo (referencia nueva cada render) + `initializeAgentSystem` estable; evita bucle de logs y re-ejecuciones.
+- Tutor respuesta “entrecortada”: `ragService.generateResponse` ahora concatena **todas** las `parts[].text` de Gemini (antes solo `parts[0]`); `maxOutputTokens` 4096; instrucción explícita de no cortar frases a medias; `RAGAgent` deja de reemplazar `.` en perfil auditivo y deja de mutar texto en lectoescritor (evitaba corrupción de markdown).
+- Tutor material/páginas: `AgentCoordinator` + `useAgentSystem` propagan `sourceMetadata` al mensaje del asistente; `TutorVirtualPage` muestra bloque **«Información según estos materiales (páginas…)»** y el desplegable «Fuentes» admite ítems string; prompt RAG reforzado para citar material y página en el cuerpo y en sección Fuentes.
 
-### Acciones Realizadas
-- **Rama creada**: `feature/multi-institution-landings` a partir de `feature/graph-rag-experiment`.
-- **Workspace limpiado**: Todos los cambios pendientes (~860 tracked + ~305 untracked) fueron committeados y organizados.
-- **Archivos de CEC eliminados**: `CEC_Landing_Static.html` y `PROPUESTA_COMERCIAL_CEC_2026.md` removidos (personalización de cliente, no pertenecen al core).
-- **Bug fix**: Corregida clave duplicada `calendar_embed_url` en `LandingPageConfigPage.tsx`.
-- **Push a GitHub**: Rama subida a `origin/feature/multi-institution-landings`.
-
-### Landing Pages Institucionales (Feature Validado)
-- **Enrutamiento**: `PublicRoutes.tsx` → `/:slug` resuelve `InstitutionLandingPage.tsx` dinámicamente.
-- **Admin Config**: `LandingPageConfigPage.tsx` permite configurar logo, colores, hero, galería, estudiantes destacados, calendario y contacto por institución.
-- **Aislamiento**: `useAuth.tsx` inyecta `institution_id` en contexto global; `useUserInstitution.ts` lo consume.
-- **Servicios**: `institutionService.ts` y `landingConfigService.ts` soportan CRUD por slug e institution_id.
-
-### Customización de Temas (Settings)
-- **SettingsPage**: Mejorada la pestaña `Apariencia`. Se añadió un `Color Picker` Hexadecimal para inyección de `primaryColor` y `secondaryColor`.
-- **UI Developer Docs**: Se añadió un panel avanzado de tipo pseudo-terminal en la UI indicando paso a paso cómo hardcodear la nueva gama de colores en `index.css` y `tailwind.config.cjs` para implementaciones white-label.
-- **ThemeContext**: Ahora gestiona la inyección CSS en vivo y ajusta brillos en pseudoclases oscurecidas.
-
-### Bug Fixes - Reporte de Dispositivos (1 de Marzo)
-- **Fecha 1969 Fix (`DeviceTable.tsx`)**: Agregada validación de `u.last_access` pre-renderizado. Aquellos dispositivos sin fecha muestran visualmente "Sin accesos" para evitar cast `new Date(null)`.
-- **Admin-Campus Vacío (RPC Fix)**: Desarrollado script SQL (`20260301_fix_get_devices_campus.sql`) para reemplazar `get_devices_report_campus`, alineándolo con la arquitectura de aislamiento por `user_institutions` en vez de usar la antigua metadata JWT, que producía arreglos vacíos de usuarios.
-- **Mejoras UX y Exportación**: Implementado ordenamiento Ascendente/Descendente por columnas (Usuario, Email, Institución, Activos/Totales, Acceso). Migrada la exportación original de formato CSV a formato Excel `.xlsx` mediante la librería `xlsx`.
-
----
-
-## 🧭 Refactorización UX del Sidebar (2026-03-01)
-
-### Problema Resuelto
-- Existían **2 sidebars duplicados** (`Sidebar.tsx` + `TeacherSidebar.tsx`) con ~200 líneas de `MenuItemComponent` copiado/pegado.
-- El menú de `admin` tenía **17 items** en un solo grupo de Administración.
-- `TeacherSidebar.tsx` tenía la configuración de menú hardcodeada inline.
-- "Tareas" y "Calificaciones" estaban como items sueltos en teacher pero agrupados en student.
-
-### Cambios Realizados
-1. **Extraído `MenuItemComponent`** a `src/components/Common/Sidebar/MenuItemComponent.tsx` (componente compartido).
-2. **Unificado `MenuConfig.ts`** como fuente única de verdad para TODOS los roles (student, teacher, admin, admin-campus, coordinator, supervisor).
-3. **Reorganizado el menú Admin** de 1 grupo con 17 items → 4 sub-grupos temáticos:
-   - Usuarios y Acceso (6 items)
-   - Institución y Académico (5 items)
-   - Reportes y Costos (5 items)
-   - Control IA + Configuración (4 items)
-4. **Agrupado "Tareas" y "Calificaciones"** dentro de "Evaluaciones" en el sidebar de teacher.
-5. **Separador visual mejorado** con líneas gradiente para la sección de Administración.
-6. **Iconos diferenciados**: `IconBuilding` para Institución, `IconBrain` para Tutor IA items, `IconGlobe` para Landing Page, etc.
-
-### Archivos Modificados
-- `src/components/Common/Sidebar/MenuItemComponent.tsx` (NUEVO)
-- `src/components/Common/Sidebar/MenuConfig.ts` (REESCRITO)
-- `src/components/Common/Sidebar.tsx` (REFACTORIZADO)
-- `src/components/Common/TeacherSidebar.tsx` (REFACTORIZADO)
-
----
-
-## 4. Rentabilidad & Cumplimiento (2026-02-16 Mañana)
-
-### 4.1 Costos & Rendimiento
-- **Prompt Caching**: Implementado en `ragService.ts` para contextos > 100k chars. Cache TTL de 1h. Reduce drásticamente costos en consultas repetitivas de RAG.
-- **Vector Search**: Migración creada para índice HNSW (`20260216_optimize_vectors.sql`).
-
-### 4.2 Dashboard de Control IA
-- **Costos por Usuario**: Nueva tabla `AIUsageStatsTable` en panel administrativo.
-- **Riesgo Académico**: Vista `StudentsRiskTable` para identificar alumnos con bajo progreso y alto consumo (ineficiencia).
-
-### 4.3 Privacidad y Datos (Ley 7593)
-- **Derecho al Olvido**: "Zona de Peligro" en `ProfilePage` permite a usuarios solicitar eliminación de cuenta.
-- **Auditoría**: Sistema de logs (`auditService.ts`) integrado en acciones críticas.
-- **Base de Datos**: Migración `20260216_privacy_compliance.sql` con campos de consentimiento y tabla `audit_logs`.
-
----
-
-## 🤖 IA Cost Control & Logros (2026-02-14 Noche)
-
-### 1. Sistema de Control de Costos IA ("Grifo de Tokens")
-- **Database**: Creada tabla `ai_limits` y lógica RPC (`check_ai_request_eligibility`, `log_ai_usage`).
-- **Backend**: Integrada verificación de límites en `aiService.ts`. Cada llamada a Gemini ahora valida presupuesto disponible.
-- **AI Control Panel**: Nueva interfaz administrativa en `/admin/ai-usage` (o `/admin/ai-control`) para gestionar límites globales, institucionales y por usuario. Permite el "Hard Stop" del servicio.
-
-### 2. Ciclo de Evaluación Semanal
-- **Optimización de Costos**: Se desactivó el auto-rating instantáneo en el chat del tutor.
-- **Tutor Weekly Analysis**: Implementado servicio que consolida interacciones y genera reportes los viernes (reducción proyectada de ~70% en tokens de análisis).
-- **UI**: Nuevo componente `TutorWeeklyReport` integrado en el panel de contenido del curso.
-
-### 3. Certificados Digitales
-- **Generación Automática**: Implementado `certificateService.ts` usando `jsPDF`.
-- **Emisión**: Botón dinámico en `CourseContentPanel` que se habilita solo al alcanzar el 100% de progreso.
-- **Verification**: Sistema de códigos únicos almacenados en `digital_certificates` para validación.
-
-### 4. Refactorización UI
-- **Vanilla Tailwind**: Refactorizados `TutorWeeklyReport.tsx` y `CertificateButton.tsx` a vanilla Tailwind para asegurar compatibilidad y velocidad de carga, eliminando dependencias de componentes UI externos.
-
----
-
-## 📊 Mejoras en Dashboard & Tutor (2026-02-16)
-- **Tutor Virtual**: Corregido problema de "amnesia" por truncado de contexto. Se aumentó el límite de 600 a 5000 caracteres por fuente y se expandió el `maxContextLength` a 32,000 para soportar unidades académicas densas (especialmente en Medicina).
-- **Terminología Educativa**: Unificación de términos. El Tutor IA ahora usa obligatoriamente "Unidades" y "Sesiones" en lugar de "Módulos", alineándose con el frontend.
-- **Conectividad**: Mejorada la inicialización del tutor con carga real de títulos de cursos desde DB y botón de reintento manual en UI.
-- **Admin UI**: Habilitada configuración de "Slugs" en gestión de instituciones para landing pages personalizadas.
-- **Segmentación por Campus (2026-02-16)**: Implementado aislamiento de avisos y mensajería por `institution_id`. Core fix en `useAuth.tsx` para inyectar la institución en el contexto global, resolviendo errores de carga y acceso administrativo a landing pages multiorganización. Ver `docs/features/SEGMENTACION_CAMPU_LANDING_COMMS.md`.
-
----
-
-## 🛡️ Seguridad & Aislamiento (2026-02-19 Tarde)
-- **RLS Cleanup**: Ejecutada migración `20260219_final_rls_cleanup.sql` que elimina políticas antiguas y centraliza el aislamiento institucional en `careers`, `subjects`, `courses`, `assessments`, `flashcards` y `users`.
-- **AI Quiz Generation**: Implementado sistema de generación automática de quizzes.
-    - Code: Backend (Edge Function `generate-flashcards`), Frontend Service (`aiService.ts`), UI (`QuizBuilderPage.tsx`).
-    - Estado: ✅ Código base completado y **Edge Function desplegada en Supabase Cloud**.
-
-## 📝 PRÓXIMOS PASOS
-1. **Merge a main**: Evaluar crear PR de `feature/multi-institution-landings` → `main` cuando se validen todos los cambios consolidados.
-2. **Módulos Universidad Paraguay**: ✅ Vista de malla curricular (`CurriculumGrid.tsx`) integrada y verificada.
-3. **Testing Landing Pages**: Verificar landing por slug en producción tras merge.
-
----
-
-## Deuda Técnica
+## Deuda Técnica (Technical Debt)
 | ID | Fecha | Severidad | Descripción |
 |----|-------|-----------|-------------|
-| DB-01 | 2026-02-14 | Alta | Ejecutar migraciones SQL de límites y certificados. |
-| RAG-02 | 2026-02-03 | **CRÍTICA** | Worker se cae con PDFs grandes (>100MB). |
-| IA-01 | 2026-02-14 | Media | Feedback diferido: Los estudiantes no reciben feedback profundo instantáneo (por diseño de ahorro de costos). Evaluar si ciertos perfiles premium deben tenerlo diario. |
+| TD-02 | 2026-03-25 | Media | El backfill de chunks históricos (asignar unit_id desde metadata) sigue pendiente de ejecutar para grandes volúmenes. |
