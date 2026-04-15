@@ -1,7 +1,15 @@
 // services/tutorAnalyticsService.ts
 // Servicio para análisis de datos y métricas del Tutor IA
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { getStudentRatingStats, getCourseRatingStats } from './tutorRatingService';
+
+export interface AnalyticsFilters {
+  dateFrom?: Date | null;
+  dateTo?: Date | null;
+  studentIds?: string[];
+  activityStatus?: 'all' | 'active' | 'inactive' | 'attention';
+}
 
 export interface StudentMetrics {
   studentId: string;
@@ -14,6 +22,11 @@ export interface StudentMetrics {
   lastInteractionDate: string | null;
   topicsCovered: string[];
   performanceImprovement: number | null;
+  // Métricas de ratings
+  totalRatings: number;
+  thumbsUpCount: number;
+  thumbsDownCount: number;
+  averageRating: number; // Porcentaje de thumbs up (0-100)
 }
 
 export interface CourseMetrics {
@@ -28,6 +41,11 @@ export interface CourseMetrics {
   averageInteractionsPerStudent: number;
   topTopics: Array<{ topic: string; count: number }>;
   studentsNeedingAttention: string[]; // IDs de estudiantes
+  // Métricas de ratings
+  totalRatings: number;
+  thumbsUpCount: number;
+  thumbsDownCount: number;
+  averageRating: number; // Porcentaje de thumbs up (0-100)
 }
 
 export interface TopicAnalysis {
@@ -41,23 +59,44 @@ export interface TopicAnalysis {
 /**
  * Obtiene métricas de todos los estudiantes de un curso
  */
-export async function getStudentMetrics(courseId: string | number): Promise<StudentMetrics[]> {
+export async function getStudentMetrics(
+  courseId: string | number,
+  filters?: AnalyticsFilters
+): Promise<StudentMetrics[]> {
   try {
     const courseIdNum = typeof courseId === 'string' ? parseInt(courseId, 10) : courseId;
-    console.log('📊 getStudentMetrics: Obteniendo métricas para curso:', courseIdNum);
-    
-    // Obtener interacciones del curso
-    const { data: interactions, error: interactionsError } = await supabase
+    console.log('📊 getStudentMetrics: Obteniendo métricas para curso:', courseIdNum, 'con filtros:', filters);
+
+    // Construir consulta de interacciones con filtros
+    let query = supabase
       .from('tutor_interactions')
       .select('student_id, tokens_used, cost, response_time_ms, created_at, question')
-      .eq('course_id', courseIdNum)
-      .order('created_at', { ascending: false });
+      .eq('course_id', courseIdNum);
+
+    // Aplicar filtro de fecha desde
+    if (filters?.dateFrom) {
+      query = query.gte('created_at', filters.dateFrom.toISOString());
+    }
+
+    // Aplicar filtro de fecha hasta
+    if (filters?.dateTo) {
+      query = query.lte('created_at', filters.dateTo.toISOString());
+    }
+
+    // Aplicar filtro de estudiantes específicos
+    if (filters?.studentIds && filters.studentIds.length > 0) {
+      query = query.in('student_id', filters.studentIds);
+    }
+
+    query = query.order('created_at', { ascending: false });
+
+    const { data: interactions, error: interactionsError } = await query;
 
     if (interactionsError) {
       console.error('❌ getStudentMetrics: Error obteniendo interacciones:', interactionsError);
       throw interactionsError;
     }
-    
+
     console.log('📊 getStudentMetrics: Interacciones encontradas:', interactions?.length || 0);
 
     // Obtener métricas agregadas
@@ -70,7 +109,7 @@ export async function getStudentMetrics(courseId: string | number): Promise<Stud
       console.error('❌ getStudentMetrics: Error obteniendo performance:', performanceError);
       throw performanceError;
     }
-    
+
     console.log('📊 getStudentMetrics: Datos de performance encontrados:', performanceData?.length || 0);
 
     // Obtener información de estudiantes
@@ -102,7 +141,7 @@ export async function getStudentMetrics(courseId: string | number): Promise<Stud
         performanceImprovement: null,
       });
     });
-    
+
     console.log('📊 getStudentMetrics: Estudiantes únicos encontrados:', students?.length || 0);
 
     // Procesar interacciones
@@ -131,9 +170,9 @@ export async function getStudentMetrics(courseId: string | number): Promise<Stud
       metrics.averageResponseTime =
         studentInteractionsList.length > 0
           ? studentInteractionsList.reduce(
-              (sum, i) => sum + (i.response_time_ms || 0),
-              0
-            ) / studentInteractionsList.length
+            (sum, i) => sum + (i.response_time_ms || 0),
+            0
+          ) / studentInteractionsList.length
           : 0;
 
       const lastInteraction = studentInteractionsList[0];
@@ -155,7 +194,23 @@ export async function getStudentMetrics(courseId: string | number): Promise<Stud
       }
     });
 
-    const result = Array.from(metricsMap.values());
+    // Obtener estadísticas de ratings para cada estudiante
+    const resultPromises = Array.from(metricsMap.values()).map(async (metrics) => {
+      try {
+        const ratingStats = await getStudentRatingStats(metrics.studentId);
+        if (ratingStats) {
+          metrics.totalRatings = ratingStats.total_ratings;
+          metrics.thumbsUpCount = ratingStats.thumbs_up_count;
+          metrics.thumbsDownCount = ratingStats.thumbs_down_count;
+          metrics.averageRating = ratingStats.average_rating;
+        }
+      } catch (error) {
+        console.error(`Error getting rating stats for student ${metrics.studentId}:`, error);
+      }
+      return metrics;
+    });
+
+    const result = await Promise.all(resultPromises);
     console.log('✅ getStudentMetrics: Métricas calculadas para', result.length, 'estudiantes');
     return result;
   } catch (error) {
@@ -167,11 +222,14 @@ export async function getStudentMetrics(courseId: string | number): Promise<Stud
 /**
  * Obtiene métricas generales del curso
  */
-export async function getCourseMetrics(courseId: string | number): Promise<CourseMetrics | null> {
+export async function getCourseMetrics(
+  courseId: string | number,
+  filters?: AnalyticsFilters
+): Promise<CourseMetrics | null> {
   try {
     const courseIdNum = typeof courseId === 'string' ? parseInt(courseId, 10) : courseId;
-    console.log('📊 getCourseMetrics: Obteniendo métricas del curso:', courseIdNum);
-    
+    console.log('📊 getCourseMetrics: Obteniendo métricas del curso:', courseIdNum, 'con filtros:', filters);
+
     // Obtener información del curso
     const { data: course, error: courseError } = await supabase
       .from('courses')
@@ -183,7 +241,7 @@ export async function getCourseMetrics(courseId: string | number): Promise<Cours
       console.error('❌ getCourseMetrics: Error obteniendo curso:', courseError);
       throw courseError;
     }
-    
+
     console.log('📊 getCourseMetrics: Curso encontrado:', course.title);
 
     // Obtener estudiantes inscritos
@@ -200,17 +258,34 @@ export async function getCourseMetrics(courseId: string | number): Promise<Cours
     const totalStudents = new Set(enrollments?.map((e) => e.student_id) || []).size;
     console.log('📊 getCourseMetrics: Total estudiantes inscritos:', totalStudents);
 
-    // Obtener interacciones
-    const { data: interactions, error: interactionsError } = await supabase
+    // Construir consulta de interacciones con filtros
+    let query = supabase
       .from('tutor_interactions')
       .select('student_id, tokens_used, cost, question')
       .eq('course_id', courseIdNum);
+
+    // Aplicar filtro de fecha desde
+    if (filters?.dateFrom) {
+      query = query.gte('created_at', filters.dateFrom.toISOString());
+    }
+
+    // Aplicar filtro de fecha hasta
+    if (filters?.dateTo) {
+      query = query.lte('created_at', filters.dateTo.toISOString());
+    }
+
+    // Aplicar filtro de estudiantes específicos
+    if (filters?.studentIds && filters.studentIds.length > 0) {
+      query = query.in('student_id', filters.studentIds);
+    }
+
+    const { data: interactions, error: interactionsError } = await query;
 
     if (interactionsError) {
       console.error('❌ getCourseMetrics: Error obteniendo interacciones:', interactionsError);
       throw interactionsError;
     }
-    
+
     console.log('📊 getCourseMetrics: Total interacciones encontradas:', interactions?.length || 0);
 
     const activeStudents = new Set(interactions?.map((i) => i.student_id) || []).size;
@@ -280,9 +355,26 @@ export async function getCourseMetrics(courseId: string | number): Promise<Cours
     // Calcular tasa de participación con validación
     const participationRate =
       totalStudents > 0 ? (activeStudents / totalStudents) * 100 : 0;
-    
+
     // Validar rango de participación (0-100)
     const validatedParticipationRate = Math.max(0, Math.min(100, participationRate));
+
+    // Obtener estadísticas de ratings para el curso
+    let ratingStats = {
+      total_ratings: 0,
+      thumbs_up_count: 0,
+      thumbs_down_count: 0,
+      average_rating: 0,
+    };
+
+    try {
+      const courseRatingStats = await getCourseRatingStats(courseIdNum);
+      if (courseRatingStats) {
+        ratingStats = courseRatingStats;
+      }
+    } catch (error) {
+      console.error('Error getting course rating stats:', error);
+    }
 
     const result = {
       courseId: String(course.id),
@@ -297,8 +389,13 @@ export async function getCourseMetrics(courseId: string | number): Promise<Cours
         activeStudents > 0 ? totalInteractions / activeStudents : 0,
       topTopics,
       studentsNeedingAttention: [...new Set(studentsNeedingAttention)],
+      // Agregar métricas de ratings
+      totalRatings: ratingStats.total_ratings,
+      thumbsUpCount: ratingStats.thumbs_up_count,
+      thumbsDownCount: ratingStats.thumbs_down_count,
+      averageRating: ratingStats.average_rating,
     };
-    
+
     console.log('✅ getCourseMetrics: Métricas calculadas:', {
       courseTitle: result.courseTitle,
       totalStudents: result.totalStudents,
@@ -307,7 +404,7 @@ export async function getCourseMetrics(courseId: string | number): Promise<Cours
       totalInteractions: result.totalInteractions,
       totalCost: result.totalCost.toFixed(4),
     });
-    
+
     return result;
   } catch (error) {
     console.error('❌ getCourseMetrics: Error fetching course metrics:', error);

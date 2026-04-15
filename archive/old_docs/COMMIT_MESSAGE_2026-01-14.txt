@@ -1,0 +1,50 @@
+feat: Implementar control de presupuesto tutor y despliegue Cloud Run
+
+Sistema de Control de Presupuesto:
+- Límite mensual de $50 USD por usuario (configurable)
+- Límite diario de $2 USD por usuario (configurable)
+- Tracking en tiempo real de costos diarios y mensuales
+- Bloqueo automático cuando se alcanza el límite
+- Indicador visual de presupuesto restante con colores
+- Proyección mensual basada en uso actual
+
+Base de Datos:
+- Nueva tabla tutor_cost_tracking para tracking de costos
+- Nueva tabla tutor_cost_limits para límites configurables
+- Funciones SQL: check_tutor_cost_limit, track_tutor_interaction_cost, get_user_cost_stats
+- RLS policies y índices únicos parciales
+
+Frontend:
+- Integración de control de presupuesto en TutorVirtualPage
+- Verificación de límites antes de enviar mensajes
+- Tracking automático de costos después de respuestas
+- Indicador visual de presupuesto en header del tutor
+- Nueva tarjeta de presupuesto en analytics de profesores
+
+Despliegue:
+- Script PowerShell automatizado para despliegue a Cloud Run
+- Configuración de Cloud Build con variables de entorno
+- Corrección de variables VITE_SUPABASE_ANON_KEY y VITE_GEMINI_API_KEY
+- Guía completa de despliegue y troubleshooting
+
+Documentación:
+- Guía de despliegue a Google Cloud Run
+- Documentación de corrección de variables de entorno
+- Resumen completo de sesión con todos los cambios
+- Changelog detallado
+
+Archivos nuevos:
+- sql_scripts/3_tutor_rag/112_control_presupuesto_50usd_mensual.sql
+- scripts/deploy-frontend-cloudrun.ps1
+- AI_CONTEXT/GUIA_DESPLIEGUE_FRONTEND_CLOUD_RUN_2026.md
+- AI_CONTEXT/VERIFICACION_DESPLIEGUE_FRONTEND_2026-01-14.md
+- AI_CONTEXT/CORRECCION_VARIABLES_ENTORNO_DESPLIEGUE.md
+- AI_CONTEXT/RESUMEN_SESION_2026-01-14.md
+- CHANGELOG_2026-01-14.md
+
+Archivos modificados:
+- src/services/tutorCostService.ts
+- src/pages/Student/TutorVirtualPage.tsx
+- src/pages/Teacher/TeacherTutorAnalyticsPage.tsx
+- cloudbuild.yaml
+- package.json

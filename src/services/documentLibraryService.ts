@@ -1,4 +1,4 @@
-import { supabase, supabaseAnonKey } from '../lib/supabase';
+import { supabase, supabaseAnonKey } from '@/lib/supabase';
 
 // =====================================================
 // TIPOS
@@ -187,7 +187,7 @@ export const documentLibraryService = {
                 if (!institutionId) {
                     console.warn('📄 Warning: institutionId not provided for role:', userRole);
                     // Intentar obtener documentos sin filtrar por institución (las políticas RLS lo manejarán)
-                    const { data, error } = await supabase
+                    const { data: documentsData, error } = await supabase
                         .from('processed_documents')
                         .select('*')
                         .order('created_at', { ascending: false });
@@ -196,8 +196,60 @@ export const documentLibraryService = {
                         console.error('📄 Error fetching documents (no institution filter):', error);
                         throw error;
                     }
-                    console.log('📄 Documents fetched (RLS filtered):', data?.length || 0);
-                    return data || [];
+                    
+                    if (!documentsData || documentsData.length === 0) {
+                        console.log('📄 Documents fetched (RLS filtered): 0');
+                        return [];
+                    }
+                    
+                    // Obtener información de instituciones para todos los documentos
+                    const institutionIds = [...new Set(documentsData.map((d: any) => d.institution_id).filter(Boolean))];
+                    const { data: institutionsData } = await supabase
+                        .from('institutions')
+                        .select('id, name')
+                        .in('id', institutionIds);
+                    
+                    const institutionsMap = new Map((institutionsData || []).map((i: any) => [i.id, i.name]));
+                    
+                    // Obtener asignaciones de cursos para todos los documentos
+                    const documentIds = documentsData.map((d: any) => d.id);
+                    const { data: assignmentsData } = await supabase
+                        .from('document_course_assignments')
+                        .select(`
+                            document_id,
+                            course_id,
+                            courses:course_id (
+                                id,
+                                title,
+                                code
+                            )
+                        `)
+                        .in('document_id', documentIds);
+                    
+                    // Crear mapa de asignaciones por documento
+                    const assignmentsMap = new Map<string, any[]>();
+                    (assignmentsData || []).forEach((assignment: any) => {
+                        if (!assignmentsMap.has(assignment.document_id)) {
+                            assignmentsMap.set(assignment.document_id, []);
+                        }
+                        assignmentsMap.get(assignment.document_id)!.push({
+                            course_id: assignment.course_id,
+                            course_title: assignment.courses?.title || 'Curso desconocido',
+                            course_code: assignment.courses?.code || ''
+                        });
+                    });
+                    
+                    // Procesar datos para incluir información de institución y cursos
+                    const processedData = documentsData.map((doc: any) => ({
+                        ...doc,
+                        institution_name: doc.institution_id ? (institutionsMap.get(doc.institution_id) || `Institución ${doc.institution_id}`) : 'Sin institución',
+                        assigned_courses: assignmentsMap.get(doc.id) || [],
+                        assignment_count: assignmentsMap.get(doc.id)?.length || 0
+                    }));
+                    
+                    console.log('📄 Documents fetched (RLS filtered):', processedData.length);
+                    console.log('📄 Institutions found:', institutionsMap.size);
+                    return processedData;
                 }
                 
                 console.log('📄 Fetching documents for institution:', institutionId);

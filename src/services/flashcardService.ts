@@ -1,7 +1,7 @@
 // services/flashcardService.ts
 // Servicio para gestión de flashcards interactivas
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export interface AnswerOption {
   label: string; // A, B, C, D, etc.
@@ -29,6 +29,10 @@ export interface Flashcard {
   is_multiple_choice?: boolean;
   answer_options?: AnswerOption[]; // Array de opciones de respuesta
   correct_answer_index?: number; // Índice (0-based) de la respuesta correcta
+  // Campos de disponibilidad por fecha
+  available_from?: string; // Fecha desde la cual está disponible
+  available_until?: string; // Fecha hasta la cual está disponible
+  image_prompt?: string; // Sugerencia visual para generación de imagen
   created_at: string;
   updated_at: string;
 }
@@ -280,12 +284,13 @@ export async function getFlashcardsToReview(
 ): Promise<FlashcardWithProgress[]> {
   try {
     // Primero obtener flashcards que necesitan revisión (con progreso)
+    // Nota: El filtro en campos de join anidado puede causar que flashcard sea null
     let progressQuery = supabase
       .from('flashcard_progress')
       .select(
         `
         *,
-        flashcard:flashcards(*)
+        flashcard:flashcards!inner(*)
       `
       )
       .eq('student_id', studentId)
@@ -293,6 +298,7 @@ export async function getFlashcardsToReview(
       .order('next_review_at', { ascending: true });
 
     if (courseId) {
+      // Usar !inner en el join y filtrar directamente en el campo anidado
       progressQuery = progressQuery.eq('flashcard.course_id', courseId);
     }
 
@@ -300,11 +306,14 @@ export async function getFlashcardsToReview(
 
     if (progressError) throw progressError;
 
+    // Filtrar registros donde flashcard es null (puede ocurrir con RLS o datos inconsistentes)
+    const validProgressData = progressData?.filter(item => item.flashcard !== null) || [];
+
     const flashcardsToReview: FlashcardWithProgress[] =
-      progressData?.map((item) => ({
+      validProgressData.map((item) => ({
         ...(item.flashcard as Flashcard),
         progress: item as FlashcardProgress,
-      })) || [];
+      }));
 
     // Si hay menos de 5 flashcards para revisar, agregar flashcards nuevas (sin progreso)
     if (flashcardsToReview.length < 5 && courseId) {

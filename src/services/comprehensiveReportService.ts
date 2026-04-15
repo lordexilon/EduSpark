@@ -1,12 +1,13 @@
 // services/comprehensiveReportService.ts
 // Servicio unificado que combina progreso académico y analíticas del Tutor IA
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { progressService } from './progressService';
 import { getStudentMetrics, getCourseMetrics, StudentMetrics } from './tutorAnalyticsService';
 import { courseEnrollmentService } from './academicService';
 import { unitService, sessionService } from './teacherCourses';
 import { quizService } from './quizService';
+import { getFlashcardsByCourse } from './flashcardService';
 
 // ============================================
 // TIPOS E INTERFACES
@@ -97,7 +98,6 @@ async function getAcademicProgress(
     ]);
 
     // Obtener flashcards del curso ⭐ NUEVO
-    const { getFlashcardsByCourse } = await import('./flashcardService');
     const flashcards = await getFlashcardsByCourse(courseId);
 
     const totalUnits = units.length;
@@ -115,7 +115,7 @@ async function getAcademicProgress(
         .eq('course_id', courseId)
         .eq('is_completed', true)
         .then(({ count }) => count || 0),
-      
+
       // Sesiones completadas
       supabase
         .from('session_progress')
@@ -124,26 +124,26 @@ async function getAcademicProgress(
         .eq('course_id', courseId)
         .eq('is_completed', true)
         .then(({ count }) => count || 0),
-      
+
       // Quizzes completados
       (async () => {
         const quizIds = quizzes.map(q => q.id);
         if (quizIds.length === 0) return 0;
-        
+
         const { data } = await supabase
           .from('assessment_attempts')
           .select('assessment_id')
           .eq('student_id', studentId)
           .in('assessment_id', quizIds)
           .in('status', ['submitted', 'graded']);
-        
+
         return new Set(data?.map(a => a.assessment_id) || []).size;
       })(),
-      
+
       // Flashcards dominadas (mastery_level >= 4) ⭐ NUEVO
       (async () => {
         if (flashcards.length === 0) return 0;
-        
+
         const flashcardIds = flashcards.map(f => f.id);
         const { data } = await supabase
           .from('flashcard_progress')
@@ -151,10 +151,10 @@ async function getAcademicProgress(
           .eq('student_id', studentId)
           .in('flashcard_id', flashcardIds)
           .gte('mastery_level', 4); // Dominadas
-        
+
         return new Set(data?.map(p => p.flashcard_id) || []).size;
       })(),
-      
+
       // Enrollment para tiempo invertido
       courseEnrollmentService.getStudentEnrollments(studentId)
         .then(enrollments => enrollments.find(e => e.course_id === courseId))
@@ -202,7 +202,7 @@ async function getTutorMetricsForStudent(
 ): Promise<TutorMetrics> {
   try {
     const courseIdNum = typeof courseId === 'string' ? parseInt(String(courseId), 10) : courseId;
-    
+
     // Construir query base
     let query = supabase
       .from('tutor_interactions')
@@ -294,7 +294,7 @@ function calculateInsights(
 ): StudentInsights {
   const progress = academicProgress.completionPercentage;
   const tutorUsage = tutorMetrics.totalInteractions;
-  
+
   const avgProgress = averageProgress || 50;
   const avgUsage = averageTutorUsage || 5;
 
@@ -310,8 +310,10 @@ function calculateInsights(
     tutorUsageVsProgress = 'low-usage-low-progress';
   }
 
-  // Calcular eficiencia
-  const efficiency = tutorUsage > 0 ? (progress / tutorUsage) * 100 : 0;
+  // Calcular eficiencia: Score de 0 a 100
+  // Definición: 100% de eficiencia si se obtiene al menos 2% de progreso por interacción
+  const rawEfficiency = tutorUsage > 0 ? (progress / tutorUsage) : 0;
+  const efficiency = Math.min(100, rawEfficiency * 50); // 2% per interaction * 50 = 100%
 
   // Determinar nivel de riesgo
   let riskLevel: 'low' | 'medium' | 'high';
@@ -325,7 +327,7 @@ function calculateInsights(
 
   // Generar recomendaciones
   const recommendedActions: string[] = [];
-  
+
   if (tutorUsageVsProgress === 'high-usage-low-progress') {
     recommendedActions.push('Revisar calidad de las consultas al tutor');
     recommendedActions.push('Considerar tutoría adicional o material de apoyo');
@@ -379,7 +381,7 @@ function analyzeCorrelation(
 
   students.forEach(student => {
     const { academicProgress, tutorMetrics, insights } = student;
-    
+
     totalProgress += academicProgress.completionPercentage;
     totalTutorUsage += tutorMetrics.totalInteractions;
     totalEfficiency += insights.efficiency;
@@ -617,6 +619,23 @@ export const comprehensiveReportService = {
       averageTutorUsage: 0,
       efficiencyScore: 0
     };
+  },
+
+  /**
+   * Dispara manualmente la generación de reportes semanales (vía Edge Function)
+   */
+  async triggerWeeklyReportGeneration(): Promise<{ message: string; details?: any } | null> {
+    try {
+      const { data, error } = await supabase.functions.invoke('scheduled-weekly-reports', {
+        method: 'POST',
+      });
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error disparando generación de reportes semanales:', error);
+      return null;
+    }
   }
 };
 

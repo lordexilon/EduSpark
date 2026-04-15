@@ -1,0 +1,13 @@
+---
+description: Reglas SQL SCA para migraciones y RPC seguras
+globs: sql_scripts/**/*.sql
+alwaysApply: false
+---
+
+# SCA SQL Guardrails
+
+- En cambios de BD, incluir: tablas/indices, RLS y comentarios tecnicos.
+- Si se crean o cambian funciones RPC, validar nombres y parametros contra uso en `src/services`.
+- Evitar romper compatibilidad: si el frontend usa un RPC existente, mantener firma o documentar migracion.
+- Cada script debe ser idempotente cuando aplique (`IF NOT EXISTS`, `CREATE OR REPLACE`).
+- Al finalizar, dejar nota en `AI_CONTEXT/active_context.md` con el script SQL afectado y estado de aplicacion.

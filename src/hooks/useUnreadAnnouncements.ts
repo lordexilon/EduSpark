@@ -3,8 +3,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from './useAuth';
-import { announcementService } from '../services/announcementService';
-import { supabase } from '../lib/supabase';
+import { announcementService } from '@/services/announcementService';
+import { supabase } from '@/lib/supabase';
 
 export const useUnreadAnnouncements = () => {
   const { user } = useAuth();
@@ -36,7 +36,7 @@ export const useUnreadAnnouncements = () => {
 
     // Suscribirse a cambios en avisos para actualizar el conteo
     const channel = supabase
-      .channel('unread-announcements-updates')
+      .channel(`unread-announcements-updates-${Date.now()}`)
       .on(
         'postgres_changes',
         {

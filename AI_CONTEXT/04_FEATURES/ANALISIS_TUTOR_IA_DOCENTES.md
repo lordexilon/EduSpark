@@ -207,9 +207,14 @@ Sistema automático para:
 
 **C. Estrategias de Mejora**
 
-- Personalización del tutor según perfil del estudiante
+- ⚠️ **Personalización por estilos de aprendizaje DESACTIVADA** (Enero 2026)
+  - La personalización basada en estilos de aprendizaje del estudiante (visual, auditivo, kinestésico, lectoescritor) ya **NO está activa** en el sistema
+  - El tutor ahora genera respuestas directas y claras sin mencionar estilos de aprendizaje
+  - Las respuestas se adaptan al contenido del curso y contexto, no al estilo de aprendizaje supuesto
 - Ajuste de estrategias pedagógicas basado en datos
 - Identificación de brechas en el contenido del curso
+
+> **Nota:** Aunque los tipos de datos relacionados con estilos de aprendizaje aún existen en el código por compatibilidad, **NO se utilizan** activamente para personalizar respuestas del tutor.
 
 ---
 

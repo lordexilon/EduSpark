@@ -1,7 +1,7 @@
 // services/aiUsageService.ts
 // Servicio para tracking y reportes de uso de IA (tokens y costos)
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export interface AIUsageRecord {
   id: string;

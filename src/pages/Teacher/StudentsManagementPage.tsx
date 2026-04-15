@@ -1,0 +1,1144 @@
+// pages/StudentsManagementPage.tsx
+// Página de administración de estudiantes
+
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useUserInstitution } from '@/hooks/useUserInstitution';
+import { studentService, Student, StudentWithEnrollments } from '@/services/studentService';
+import { careerService, Career, subjectService, Subject } from '@/services/academicService';
+import { courseService, Course } from '@/services/teacherCourses';
+import { careerEnrollmentService, courseEnrollmentService } from '@/services/academicService';
+import { supabase } from '@/lib/supabase';
+import Card from '@/components/Common/Card';
+import Button from '@/components/Common/Button';
+
+const StudentsManagementPage: React.FC = () => {
+  const { user } = useAuth();
+  const { institution, loading: institutionLoading } = useUserInstitution();
+  const isSupervisor = user?.role?.name === 'supervisor';
+  const isAdminCampus = user?.role?.name === 'admin-campus';
+  const isCoordinator = user?.role?.name === 'coordinator';
+  const isTeacher = user?.role?.name === 'teacher';
+  const shouldFilterByInstitution = isSupervisor || isAdminCampus || isCoordinator || isTeacher;
+  const [students, setStudents] = useState<Student[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<StudentWithEnrollments | null>(null);
+  const [careers, setCareers] = useState<Career[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [allCourses, setAllCourses] = useState<Course[]>([]); // Todos los cursos del profesor
+  const [subjects, setSubjects] = useState<Subject[]>([]); // Materias de las carreras del estudiante
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showEnrollCareerModal, setShowEnrollCareerModal] = useState(false);
+  const [showEnrollCourseModal, setShowEnrollCourseModal] = useState(false);
+  const [selectedCareerId, setSelectedCareerId] = useState<number | null>(null);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null); // Filtro por materia
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [processingBulk, setProcessingBulk] = useState(false);
+  const [showBulkEnrollCareerModal, setShowBulkEnrollCareerModal] = useState(false);
+  const [showBulkEnrollCourseModal, setShowBulkEnrollCourseModal] = useState(false);
+
+  useEffect(() => {
+    if (user?.role?.name === 'admin' || user?.role?.name === 'teacher' || user?.role?.name === 'admin-campus' || user?.role?.name === 'coordinator' || user?.role?.name === 'supervisor') {
+      // Si necesita filtrar por institución, esperar a que se cargue
+      if (shouldFilterByInstitution && institutionLoading) {
+        return;
+      }
+      if (shouldFilterByInstitution && !institution) {
+        setError('No tienes una institución asignada. Por favor, contacta al administrador.');
+        setLoading(false);
+        return;
+      }
+      loadData();
+    }
+  }, [user, institution, institutionLoading, shouldFilterByInstitution]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Si necesita filtrar por institución, cargar estudiantes filtrados por institución
+      let studentsData: Student[] = [];
+
+      console.log(`🔍 StudentsManagementPage: Usuario: ${user?.role?.name}, Institución: ${institution?.name || 'N/A'}, Filtrar por institución: ${shouldFilterByInstitution}`);
+
+      if (shouldFilterByInstitution && institution) {
+        // Obtener el ID del rol de estudiante
+        const { data: studentRole } = await supabase
+          .from('roles')
+          .select('id')
+          .eq('name', 'student')
+          .single();
+
+        if (!studentRole) {
+          setError('No se encontró el rol de estudiante');
+          setLoading(false);
+          return;
+        }
+
+        // Obtener los IDs de usuarios de la institución
+        console.log(`🔍 StudentsManagementPage: Buscando usuarios de la institución ${institution.name} (ID: ${institution.id})`);
+
+        // Para admin-campus, coordinator y supervisor, la política RLS debería filtrar automáticamente
+        // La política RLS ya filtra por institution_id = get_user_primary_institution_id()
+        // No necesitamos agregar .eq('institution_id') porque RLS ya lo hace
+        const { data: userInstitutions, error: uiError } = await supabase
+          .from('user_institutions')
+          .select('user_id, is_primary, institution_id');
+
+        if (uiError) {
+          console.error('❌ Error obteniendo usuarios de la institución:', uiError);
+          console.error('❌ Detalles del error:', {
+            code: uiError.code,
+            message: uiError.message,
+            details: uiError.details,
+            hint: uiError.hint
+          });
+          setError('Error al cargar estudiantes de la institución: ' + uiError.message);
+          setLoading(false);
+          return;
+        }
+
+        console.log(`📊 StudentsManagementPage: Total registros obtenidos de user_institutions: ${userInstitutions?.length || 0}`);
+        console.log(`📋 StudentsManagementPage: Detalles completos:`, userInstitutions);
+
+        // Verificar que todos los registros pertenecen a la institución correcta
+        const filteredUserInstitutions = (userInstitutions || []).filter((ui: any) => {
+          const matches = ui.institution_id === institution.id;
+          if (!matches) {
+            console.warn(`⚠️ StudentsManagementPage: Registro con institution_id=${ui.institution_id} no coincide con ${institution.id}`);
+          }
+          return matches;
+        });
+
+        console.log(`📊 StudentsManagementPage: Registros filtrados por institución ${institution.id}: ${filteredUserInstitutions.length}`);
+
+        if (uiError) {
+          console.error('❌ Error obteniendo usuarios de la institución:', uiError);
+          setError('Error al cargar estudiantes de la institución');
+          setLoading(false);
+          return;
+        }
+
+        console.log(`📊 StudentsManagementPage: Encontrados ${filteredUserInstitutions?.length || 0} usuarios en la institución ${institution.id}`);
+        console.log(`📋 StudentsManagementPage: Detalles de user_institutions:`, filteredUserInstitutions);
+
+        const userIds = filteredUserInstitutions.map((ui: any) => ui.user_id);
+
+        // Verificar qué usuarios son y sus roles
+        if (userIds.length > 0) {
+          const { data: usersInfo, error: usersInfoError } = await supabase
+            .from('users')
+            .select('id, email, first_name, last_name, role_id, roles(name)')
+            .in('id', userIds);
+
+          if (!usersInfoError && usersInfo) {
+            console.log(`👤 StudentsManagementPage: Usuarios en la institución con sus roles:`, usersInfo.map((u: any) => ({
+              id: u.id,
+              email: u.email,
+              name: `${u.first_name} ${u.last_name}`,
+              role_id: u.role_id,
+              role_name: u.roles?.name
+            })));
+          }
+        }
+
+        if (userIds.length === 0) {
+          console.warn(`⚠️ StudentsManagementPage: No hay usuarios en la institución ${institution.name} (ID: ${institution.id})`);
+          studentsData = [];
+        } else {
+          console.log(`👥 StudentsManagementPage: IDs de usuarios encontrados:`, userIds);
+          console.log(`🔍 StudentsManagementPage: Buscando estudiantes con role_id=${studentRole.id} entre ${userIds.length} usuarios`);
+
+          // Obtener los estudiantes de esos usuarios
+          const { data, error: studentsError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('role_id', studentRole.id)
+            .in('id', userIds)
+            .order('last_name', { ascending: true })
+            .order('first_name', { ascending: true });
+
+          if (studentsError) {
+            console.error('❌ Error obteniendo estudiantes:', studentsError);
+            throw studentsError;
+          }
+
+          console.log(`📋 StudentsManagementPage: Resultado de consulta - Total usuarios consultados: ${userIds.length}, Estudiantes encontrados: ${data?.length || 0}`);
+          if (data && data.length === 0) {
+            // Si no se encontraron estudiantes, verificar qué roles tienen los usuarios
+            console.log(`⚠️ StudentsManagementPage: No se encontraron estudiantes. Verificando roles de los usuarios...`);
+            const { data: usersData, error: usersError } = await supabase
+              .from('users')
+              .select('id, email, first_name, last_name, role_id, roles(name)')
+              .in('id', userIds);
+
+            if (!usersError && usersData) {
+              console.log(`📋 StudentsManagementPage: Usuarios en la institución con sus roles:`, usersData.map((u: any) => ({
+                id: u.id,
+                email: u.email,
+                name: `${u.first_name} ${u.last_name}`,
+                role_id: u.role_id,
+                role_name: u.roles?.name
+              })));
+            }
+          }
+
+          studentsData = (data || []) as Student[];
+          console.log(`✅ StudentsManagementPage: Cargados ${studentsData.length} estudiantes de la institución ${institution.name} (ID: ${institution.id})`);
+          if (studentsData.length > 0) {
+            console.log(`📋 StudentsManagementPage: Estudiantes encontrados:`, studentsData.map(s => ({ id: s.id, name: `${s.first_name} ${s.last_name}`, email: s.email })));
+          }
+        }
+      } else if (user?.role?.name === 'admin') {
+        // Admin ve todos los estudiantes
+        console.log('🔍 StudentsManagementPage: Cargando todos los estudiantes (admin)');
+        studentsData = await studentService.getAllStudents();
+        console.log(`✅ StudentsManagementPage: Cargados ${studentsData.length} estudiantes (todos)`);
+      } else {
+        // Para otros roles sin institución, intentar usar el servicio normal (confía en RLS)
+        console.log(`⚠️ StudentsManagementPage: Usuario ${user?.role?.name} sin institución asignada, intentando cargar estudiantes...`);
+        studentsData = await studentService.getAllStudents();
+        console.log(`✅ StudentsManagementPage: Cargados ${studentsData.length} estudiantes (filtrados por RLS)`);
+      }
+
+      const [careersData, coursesData] = await Promise.all([
+        careerService.getAllCareers(),
+        courseService.getMyCourses(user!.id).catch(() => [])
+      ]);
+
+      setStudents(studentsData);
+      setCareers(careersData);
+      setCourses(coursesData);
+      setAllCourses(coursesData); // Guardar todos los cursos
+    } catch (err: any) {
+      setError(err.message || 'Error al cargar los datos');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectStudent = async (student: Student) => {
+    try {
+      const studentWithEnrollments = await studentService.getStudentWithEnrollments(student.id);
+      setSelectedStudent(studentWithEnrollments);
+
+      // Cargar materias de las carreras del estudiante
+      if (studentWithEnrollments.career_enrollments && studentWithEnrollments.career_enrollments.length > 0) {
+        const careerIds = studentWithEnrollments.career_enrollments
+          .filter((e: any) => e.status === 'active')
+          .map((e: any) => e.career_id);
+
+        if (careerIds.length > 0) {
+          // Obtener todas las materias de las carreras activas
+          const subjectsPromises = careerIds.map((careerId: number) =>
+            subjectService.getSubjectsByCareer(careerId).catch(() => [])
+          );
+          const subjectsArrays = await Promise.all(subjectsPromises);
+          const allSubjects = subjectsArrays.flat();
+          setSubjects(allSubjects);
+
+          // Filtrar cursos por las materias de las carreras del estudiante
+          const subjectIds = allSubjects.map(s => s.id);
+          const filteredCourses = allCourses.filter(course =>
+            course.subject_id && subjectIds.includes(course.subject_id)
+          );
+          setCourses(filteredCourses.length > 0 ? filteredCourses : allCourses);
+        } else {
+          // Si no hay carreras activas, mostrar todos los cursos
+          setCourses(allCourses);
+          setSubjects([]);
+        }
+      } else {
+        // Si no hay carreras, mostrar todos los cursos
+        setCourses(allCourses);
+        setSubjects([]);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error al cargar los detalles del estudiante');
+      console.error(err);
+    }
+  };
+
+  const handleEnrollCareer = async () => {
+    if (!selectedStudent || !selectedCareerId) return;
+
+    try {
+      await careerEnrollmentService.enrollStudent({
+        student_id: selectedStudent.id,
+        career_id: selectedCareerId,
+        enrollment_date: new Date().toISOString().split('T')[0],
+        status: 'active',
+        current_semester: 1,
+        total_credits_earned: 0,
+        academic_status: 'normal'
+      });
+
+      // Recargar datos del estudiante
+      const updated = await studentService.getStudentWithEnrollments(selectedStudent.id);
+      setSelectedStudent(updated);
+      setShowEnrollCareerModal(false);
+      setSelectedCareerId(null);
+      alert('Estudiante inscrito en la carrera exitosamente');
+    } catch (err: any) {
+      setError(err.message || 'Error al inscribir al estudiante');
+      console.error(err);
+    }
+  };
+
+  const handleEnrollCourse = async () => {
+    if (!selectedStudent || !selectedCourseId) return;
+
+    try {
+      await courseEnrollmentService.enrollStudent({
+        student_id: selectedStudent.id,
+        course_id: parseInt(selectedCourseId, 10),
+        enrollment_date: new Date().toISOString().split('T')[0],
+        status: 'active',
+        attendance_percentage: 0,
+        participation_score: 0,
+        completion_percentage: 0,
+        time_spent_minutes: 0
+      });
+
+      // Recargar datos del estudiante
+      const updated = await studentService.getStudentWithEnrollments(selectedStudent.id);
+      setSelectedStudent(updated);
+      setShowEnrollCourseModal(false);
+      setSelectedCourseId(null);
+      alert('Estudiante inscrito en el curso exitosamente');
+    } catch (err: any) {
+      setError(err.message || 'Error al inscribir al estudiante en el curso');
+      console.error(err);
+    }
+  };
+
+  const handleSuspendCareer = async (enrollmentId: string) => {
+    if (!selectedStudent) return;
+    if (!confirm('¿Estás seguro de suspender al estudiante de esta carrera?')) return;
+
+    try {
+      await careerEnrollmentService.suspendStudent(enrollmentId);
+      const updated = await studentService.getStudentWithEnrollments(selectedStudent.id);
+      setSelectedStudent(updated);
+      alert('Estudiante suspendido de la carrera exitosamente');
+    } catch (err: any) {
+      setError(err.message || 'Error al suspender al estudiante');
+      console.error(err);
+    }
+  };
+
+  const handleReactivateCareer = async (enrollmentId: string) => {
+    if (!selectedStudent) return;
+
+    try {
+      await careerEnrollmentService.updateEnrollment(enrollmentId, { status: 'active' });
+      const updated = await studentService.getStudentWithEnrollments(selectedStudent.id);
+      setSelectedStudent(updated);
+      alert('Estudiante reactivado en la carrera exitosamente');
+    } catch (err: any) {
+      setError(err.message || 'Error al reactivar al estudiante');
+      console.error(err);
+    }
+  };
+
+  const handleUnenrollCareer = async (enrollmentId: string) => {
+    if (!selectedStudent) return;
+    if (!confirm('¿Estás seguro de desmatricular al estudiante de esta carrera? Esta acción no se puede deshacer.')) return;
+
+    try {
+      await careerEnrollmentService.deleteEnrollment(enrollmentId);
+      const updated = await studentService.getStudentWithEnrollments(selectedStudent.id);
+      setSelectedStudent(updated);
+      alert('Estudiante desmatriculado de la carrera exitosamente');
+    } catch (err: any) {
+      setError(err.message || 'Error al desmatricular al estudiante');
+      console.error(err);
+    }
+  };
+
+  const handleSuspendCourse = async (enrollmentId: string) => {
+    if (!selectedStudent) return;
+    if (!confirm('¿Estás seguro de suspender al estudiante de este curso?')) return;
+
+    try {
+      await courseEnrollmentService.suspendStudent(enrollmentId);
+      const updated = await studentService.getStudentWithEnrollments(selectedStudent.id);
+      setSelectedStudent(updated);
+      alert('Estudiante suspendido del curso exitosamente');
+    } catch (err: any) {
+      setError(err.message || 'Error al suspender al estudiante');
+      console.error(err);
+    }
+  };
+
+  const handleReactivateCourse = async (enrollmentId: string) => {
+    if (!selectedStudent) return;
+
+    try {
+      await courseEnrollmentService.updateEnrollment(enrollmentId, { status: 'active' });
+      const updated = await studentService.getStudentWithEnrollments(selectedStudent.id);
+      setSelectedStudent(updated);
+      alert('Estudiante reactivado en el curso exitosamente');
+    } catch (err: any) {
+      setError(err.message || 'Error al reactivar al estudiante');
+      console.error(err);
+    }
+  };
+
+  const handleUnenrollCourse = async (enrollmentId: string) => {
+    if (!selectedStudent) return;
+    if (!confirm('¿Estás seguro de desmatricular al estudiante de este curso? Esta acción no se puede deshacer.')) return;
+
+    try {
+      await courseEnrollmentService.deleteEnrollment(enrollmentId);
+      const updated = await studentService.getStudentWithEnrollments(selectedStudent.id);
+      setSelectedStudent(updated);
+      alert('Estudiante desmatriculado del curso exitosamente');
+    } catch (err: any) {
+      setError(err.message || 'Error al desmatricular al estudiante');
+      console.error(err);
+    }
+  };
+
+  // Bulk Actions
+  const toggleSelectStudent = (studentId: string) => {
+    setSelectedStudentIds(prev =>
+      prev.includes(studentId)
+        ? prev.filter(id => id !== studentId)
+        : [...prev, studentId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedStudentIds.length === filteredStudents.length) {
+      setSelectedStudentIds([]);
+    } else {
+      setSelectedStudentIds(filteredStudents.map(s => s.id));
+    }
+  };
+
+  const handleBulkEnrollCareer = async () => {
+    if (selectedStudentIds.length === 0 || !selectedCareerId) return;
+
+    setProcessingBulk(true);
+    let successCount = 0;
+    let skippedCount = 0;
+    let errorCount = 0;
+
+    try {
+      // Get current enrollments for all selected students to avoid duplicates
+      // Ideally this should be done in backend, but for now we iterate
+      const promises = selectedStudentIds.map(async (studentId) => {
+        try {
+          // Check if already enrolled
+          const existingEnrollments = await careerEnrollmentService.getStudentEnrollments(studentId);
+          const isEnrolled = existingEnrollments.some((e: any) => e.career_id === selectedCareerId);
+
+          if (isEnrolled) {
+            skippedCount++;
+            return;
+          }
+
+          await careerEnrollmentService.enrollStudent({
+            student_id: studentId,
+            career_id: selectedCareerId,
+            enrollment_date: new Date().toISOString().split('T')[0],
+            status: 'active',
+            current_semester: 1,
+            total_credits_earned: 0,
+            academic_status: 'normal'
+          });
+          successCount++;
+        } catch (err) {
+          console.error(`Error enrolling student ${studentId}:`, err);
+          errorCount++;
+        }
+      });
+
+      await Promise.all(promises);
+
+      alert(`Proceso finalizado:\n- Inscritos exitosamente: ${successCount}\n- Omitidos (ya inscritos): ${skippedCount}\n- Errores: ${errorCount}`);
+
+      setShowBulkEnrollCareerModal(false);
+      setSelectedCareerId(null);
+      setSelectedStudentIds([]); // Clear selection
+
+      // Refresh current view if needed (though list doesn't show enrollments detailed)
+    } catch (err: any) {
+      setError(err.message || 'Error en la inscripción masiva');
+    } finally {
+      setProcessingBulk(false);
+    }
+  };
+
+  const handleBulkEnrollCourse = async () => {
+    if (selectedStudentIds.length === 0 || !selectedCourseId) return;
+
+    setProcessingBulk(true);
+    let successCount = 0;
+    let skippedCount = 0;
+    let errorCount = 0;
+
+    try {
+      const courseIdInt = parseInt(selectedCourseId, 10);
+
+      const promises = selectedStudentIds.map(async (studentId) => {
+        try {
+          // Check if already enrolled
+          const existingEnrollments = await courseEnrollmentService.getStudentEnrollments(studentId);
+          const isEnrolled = existingEnrollments.some((e: any) => e.course_id === courseIdInt);
+
+          if (isEnrolled) {
+            skippedCount++;
+            return;
+          }
+
+          await courseEnrollmentService.enrollStudent({
+            student_id: studentId,
+            course_id: courseIdInt,
+            enrollment_date: new Date().toISOString().split('T')[0],
+            status: 'active',
+            attendance_percentage: 0,
+            participation_score: 0,
+            completion_percentage: 0,
+            time_spent_minutes: 0
+          });
+          successCount++;
+        } catch (err) {
+          console.error(`Error enrolling student ${studentId}:`, err);
+          errorCount++;
+        }
+      });
+
+      await Promise.all(promises);
+
+      alert(`Proceso finalizado:\n- Inscritos exitosamente: ${successCount}\n- Omitidos (ya inscritos): ${skippedCount}\n- Errores: ${errorCount}`);
+
+      setShowBulkEnrollCourseModal(false);
+      setSelectedCourseId(null);
+      setSelectedStudentIds([]); // Clear selection
+
+    } catch (err: any) {
+      setError(err.message || 'Error en la inscripción masiva');
+    } finally {
+      setProcessingBulk(false);
+    }
+  };
+
+  const filteredStudents = students.filter(student => {
+    const query = searchQuery.toLowerCase();
+    return (
+      student.first_name.toLowerCase().includes(query) ||
+      student.last_name.toLowerCase().includes(query) ||
+      student.email.toLowerCase().includes(query)
+    );
+  });
+
+  if (!user || (user.role?.name !== 'admin' && user.role?.name !== 'teacher' && user.role?.name !== 'admin-campus' && user.role?.name !== 'coordinator' && user.role?.name !== 'supervisor')) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <Card>
+          <div className="text-center py-8">
+            <p className="text-gray-600">No tienes permisos para acceder a esta página.</p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto p-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Administración de Estudiantes</h1>
+        <p className="text-gray-600 mt-2">Gestiona estudiantes, carreras y cursos</p>
+      </div>
+
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-800">{error}</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Lista de Estudiantes */}
+        <div className="lg:col-span-2">
+          <Card>
+            <div className="flex flex-col gap-4 mb-4">
+              <input
+                type="text"
+                placeholder="Buscar estudiantes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedStudentIds.length > 0 && selectedStudentIds.length === filteredStudents.length}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-600">
+                    {selectedStudentIds.length} seleccionados
+                  </span>
+                </div>
+
+                {selectedStudentIds.length > 0 && !isSupervisor && (
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setShowBulkEnrollCareerModal(true)}
+                      className="px-3 py-1 text-xs"
+                    >
+                      Inscribir Carrera
+                    </Button>
+                    <Button
+                      onClick={() => setShowBulkEnrollCourseModal(true)}
+                      className="px-3 py-1 text-xs"
+                    >
+                      Inscribir Curso
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-8">
+                <p className="text-gray-600">Cargando estudiantes...</p>
+              </div>
+            ) : filteredStudents.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-600">No se encontraron estudiantes</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {filteredStudents.map((student) => (
+                  <div
+                    key={student.id}
+                    className={`p-4 border rounded-lg transition-colors flex items-center gap-3 ${selectedStudent?.id === student.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedStudentIds.includes(student.id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        toggleSelectStudent(student.id);
+                      }}
+                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                    />
+
+                    <div
+                      className="flex-1 flex items-center justify-between cursor-pointer"
+                      onClick={() => handleSelectStudent(student)}
+                    >
+                      <div>
+                        <h3 className="font-semibold text-gray-900">
+                          {student.first_name} {student.last_name}
+                        </h3>
+                        <p className="text-sm text-gray-600">{student.email}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {student.is_active ? (
+                          <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+                            Activo
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded">
+                            Inactivo
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* Detalles del Estudiante */}
+        <div className="lg:col-span-1">
+          {selectedStudent ? (
+            <Card>
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Detalles del Estudiante</h2>
+                <div className="mt-4">
+                  <p className="text-sm text-gray-600">Nombre</p>
+                  <p className="font-semibold">{selectedStudent.first_name} {selectedStudent.last_name}</p>
+                </div>
+                <div className="mt-2">
+                  <p className="text-sm text-gray-600">Email</p>
+                  <p className="font-semibold">{selectedStudent.email}</p>
+                </div>
+              </div>
+
+              {/* Carreras */}
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-gray-900">Carreras</h3>
+                  {!isSupervisor && (
+                    <Button
+                      onClick={() => setShowEnrollCareerModal(true)}
+                      className="px-3 py-1 text-sm"
+                    >
+                      + Inscribir
+                    </Button>
+                  )}
+                </div>
+                {selectedStudent.career_enrollments && selectedStudent.career_enrollments.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedStudent.career_enrollments.map((enrollment: any) => (
+                      <div key={enrollment.id} className="p-3 bg-gray-50 rounded text-sm">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="font-medium">
+                              {careers.find(c => c.id === enrollment.career_id)?.name || 'Carrera'}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              Semestre: {enrollment.current_semester} | Estado:
+                              <span className={`ml-1 px-2 py-0.5 rounded ${enrollment.status === 'active' ? 'bg-green-100 text-green-800' :
+                                enrollment.status === 'suspended' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                {enrollment.status === 'active' ? 'Activo' :
+                                  enrollment.status === 'suspended' ? 'Suspendido' :
+                                    'Inactivo'}
+                              </span>
+                            </p>
+                          </div>
+                          {!isSupervisor && (
+                            <div className="flex gap-1 ml-2">
+                              {enrollment.status === 'active' && (
+                                <Button
+                                  onClick={() => handleSuspendCareer(enrollment.id)}
+                                  variant="secondary"
+                                  className="px-2 py-1 text-xs"
+                                  title="Suspender"
+                                >
+                                  ⏸️
+                                </Button>
+                              )}
+                              {enrollment.status === 'suspended' && (
+                                <Button
+                                  onClick={() => handleReactivateCareer(enrollment.id)}
+                                  variant="secondary"
+                                  className="px-2 py-1 text-xs"
+                                  title="Reactivar"
+                                >
+                                  ▶️
+                                </Button>
+                              )}
+                              <Button
+                                onClick={() => handleUnenrollCareer(enrollment.id)}
+                                variant="secondary"
+                                className="px-2 py-1 text-xs text-red-600 hover:text-red-700"
+                                title="Desmatricular"
+                              >
+                                🗑️
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No inscrito en ninguna carrera</p>
+                )}
+              </div>
+
+              {/* Cursos */}
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-gray-900">Cursos</h3>
+                  {!isSupervisor && (
+                    <Button
+                      onClick={() => setShowEnrollCourseModal(true)}
+                      className="px-3 py-1 text-sm"
+                    >
+                      + Inscribir
+                    </Button>
+                  )}
+                </div>
+                {selectedStudent.course_enrollments && selectedStudent.course_enrollments.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedStudent.course_enrollments.map((enrollment: any) => (
+                      <div key={enrollment.id} className="p-3 bg-gray-50 rounded text-sm">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="font-medium">
+                              {courses.find(c => c.id === enrollment.course_id)?.title || 'Curso'}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              Progreso: {enrollment.completion_percentage || 0}% | Estado:
+                              <span className={`ml-1 px-2 py-0.5 rounded ${enrollment.status === 'active' ? 'bg-green-100 text-green-800' :
+                                enrollment.status === 'suspended' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                {enrollment.status === 'active' ? 'Activo' :
+                                  enrollment.status === 'suspended' ? 'Suspendido' :
+                                    'Inactivo'}
+                              </span>
+                            </p>
+                          </div>
+                          {!isSupervisor && (
+                            <div className="flex gap-1 ml-2">
+                              {enrollment.status === 'active' && (
+                                <Button
+                                  onClick={() => handleSuspendCourse(enrollment.id)}
+                                  variant="secondary"
+                                  className="px-2 py-1 text-xs"
+                                  title="Suspender"
+                                >
+                                  ⏸️
+                                </Button>
+                              )}
+                              {enrollment.status === 'suspended' && (
+                                <Button
+                                  onClick={() => handleReactivateCourse(enrollment.id)}
+                                  variant="secondary"
+                                  className="px-2 py-1 text-xs"
+                                  title="Reactivar"
+                                >
+                                  ▶️
+                                </Button>
+                              )}
+                              <Button
+                                onClick={() => handleUnenrollCourse(enrollment.id)}
+                                variant="secondary"
+                                className="px-2 py-1 text-xs text-red-600 hover:text-red-700"
+                                title="Desmatricular"
+                              >
+                                🗑️
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No inscrito en ningún curso</p>
+                )}
+              </div>
+            </Card>
+          ) : (
+            <Card>
+              <div className="text-center py-8">
+                <p className="text-gray-600">Selecciona un estudiante para ver sus detalles</p>
+              </div>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      {/* Modal Inscribir en Carrera - Solo para no supervisores */}
+      {!isSupervisor && showEnrollCareerModal && selectedStudent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold mb-4">Inscribir en Carrera</h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Carrera
+              </label>
+              <select
+                value={selectedCareerId || ''}
+                onChange={(e) => setSelectedCareerId(parseInt(e.target.value, 10))}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Selecciona una carrera</option>
+                {careers.filter(c => c.is_active).map((career) => (
+                  <option key={career.id} value={career.id}>
+                    {career.name} ({career.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                onClick={handleEnrollCareer}
+                disabled={!selectedCareerId}
+                className="flex-1"
+              >
+                Inscribir
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowEnrollCareerModal(false);
+                  setSelectedCareerId(null);
+                }}
+                variant="secondary"
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Inscribir en Curso - Solo para no supervisores */}
+      {!isSupervisor && showEnrollCourseModal && selectedStudent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold mb-4">Inscribir en Curso</h3>
+
+            {/* Mostrar carreras del estudiante */}
+            {selectedStudent.career_enrollments && selectedStudent.career_enrollments.length > 0 && (
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm font-medium text-gray-700 mb-2">Carreras del estudiante:</p>
+                <div className="space-y-1">
+                  {selectedStudent.career_enrollments
+                    .filter((e: any) => e.status === 'active')
+                    .map((enrollment: any) => (
+                      <p key={enrollment.id} className="text-sm text-gray-600">
+                        • {careers.find(c => c.id === enrollment.career_id)?.name || 'Carrera'}
+                      </p>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Filtro por materia (opcional) */}
+            {subjects.length > 0 && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Filtrar por Materia (opcional)
+                </label>
+                <select
+                  value={selectedSubjectId || ''}
+                  onChange={(e) => {
+                    const subjectId = e.target.value ? parseInt(e.target.value, 10) : null;
+                    setSelectedSubjectId(subjectId);
+                    // Filtrar cursos por materia seleccionada
+                    if (subjectId) {
+                      const filtered = allCourses.filter(c => c.subject_id === subjectId);
+                      setCourses(filtered);
+                    } else {
+                      // Si no hay filtro, mostrar cursos de todas las materias de las carreras
+                      const subjectIds = subjects.map(s => s.id);
+                      const filtered = allCourses.filter(c =>
+                        c.subject_id && subjectIds.includes(c.subject_id)
+                      );
+                      setCourses(filtered.length > 0 ? filtered : allCourses);
+                    }
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Todas las materias</option>
+                  {subjects.map((subject) => (
+                    <option key={subject.id} value={subject.id}>
+                      {subject.name} ({subject.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Curso
+              </label>
+              {courses.length === 0 ? (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    {subjects.length > 0
+                      ? 'No hay cursos disponibles para las materias de las carreras del estudiante.'
+                      : 'No hay cursos disponibles. El estudiante debe estar inscrito en una carrera para ver los cursos relacionados.'}
+                  </p>
+                </div>
+              ) : (
+                <select
+                  value={selectedCourseId || ''}
+                  onChange={(e) => setSelectedCourseId(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Selecciona un curso</option>
+                  {courses.map((course) => {
+                    const subject = subjects.find(s => s.id === course.subject_id);
+                    return (
+                      <option key={course.id} value={String(course.id)}>
+                        {course.title} {subject ? `- ${subject.name}` : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <Button
+                onClick={handleEnrollCourse}
+                disabled={!selectedCourseId}
+                className="flex-1"
+              >
+                Inscribir
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowEnrollCourseModal(false);
+                  setSelectedCourseId(null);
+                  setSelectedSubjectId(null);
+                }}
+                variant="secondary"
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Inscribir en Curso (Masivo) - Solo para no supervisores */}
+      {!isSupervisor && showBulkEnrollCourseModal && selectedStudentIds.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold mb-4">Inscribir {selectedStudentIds.length} Estudiantes en Curso</h3>
+
+            <div className="p-3 bg-blue-50 text-blue-800 rounded-lg mb-4 text-sm">
+              <p>ℹ️ Los estudiantes que ya estén inscritos en el curso seleccionado serán omitidos automáticamente.</p>
+            </div>
+
+            {/* Filtro por materia (opcional) */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Filtrar por Materia (opcional)
+              </label>
+              <select
+                value={selectedSubjectId || ''}
+                onChange={(e) => {
+                  const subjectId = e.target.value ? parseInt(e.target.value, 10) : null;
+                  setSelectedSubjectId(subjectId);
+                  // Filtrar cursos por materia seleccionada
+                  if (subjectId) {
+                    const filtered = allCourses.filter(c => c.subject_id === subjectId);
+                    setCourses(filtered);
+                  } else {
+                    setCourses(allCourses);
+                  }
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Todas las materias</option>
+                {/* Aquí deberíamos cargar todas las materias disponibles, no solo las del estudiante seleccionado */}
+                {/* Por simplicidad en masivo, podríamos no filtrar por materia o cargar todas las materias */}
+                {subjects.map((subject) => (
+                  <option key={subject.id} value={subject.id}>
+                    {subject.name} ({subject.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Curso
+              </label>
+              {courses.length === 0 ? (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">No hay cursos disponibles.</p>
+                </div>
+              ) : (
+                <select
+                  value={selectedCourseId || ''}
+                  onChange={(e) => setSelectedCourseId(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Selecciona un curso</option>
+                  {courses.map((course) => (
+                    <option key={course.id} value={String(course.id)}>
+                      {course.title}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <Button
+                onClick={handleBulkEnrollCourse}
+                disabled={!selectedCourseId || processingBulk}
+                className="flex-1"
+              >
+                {processingBulk ? 'Procesando...' : 'Inscribir Masivamente'}
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowBulkEnrollCourseModal(false);
+                  setSelectedCourseId(null);
+                  setSelectedSubjectId(null); // Reset subject filter for bulk modal too
+                }}
+                variant="secondary"
+                className="flex-1"
+                disabled={processingBulk}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Inscribir en Carrera (Masivo) - Solo para no supervisores */}
+      {!isSupervisor && showBulkEnrollCareerModal && selectedStudentIds.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold mb-4">Inscribir {selectedStudentIds.length} Estudiantes en Carrera</h3>
+
+            <div className="p-3 bg-blue-50 text-blue-800 rounded-lg mb-4 text-sm">
+              <p>ℹ️ Los estudiantes que ya estén inscritos en la carrera seleccionada serán omitidos automáticamente.</p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Carrera
+              </label>
+              <select
+                value={selectedCareerId || ''}
+                onChange={(e) => setSelectedCareerId(parseInt(e.target.value, 10))}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Selecciona una carrera</option>
+                {careers.filter(c => c.is_active).map((career) => (
+                  <option key={career.id} value={career.id}>
+                    {career.name} ({career.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                onClick={handleBulkEnrollCareer}
+                disabled={!selectedCareerId || processingBulk}
+                className="flex-1"
+              >
+                {processingBulk ? 'Procesando...' : 'Inscribir Masivamente'}
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowBulkEnrollCareerModal(false);
+                  setSelectedCareerId(null);
+                }}
+                variant="secondary"
+                className="flex-1"
+                disabled={processingBulk}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default StudentsManagementPage;

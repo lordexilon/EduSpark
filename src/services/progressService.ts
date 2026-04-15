@@ -1,7 +1,7 @@
 // services/progressService.ts
 // Servicio para calcular y actualizar el progreso de los estudiantes en los cursos
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 /**
  * Helper para obtener la clave del día según el timeframe
@@ -99,64 +99,24 @@ export const progressService = {
         }
       }
 
-      // 5. Contar sesiones completadas/visitadas
+      // 5. Contar sesiones completadas (SOLO is_completed = true)
       if (totalSessions > 0) {
-        let completedSessions = 0;
-        let hasSessionProgress = false;
-
         const { data: sessionProgressData, error: sessionProgressError } = await supabase
           .from('session_progress')
-          .select('session_id, is_completed')
+          .select('session_id')
           .eq('student_id', studentId)
-          .eq('course_id', courseId);
+          .eq('course_id', courseId)
+          .eq('is_completed', true); // SOLO sesiones marcadas como completadas
 
         if (!sessionProgressError && sessionProgressData && sessionProgressData.length > 0) {
-          hasSessionProgress = true;
           const completedSet = new Set(
             sessionProgressData
-              .filter((progress: any) => progress.is_completed)
               .map((progress: any) => progress.session_id)
               .filter(Boolean)
           );
-
-          completedSessions = completedSet.size;
-
-          // Si aún no hay sesiones completadas pero sí registros, contar como visitadas
-          if (completedSessions === 0) {
-            const visitedSet = new Set(
-              sessionProgressData
-                .map((progress: any) => progress.session_id)
-                .filter(Boolean)
-            );
-            completedSessions = Math.min(visitedSet.size, totalSessions);
-          }
+          const completedSessions = completedSet.size;
+          completedItems += Math.min(completedSessions, totalSessions);
         }
-
-        if (!hasSessionProgress) {
-          const { data: sessionIds } = await supabase
-            .from('sessions')
-            .select('id')
-            .eq('course_id', courseId);
-
-          const sessionIdSet = new Set((sessionIds || []).map(s => s.id));
-          if (sessionIdSet.size > 0 && totalAssessments > 0) {
-            const { data: completedAssessments } = await supabase
-              .from('assessment_attempts')
-              .select('assessments!inner(session_id)')
-              .eq('student_id', studentId)
-              .in('status', ['submitted', 'graded']);
-
-            const visitedSessionIds = new Set<string>();
-            (completedAssessments || []).forEach((attempt: any) => {
-              if (attempt.assessments?.session_id && sessionIdSet.has(attempt.assessments.session_id)) {
-                visitedSessionIds.add(attempt.assessments.session_id);
-              }
-            });
-            completedSessions = visitedSessionIds.size;
-          }
-        }
-
-        completedItems += Math.min(completedSessions, totalSessions);
       }
 
       // 7. Contar quizzes/trivias completados
@@ -291,6 +251,18 @@ export const progressService = {
     }
   ) {
     try {
+      // Verificar que la sesión exista antes de intentar guardar progreso
+      const { data: sessionExists, error: sessionCheckError } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('id', sessionId)
+        .maybeSingle();
+
+      if (!sessionExists) {
+        // Si no existe, no hacemos nada (evita error 409)
+        return null;
+      }
+
       const existing = await this.getSessionProgress(studentId, sessionId);
       const now = new Date().toISOString();
 
@@ -352,6 +324,24 @@ export const progressService = {
     }
   ) {
     try {
+      // Verificar que la sesión exista antes de intentar guardar progreso
+      // Esto evita errores 409 si la sesión fue eliminada o el ID es inválido
+      const { data: sessionExists, error: sessionCheckError } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('id', sessionId)
+        .maybeSingle();
+
+      if (sessionCheckError) {
+        console.error('Error verificando existencia de sesión:', sessionCheckError);
+        // Continuar bajo riesgo o lanzar error
+      }
+
+      if (!sessionExists) {
+        console.warn(`Intento de completar sesión inexistente: ${sessionId}`);
+        return null; // Salir silenciosamente para no romper la UI
+      }
+
       const existing = await this.getSessionProgress(studentId, sessionId);
       const now = new Date().toISOString();
 
@@ -456,7 +446,7 @@ export const progressService = {
     try {
       const now = new Date();
       let startDate: Date;
-      
+
       if (timeframe === 'weekly') {
         // Últimos 7 días (desde el lunes de esta semana)
         const dayOfWeek = now.getDay();
@@ -475,14 +465,31 @@ export const progressService = {
       // Usar select('*') como en academicService para obtener todas las columnas disponibles
       let enrollmentsResult: any = { error: null, data: null };
       try {
-        // Usar select('*') para obtener todas las columnas disponibles
+        // Obtener enrollments con información de cursos para validar fechas
         enrollmentsResult = await supabase
           .from('course_enrollments')
-          .select('*')
+          .select('*, courses(id, title, start_date, end_date)')
           .eq('student_id', studentId);
-        
+
         if (enrollmentsResult.error) {
           console.warn('Error obteniendo enrollments:', enrollmentsResult.error);
+        } else if (enrollmentsResult.data) {
+          // Filtrar solo cursos habilitados según fechas
+          const now = new Date();
+          enrollmentsResult.data = enrollmentsResult.data.filter((enrollment: any) => {
+            const course = enrollment.courses;
+            if (!course) return false;
+
+            // Si el curso tiene fechas, validar que estemos dentro del rango
+            if (course.start_date && course.end_date) {
+              const startDate = new Date(course.start_date);
+              const endDate = new Date(course.end_date);
+              return now >= startDate && now <= endDate;
+            }
+
+            // Si no tiene fechas, permitir (comportamiento por defecto)
+            return true;
+          });
         }
       } catch (err) {
         console.warn('Error obteniendo enrollments:', err);
@@ -506,12 +513,12 @@ export const progressService = {
           const totalMinutes = enrollment.time_spent_minutes || enrollment.time_spent || 0;
           console.log('📊 Enrollment datos completos:', enrollment);
           console.log('📊 Campos disponibles:', Object.keys(enrollment));
-          
+
           const completion = enrollment.completion_percentage || 0;
-          
+
           // Determinar minutos a usar
           let minutesToUse = totalMinutes;
-          
+
           if (totalMinutes === 0 && completion > 0) {
             // Si no hay tiempo registrado pero hay progreso, estimar tiempo basado en el progreso
             // Estimación: asumir que un curso típico requiere 15 horas de estudio
@@ -520,24 +527,24 @@ export const progressService = {
             minutesToUse = Math.round((completion / 100) * estimatedCourseHours * 60);
             console.log('📊 Estimando tiempo basado en progreso:', completion + '% = ~' + Math.round(minutesToUse / 60) + ' horas');
           }
-          
+
           if (minutesToUse === 0) {
             // Sin tiempo real ni estimado, no hay nada que mostrar
             return;
           }
 
           // Usar cualquier campo de fecha disponible
-          const dateStr = enrollment.last_access_at || enrollment.last_accessed_at || 
-                         enrollment.updated_at || enrollment.enrolled_at || enrollment.enrollment_date || 
-                         enrollment.created_at;
+          const dateStr = enrollment.last_access_at || enrollment.last_accessed_at ||
+            enrollment.updated_at || enrollment.enrolled_at || enrollment.enrollment_date ||
+            enrollment.created_at;
           if (!dateStr) {
             console.log('📊 Enrollment sin fecha disponible');
             return;
           }
-          
+
           const date = new Date(dateStr);
           console.log('📊 Fecha encontrada:', dateStr, '->', date, 'startDate:', startDate, 'está en rango:', date >= startDate);
-          
+
           if (date < startDate) {
             console.log('📊 Fecha fuera del rango de timeframe');
             return;
@@ -553,19 +560,79 @@ export const progressService = {
       }
 
       // Procesar session_progress como fuente adicional (si no hay datos en enrollments o para complementar)
+      // Filtrar solo sesiones de cursos habilitados
       if (!sessionProgressResult.error && sessionProgressResult.data) {
         console.log('📊 Horas de aprendizaje - session_progress encontrados:', sessionProgressResult.data.length);
-        sessionProgressResult.data.forEach((progress: any) => {
-          const dateStr = progress.last_accessed_at || progress.updated_at || progress.first_accessed_at;
-          if (!dateStr) return;
-          const date = new Date(dateStr);
-          if (date < startDate) return;
 
-          const dayKey = getDayKey(date, timeframe);
-          const hours = (progress.time_spent_minutes || 0) / 60;
-          const current = hoursByDay.get(dayKey) || 0;
-          hoursByDay.set(dayKey, current + hours);
-        });
+        // Obtener información de sesiones y cursos para validar fechas
+        const sessionIds = [...new Set(sessionProgressResult.data.map((sp: any) => sp.session_id).filter(Boolean))];
+
+        if (sessionIds.length > 0) {
+          const { data: sessionsData } = await supabase
+            .from('sessions')
+            .select('id, starts_at, ends_at, course_id, courses(id, start_date, end_date)')
+            .in('id', sessionIds);
+
+          const { data: coursesData } = await supabase
+            .from('courses')
+            .select('id, start_date, end_date')
+            .in('id', [...new Set(sessionProgressResult.data.map((sp: any) => sp.course_id).filter(Boolean))]);
+
+          const courseMap = new Map();
+          if (coursesData) {
+            coursesData.forEach(course => {
+              courseMap.set(course.id, course);
+            });
+          }
+
+          const sessionMap = new Map();
+          if (sessionsData) {
+            sessionsData.forEach(session => {
+              sessionMap.set(session.id, session);
+            });
+          }
+
+          const now = new Date();
+          sessionProgressResult.data.forEach((progress: any) => {
+            // Validar que la sesión esté habilitada
+            const session = sessionMap.get(progress.session_id);
+            if (session) {
+              let isAvailable = false;
+
+              // Si la sesión tiene fechas, validar contra ellas
+              if (session.starts_at && session.ends_at) {
+                const startsAt = new Date(session.starts_at);
+                const endsAt = new Date(session.ends_at);
+                isAvailable = now >= startsAt && now <= endsAt;
+              } else {
+                // Si no tiene fechas, validar contra fechas del curso
+                const course = courseMap.get(session.course_id);
+                if (course && course.start_date && course.end_date) {
+                  const courseStart = new Date(course.start_date);
+                  const courseEnd = new Date(course.end_date);
+                  isAvailable = now >= courseStart && now <= courseEnd;
+                } else {
+                  // Si no hay fechas, considerar disponible
+                  isAvailable = true;
+                }
+              }
+
+              if (!isAvailable) {
+                return; // Saltar esta sesión si no está habilitada
+              }
+            }
+
+            const dateStr = progress.last_accessed_at || progress.updated_at || progress.first_accessed_at;
+            if (!dateStr) return;
+            const date = new Date(dateStr);
+            if (date < startDate) return;
+
+            const dayKey = getDayKey(date, timeframe);
+            const hours = (progress.time_spent_minutes || 0) / 60;
+            const current = hoursByDay.get(dayKey) || 0;
+            hoursByDay.set(dayKey, current + hours);
+          });
+        }
       }
 
       // Convertir a array y ordenar
@@ -594,32 +661,46 @@ export const progressService = {
    */
   async getLearningHoursByCategory(studentId: string): Promise<Array<{ category: string; hours: number; minutes: number }>> {
     try {
+      const now = new Date();
+
       // Obtener datos de course_enrollments (fuente principal)
-      // Usar select('*') para obtener todas las columnas disponibles
+      // Incluir información de fechas del curso para filtrar
       const { data: enrollments, error: enrollmentsError } = await supabase
         .from('course_enrollments')
-        .select('*, courses(title)')
+        .select('*, courses(id, title, start_date, end_date)')
         .eq('student_id', studentId);
 
       if (enrollmentsError) {
         console.error('Error obteniendo horas por categoría:', enrollmentsError);
       }
 
-      // Agrupar por curso desde enrollments
+      // Agrupar por curso desde enrollments, filtrando solo cursos habilitados
       const hoursByCourse = new Map<string, number>();
 
       if (enrollments && enrollments.length > 0) {
         enrollments.forEach((enrollment: any) => {
-          const courseTitle = enrollment.courses?.title || 'Sin categoría';
+          const course = enrollment.courses;
+          if (!course) return;
+
+          // Validar que el curso esté habilitado según fechas
+          if (course.start_date && course.end_date) {
+            const startDate = new Date(course.start_date);
+            const endDate = new Date(course.end_date);
+            if (now < startDate || now > endDate) {
+              return; // Saltar cursos no habilitados
+            }
+          }
+
+          const courseTitle = course.title || 'Sin categoría';
           // Intentar obtener time_spent_minutes, si no existe, estimar basado en completion_percentage
           let minutes = enrollment.time_spent_minutes || enrollment.time_spent || 0;
-          
+
           // Si no hay tiempo pero hay progreso, estimar
           if (minutes === 0 && enrollment.completion_percentage > 0) {
             const estimatedCourseHours = 15; // Mismo valor que en getLearningHours
             minutes = Math.round((enrollment.completion_percentage / 100) * estimatedCourseHours * 60);
           }
-          
+
           if (minutes > 0) {
             const current = hoursByCourse.get(courseTitle) || 0;
             hoursByCourse.set(courseTitle, current + minutes);
@@ -631,27 +712,70 @@ export const progressService = {
       if (hoursByCourse.size === 0) {
         const { data: sessionProgress, error: sessionError } = await supabase
           .from('session_progress')
-          .select('time_spent_minutes, course_id')
+          .select('time_spent_minutes, course_id, session_id')
           .eq('student_id', studentId)
           .gte('time_spent_minutes', 0);
 
         if (!sessionError && sessionProgress && sessionProgress.length > 0) {
-          // Obtener información de los cursos
-          const courseIds = [...new Set(sessionProgress.map((sp: any) => sp.course_id))];
+          // Obtener información de los cursos y sesiones para validar fechas
+          const courseIds = [...new Set(sessionProgress.map((sp: any) => sp.course_id).filter(Boolean))];
+          const sessionIds = [...new Set(sessionProgress.map((sp: any) => sp.session_id).filter(Boolean))];
+
           const { data: courses } = await supabase
             .from('courses')
-            .select('id, title')
+            .select('id, title, start_date, end_date')
             .in('id', courseIds);
 
-          const courseMap = new Map<number, string>();
+          const { data: sessions } = await supabase
+            .from('sessions')
+            .select('id, starts_at, ends_at, course_id')
+            .in('id', sessionIds);
+
+          const courseMap = new Map();
           if (courses) {
             courses.forEach(course => {
-              courseMap.set(course.id, course.title);
+              courseMap.set(course.id, course);
+            });
+          }
+
+          const sessionMap = new Map();
+          if (sessions) {
+            sessions.forEach(session => {
+              sessionMap.set(session.id, session);
             });
           }
 
           sessionProgress.forEach((progress: any) => {
-            const courseTitle = courseMap.get(progress.course_id) || 'Sin categoría';
+            // Validar que la sesión esté habilitada
+            const session = sessionMap.get(progress.session_id);
+            const course = courseMap.get(progress.course_id);
+
+            if (session && course) {
+              let isAvailable = false;
+
+              // Si la sesión tiene fechas, validar contra ellas
+              if (session.starts_at && session.ends_at) {
+                const startsAt = new Date(session.starts_at);
+                const endsAt = new Date(session.ends_at);
+                isAvailable = now >= startsAt && now <= endsAt;
+              } else {
+                // Si no tiene fechas, validar contra fechas del curso
+                if (course.start_date && course.end_date) {
+                  const courseStart = new Date(course.start_date);
+                  const courseEnd = new Date(course.end_date);
+                  isAvailable = now >= courseStart && now <= courseEnd;
+                } else {
+                  // Si no hay fechas, considerar disponible
+                  isAvailable = true;
+                }
+              }
+
+              if (!isAvailable) {
+                return; // Saltar esta sesión si no está habilitada
+              }
+            }
+
+            const courseTitle = course?.title || 'Sin categoría';
             const minutes = progress.time_spent_minutes || 0;
             const current = hoursByCourse.get(courseTitle) || 0;
             hoursByCourse.set(courseTitle, current + minutes);

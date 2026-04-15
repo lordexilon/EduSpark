@@ -1,7 +1,8 @@
 // services/videoTranscriptService.ts
 // Servicio para extraer transcripciones de videos de YouTube y Vimeo
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { generateEmbedding } from './geminiService';
 
 // =====================================================
 // TIPOS E INTERFACES
@@ -301,7 +302,6 @@ export class VideoTranscriptService {
       const chunks = this.splitIntoChunks(transcript, 1000); // 1000 caracteres por chunk
       
       // Generar embeddings y guardar en course_content_chunks
-      const { generateEmbedding } = await import('./geminiService');
       
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];

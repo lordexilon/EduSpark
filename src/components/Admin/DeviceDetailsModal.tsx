@@ -1,7 +1,7 @@
 // src/components/Admin/DeviceDetailsModal.tsx
 import React from 'react';
-import { UserDeviceReport, DeviceReport } from '../../services/adminService';
-import { adminService } from '../../services/adminService';
+import { UserDeviceReport, DeviceReport } from '@/services/adminService';
+import { adminService } from '@/services/adminService';
 
 interface Props {
     user: UserDeviceReport;

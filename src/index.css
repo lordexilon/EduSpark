@@ -12,19 +12,42 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  
-  /* Variables CSS personalizadas */
+
+  /* Variables CSS actualizadas - Filosofía cálida y definida */
   --primary: #3b82f6;
   --primary-hover: #2563eb;
   --secondary: #64748b;
-  --surface: #ffffff;
-  --background: #f8fafc;
+  --surface: #fafaf9;
+  /* Marfil (stone-50) */
+  --background: #f5f5f4;
+  /* Stone-100 */
   --text-dark: #1e293b;
   --text-light: #64748b;
-  --border: #e2e8f0;
+  --border: #d6d3d1;
+  /* Gray-300 más oscuro */
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
+}
+
+/* ===== DARK MODE VARIABLES ===== */
+html.dark {
+  --primary: #6366f1;
+  --primary-hover: #818cf8;
+  --secondary: #94a3b8;
+  --surface: #1e293b;
+  --background: #0f172a;
+  --text-dark: #f1f5f9;
+  --text-light: #94a3b8;
+  --border: #334155;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --error: #f87171;
+  color-scheme: dark;
+}
+
+html.dark body {
+  background: linear-gradient(to bottom right, #0f172a, #1a1f35, #0f172a) !important;
 }
 
 * {
@@ -34,16 +57,17 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #f8fafc;
+  /* Fondo degradado cálido global */
+  background: linear-gradient(to bottom right, #f5f5f4, rgba(254, 243, 199, 0.4), rgba(255, 237, 213, 0.3));
 }
 
 #root {
   min-height: 100vh;
 }
 
-/* Componentes personalizados */
+/* Componentes personalizados actualizados */
 .btn-primary {
-  @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+  @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 shadow-lg;
 }
 
 .btn-secondary {
@@ -55,11 +79,11 @@ body {
 }
 
 .input-field {
-  @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+  @apply w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
 }
 
 .card {
-  @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+  @apply bg-stone-50 rounded-lg shadow-lg shadow-gray-200/50 border-2 border-gray-300 p-6;
 }
 
 .card-header {
@@ -82,6 +106,104 @@ body {
   @apply bg-gray-50;
 }
 
+/* ===== DARK MODE: Global Component Overrides ===== */
+html.dark .card {
+  background-color: var(--surface);
+  border-color: var(--border);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+}
+
+html.dark .card-header {
+  border-color: var(--border);
+}
+
+html.dark .input-field {
+  background-color: var(--background);
+  border-color: var(--border);
+  color: var(--text-dark);
+}
+
+html.dark .table th {
+  background-color: var(--surface);
+  color: var(--text-light);
+  border-color: var(--border);
+}
+
+html.dark .table td {
+  color: var(--text-dark);
+  border-color: var(--border);
+}
+
+html.dark .table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+html.dark .btn-secondary {
+  background-color: var(--surface);
+  color: var(--text-dark);
+  border-color: var(--border);
+}
+
+/* ===== GLOBAL DARK MODE UTILITY OVERRIDES ===== */
+/* This solves the issue of hardcoded light theme classes in dark mode without modifying page-by-page. */
+
+/* Background overrides */
+html.dark .bg-white,
+html.dark .bg-gray-50,
+html.dark .bg-slate-50,
+html.dark .bg-stone-50 {
+  background-color: var(--surface) !important;
+}
+
+html.dark .bg-gray-100,
+html.dark .bg-slate-100,
+html.dark .bg-stone-100 {
+  background-color: var(--background) !important;
+}
+
+/* Text overrides - Dark Text -> Light Text */
+html.dark .text-black,
+html.dark .text-gray-900,
+html.dark .text-gray-800,
+html.dark .text-gray-700,
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-slate-700,
+html.dark .text-stone-900,
+html.dark .text-stone-800,
+html.dark .text-stone-700 {
+  color: var(--text-dark) !important;
+}
+
+/* Text overrides - Medium Text -> Lighter Text */
+html.dark .text-gray-600,
+html.dark .text-gray-500,
+html.dark .text-slate-600,
+html.dark .text-slate-500,
+html.dark .text-stone-600,
+html.dark .text-stone-500 {
+  color: var(--text-light) !important;
+}
+
+/* Border overrides */
+html.dark .border-gray-200,
+html.dark .border-gray-300,
+html.dark .border-slate-200,
+html.dark .border-slate-300,
+html.dark .border-stone-200,
+html.dark .border-stone-300,
+html.dark .border-black {
+  border-color: var(--border) !important;
+}
+
+/* Divide overrides for lists */
+html.dark .divide-gray-200> :not([hidden])~ :not([hidden]),
+html.dark .divide-gray-300> :not([hidden])~ :not([hidden]) {
+  border-color: var(--border) !important;
+}
+
+/* Global text inheritance in dark components to avoid unreadable text handled above */
+
 /* Animaciones */
 .fade-in {
   animation: fadeIn 0.3s ease-in-out;
@@ -92,6 +214,7 @@ body {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -106,6 +229,7 @@ body {
   from {
     transform: translateX(-100%);
   }
+
   to {
     transform: translateX(0);
   }
@@ -166,4 +290,19 @@ body {
 
 .focus\:ring-primary\/50:focus {
   --tw-ring-color: rgba(59, 130, 246, 0.5);
+}
+
+/* Material Symbols Icons */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-size: 24px;
+}
+
+/* Premium Card Shadows */
+.shadow-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 10px 24px -6px rgba(0, 0, 0, 0.06);
+}
+
+.material-symbols-outlined.icon-filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }

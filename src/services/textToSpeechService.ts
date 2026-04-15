@@ -2,7 +2,7 @@
 // Servicio para Google Cloud Text-to-Speech API
 // Voces premium Journey y Studio (ultra naturales)
 
-import { resolveGeminiApiKey } from "../../audio-tutor/utils/env";
+import { resolveGeminiApiKey } from "@/modules/tutor/utils/env";
 
 // URL base de la API de Google Cloud Text-to-Speech
 const TTS_BASE_URL = "https://texttospeech.googleapis.com/v1";
@@ -320,3 +320,4 @@ export async function getAudio(text: string, options?: TTSOptions): Promise<stri
     const tts = getTTSService();
     return await tts.synthesizeSpeech(text, options);
 }
+

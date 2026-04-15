@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EduSpark AI - Detalles del Curso</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;family=Noto+Sans:wght@300..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2b8cee",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Lexend', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-[#111418] dark:text-white min-h-screen flex flex-col overflow-x-hidden">
+<header class="sticky top-0 z-50 bg-white dark:bg-[#1a2632] border-b border-solid border-[#f0f2f4] dark:border-[#2b3b4b] px-4 py-3 lg:px-10">
+<div class="max-w-[1440px] mx-auto flex items-center justify-between whitespace-nowrap">
+<div class="flex items-center gap-8">
+<a class="flex items-center gap-3 text-[#111418] dark:text-white group" href="#">
+<div class="size-8 text-primary">
+<svg class="w-full h-full" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" fill="currentColor"></path>
+</svg>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em]">EduSpark AI</h2>
+</a>
+<div class="hidden lg:flex items-center">
+<label class="flex flex-col min-w-40 !h-10 max-w-64">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full bg-[#f0f2f4] dark:bg-[#2b3b4b] overflow-hidden group-focus-within:ring-2 ring-primary/50">
+<div class="text-[#617589] dark:text-[#94a3b8] flex items-center justify-center pl-3">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden text-[#111418] dark:text-white focus:outline-0 focus:ring-0 border-none bg-transparent h-full placeholder:text-[#617589] dark:placeholder:text-[#94a3b8] px-3 text-sm font-normal leading-normal" placeholder="Buscar cursos..." value=""/>
+</div>
+</label>
+</div>
+</div>
+<div class="flex items-center gap-4 lg:gap-8">
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="#">Tablero</a>
+<a class="text-primary text-sm font-bold" href="#">Cursos</a>
+<a class="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="#">Calendario</a>
+<a class="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="#">Comunidad</a>
+</nav>
+<div class="flex items-center gap-3">
+<button class="relative text-[#111418] dark:text-white hover:bg-gray-100 dark:hover:bg-[#2b3b4b] rounded-full p-2">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-red-500 rounded-full border border-white dark:border-[#1a2632]"></span>
+</button>
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-9 ring-2 ring-offset-2 ring-transparent group-hover:ring-primary/20 cursor-pointer" data-alt="Student profile avatar with a confident smile" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBvWwjjHwovZeAspUamu4F1vlWfC3IqysjA1lOv5hh6I3uhauZ-egl_rJ6DyaW-IkXZoJ8_aQ2ps5RHGIVpleeXYUfwvyZ8yrDPRWEb5yPvGfT2h8rTiXUcq9dz3dS1VIPvySWGjgkrhuPul9JwgzZEnqpL6DFD7uCYjbFMgpzTYjqs0EZ_OAH29bSduvGkWvAcTR5hkQzjUpAM5nYyWO-1P8YjHvfiNmXurDMGm5Q_TSoazWBy-8kTg2obwogbfGxj0krgdirl5oU");'>
+</div>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-1 max-w-[1440px] w-full mx-auto p-4 lg:px-10 lg:py-8">
+<div class="flex flex-wrap gap-2 pb-6">
+<a class="text-[#617589] dark:text-[#94a3b8] text-sm font-medium hover:text-primary hover:underline" href="#">Inicio</a>
+<span class="text-[#617589] dark:text-[#94a3b8] text-sm font-medium">/</span>
+<a class="text-[#617589] dark:text-[#94a3b8] text-sm font-medium hover:text-primary hover:underline" href="#">Mis Cursos</a>
+<span class="text-[#617589] dark:text-[#94a3b8] text-sm font-medium">/</span>
+<span class="text-[#111418] dark:text-white text-sm font-medium">Ciencia de Datos Avanzada con IA</span>
+</div>
+<div class="flex flex-col lg:flex-row gap-6 justify-between items-start mb-8">
+<div class="flex-1 max-w-3xl">
+<div class="flex flex-wrap items-center gap-3 mb-3">
+<span class="px-2.5 py-0.5 rounded text-xs font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-wide">
+                    En Progreso
+                </span>
+<span class="px-2.5 py-0.5 rounded text-xs font-bold bg-purple-500/10 text-purple-600 border border-purple-500/20 uppercase tracking-wide flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span> IA Mejorada
+                </span>
+</div>
+<h1 class="text-[#111418] dark:text-white text-3xl lg:text-4xl font-black leading-tight tracking-[-0.033em] mb-3">
+                Ciencia de Datos Avanzada con IA
+            </h1>
+<p class="text-[#617589] dark:text-[#94a3b8] text-base font-normal leading-normal max-w-2xl">
+                Domina los fundamentos del aprendizaje automático y técnicas de análisis de datos con retroalimentación en tiempo real de EduSpark AI.
+            </p>
+<div class="mt-6">
+<div class="flex gap-6 justify-between mb-2">
+<p class="text-[#111418] dark:text-white text-sm font-medium">Progreso del Curso</p>
+<p class="text-[#111418] dark:text-white text-sm font-bold">65%</p>
+</div>
+<div class="rounded-full bg-[#dbe0e6] dark:bg-[#2b3b4b] overflow-hidden">
+<div class="h-2 rounded-full bg-primary" style="width: 65%;"></div>
+</div>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row gap-4 w-full lg:w-auto mt-4 lg:mt-0">
+<button class="flex w-full sm:w-auto items-center justify-center rounded-lg h-12 px-6 bg-primary hover:bg-blue-600 text-white text-base font-bold transition-all shadow-lg shadow-blue-500/20">
+                Reanudar Aprendizaje
+            </button>
+<button class="flex w-full sm:w-auto items-center justify-center rounded-lg h-12 px-6 bg-white dark:bg-[#1a2632] border border-[#dbe0e6] dark:border-[#2b3b4b] text-[#111418] dark:text-white hover:bg-gray-50 dark:hover:bg-[#2b3b4b]/80 text-base font-bold transition-all">
+<span class="material-symbols-outlined mr-2">download</span> Sílabo
+            </button>
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+<div class="flex flex-col gap-1 rounded-xl p-5 bg-white dark:bg-[#1a2632] border border-[#dbe0e6] dark:border-[#2b3b4b] shadow-sm">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-[#617589] dark:text-[#94a3b8]">school</span>
+<p class="text-[#617589] dark:text-[#94a3b8] text-sm font-medium">Calificación Actual</p>
+</div>
+<p class="text-[#111418] dark:text-white text-2xl font-bold">A- (92%)</p>
+</div>
+<div class="flex flex-col gap-1 rounded-xl p-5 bg-white dark:bg-[#1a2632] border border-[#dbe0e6] dark:border-[#2b3b4b] shadow-sm">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-[#617589] dark:text-[#94a3b8]">schedule</span>
+<p class="text-[#617589] dark:text-[#94a3b8] text-sm font-medium">Tiempo Restante Est.</p>
+</div>
+<p class="text-[#111418] dark:text-white text-2xl font-bold">12 Horas</p>
+</div>
+<div class="flex flex-col gap-1 rounded-xl p-5 bg-white dark:bg-[#1a2632] border border-[#dbe0e6] dark:border-[#2b3b4b] shadow-sm">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-[#617589] dark:text-[#94a3b8]">trophy</span>
+<p class="text-[#617589] dark:text-[#94a3b8] text-sm font-medium">Logros</p>
+</div>
+<p class="text-[#111418] dark:text-white text-2xl font-bold">4/12 Insignias</p>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<div class="lg:col-span-8 flex flex-col gap-6">
+<div class="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 p-5 flex gap-4 items-start">
+<div class="p-2 bg-primary/20 rounded-lg text-primary shrink-0">
+<span class="material-symbols-outlined icon-filled">psychology</span>
+</div>
+<div>
+<h3 class="text-[#111418] dark:text-white font-bold text-lg mb-1">Perspectiva IA</h3>
+<p class="text-[#111418] dark:text-white text-sm leading-relaxed opacity-90">
+                        Estás destacando en <span class="font-semibold text-primary">Modelos de Regresión</span>, pero según tu último cuestionario, un repaso rápido de <span class="font-semibold text-primary">Árboles de Decisión</span> aumentaría tu confianza.
+                    </p>
+<button class="mt-3 text-sm font-bold text-primary hover:text-blue-700 dark:hover:text-blue-400 flex items-center gap-1">
+                        Repasar Concepto <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+<span class="absolute -top-4 -right-4 text-9xl text-primary/5 select-none pointer-events-none material-symbols-outlined">auto_awesome</span>
+</div>
+<div class="border-b border-[#dbe0e6] dark:border-[#2b3b4b] overflow-x-auto">
+<div class="flex gap-8 min-w-max">
+<button class="pb-3 border-b-2 border-transparent text-[#617589] dark:text-[#94a3b8] hover:text-[#111418] dark:hover:text-white font-medium text-sm transition-colors flex items-center gap-2">
+                        Resúmenes con IA <span class="bg-primary/10 text-primary text-[10px] px-1.5 py-0.5 rounded-full font-bold">NUEVO</span>
+</button>
+<button class="pb-3 border-b-2 border-primary text-primary font-bold text-sm">Módulos de Aprendizaje</button>
+<button class="pb-3 border-b-2 border-transparent text-[#617589] dark:text-[#94a3b8] hover:text-[#111418] dark:hover:text-white font-medium text-sm transition-colors">Materiales de Estudio</button>
+<button class="pb-3 border-b-2 border-transparent text-[#617589] dark:text-[#94a3b8] hover:text-[#111418] dark:hover:text-white font-medium text-sm transition-colors">Ejercicios Interactivos</button>
+</div>
+</div>
+<div class="flex flex-col gap-6">
+<div class="bg-white dark:bg-[#1a2632] border border-[#dbe0e6] dark:border-[#2b3b4b] rounded-xl p-6 shadow-sm relative overflow-hidden group">
+<div class="flex justify-between items-start mb-4 relative z-10">
+<div>
+<p class="text-xs font-bold text-[#617589] dark:text-[#94a3b8] uppercase tracking-wider mb-1">Resumen del Módulo Actual (IA)</p>
+<h3 class="text-xl font-bold text-[#111418] dark:text-white">Módulo 3: Aprendizaje Supervisado</h3>
+</div>
+<div class="bg-primary/10 p-2 rounded-full text-primary">
+<span class="material-symbols-outlined">auto_stories</span>
+</div>
+</div>
+<div class="prose dark:prose-invert max-w-none text-sm text-[#111418] dark:text-[#cbd5e1] leading-relaxed relative z-10">
+<p class="mb-2">En este módulo, cubrimos los conceptos clave de los algoritmos de aprendizaje supervisado. Puntos clave generados por IA:</p>
+<ul class="list-disc pl-5 space-y-1 mb-4 text-[#617589] dark:text-[#94a3b8]">
+<li><strong class="text-[#111418] dark:text-white">Clasificación vs. Regresión:</strong> Entendiendo variables de salida discretas vs continuas.</li>
+<li><strong class="text-[#111418] dark:text-white">Conjuntos de Entrenamiento:</strong> La importancia de datos etiquetados de alta calidad.</li>
+<li><strong class="text-[#111418] dark:text-white">Sobreajuste (Overfitting):</strong> Cuando un modelo aprende ruido en lugar de la señal.</li>
+</ul>
+</div>
+<div class="flex gap-3 mt-4 relative z-10">
+<button class="bg-[#f0f2f4] dark:bg-[#2b3b4b] hover:bg-[#e2e8f0] dark:hover:bg-[#3d4f63] text-[#111418] dark:text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">
+                            Leer Resumen Completo
+                        </button>
+<button class="text-primary hover:bg-primary/5 px-4 py-2 rounded-lg text-sm font-bold transition-colors">
+                            Generar Quiz del Resumen
+                        </button>
+</div>
+</div>
+<div class="flex flex-col rounded-xl border border-[#dbe0e6] dark:border-[#2b3b4b] bg-white dark:bg-[#1a2632] divide-y divide-[#dbe0e6] dark:divide-[#2b3b4b] overflow-hidden">
+<div class="p-4 flex items-center justify-between hover:bg-[#f6f7f8] dark:hover:bg-[#202e3b] transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="size-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">check</span>
+</div>
+<div>
+<p class="text-[#111418] dark:text-white font-medium text-sm group-hover:text-primary transition-colors">1. Introducción a la Ciencia de Datos</p>
+<p class="text-[#617589] dark:text-[#94a3b8] text-xs">Video • 45 min • Completado</p>
+</div>
+</div>
+<button class="text-[#617589] dark:text-[#94a3b8] hover:text-[#111418] dark:hover:text-white">
+<span class="material-symbols-outlined">expand_more</span>
+</button>
+</div>
+<div class="p-4 flex items-center justify-between hover:bg-[#f6f7f8] dark:hover:bg-[#202e3b] transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="size-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">check</span>
+</div>
+<div>
+<p class="text-[#111418] dark:text-white font-medium text-sm group-hover:text-primary transition-colors">2. Python Básico para Análisis</p>
+<p class="text-[#617589] dark:text-[#94a3b8] text-xs">Laboratorio • 1h 20m • Completado</p>
+</div>
+</div>
+<button class="text-[#617589] dark:text-[#94a3b8] hover:text-[#111418] dark:hover:text-white">
+<span class="material-symbols-outlined">expand_more</span>
+</button>
+</div>
+<div class="p-4 bg-primary/5 border-l-4 border-l-primary flex items-center justify-between cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="size-8 rounded-full bg-primary text-white flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/30">
+<span class="material-symbols-outlined text-[20px] icon-filled">play_arrow</span>
+</div>
+<div>
+<p class="text-[#111418] dark:text-white font-bold text-sm">3. Aprendizaje Supervisado</p>
+<p class="text-primary text-xs font-medium">Video y Quiz • 2h 15m • En Progreso</p>
+</div>
+</div>
+<button class="bg-primary text-white text-xs font-bold px-3 py-1.5 rounded hover:bg-blue-600 transition-colors">
+                            Continuar
+                        </button>
+</div>
+<div class="p-4 flex items-center justify-between opacity-60 cursor-not-allowed bg-[#fcfcfd] dark:bg-[#141d26]">
+<div class="flex items-center gap-4">
+<div class="size-8 rounded-full bg-[#f0f2f4] dark:bg-[#2b3b4b] text-[#617589] dark:text-[#94a3b8] flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px]">lock</span>
+</div>
+<div>
+<p class="text-[#617589] dark:text-[#94a3b8] font-medium text-sm">4. Aprendizaje No Supervisado</p>
+<p class="text-[#617589] dark:text-[#94a3b8] text-xs">Lectura • 1h 45m • Bloqueado</p>
+</div>
+</div>
+</div>
+<div class="p-4 flex items-center justify-between opacity-60 cursor-not-allowed bg-[#fcfcfd] dark:bg-[#141d26]">
+<div class="flex items-center gap-4">
+<div class="size-8 rounded-full bg-[#f0f2f4] dark:bg-[#2b3b4b] text-[#617589] dark:text-[#94a3b8] flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px]">lock</span>
+</div>
+<div>
+<p class="text-[#617589] dark:text-[#94a3b8] font-medium text-sm">5. Redes Neuronales</p>
+<p class="text-[#617589] dark:text-[#94a3b8] text-xs">Proyecto • 3h 00m • Bloqueado</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="lg:col-span-4 flex flex-col gap-6">
+<div class="flex flex-col rounded-xl overflow-hidden shadow-lg border border-[#dbe0e6] dark:border-[#2b3b4b] bg-white dark:bg-[#1a2632] ring-1 ring-primary/10">
+<div class="bg-gradient-to-r from-primary to-blue-600 p-4 flex justify-between items-center">
+<div class="flex items-center gap-3">
+<div class="size-8 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+<span class="material-symbols-outlined text-white text-sm">smart_toy</span>
+</div>
+<div>
+<h3 class="text-white font-bold text-sm">Tutor IA Sparky</h3>
+<p class="text-blue-100 text-xs">En línea • Listo para ayudar</p>
+</div>
+</div>
+<button class="text-white/80 hover:text-white">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="h-64 overflow-y-auto p-4 flex flex-col gap-4 bg-[#fcfcfd] dark:bg-[#141d26]">
+<div class="flex items-start gap-2 max-w-[90%]">
+<div class="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center mt-1 shrink-0">
+<span class="material-symbols-outlined text-[14px]">smart_toy</span>
+</div>
+<div class="bg-white dark:bg-[#1a2632] border border-[#dbe0e6] dark:border-[#2b3b4b] p-3 rounded-2xl rounded-tl-none text-sm text-[#111418] dark:text-white shadow-sm">
+<p>¡Hola! Noté que pasaste algún tiempo en la diapositiva de <strong>Clasificación</strong>. ¿Quieres un ejemplo rápido para aclarar dudas?</p>
+</div>
+</div>
+<div class="flex items-start gap-2 max-w-[90%] self-end flex-row-reverse">
+<div class="size-6 bg-center bg-cover rounded-full mt-1 shrink-0" data-alt="User avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB1HHEbOIhhMAkf-_f-bCWc_Yc0_FDzYVPh7l_3QFqZq3R8d24E04Sqj5UTItrrvJsHbf3e1nkvRpMac8Aacuo3apje3Lv4-BSewdurLOwlv7x0QTqLUYEz6mkJPjwvuarft79ciJ38N7i5n-ZOD4-1i65aByCNgnASs6jP4tfFJcykr1JNegOqXa9REwhU5sjQuM4-2KMcWCLB60eZFrcRTcEWMKcMLRYALGpb6hKA35J2EKPEdtB9JHkpgObmJXdcf1RXVeveDuY");'></div>
+<div class="bg-primary text-white p-3 rounded-2xl rounded-tr-none text-sm shadow-sm">
+<p>Sí, por favor explícalo con un ejemplo del mundo real.</p>
+</div>
+</div>
+<div class="flex items-center gap-1 ml-9">
+<div class="size-1.5 bg-gray-400 rounded-full animate-bounce"></div>
+<div class="size-1.5 bg-gray-400 rounded-full animate-bounce delay-75"></div>
+<div class="size-1.5 bg-gray-400 rounded-full animate-bounce delay-150"></div>
+</div>
+</div>
+<div class="p-3 bg-white dark:bg-[#1a2632] border-t border-[#dbe0e6] dark:border-[#2b3b4b]">
+<div class="relative">
+<input class="w-full bg-[#f0f2f4] dark:bg-[#2b3b4b] text-[#111418] dark:text-white text-sm rounded-lg pl-4 pr-10 py-3 focus:outline-none focus:ring-1 focus:ring-primary border-none" placeholder="Pregunta a Sparky..." type="text"/>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 text-primary hover:bg-primary/10 p-1 rounded-md transition-colors">
+<span class="material-symbols-outlined text-[20px]">send</span>
+</button>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-[#1a2632] rounded-xl border border-[#dbe0e6] dark:border-[#2b3b4b] p-5 shadow-sm">
+<div class="flex justify-between items-start mb-3">
+<span class="text-xs font-bold text-orange-600 bg-orange-100 dark:bg-orange-900/20 px-2 py-0.5 rounded">Vence Mañana</span>
+<span class="material-symbols-outlined text-[#617589] dark:text-[#94a3b8]">assignment</span>
+</div>
+<h4 class="text-[#111418] dark:text-white font-bold text-lg mb-1">Cuestionario: Árboles de Decisión</h4>
+<p class="text-[#617589] dark:text-[#94a3b8] text-sm mb-4">15 Preguntas • Estimado 20 mins</p>
+<button class="w-full flex items-center justify-center gap-2 bg-white dark:bg-transparent border border-primary text-primary hover:bg-primary hover:text-white py-2.5 rounded-lg text-sm font-bold transition-all group">
+<span class="material-symbols-outlined text-[18px]">auto_awesome</span> Obtener Feedback IA y Empezar
+                </button>
+</div>
+<div class="bg-white dark:bg-[#1a2632] rounded-xl border border-[#dbe0e6] dark:border-[#2b3b4b] p-5 shadow-sm">
+<h4 class="text-[#111418] dark:text-white font-bold text-base mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">playlist_add_check</span> Siguientes Pasos Recomendados
+                </h4>
+<div class="flex flex-col gap-3">
+<a class="flex items-center gap-3 p-3 rounded-lg hover:bg-[#f6f7f8] dark:hover:bg-[#202e3b] transition-colors group" href="#">
+<div class="size-8 rounded bg-blue-100 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px]">article</span>
+</div>
+<div class="flex-1">
+<p class="text-[#111418] dark:text-white text-sm font-medium group-hover:text-primary leading-tight">Leer: "Sesgo en la IA"</p>
+<p class="text-[#617589] dark:text-[#94a3b8] text-xs">5 min de lectura</p>
+</div>
+<span class="material-symbols-outlined text-[#dbe0e6] group-hover:text-primary">chevron_right</span>
+</a>
+<a class="flex items-center gap-3 p-3 rounded-lg hover:bg-[#f6f7f8] dark:hover:bg-[#202e3b] transition-colors group" href="#">
+<div class="size-8 rounded bg-purple-100 dark:bg-purple-900/20 text-purple-600 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px]">play_circle</span>
+</div>
+<div class="flex-1">
+<p class="text-[#111418] dark:text-white text-sm font-medium group-hover:text-primary leading-tight">Ver: Descenso de Gradiente</p>
+<p class="text-[#617589] dark:text-[#94a3b8] text-xs">Video de 10 min</p>
+</div>
+<span class="material-symbols-outlined text-[#dbe0e6] group-hover:text-primary">chevron_right</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+</main>
+
+</body></html>

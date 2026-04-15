@@ -1,7 +1,7 @@
 // services/academicService.ts
 // Servicios para gestión académica (Fase 1): carreras, materias, matriculación, asignaciones
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 // Verificar autenticación antes de consultar
 const verifyAuth = async () => {
@@ -23,6 +23,7 @@ export interface Career {
   code: string;
   description?: string;
   coordinator_id?: string;
+  institution_id?: number;
   duration_months: number;
   total_credits: number;
   degree_type: string;
@@ -34,12 +35,14 @@ export interface Career {
 export interface Subject {
   id: number;
   career_id?: number;
+  institution_id?: number;
   name: string;
   code: string;
   description?: string;
   credits: number;
   hours_per_week: number;
   semester?: number;
+  year?: number; // Año de la malla curricular (1-6 para Medicina)
   prerequisite_subject_id?: number;
   is_core: boolean;
   difficulty_level: string;
@@ -119,6 +122,19 @@ export const careerService = {
     const { data, error } = await supabase
       .from('careers')
       .select('*')
+      .eq('is_active', true)
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Obtener carreras por institución
+  async getCareersByInstitution(institutionId: number): Promise<Career[]> {
+    const { data, error } = await supabase
+      .from('careers')
+      .select('*')
+      .eq('institution_id', institutionId)
       .eq('is_active', true)
       .order('name', { ascending: true });
 
@@ -267,15 +283,15 @@ export const careerEnrollmentService = {
   // Obtener matriculaciones de un estudiante
   async getStudentEnrollments(studentId: string): Promise<CareerEnrollment[]> {
     console.log('🔍 careerEnrollmentService.getStudentEnrollments - Buscando inscripciones para studentId:', studentId);
-    
+
     // Verificar autenticación y obtener auth.uid()
     const authUid = await verifyAuth();
     console.log('🔍 Comparando IDs - studentId recibido:', studentId, 'vs auth.uid():', authUid);
-    
+
     // Nota: Es normal que studentId !== authUid cuando un admin-campus, coordinator o teacher
     // consulta las inscripciones de un estudiante. Las políticas RLS permiten esto si
     // el estudiante pertenece a la misma institución que el usuario consultante.
-    
+
     const { data, error } = await supabase
       .from('career_enrollments')
       .select('*')
@@ -290,12 +306,12 @@ export const careerEnrollmentService = {
       console.error('   - Hint:', error.hint);
       throw error;
     }
-    
+
     console.log('✅ Inscripciones en carreras encontradas:', data?.length || 0);
     if (data && data.length > 0) {
       console.log('   Inscripciones:', data.map(e => ({ id: e.id, career_id: e.career_id, status: e.status })));
     }
-    
+
     return data || [];
   },
 
@@ -375,15 +391,15 @@ export const courseEnrollmentService = {
   // Obtener inscripciones de un estudiante
   async getStudentEnrollments(studentId: string): Promise<CourseEnrollment[]> {
     console.log('🔍 courseEnrollmentService.getStudentEnrollments - Buscando inscripciones para studentId:', studentId);
-    
+
     // Verificar autenticación y obtener auth.uid()
     const authUid = await verifyAuth();
     console.log('🔍 Comparando IDs - studentId recibido:', studentId, 'vs auth.uid():', authUid);
-    
+
     // Nota: Es normal que studentId !== authUid cuando un admin-campus, coordinator o teacher
     // consulta las inscripciones de un estudiante. Las políticas RLS permiten esto si
     // el estudiante pertenece a la misma institución que el usuario consultante.
-    
+
     const { data, error } = await supabase
       .from('course_enrollments')
       .select('*')
@@ -398,12 +414,12 @@ export const courseEnrollmentService = {
       console.error('   - Hint:', error.hint);
       throw error;
     }
-    
+
     console.log('✅ Inscripciones encontradas:', data?.length || 0);
     if (data && data.length > 0) {
       console.log('   Inscripciones:', data.map(e => ({ id: e.id, course_id: e.course_id, status: e.status })));
     }
-    
+
     return data || [];
   },
 
@@ -426,7 +442,7 @@ export const courseEnrollmentService = {
       console.error('Error obteniendo estudiantes del curso:', error);
       throw error;
     }
-    
+
     // Transformar los datos para incluir información del estudiante
     return (data || []).map((enrollment: any) => {
       const student = enrollment.users || null;
@@ -670,3 +686,75 @@ export const subjectAssignmentService = {
   }
 };
 
+// ============================================
+// SERVICIOS DE HISTORIAL ACADÉMICO
+// ============================================
+
+export const academicHistoryService = {
+  async getStudentHistory(studentId: string): Promise<Record<number, { status: 'completed' | 'in_progress' | 'available' | 'locked' | 'failed'; grade?: number }>> {
+    console.log('🔍 academicHistoryService.getStudentHistory - Student:', studentId);
+
+    // Obtener inscripciones con detalles del curso y materia
+    const { data: enrollments, error } = await supabase
+      .from('course_enrollments')
+      .select(`
+        id,
+        student_id,
+        course_id,
+        status,
+        final_grade,
+        course:courses (
+          id,
+          subject_id
+        )
+      `)
+      .eq('student_id', studentId);
+
+    if (error) {
+      console.error('❌ Error obteniendo historial:', error);
+      throw error;
+    }
+
+    const history: Record<number, { status: 'completed' | 'in_progress' | 'available' | 'locked' | 'failed'; grade?: number }> = {};
+
+    enrollments?.forEach((enrollment: any) => {
+      const subjectId = enrollment.course?.subject_id;
+
+      if (subjectId) {
+        let status: 'completed' | 'in_progress' | 'available' | 'locked' | 'failed' = 'available';
+        const grade = enrollment.final_grade;
+
+        // Determinar estado basado en la inscripción
+        if (enrollment.status === 'completed' || (grade !== null && grade >= 60)) {
+          // Asumimos aprobado si completado o nota >= 60 (ajustar según reglas de negocio)
+          status = 'completed';
+        } else if (enrollment.status === 'active') {
+          status = 'in_progress';
+        } else if (grade !== null && grade < 60) {
+          status = 'failed';
+        }
+
+        // Si ya existe registro para esta materia (ej: recursando), priorizar el mejor estado
+        if (history[subjectId]) {
+          const currentStatus = history[subjectId].status;
+          if (currentStatus === 'completed') return; // Ya aprobó, mantener
+
+          if (status === 'completed') {
+            history[subjectId] = { status, grade }; // Nuevo aprobado reemplaza anterior
+            return;
+          }
+
+          if (status === 'in_progress') {
+            history[subjectId] = { status, grade }; // En progreso reemplaza fallido/available
+            return;
+          }
+        } else {
+          history[subjectId] = { status, grade };
+        }
+      }
+    });
+
+    console.log('✅ Historial procesado:', Object.keys(history).length, 'materias encontradas');
+    return history;
+  }
+};

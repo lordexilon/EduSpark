@@ -1,0 +1,24 @@
+# EduSpark Desktop Uploader - Dependencias Python
+
+# Core
+langchain-community>=0.3.1
+langchain-google-genai>=2.0.4
+google-genai>=1.0.0
+
+# PDF Processing
+pypdf>=4.3.1
+
+# Database
+supabase>=2.5.0
+
+# HTTP
+requests>=2.31.0
+
+# Utilities
+python-dotenv>=1.0.1
+tqdm>=4.66.4
+rich>=13.7.1
+
+# Para empaquetar como .exe
+pyinstaller>=6.3.0
+

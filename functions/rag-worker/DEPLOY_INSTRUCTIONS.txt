@@ -1,0 +1,19 @@
+# INSTRUCCIONES:
+# 1. Reemplaza los valores <TU_XXX> con los de tu archivo .env
+# 2. Ejecuta este comando en PowerShell
+
+gcloud functions deploy rag-worker `
+  --runtime=nodejs20 `
+  --region=us-central1 `
+  --source=functions/rag-worker `
+  --entry-point=processRagJobs `
+  --trigger-http `
+  --allow-unauthenticated `
+  --timeout=3600s `
+  --memory=4096MB `
+  --max-instances=10 `
+  --project=eduspark-py `
+  --set-env-vars="SUPABASE_URL=https://mckfscukxcqwntpjagar.supabase.co,SUPABASE_SERVICE_KEY=<TU_VITE_SUPABASE_SERVICE_ROLE_KEY>,GEMINI_API_KEY=<TU_VITE_GEMINI_API_KEY>"
+
+# Ejemplo (REEMPLAZA LOS VALORES):
+# --set-env-vars="SUPABASE_URL=https://mckfscukxcqwntpjagar.supabase.co,SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...,GEMINI_API_KEY=AIza..."

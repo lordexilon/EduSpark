@@ -1,7 +1,7 @@
 // services/studentService.ts
 // Servicios para gestión de estudiantes
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { careerEnrollmentService, courseEnrollmentService } from './academicService';
 
 // ============================================

@@ -1,5 +1,7 @@
 // functions/analyzeFile/index.ts
 // Cloud Function para analizar archivos antes de procesarlos
+// Última actualización: Noviembre 2025 - Manejo mejorado de PDFs inválidos
+// Revisión: 2025-11-30 - Limpieza de revisiones fallidas
 
 import { onRequest } from 'firebase-functions/v2/https';
 // Importación dinámica de googleapis para evitar timeout en deployment
@@ -33,6 +35,9 @@ interface AnalyzeFileResponse {
       estimatedMinutes: number;
       estimatedHours: number;
     };
+    requiresSplitting?: boolean; // Flag para archivos grandes (>150MB)
+    targetPartSizeMB?: number; // Tamaño objetivo de cada parte (100MB)
+    estimatedParts?: number; // Número estimado de partes
   };
   error?: string;
 }
@@ -42,6 +47,13 @@ interface AnalyzeFileResponse {
  */
 async function detectPdfType(pdfBuffer: Buffer): Promise<'text' | 'scanned' | 'unknown'> {
   try {
+    // Validar que el buffer tenga el header PDF antes de intentar parsearlo
+    const pdfHeader = pdfBuffer.slice(0, 4).toString();
+    if (pdfHeader !== '%PDF') {
+      console.warn(`[analyzeFile] ⚠️ Buffer no tiene header PDF válido (encontrado: "${pdfHeader}"), tratando como 'unknown'`);
+      return 'unknown';
+    }
+    
     // Importación dinámica para evitar timeout en deployment
     const pdfParse = (await import('pdf-parse')).default;
     const data = await pdfParse(pdfBuffer);
@@ -58,8 +70,17 @@ async function detectPdfType(pdfBuffer: Buffer): Promise<'text' | 'scanned' | 'u
     }
     
     return 'unknown';
-  } catch (error) {
-    console.error('Error detectando tipo de PDF:', error);
+  } catch (error: any) {
+    const errorMessage = error.message || error.toString();
+    const isInvalidPdf = errorMessage.includes('Invalid PDF') || 
+                         errorMessage.includes('Invalid PDF structure') ||
+                         errorMessage.includes('InvalidPDFException');
+    
+    if (isInvalidPdf) {
+      console.warn(`[analyzeFile] ⚠️ PDF inválido o corrupto al detectar tipo. Tratando como 'unknown'. Error: ${errorMessage}`);
+    } else {
+      console.error(`[analyzeFile] ❌ Error detectando tipo de PDF: ${errorMessage}`);
+    }
     return 'unknown';
   }
 }
@@ -293,30 +314,62 @@ export const analyzeFile = onRequest(
             // Para archivos grandes, intentar obtener número de páginas del buffer parcial
             // pdf-parse puede extraer metadata del PDF sin cargar todo en memoria
             try {
+              // Validar que el buffer tenga el header PDF antes de intentar parsearlo
+              const pdfHeader = pdfBuffer.slice(0, 4).toString();
+              if (pdfHeader !== '%PDF') {
+                throw new Error('El archivo no tiene un formato PDF válido. El buffer parcial no contiene el header PDF esperado.');
+              }
+              
               const pdfParse = (await import('pdf-parse')).default;
               const data = await pdfParse(pdfBuffer);
               // Si pdf-parse puede obtener el número de páginas del buffer parcial, usarlo
               if (data.numpages && data.numpages > 0) {
                 totalPages = data.numpages;
+                console.log(`[analyzeFile] ✅ Páginas obtenidas del buffer parcial: ${totalPages}`);
               } else {
                 // Si no se puede obtener del buffer parcial, estimar basado en tamaño
                 // Asumiendo ~1.7MB por página promedio para PDFs escaneados
                 // o ~200KB por página para PDFs de texto
                 const avgPageSize = pdfType === 'scanned' ? 1.7 * 1024 * 1024 : 200 * 1024;
                 totalPages = Math.ceil(fileSize / avgPageSize);
+                console.log(`[analyzeFile] ⚠️ No se pudo obtener número de páginas del buffer parcial, usando estimación: ${totalPages} páginas`);
               }
-            } catch (parseError) {
-              console.warn('No se pudo contar páginas del buffer parcial, usando estimación:', parseError);
+            } catch (parseError: any) {
+              const errorMessage = parseError.message || parseError.toString();
+              const isInvalidPdf = errorMessage.includes('Invalid PDF') || 
+                                   errorMessage.includes('Invalid PDF structure') ||
+                                   errorMessage.includes('InvalidPDFException');
+              
+              if (isInvalidPdf) {
+                console.warn(`[analyzeFile] ⚠️ PDF inválido o corrupto detectado en buffer parcial. El archivo puede estar corrupto o tener una estructura no estándar. Usando estimación basada en tamaño.`);
+                console.warn(`[analyzeFile] Error detalle: ${errorMessage}`);
+              } else {
+                console.warn(`[analyzeFile] ⚠️ No se pudo contar páginas del buffer parcial (${errorMessage}), usando estimación`);
+              }
+              
               // Estimación basada en tamaño
               const avgPageSize = pdfType === 'scanned' ? 1.7 * 1024 * 1024 : 200 * 1024;
               totalPages = Math.ceil(fileSize / avgPageSize);
+              console.log(`[analyzeFile] 📊 Estimación de páginas basada en tamaño: ${totalPages} páginas (tipo: ${pdfType}, tamaño: ${(fileSize / 1024 / 1024).toFixed(2)}MB)`);
             }
           }
-        } catch (error) {
-          console.error('Error obteniendo páginas totales:', error);
+        } catch (error: any) {
+          const errorMessage = error.message || error.toString();
+          const isInvalidPdf = errorMessage.includes('Invalid PDF') || 
+                               errorMessage.includes('Invalid PDF structure') ||
+                               errorMessage.includes('InvalidPDFException');
+          
+          if (isInvalidPdf) {
+            console.error(`[analyzeFile] ❌ Error: PDF inválido o corrupto. El archivo puede estar dañado o tener una estructura no estándar.`);
+            console.error(`[analyzeFile] Error detalle: ${errorMessage}`);
+          } else {
+            console.error(`[analyzeFile] ❌ Error obteniendo páginas totales: ${errorMessage}`);
+          }
+          
           // Estimación basada en tamaño (asumiendo ~1.7MB por página promedio para escaneados)
           const avgPageSize = pdfType === 'scanned' ? 1.7 * 1024 * 1024 : 200 * 1024;
           totalPages = Math.ceil(fileSize / avgPageSize);
+          console.log(`[analyzeFile] 📊 Usando estimación de páginas: ${totalPages} páginas`);
         }
 
         requiresOCR = pdfType === 'scanned';
@@ -327,6 +380,16 @@ export const analyzeFile = onRequest(
       const chunks = Math.ceil(totalPages / 60); // Usar chunkSize optimizado
       const estimatedMinutes = chunks * 2;
       const estimatedHours = estimatedMinutes / 60;
+
+      // Detección de archivos grandes para división automática
+      const LARGE_FILE_THRESHOLD = 150 * 1024 * 1024; // 150MB
+      const TARGET_PART_SIZE = 100 * 1024 * 1024; // 100MB por parte
+      const requiresSplitting = fileSize > LARGE_FILE_THRESHOLD;
+      const estimatedParts = requiresSplitting ? Math.ceil(fileSize / TARGET_PART_SIZE) : 1;
+
+      if (requiresSplitting) {
+        console.log(`[analyzeFile] 📄 Archivo grande detectado: ${(fileSize / 1024 / 1024).toFixed(2)}MB, se dividirá en ${estimatedParts} partes de ~100MB`);
+      }
 
       const analysis: AnalyzeFileResponse['analysis'] = {
         fileId,
@@ -340,6 +403,9 @@ export const analyzeFile = onRequest(
           estimatedMinutes,
           estimatedHours: parseFloat(estimatedHours.toFixed(2)),
         },
+        requiresSplitting,
+        targetPartSizeMB: requiresSplitting ? 100 : undefined,
+        estimatedParts,
       };
 
       res.status(200).json({
@@ -364,6 +430,8 @@ export const analyzeFile = onRequest(
         errorMessage = 'Archivo no encontrado en Google Drive. Verifica que el archivo exista y que tengas permisos para accederlo.';
       } else if (error.message?.includes('API has not been used')) {
         errorMessage = 'La API de Google Drive no está habilitada. Por favor, habilítala en Google Cloud Console.';
+      } else if (error.message?.includes('Invalid PDF') || error.message?.includes('Invalid PDF structure') || error.message?.includes('InvalidPDFException')) {
+        errorMessage = 'El archivo PDF está corrupto o tiene una estructura inválida. Por favor, verifica que el archivo no esté dañado. Si el archivo se descargó desde Google Drive, intenta descargarlo nuevamente o subirlo directamente desde tu computadora.';
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -375,4 +443,5 @@ export const analyzeFile = onRequest(
     }
   }
 );
+
 

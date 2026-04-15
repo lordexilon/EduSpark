@@ -1,14 +1,14 @@
 // services/bulkUserImportService.ts
 // Servicio para importación masiva de usuarios
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export interface BulkUserData {
   email: string;
   password?: string; // Opcional, se puede generar automáticamente
   first_name: string;
   last_name: string;
-  role?: 'student' | 'teacher' | 'admin-campus' | 'coordinator';
+  role?: 'student' | 'teacher' | 'admin' | 'admin-campus' | 'coordinator';
   institution_id?: number; // ID (si se proporciona directamente)
   institution_name?: string; // Nombre de institución (alternativa a ID)
   identity_document?: string; // Documento de identidad (DNI, cédula, etc.)
@@ -39,6 +39,34 @@ export interface BulkImportResult {
 
 export const bulkUserImportService = {
   /**
+   * Mapear nombres de roles comunes a los nombres correctos en la base de datos
+   */
+  normalizeRoleName(role: string | undefined): string {
+    if (!role) return 'student';
+
+    const normalized = role.toLowerCase().trim();
+
+    // Mapeo de nombres comunes a nombres correctos
+    const roleMap: Record<string, string> = {
+      'administrador': 'admin',
+      'admin': 'admin',
+      'admin-campos': 'admin-campus',
+      'admin-campus': 'admin-campus',
+      'admincampus': 'admin-campus',
+      'coordinador': 'coordinator',
+      'coordinator': 'coordinator',
+      'docente': 'teacher',
+      'teacher': 'teacher',
+      'profesor': 'teacher',
+      'estudiante': 'student',
+      'student': 'student',
+      'alumno': 'student'
+    };
+
+    return roleMap[normalized] || normalized;
+  },
+
+  /**
    * Crear un usuario individual con asignaciones
    */
   async createUserWithAssignments(userData: BulkUserData): Promise<{
@@ -49,13 +77,16 @@ export const bulkUserImportService = {
     error?: string;
   }> {
     try {
+      // Normalizar el nombre del rol
+      const normalizedRole = this.normalizeRoleName(userData.role);
+
       const { data, error } = await supabase.rpc('create_user_with_assignments', {
         p_email: userData.email,
         p_password: userData.password || this.generateRandomPassword(),
         p_first_name: userData.first_name,
         p_last_name: userData.last_name,
         p_institution_id: userData.institution_id,
-        p_role_name: userData.role || 'student',
+        p_role_name: normalizedRole,
         p_identity_document: userData.identity_document || null,
         p_career_id: userData.career_id || null,
         p_subject_id: userData.subject_id || null,
@@ -94,9 +125,9 @@ export const bulkUserImportService = {
         password: user.password || this.generateRandomPassword(),
         first_name: user.first_name,
         last_name: user.last_name,
-        role: user.role || 'student',
+        role: this.normalizeRoleName(user.role),
         institution_id: user.institution_id,
-        identity_document: user.identity_document || null,
+        identity_document: user.identity_document ? user.identity_document.trim() : null,
         identity_document_type: user.identity_document_type || null,
         career_id: user.career_id || null,
         subject_id: user.subject_id || null,
@@ -129,44 +160,22 @@ export const bulkUserImportService = {
       return data as BulkImportResult;
     } catch (error: any) {
       console.error('Error creando usuarios masivamente:', error);
-      
-      // Fallback: usar función RPC si Edge Function no está disponible
-      try {
-        const usersJson = users.map(user => ({
-          email: user.email,
-          password: user.password || this.generateRandomPassword(),
-          first_name: user.first_name,
-          last_name: user.last_name,
-          role: user.role || 'student',
-          institution_id: user.institution_id,
-          identity_document: user.identity_document || null,
-          identity_document_type: user.identity_document_type || null,
-          career_id: user.career_id || null,
-          subject_id: user.subject_id || null,
-          course_id: user.course_id || null,
-          position: user.position || null,
-          skip_email_confirmation: user.skip_email_confirmation !== false
-        }));
 
-        const { data, error: rpcError } = await supabase.rpc('create_bulk_users', {
-          p_users: usersJson
-        });
+      // ⚠️ IMPORTANTE: NO usar fallback a RPC para prevenir usuarios huérfanos
+      // La función RPC create_bulk_users solo crea en public.users, NO en auth.users
+      // Esto genera usuarios que no pueden iniciar sesión (usuarios huérfanos)
 
-        if (rpcError) throw rpcError;
-        return data as BulkImportResult;
-      } catch (fallbackError: any) {
-        return {
+      return {
+        success: false,
+        total: users.length,
+        success_count: 0,
+        failed_count: users.length,
+        results: users.map(u => ({
           success: false,
-          total: users.length,
-          success_count: 0,
-          failed_count: users.length,
-          results: users.map(u => ({
-            success: false,
-            email: u.email,
-            error: error.message || fallbackError.message || 'Error desconocido'
-          }))
-        };
-      }
+          email: u.email,
+          error: `Error al crear usuarios: ${error.message}. IMPORTANTE: La Edge Function 'createBulkUsers' debe estar desplegada en Supabase. Ejecuta: supabase functions deploy createBulkUsers`
+        }))
+      };
     }
   },
 
@@ -220,7 +229,7 @@ export const bulkUserImportService = {
           password: user.password,
           first_name: user.first_name,
           last_name: user.last_name,
-          role: user.role || 'student',
+          role: this.normalizeRoleName(user.role) as any,
           institution_id: user.institution_id,
           institution_name: user.institution_name,
           identity_document: user.identity_document,
@@ -245,10 +254,16 @@ export const bulkUserImportService = {
    */
   async parseExcelFile(file: File): Promise<BulkUserData[]> {
     try {
-      const XLSX = await import('xlsx');
+      const xlsxModule = await import('xlsx');
+      const XLSX = xlsxModule.default || xlsxModule;
+
+      if (!XLSX || !XLSX.read) {
+        throw new Error('Estructura de la librería Excel no válida');
+      }
+
       const arrayBuffer = await file.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-      
+
       // Leer la primera hoja
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
@@ -272,7 +287,7 @@ export const bulkUserImportService = {
           const value = row[index];
           if (value !== undefined && value !== null && value !== '') {
             const strValue = String(value).trim();
-            
+
             // Convertir tipos según el header
             if (header.includes('_id') && !header.includes('email') && !isNaN(parseInt(strValue))) {
               user[header] = parseInt(strValue);
@@ -291,7 +306,7 @@ export const bulkUserImportService = {
             password: user.password,
             first_name: user.first_name,
             last_name: user.last_name,
-            role: user.role || 'student',
+            role: this.normalizeRoleName(user.role) as any,
             institution_id: user.institution_id,
             institution_name: user.institution_name,
             identity_document: user.identity_document,
@@ -330,7 +345,7 @@ export const bulkUserImportService = {
 
       // Resolver institución por nombre
       if (!resolved.institution_id && resolved.institution_name) {
-        const inst = institutions.find(i => 
+        const inst = institutions.find(i =>
           i.name.toLowerCase().trim() === resolved.institution_name!.toLowerCase().trim()
         );
         if (inst) {
@@ -340,7 +355,7 @@ export const bulkUserImportService = {
 
       // Resolver carrera por nombre
       if (!resolved.career_id && resolved.career_name) {
-        const career = careers.find(c => 
+        const career = careers.find(c =>
           c.name.toLowerCase().trim() === resolved.career_name!.toLowerCase().trim()
         );
         if (career) {
@@ -350,7 +365,7 @@ export const bulkUserImportService = {
 
       // Resolver materia por nombre
       if (!resolved.subject_id && resolved.subject_name) {
-        const subject = subjects.find(s => 
+        const subject = subjects.find(s =>
           s.name.toLowerCase().trim() === resolved.subject_name!.toLowerCase().trim()
         );
         if (subject) {
@@ -360,7 +375,7 @@ export const bulkUserImportService = {
 
       // Resolver curso por nombre
       if (!resolved.course_id && resolved.course_name) {
-        const course = courses.find(c => 
+        const course = courses.find(c =>
           c.title.toLowerCase().trim() === resolved.course_name!.toLowerCase().trim()
         );
         if (course) {
@@ -374,12 +389,16 @@ export const bulkUserImportService = {
 
   /**
    * Validar datos de usuario antes de importar
+   * IMPORTANTE: identity_document es el identificador principal (además de email)
    */
   validateUserData(user: BulkUserData): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
+    // Validar email O identity_document (al menos uno debe estar presente)
     if (!user.email || !user.email.includes('@')) {
-      errors.push('Email inválido');
+      if (!user.identity_document || user.identity_document.trim().length < 4) {
+        errors.push('Email válido o documento de identidad es requerido');
+      }
     }
 
     if (!user.first_name || user.first_name.trim().length === 0) {
@@ -394,8 +413,12 @@ export const bulkUserImportService = {
       errors.push('Institución es requerida (ID o nombre)');
     }
 
-    if (user.role && !['student', 'teacher', 'admin-campus', 'coordinator'].includes(user.role)) {
-      errors.push('Rol inválido. Debe ser: student, teacher, admin-campus o coordinator');
+    // Normalizar el rol antes de validar
+    const normalizedRole = this.normalizeRoleName(user.role);
+    const validRoles = ['student', 'teacher', 'admin-campus', 'coordinator', 'admin'];
+
+    if (user.role && !validRoles.includes(normalizedRole)) {
+      errors.push(`Rol inválido: "${user.role}". Los roles válidos son: student, teacher, admin, admin-campus, coordinator, administrador, admin-campos`);
     }
 
     // Validar documento de identidad si se proporciona
@@ -406,6 +429,71 @@ export const bulkUserImportService = {
       }
       if (/\s/.test(doc)) {
         errors.push('Documento de identidad no puede contener espacios');
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  },
+
+  /**
+   * Validar relaciones carrera-materia-curso
+   * Verifica que:
+   * - Si se proporciona curso y materia, el curso debe pertenecer a esa materia
+   * - Si se proporciona materia y carrera, la materia debe pertenecer a esa carrera
+   * - Si se proporciona curso y carrera, el curso debe pertenecer a una materia de esa carrera
+   */
+  async validateRelationships(
+    user: BulkUserData,
+    careers: Array<{ id: number; name: string }>,
+    subjects: Array<{ id: number; name: string; career_id?: number }>,
+    courses: Array<{ id: number; title: string; subject_id?: number }>
+  ): Promise<{ valid: boolean; errors: string[] }> {
+    const errors: string[] = [];
+
+    // Si se proporciona curso, obtener su subject_id
+    let courseSubjectId: number | undefined;
+    if (user.course_id) {
+      const course = courses.find(c => c.id === user.course_id);
+      if (!course) {
+        errors.push(`Curso con ID ${user.course_id} no encontrado`);
+      } else {
+        courseSubjectId = course.subject_id;
+      }
+    }
+
+    // Si se proporciona materia, obtener su career_id
+    let subjectCareerId: number | undefined;
+    if (user.subject_id) {
+      const subject = subjects.find(s => s.id === user.subject_id);
+      if (!subject) {
+        errors.push(`Materia con ID ${user.subject_id} no encontrada`);
+      } else {
+        subjectCareerId = subject.career_id;
+      }
+    }
+
+    // Validar: Si se proporciona curso y materia, el curso debe pertenecer a esa materia
+    if (user.course_id && user.subject_id && courseSubjectId !== undefined) {
+      if (courseSubjectId !== user.subject_id) {
+        errors.push(`El curso ${user.course_id} no pertenece a la materia ${user.subject_id}. El curso pertenece a la materia ${courseSubjectId}`);
+      }
+    }
+
+    // Validar: Si se proporciona materia y carrera, la materia debe pertenecer a esa carrera
+    if (user.subject_id && user.career_id && subjectCareerId !== undefined) {
+      if (subjectCareerId !== user.career_id) {
+        errors.push(`La materia ${user.subject_id} no pertenece a la carrera ${user.career_id}. La materia pertenece a la carrera ${subjectCareerId}`);
+      }
+    }
+
+    // Validar: Si se proporciona curso y carrera (sin materia), el curso debe pertenecer a una materia de esa carrera
+    if (user.course_id && user.career_id && !user.subject_id && courseSubjectId !== undefined) {
+      const subject = subjects.find(s => s.id === courseSubjectId);
+      if (subject && subject.career_id !== user.career_id) {
+        errors.push(`El curso ${user.course_id} pertenece a una materia de la carrera ${subject.career_id}, no a la carrera ${user.career_id} especificada`);
       }
     }
 

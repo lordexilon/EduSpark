@@ -1,7 +1,7 @@
 // services/userSuspensionService.ts
 // Servicio para suspender/reactivar usuarios masivamente por documento de identidad
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export interface UserSuspensionData {
   documento_identidad: string;

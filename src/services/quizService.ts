@@ -1,7 +1,7 @@
 // services/quizService.ts
 // Servicios para gestión de quizzes y assessments
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export interface Assessment {
   id: string;
@@ -140,9 +140,10 @@ export const quizService = {
       .from('assessments')
       .select('*')
       .eq('id', assessmentId)
-      .single();
+      .maybeSingle();
 
     if (assessmentError) throw assessmentError;
+    if (!assessment) throw new Error('El quiz no existe o no tienes permiso para verlo (asegúrate de estar inscrito en el curso y que el quiz esté publicado).');
 
     // Obtener preguntas
     const { data: questions, error: questionsError } = await supabase
@@ -420,14 +421,18 @@ export const quizService = {
 
     // Calcular puntos totales basado en las preguntas
     const totalPointsFromQuestions = questions?.reduce((sum, q) => sum + (q.points || 0), 0) || 0;
-    
+
     // Usar el total calculado de preguntas o el del assessment, el que sea más preciso
     const totalPoints = totalPointsFromQuestions > 0 ? totalPointsFromQuestions : assessment.total_points;
 
     // Calcular percentage
-    const percentage = totalPoints > 0 
-      ? (totalScore / totalPoints) * 100 
+    let percentage = totalPoints > 0
+      ? (totalScore / totalPoints) * 100
       : 0;
+
+    // Asegurar que no exceda 100% y redondear a 2 decimales para evitar errores de constraint
+    percentage = Math.min(100, Math.max(0, percentage));
+    percentage = Math.round(percentage * 100) / 100;
 
     // Determinar si pasó
     const { data: assessmentFull, error: assessmentFullError } = await supabase
@@ -438,8 +443,8 @@ export const quizService = {
 
     if (assessmentFullError) throw assessmentFullError;
 
-    const isPassed = assessmentFull.passing_score 
-      ? percentage >= assessmentFull.passing_score 
+    const isPassed = assessmentFull.passing_score
+      ? percentage >= assessmentFull.passing_score
       : undefined;
 
     // Actualizar intento con score, percentage y status

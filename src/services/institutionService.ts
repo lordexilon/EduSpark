@@ -1,5 +1,5 @@
 // services/institutionService.ts
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export interface Institution {
   id: number;
@@ -9,6 +9,7 @@ export interface Institution {
   website?: string;
   email?: string; // Usar 'email' en lugar de 'contact_email' para compatibilidad con el esquema
   address?: string;
+  slug?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -64,6 +65,8 @@ export const institutionService = {
    */
   async getUserInstitution(userId: string): Promise<Institution | null> {
     try {
+      console.log(`🏛️ [institutionService] Verificando institución para usuario: ${userId}`);
+
       const { data, error } = await supabase
         .from('user_institutions')
         .select(`
@@ -75,14 +78,20 @@ export const institutionService = {
         .maybeSingle();
 
       if (error) {
-        console.error('Error obteniendo institución del usuario:', error);
+        console.error('❌ [institutionService] Error obteniendo institución del usuario:', error);
         return null;
       }
 
-      if (!data || !data.institutions) return null;
-      return data.institutions as Institution;
+      if (!data || !data.institutions) {
+        console.log(`⚠️ [institutionService] Usuario ${userId} no tiene institución asignada`);
+        return null;
+      }
+
+      const institution = data.institutions as Institution;
+      console.log(`✅ [institutionService] Usuario ${userId} pertenece a institución: ${institution.name} (ID: ${institution.id})`);
+      return institution;
     } catch (error) {
-      console.error('Error obteniendo institución del usuario:', error);
+      console.error('❌ [institutionService] Error obteniendo institución del usuario:', error);
       return null;
     }
   },
@@ -308,7 +317,7 @@ export const institutionService = {
     if (query && query.trim().length > 0) {
       queryBuilder = queryBuilder.or(
         `email.ilike.%${query}%,first_name.ilike.%${query}%,last_name.ilike.%${query}%`
-      );
+      ).order('created_at', { ascending: false });
     }
     // Si no hay query, obtener los últimos usuarios registrados
     else {
@@ -325,6 +334,23 @@ export const institutionService = {
       last_name: user.last_name,
       role: (user as any).roles
     }));
+  },
+
+  /**
+   * Obtener institución por Slug
+   */
+  async getBySlug(slug: string): Promise<Institution | null> {
+    const { data, error } = await supabase
+      .from('institutions')
+      .select('*')
+      .eq('slug', slug)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return data;
   }
 };
 

@@ -2,7 +2,7 @@
 // Tipos para el sistema de procesamiento asíncrono de archivos
 
 export type JobStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
-export type JobType = 'split' | 'process_chunk';
+export type JobType = 'split' | 'process_chunk' | 'index_text_content';
 export type PdfType = 'text' | 'scanned' | 'unknown';
 export type MaterialCategory = 'book' | 'bibliography' | 'syllabus' | 'exam' | 'pamphlet' | 'other';
 
@@ -37,8 +37,9 @@ export interface FileProcessingJob {
   id: string; // Auto-generado por Firestore
   status: JobStatus;
   jobType: JobType;
-  sourceFileId: string; // ID del archivo en Google Drive
-  sourceFileName: string; // Nombre del archivo (ej: "Libro_Estadistica.pdf")
+  sourceFileId?: string; // ID del archivo en Google Drive (opcional para index_text_content)
+  sourceFileName?: string; // Nombre del archivo (opcional para index_text_content)
+  textContent?: string; // Contenido de texto directo (para index_text_content)
   courseId: string; // ID del curso en Supabase
   pageStart?: number; // Solo para jobType: 'process_chunk'
   pageEnd?: number; // Solo para jobType: 'process_chunk'
@@ -58,6 +59,10 @@ export interface FileProcessingJob {
     actualCosts?: CostEstimate; // Al finalizar
     category?: MaterialCategory; // Categoría del material
     materialId?: string; // ID del material en Supabase (opcional)
+    unitId?: string; // ID de la unidad (opcional)
+    sessionId?: string; // ID de la sesión (opcional)
+    source?: 'bucket' | 'google_drive'; // Fuente del archivo
+    driveFileId?: string; // ID del archivo en Google Drive
   };
 }
 

@@ -4,9 +4,9 @@
 // Script para limpiar caché y resolver problemas de carga
 // =====================================================
 
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
 
 console.log('🧹 Limpiando caché de EduSpark...\n');
 
@@ -28,6 +28,7 @@ function safeRemove(dirPath) {
 safeRemove('.vite-cache');
 safeRemove('dist');
 safeRemove('node_modules/.vite');
+safeRemove('.vite-temp'); // also clean Vite temp folder
 
 // Limpiar caché de npm
 try {
@@ -38,7 +39,7 @@ try {
   console.warn('⚠️  Error limpiando caché de npm:', error.message);
 }
 
-// Limpiar localStorage y sessionStorage del navegador (simulado)
+// Mensajes de ayuda para el navegador
 console.log('\n💡 Para limpiar el caché del navegador:');
 console.log('1. Presiona F12 en el navegador');
 console.log('2. Ve a Application > Storage > Clear Storage');

@@ -190,6 +190,90 @@
   /* text-gray-700 */
 }
 
+html.dark .rich-text-content {
+  color: var(--text-dark) !important;
+}
+
+/* ===== DARK MODE: Force override inline styles from TipTap editor =====
+   TipTap generates <span style="color: #374151"> etc. which have higher
+   specificity than class-based selectors. We use !important to override. */
+html.dark .rich-text-content *:not(.math-block):not(.math-inline) {
+  color: inherit !important;
+}
+
+html.dark .rich-text-content p,
+html.dark .rich-text-content span,
+html.dark .rich-text-content li,
+html.dark .rich-text-content td,
+html.dark .rich-text-content th,
+html.dark .rich-text-content div {
+  color: var(--text-dark) !important;
+}
+
+html.dark .rich-text-content strong,
+html.dark .rich-text-content b {
+  color: #f1f5f9 !important;
+  /* slightly brighter for emphasis */
+}
+
+html.dark .rich-text-content em,
+html.dark .rich-text-content i {
+  color: var(--text-light) !important;
+}
+
+html.dark .rich-text-content a {
+  color: var(--primary) !important;
+}
+
+html.dark .rich-text-content h1,
+html.dark .rich-text-content h2,
+html.dark .rich-text-content h3,
+html.dark .rich-text-content h4,
+html.dark .rich-text-content h5,
+html.dark .rich-text-content h6 {
+  color: #f1f5f9 !important;
+}
+
+html.dark .rich-text-content blockquote {
+  border-left-color: var(--primary) !important;
+  color: var(--text-light) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+html.dark .rich-text-content blockquote * {
+  color: var(--text-light) !important;
+}
+
+html.dark .rich-text-content hr {
+  border-top-color: var(--border) !important;
+}
+
+/* Dark mode: math blocks and inline */
+html.dark .rich-text-content .math-block {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-dark) !important;
+}
+
+html.dark .rich-text-content .math-inline {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-dark) !important;
+}
+
+/* Dark mode: table styles inside rich text */
+html.dark .rich-text-content table {
+  border-color: var(--border) !important;
+}
+
+html.dark .rich-text-content th {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html.dark .rich-text-content td {
+  border-color: var(--border) !important;
+}
+
+/* ===== END DARK MODE ===== */
+
 .rich-text-content p {
   margin: 0.5rem 0;
 }

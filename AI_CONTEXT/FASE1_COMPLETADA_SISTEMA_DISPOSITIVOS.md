@@ -1,8 +1,20 @@
 # ✅ Implementación Completada: Sistema de Dispositivos - Fase 1
 
 **Fecha:** 2025-01-24  
-**Estado:** ✅ FASE 1 COMPLETADA (Backend + Integración)  
-**Progreso:** 80% del total
+**Estado:** 🚫 **DESACTIVADO** (2025-01-24)  
+**Progreso:** N/A - Funcionalidad desactivada
+
+---
+
+## ⚠️ NOTA IMPORTANTE: FUNCIONALIDAD DESACTIVADA
+
+**Fecha de desactivación:** 2025-01-24
+
+Esta funcionalidad ha sido **desactivada**. Los usuarios ahora pueden iniciar sesión desde múltiples dispositivos sin restricciones.
+
+**Ver documentación de desactivación:** [`AI_CONTEXT/DESACTIVACION_BLOQUEO_DISPOSITIVOS.md`](./DESACTIVACION_BLOQUEO_DISPOSITIVOS.md)
+
+---
 
 ---
 

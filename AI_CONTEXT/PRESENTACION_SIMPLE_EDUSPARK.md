@@ -166,7 +166,7 @@ Tutor IA: [Explica el concepto] + [Enlace a la unidad 3, sesión 5 donde se expl
 | **Seguimiento de Progreso** | Manual, reportes mensuales | Automático, en tiempo real |
 | **Calificación** | Manual, toma días | Automática, instantánea |
 | **Analytics** | Básicos, difíciles de entender | Avanzados, con IA, fáciles de leer |
-| **Personalización** | Limitada | IA adapta respuestas al contenido del curso |
+| **Personalización** | Limitada | IA adapta respuestas al contenido del curso (sin estilos de aprendizaje) |
 | **Costo de IA** | No visible | Totalmente transparente y controlable |
 
 ---
@@ -327,7 +327,8 @@ Tutor IA: [Explica el concepto] + [Enlace a la unidad 3, sesión 5 donde se expl
 1. 🤖 **Dar soporte 24/7** a estudiantes con un tutor virtual inteligente
 2. 📊 **Automatizar tareas** de seguimiento y evaluación
 3. 📈 **Proporcionar analytics** claros y accionables
-4. 💡 **Mejorar el aprendizaje** con personalización automática
+4. 💡 **Mejorar el aprendizaje** con respuestas adaptadas al contenido del curso
+   > **Nota:** Las respuestas del tutor se adaptan al contenido y contexto del curso. La personalización por estilos de aprendizaje (visual, auditivo, etc.) está desactivada desde Enero 2026.
 5. ⚡ **Ahorrar tiempo** a docentes y estudiantes
 
 ### Lo que lo hace diferente:

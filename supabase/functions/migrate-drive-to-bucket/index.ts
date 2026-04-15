@@ -16,12 +16,13 @@ interface RequestBody {
   courseId: number;
   fileName: string;
   mimeType?: string;
+  action?: 'migrate' | 'get_token';
 }
 
 serve(async (req) => {
   // Manejar preflight CORS
   if (req.method === "OPTIONS") {
-    return new Response("ok", { 
+    return new Response("ok", {
       status: 200,
       headers: {
         ...corsHeaders,
@@ -35,7 +36,7 @@ serve(async (req) => {
     // Obtener el token de autorización del header
     const authHeader = req.headers.get("Authorization");
     const apikey = req.headers.get("apikey");
-    
+
     console.log("🔍 Headers recibidos:", {
       hasAuth: !!authHeader,
       hasApikey: !!apikey,
@@ -57,7 +58,7 @@ serve(async (req) => {
     // pero validar el token del usuario
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    
+
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error("❌ Variables de entorno faltantes:", {
         hasUrl: !!supabaseUrl,
@@ -74,7 +75,7 @@ serve(async (req) => {
 
     // Crear cliente con SERVICE_ROLE_KEY para poder hacer operaciones administrativas
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-    
+
     // Extraer el token del header
     const token = authHeader.replace("Bearer ", "");
     const anonKey = apikey || Deno.env.get("SUPABASE_ANON_KEY") || "";
@@ -126,7 +127,7 @@ serve(async (req) => {
     if (userError || !user) {
       console.error("❌ Error validando usuario:", userError);
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           error: "Usuario no autenticado",
           details: userError?.message || "Token inválido o expirado"
         }),
@@ -236,7 +237,7 @@ serve(async (req) => {
           const expiresAtStr = new Date(
             Date.now() + (refreshed.expires_in || 3600) * 1000
           ).toISOString();
-          
+
           const { error: updateError } = await supabaseAdmin
             .from("user_google_tokens")
             .update({
@@ -290,7 +291,25 @@ serve(async (req) => {
       );
     }
 
-    console.log(`✅ Token válido, procediendo con descarga...`);
+    console.log(`✅ Token válido, procediendo...`);
+
+    // NUEVO: Si la acción es solo obtener el token (para migración desde el cliente)
+    if (body.action === 'get_token') {
+      console.log(`✅ Acción get_token solicitada, retornando token refrescado`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          accessToken: accessToken,
+          expiresAt: tokens.expires_at
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log(`✅ Procediendo con descarga...`);
 
     // 3. Obtener metadata del archivo ANTES de descargar para verificar tamaño
     console.log(`🔍 Obteniendo metadata del archivo: ${sourceFileId}`);
@@ -316,13 +335,13 @@ serve(async (req) => {
       console.warn(`⚠️ No se pudo obtener metadata del archivo, continuando...`);
     }
 
-    // Límite de tamaño para Supabase Storage (50MB = 50 * 1024 * 1024 bytes)
-    const MAX_SUPABASE_SIZE = 50 * 1024 * 1024; // 50 MB
+    // Límite de tamaño para Supabase Storage (1GB)
+    const MAX_SUPABASE_SIZE = 1024 * 1024 * 1024; // 1 GB
 
     // Si el archivo es demasiado grande, usar Google Drive directamente sin migrar
     if (fileSize > MAX_SUPABASE_SIZE) {
       console.log(`⚠️ Archivo demasiado grande (${(fileSize / 1024 / 1024).toFixed(2)} MB > ${MAX_SUPABASE_SIZE / 1024 / 1024} MB), usando Google Drive directamente`);
-      
+
       // Obtener URL de Google Drive para visualización
       const driveUrl = fileMetadata?.webViewLink || `https://drive.google.com/file/d/${sourceFileId}/view`;
       const driveDownloadUrl = fileMetadata?.webContentLink || `https://drive.google.com/uc?export=download&id=${sourceFileId}`;
@@ -359,7 +378,7 @@ serve(async (req) => {
     if (!driveResponse.ok) {
       const errorText = await driveResponse.text();
       console.error(`❌ Error descargando archivo: ${driveResponse.status} - ${errorText}`);
-      
+
       // Si el error es 403 (permisos insuficientes), proporcionar un mensaje más útil
       if (driveResponse.status === 403) {
         try {
@@ -381,7 +400,7 @@ serve(async (req) => {
           // Si no podemos parsear el error, continuar con el error genérico
         }
       }
-      
+
       return new Response(
         JSON.stringify({
           error: `Error al descargar archivo de Google Drive: ${driveResponse.status}`,
@@ -404,7 +423,7 @@ serve(async (req) => {
     // 5. Verificar tamaño real del archivo descargado (por si acaso)
     if (actualFileSize > MAX_SUPABASE_SIZE) {
       console.warn(`⚠️ Archivo descargado es más grande de lo esperado (${(actualFileSize / 1024 / 1024).toFixed(2)} MB), usando Google Drive directamente`);
-      
+
       const driveUrl = fileMetadata?.webViewLink || `https://drive.google.com/file/d/${sourceFileId}/view`;
       const driveDownloadUrl = fileMetadata?.webContentLink || `https://drive.google.com/uc?export=download&id=${sourceFileId}`;
 
@@ -430,8 +449,8 @@ serve(async (req) => {
     const fileExtension = fileMimeType.includes("pdf")
       ? ".pdf"
       : fileMimeType.includes("image")
-      ? ".jpg"
-      : ".bin";
+        ? ".jpg"
+        : ".bin";
     const sanitizedFileName = fileName
       .replace(/[^a-zA-Z0-9.-]/g, "_")
       .substring(0, 100);
@@ -454,7 +473,7 @@ serve(async (req) => {
       // Si el error es por tamaño excedido, usar Google Drive directamente
       if (uploadError.statusCode === "413" || uploadError.message?.includes("exceeded") || uploadError.message?.includes("maximum")) {
         console.warn(`⚠️ Archivo excede límite de Supabase Storage, usando Google Drive directamente`);
-        
+
         const driveUrl = fileMetadata?.webViewLink || `https://drive.google.com/file/d/${sourceFileId}/view`;
         const driveDownloadUrl = fileMetadata?.webContentLink || `https://drive.google.com/uc?export=download&id=${sourceFileId}`;
 
@@ -476,11 +495,11 @@ serve(async (req) => {
         );
       }
 
-      const MAX_SIZE_MB = 50; // 50 MB
+      const MAX_SIZE_MB = 1024; // 1 GB
       return new Response(
         JSON.stringify({
           error: `Error al subir archivo a Storage: ${uploadError.message}`,
-          details: uploadError.statusCode === "413" 
+          details: uploadError.statusCode === "413"
             ? `El archivo es demasiado grande (${(actualFileSize / 1024 / 1024).toFixed(2)} MB). El límite de Supabase Storage es ${MAX_SIZE_MB} MB.`
             : uploadError.message,
         }),

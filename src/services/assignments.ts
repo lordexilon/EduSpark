@@ -1,7 +1,7 @@
 // services/assignments.ts
 // Servicios para gestión de tareas y entregas
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export interface Assignment {
   id: string;

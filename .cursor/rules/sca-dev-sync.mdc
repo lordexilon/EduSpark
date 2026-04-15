@@ -1,0 +1,16 @@
+---
+description: Sincronizacion SCA para cambios en frontend y servicios
+globs: src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# SCA Dev Sync
+
+- Al modificar logica que depende de Supabase/RPC, verificar el contrato con SQL y tipos.
+- Preferir cambios pequenos con verificacion rapida (lint y flujo funcional principal).
+- Si un cambio impacta operacion, actualizar `AI_CONTEXT/active_context.md` con:
+  - que cambio,
+  - que falta ejecutar por usuario (si aplica),
+  - riesgo o deuda tecnica.
+- Si hay decisiones nuevas de arquitectura, crear o actualizar documento en `AI_CONTEXT/04_FEATURES/`.
+- Evitar dejar implementaciones "a medias" sin estado claro en contexto activo.

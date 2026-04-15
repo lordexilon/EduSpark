@@ -43,6 +43,8 @@
 - **`PLAN_IMPLEMENTACION_QUIZZES.md`** - 📊 **NUEVO** - Plan completo de quizzes
 - **`MEJORAS_SISTEMA_MENSAJERIA_TUTOR.md`** - 💬🤖 **NUEVO** - Sistema de mensajería y tutor AI mejorados
 - **`CORRECCIONES_ERRORES_SISTEMA_ENERO_2025.md`** - 🔧 **NUEVO** - Correcciones críticas de errores del sistema (RPC, TTS, RLS, Tracking, Vinculación Chunks - ✅ SQL ejecutado)
+- **`CORRECCION_SUPERVISOR_TUTOR_AI_ACCESO_CURSOS.md`** - 🎓 **NUEVO** - Corrección de acceso de supervisor al Tutor AI y asignación automática de institución a cursos ⭐ NUEVO
+- **`CORRECCION_ERRORES_EMBEDDINGS_RAG_WORKER.md`** - 🔄 **NUEVO** - Corrección de errores de embeddings con retry logic y exponential backoff ⭐ NUEVO
 
 ---
 
@@ -95,6 +97,7 @@ Propuestas de mejoras futuras
 
 ### ✅ Sistema de Procesamiento de Archivos y Costos ⭐ NUEVO:
 - `SISTEMA_PROCESAMIENTO_ARCHIVOS_COSTOS.md` - Sistema completo de procesamiento de archivos grandes (900 MB+), control de costos y dashboard de administración
+- `IMPLEMENTACION_ARCHIVOS_GRANDES_900MB.md` - 📄 Implementación completa: Soporte para archivos de 900MB mediante división automática ⭐ NUEVO
 - `OPTIMIZACIONES_COSTOS_BUSQUEDAS.md` - Optimizaciones de costos y búsquedas RAG ⭐ ACTUALIZADO
 - `ESTRUCTURA_COSTOS_ACTUALIZADA.md` - Estructura detallada de costos del sistema RAG ⭐ NUEVO
 - `SOLUCION_PROBLEMA_BUSQUEDA_DEDEKIND.md` - Solución para búsqueda con ruido OCR ⭐ ACTUALIZADO
@@ -114,6 +117,35 @@ Propuestas de mejoras futuras
 - Reutilización de carpetas existentes al reconectar
 - Actualización de scopes OAuth de Google Drive
 
+### ✅ Sistema de Compartir Materiales con Permisos de Solo Lectura ⭐ NUEVO:
+- `IMPLEMENTACION_COMPLETA_PERMISOS_SOLO_LECTURA.md` - 📄 Documentación completa de implementación integrada con visualización de materiales ⭐ NUEVO
+- `IMPLEMENTACION_PERMISOS_SOLO_LECTURA_GOOGLE_DRIVE.md` - Documentación técnica inicial de permisos de solo lectura
+- `GUIA_PERMISOS_GOOGLE_DRIVE_SOLO_LECTURA.md` - Guía completa de configuración manual y programática
+- Compartir documentos de Google Drive con restricciones de solo lectura
+- Guardado automático de enlaces de vista previa en metadata
+- Integración automática con visualización de materiales en cursos (`/courses/:id`)
+- Indicadores visuales para materiales compartidos con restricciones
+- Aplicación automática de restricciones (sin descarga, sin impresión, sin copia)
+- Visualización en secciones: Material de la Unidad, Material del Curso, Material de la Sesión
+
+### ✅ Despliegue y Operaciones Cloud Functions v2 ⭐ NUEVO:
+- `GUIA_DESPLIEGUE_CLOUD_FUNCTIONS_V2.md` - 📘 Guía completa de despliegue de Cloud Functions v2 en Cloud Run ⭐ NUEVO
+- `SOLUCION_REVISIONES_FALLIDAS_ANALYZEFILE.md` - Solución para revisiones fallidas en Cloud Run ⭐ NUEVO
+- `EVALUACION_DESPLIEGUE_CLOUD_RUN.md` - Evaluación completa del estado de despliegue ⭐ NUEVO
+- Mejores prácticas para despliegue con Firebase CLI
+- Troubleshooting de problemas comunes
+- Comandos de referencia para monitoreo y verificación
+
+---
+
+### ⚠️ Funcionalidades Desactivadas
+
+- **Personalización por Estilos de Aprendizaje** (Desactivado: Enero 2026)
+  - La funcionalidad de personalización de respuestas del tutor basada en estilos de aprendizaje del estudiante (visual, auditivo, kinestésico, lectoescritor) ha sido **desactivada**
+  - El tutor ya **no menciona** "estudiante visual" o "tu estilo visual" en las respuestas
+  - Las respuestas son directas y claras, adaptadas al contenido del curso y contexto
+  - Ver detalles en: `04_FEATURES/ANALISIS_TUTOR_IA_DOCENTES.md`
+
 ---
 
 ## 📊 Estadísticas del Proyecto
@@ -122,7 +154,7 @@ Propuestas de mejoras futuras
 **Políticas RLS:** 80+  
 **Funciones:** 132+  
 **Triggers:** 10  
-**Cloud Functions:** 4 (analyzeFile, createFileProcessingJob, processFileJob, cancelFileProcessingJob)  
+**Cloud Functions:** 7 (analyzeFile, createFileProcessingJob, processFileJob, cancelFileProcessingJob, changeUserPassword, confirmUserEmail, rag-worker) - Todas desplegadas en Cloud Run mediante Firebase Functions v2  
 
 ---
 
@@ -158,6 +190,7 @@ Propuestas de mejoras futuras
 **Leer:** `RESUMEN_SISTEMA_EVALUACION.md`  
 **Plan:** `PLAN_IMPLEMENTACION_QUIZZES.md`
 **Procesamiento:** `SISTEMA_PROCESAMIENTO_ARCHIVOS_COSTOS.md`
+**Archivos Grandes:** `IMPLEMENTACION_ARCHIVOS_GRANDES_900MB.md` ⭐ NUEVO
 **Costos:** `ESTRUCTURA_COSTOS_ACTUALIZADA.md`
 **Optimizaciones:** `OPTIMIZACIONES_COSTOS_BUSQUEDAS.md`
 **Instituciones:** `SISTEMA_ROLES_INSTITUCIONES.md` ⭐ NUEVO
@@ -167,6 +200,8 @@ Propuestas de mejoras futuras
 **Visualización Materiales:** `VISUALIZACION_MATERIALES_EN_CURSOS.md` ⭐ NUEVO
 **Resumen Correcciones:** `RESUMEN_CORRECCIONES_MATERIALES_ENERO_2025.md` ⭐ NUEVO
 **Correcciones Errores Sistema:** `CORRECCIONES_ERRORES_SISTEMA_ENERO_2025.md` ⭐ NUEVO
+**Despliegue Cloud Functions:** `GUIA_DESPLIEGUE_CLOUD_FUNCTIONS_V2.md` ⭐ NUEVO
+**Permisos Solo Lectura Google Drive:** `IMPLEMENTACION_COMPLETA_PERMISOS_SOLO_LECTURA.md` ⭐ NUEVO
 
 ---
 

@@ -2,7 +2,17 @@
 
 **Fecha:** 2025-01-24  
 **Solicitado por:** Usuario  
-**Estado:** VERIFICADO - NO IMPLEMENTADO
+**Estado:** 🚫 **DESACTIVADO** (2025-01-24)
+
+---
+
+## ⚠️ NOTA IMPORTANTE: FUNCIONALIDAD DESACTIVADA
+
+**Fecha de desactivación:** 2025-01-24
+
+Esta funcionalidad fue implementada y posteriormente **desactivada**. Los usuarios ahora pueden iniciar sesión desde múltiples dispositivos sin restricciones.
+
+**Ver documentación de desactivación:** [`AI_CONTEXT/DESACTIVACION_BLOQUEO_DISPOSITIVOS.md`](./DESACTIVACION_BLOQUEO_DISPOSITIVOS.md)
 
 ---
 

@@ -9,25 +9,46 @@
       "codebase": "analyze-file",
       "runtime": "nodejs20",
       "environmentVariables": {
-        "GOOGLE_CLIENT_ID": "468517556859-qtbplkfnqqc6ru8ga7o3d1npo76t1b62.apps.googleusercontent.com",
-        "GOOGLE_CLIENT_SECRET": "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"
+        "GOOGLE_CLIENT_ID": "151821961684-55cr6cl3co48ggfm3dvo7eavig4fmas4.apps.googleusercontent.com",
+        "GOOGLE_CLIENT_SECRET": "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"
       }
     },
     {
       "source": "functions/createFileProcessingJob",
       "codebase": "create-job",
-      "runtime": "nodejs20"
-    },
-    {
-      "source": "functions/processFileJob",
-      "codebase": "process-job",
-      "runtime": "nodejs20"
+      "runtime": "nodejs20",
+      "environmentVariables": {
+        "RAG_WORKER_URL": "https://rag-worker-xxt3dj5duq-uc.a.run.app",
+        "SUPABASE_URL": "https://mckfscukxcqwntpjagar.supabase.co",
+        "SUPABASE_SERVICE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZzY3VreGNxd250cGphZ2FyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDc0NTQzNCwiZXhwIjoyMDc2MzIxNDM0fQ.gj8Pf2_xZRitw-MkrNKC0MqrzTHRYtnQmrSquTO5zu8"
+      }
     },
     {
       "source": "functions/cancelFileProcessingJob",
       "codebase": "cancel-job",
-      "runtime": "nodejs20"
+      "runtime": "nodejs20",
+      "environmentVariables": {
+        "SUPABASE_URL": "https://mckfscukxcqwntpjagar.supabase.co",
+        "SUPABASE_SERVICE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZzY3VreGNxd250cGphZ2FyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDc0NTQzNCwiZXhwIjoyMDc2MzIxNDM0fQ.gj8Pf2_xZRitw-MkrNKC0MqrzTHRYtnQmrSquTO5zu8"
+      }
+    },
+    {
+      "source": "functions/confirmUserEmail",
+      "codebase": "confirm-email",
+      "runtime": "nodejs20",
+      "environmentVariables": {
+        "SUPABASE_URL": "https://mckfscukxcqwntpjagar.supabase.co",
+        "SUPABASE_SERVICE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZzY3VreGNxd250cGphZ2FyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDc0NTQzNCwiZXhwIjoyMDc2MzIxNDM0fQ.gj8Pf2_xZRitw-MkrNKC0MqrzTHRYtnQmrSquTO5zu8"
+      }
+    },
+    {
+      "source": "functions/changeUserPassword",
+      "codebase": "change-password",
+      "runtime": "nodejs20",
+      "environmentVariables": {
+        "SUPABASE_URL": "https://mckfscukxcqwntpjagar.supabase.co",
+        "SUPABASE_SERVICE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZzY3VreGNxd250cGphZ2FyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDc0NTQzNCwiZXhwIjoyMDc2MzIxNDM0fQ.gj8Pf2_xZRitw-MkrNKC0MqrzTHRYtnQmrSquTO5zu8"
+      }
     }
   ]
 }
-

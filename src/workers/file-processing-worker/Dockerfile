@@ -1,27 +1,35 @@
+# Imagen base
 FROM node:20-slim
 
-WORKDIR /app
-
-# Instalar dependencias del sistema para PDF
+# Dependencias del sistema necesarias para pdf-lib/ocr
 RUN apt-get update && apt-get install -y \
-    poppler-utils \
+    python3 \
+    make \
+    g++ \
+    build-essential \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libgif-dev \
+    librsvg2-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar archivos de dependencias
+# Directorio de trabajo
+WORKDIR /app
+
+# Copiar manifests e instalar deps (incluye dev para construir)
 COPY package*.json ./
+RUN npm ci
 
-# Instalar dependencias
-RUN npm ci --only=production
-
-# Copiar código fuente
+# Copiar el código fuente
 COPY . .
 
-# Compilar TypeScript
-RUN npm run build
+# Compilar a JavaScript y luego quedarnos solo con deps de producción
+RUN npm run build && npm prune --production
 
-# Exponer puerto (si es necesario para health checks)
+# Cloud Run expone PORT
+ENV PORT=8080
 EXPOSE 8080
 
-# Comando de inicio
-CMD ["node", "index.js"]
-
+# Ejecutar la versión compilada
+CMD ["node", "dist/index.js"]

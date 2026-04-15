@@ -2,7 +2,7 @@
 // Servicio para suspender/reactivar usuarios masivamente mediante documento de identidad
 // Soporta importación desde CSV y Excel
 
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export interface SuspendReactivateUserData {
   identity_document: string;
@@ -31,13 +31,53 @@ export interface SuspendReactivateResult {
 export const bulkSuspendReactivateService = {
   /**
    * Suspender o reactivar usuarios masivamente
+   * @param users Array de usuarios a procesar
+   * @param institutionId ID de institución opcional para filtrar usuarios (para supervisores)
    */
   async bulkSuspendReactivateUsers(
-    users: SuspendReactivateUserData[]
+    users: SuspendReactivateUserData[],
+    institutionId?: number
   ): Promise<SuspendReactivateResult> {
     try {
+      // Si se proporciona institutionId, filtrar usuarios por institución
+      let usersToProcess = users;
+      if (institutionId) {
+        const identityDocuments = users.map(u => u.identity_document).filter(Boolean);
+
+        if (identityDocuments.length > 0) {
+          // Buscar usuarios por documento de identidad y filtrar por institución
+          const { data: usersData, error: usersError } = await supabase
+            .from('users')
+            .select(`
+              id,
+              identity_document,
+              user_institutions!inner(institution_id)
+            `)
+            .in('identity_document', identityDocuments)
+            .eq('user_institutions.institution_id', institutionId);
+
+          if (usersError) {
+            throw new Error(`Error al validar usuarios por institución: ${usersError.message}`);
+          }
+
+          // Crear un mapa de documentos válidos
+          const validDocuments = new Set((usersData || []).map((u: any) => u.identity_document));
+
+          // Filtrar usuarios que no pertenecen a la institución
+          usersToProcess = users.filter(u =>
+            !u.identity_document || validDocuments.has(u.identity_document)
+          );
+
+          // Si se filtraron usuarios, informar
+          if (usersToProcess.length < users.length) {
+            const filteredCount = users.length - usersToProcess.length;
+            console.warn(`⚠️ ${filteredCount} usuario(s) no pertenecen a la institución ${institutionId} y fueron excluidos`);
+          }
+        }
+      }
+
       // Convertir array de usuarios a JSONB
-      const usersJson = users.map(user => ({
+      const usersJson = usersToProcess.map(user => ({
         identity_document: user.identity_document,
         is_active: user.is_active
       }));
@@ -122,10 +162,16 @@ export const bulkSuspendReactivateService = {
    */
   async parseExcelFile(file: File): Promise<SuspendReactivateUserData[]> {
     try {
-      const XLSX = await import('xlsx');
+      const xlsxModule = await import('xlsx');
+      const XLSX = xlsxModule.default || xlsxModule;
+
+      if (!XLSX || !XLSX.read) {
+        throw new Error('Estructura de la librería Excel no válida');
+      }
+
       const arrayBuffer = await file.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-      
+
       // Leer la primera hoja
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
@@ -155,7 +201,7 @@ export const bulkSuspendReactivateService = {
         // Validar campos requeridos
         if (user.identity_document || user.documento || user.ci || user.dni) {
           const identityDoc = user.identity_document || user.documento || user.ci || user.dni;
-          
+
           const userData: SuspendReactivateUserData = {
             identity_document: identityDoc
           };
@@ -197,20 +243,20 @@ export const bulkSuspendReactivateService = {
    */
   parsePaymentStatus(paidValue: any): boolean | string {
     const value = String(paidValue).toLowerCase().trim();
-    
+
     // Valores que indican que pagó (reactivar)
-    if (value === 'true' || value === '1' || value === 'si' || value === 'yes' || 
-        value === 'pagado' || value === 'paid' || value === 'pago' || value === 'sí') {
+    if (value === 'true' || value === '1' || value === 'si' || value === 'yes' ||
+      value === 'pagado' || value === 'paid' || value === 'pago' || value === 'sí') {
       return true;
     }
-    
+
     // Valores que indican que no pagó (suspender)
-    if (value === 'false' || value === '0' || value === 'no' || 
-        value === 'no pagado' || value === 'unpaid' || value === 'sin pago' || 
-        value === 'pendiente' || value === 'pending') {
+    if (value === 'false' || value === '0' || value === 'no' ||
+      value === 'no pagado' || value === 'unpaid' || value === 'sin pago' ||
+      value === 'pendiente' || value === 'pending') {
       return false;
     }
-    
+
     // Si no se reconoce, retornar el valor original
     return paidValue;
   },
@@ -220,19 +266,19 @@ export const bulkSuspendReactivateService = {
    */
   parseStatusValue(statusValue: any): boolean | string {
     const value = String(statusValue).toLowerCase().trim();
-    
+
     // Valores que indican activo
     if (value === 'true' || value === '1' || value === 'activo' || value === 'active' ||
-        value === 'reactivar' || value === 'reactivate') {
+      value === 'reactivar' || value === 'reactivate') {
       return true;
     }
-    
+
     // Valores que indican suspendido
     if (value === 'false' || value === '0' || value === 'suspendido' || value === 'suspended' ||
-        value === 'suspender' || value === 'suspend') {
+      value === 'suspender' || value === 'suspend') {
       return false;
     }
-    
+
     return statusValue;
   },
 
@@ -262,13 +308,53 @@ export const bulkSuspendReactivateService = {
   /**
    * Procesar pagos desde Excel y actualizar estados automáticamente
    * Esta función registra los pagos y actualiza el estado de los usuarios
+   * @param users Array de usuarios a procesar
+   * @param institutionId ID de institución opcional para filtrar usuarios (para supervisores)
    */
   async processPaymentsFromExcel(
-    users: SuspendReactivateUserData[]
+    users: SuspendReactivateUserData[],
+    institutionId?: number
   ): Promise<SuspendReactivateResult> {
     try {
+      // Si se proporciona institutionId, filtrar usuarios por institución
+      let usersToProcess = users;
+      if (institutionId) {
+        const identityDocuments = users.map(u => u.identity_document).filter(Boolean);
+
+        if (identityDocuments.length > 0) {
+          // Buscar usuarios por documento de identidad y filtrar por institución
+          const { data: usersData, error: usersError } = await supabase
+            .from('users')
+            .select(`
+              id,
+              identity_document,
+              user_institutions!inner(institution_id)
+            `)
+            .in('identity_document', identityDocuments)
+            .eq('user_institutions.institution_id', institutionId);
+
+          if (usersError) {
+            throw new Error(`Error al validar usuarios por institución: ${usersError.message}`);
+          }
+
+          // Crear un mapa de documentos válidos
+          const validDocuments = new Set((usersData || []).map((u: any) => u.identity_document));
+
+          // Filtrar usuarios que no pertenecen a la institución
+          usersToProcess = users.filter(u =>
+            !u.identity_document || validDocuments.has(u.identity_document)
+          );
+
+          // Si se filtraron usuarios, informar
+          if (usersToProcess.length < users.length) {
+            const filteredCount = users.length - usersToProcess.length;
+            console.warn(`⚠️ ${filteredCount} usuario(s) no pertenecen a la institución ${institutionId} y fueron excluidos`);
+          }
+        }
+      }
+
       // Convertir array de usuarios a JSONB con información de pago
-      const usersJson = users.map(user => {
+      const usersJson = usersToProcess.map(user => {
         // Determinar is_active basado en paid si no está definido
         let isActive = user.is_active;
         if (isActive === undefined && user.paid !== undefined) {

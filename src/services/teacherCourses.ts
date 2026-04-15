@@ -1,7 +1,7 @@
 // services/teacherCourses.ts
 // Servicios para gestión de cursos del docente
 
-import { supabase, supabaseUrl } from '../lib/supabase';
+import { supabase, supabaseUrl } from '@/lib/supabase';
 
 export interface Course {
   id: number;
@@ -18,6 +18,7 @@ export interface Course {
   schedule?: any; // JSONB
   max_students?: number;
   thumbnail_url?: string; // Imagen del curso
+  institution_id?: number; // Institución a la que pertenece el curso
   created_at: string;
   updated_at: string;
 }
@@ -35,6 +36,12 @@ export interface CourseUnit {
   duration_hours?: number;
   order_index?: number;
   thumbnail_url?: string;
+  // Campos de período de la unidad
+  starts_at?: string; // Cuándo empieza la unidad
+  ends_at?: string; // Cuándo termina la unidad
+  // Campos de disponibilidad por fecha
+  available_from?: string; // Fecha desde la cual está disponible
+  available_until?: string; // Fecha hasta la cual está disponible
   created_at: string;
 }
 
@@ -72,6 +79,9 @@ export interface Session {
   google_calendar_event_id?: string;
   google_meet_recording_url?: string;
   auto_create_meet?: boolean;
+  // Campos de disponibilidad por fecha
+  available_from?: string; // Fecha desde la cual está disponible
+  available_until?: string; // Fecha hasta la cual está disponible
   created_at: string;
 }
 
@@ -112,7 +122,7 @@ export const courseService = {
   async getMyCourses(teacherId: string): Promise<Course[]> {
     const { data, error } = await supabase
       .from('courses')
-      .select('*')
+      .select('id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at, thumbnail_url')
       .eq('teacher_id', teacherId)
       .order('created_at', { ascending: false });
 
@@ -124,7 +134,7 @@ export const courseService = {
   async getAllCourses(): Promise<Course[]> {
     const { data, error } = await supabase
       .from('courses')
-      .select('*')
+      .select('id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at, thumbnail_url')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -167,17 +177,6 @@ export const courseService = {
     delete updateData.id;
     delete updateData.created_at;
 
-    // Manejar thumbnail_url de forma segura (puede no existir como columna)
-    // Si se proporciona thumbnail_url, simplemente lo removemos del update
-    // ya que la columna no existe en la tabla
-    const thumbnailUrl = (updates as any).thumbnail_url;
-    if (thumbnailUrl !== undefined) {
-      // Remover thumbnail_url del update ya que la columna no existe
-      delete updateData.thumbnail_url;
-      // Nota: Si en el futuro se agrega la columna thumbnail_url o cover_image_url,
-      // se puede agregar aquí la lógica para guardarlo
-    }
-
     console.log('🔄 updateCourse - Iniciando actualización:', { id, updateData });
 
     // Primero ejecutar el UPDATE sin el SELECT para verificar que se ejecutó
@@ -203,7 +202,7 @@ export const courseService = {
     // Luego obtener el curso actualizado con una consulta separada
     const { data, error: selectError } = await supabase
       .from('courses')
-      .select('id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at')
+      .select('id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at, thumbnail_url')
       .eq('id', id)
       .maybeSingle(); // Usar maybeSingle en lugar de single para evitar error si no hay resultados
 
@@ -217,14 +216,6 @@ export const courseService = {
     if (!data) {
       console.error('❌ updateCourse - Curso no encontrado después de la actualización');
       throw new Error('El curso no se encontró después de la actualización. Puede ser un problema de permisos RLS.');
-    }
-
-    // Si se intentó actualizar thumbnail_url, agregarlo al resultado
-    // (aunque no se guarde en la BD, lo mantenemos en el objeto para consistencia)
-    if (thumbnailUrl !== undefined) {
-      (data as any).thumbnail_url = thumbnailUrl;
-    } else {
-      (data as any).thumbnail_url = null;
     }
 
     return data;
@@ -243,10 +234,9 @@ export const courseService = {
   // Obtener curso por ID
   async getCourse(id: number): Promise<Course | null> {
     // Usar select específico en lugar de * para evitar problemas con campos JSONB o tipos complejos
-    // Nota: thumbnail_url puede no existir en la tabla, se maneja opcionalmente
     const { data, error } = await supabase
       .from('courses')
-      .select('id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at')
+      .select('id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at, thumbnail_url')
       .eq('id', id)
       .maybeSingle(); // Usar maybeSingle en lugar de single para evitar error 406 si no hay resultados
 
@@ -258,12 +248,6 @@ export const courseService = {
       }
       console.error('Error obteniendo curso:', error);
       throw error;
-    }
-
-    // Si hay datos, establecer thumbnail_url como null por defecto
-    // (puede ser agregado después si la columna existe en la BD)
-    if (data) {
-      (data as any).thumbnail_url = null;
     }
 
     return data;
@@ -290,7 +274,7 @@ export const unitService = {
       .from('course_units')
       .select('*')
       .eq('course_id', courseId)
-      .order('order_index', { ascending: true, nullsLast: true })
+      .order('order_index', { ascending: true, nullsFirst: false })
       .order('number', { ascending: true });
 
     if (error) throw error;
@@ -299,6 +283,17 @@ export const unitService = {
 
   // Crear nueva unidad
   async createUnit(unit: Omit<CourseUnit, 'id' | 'created_at'>): Promise<CourseUnit> {
+    // Validación: Verificar que el curso exista
+    const { data: course, error: courseErr } = await supabase
+      .from('courses')
+      .select('id')
+      .eq('id', unit.course_id)
+      .single();
+
+    if (courseErr || !course) {
+      throw new Error('El curso especificado no existe.');
+    }
+
     // Limpiar campos undefined
     const cleanUnit: any = {};
     Object.keys(unit).forEach(key => {
@@ -693,8 +688,8 @@ export const sessionService = {
       .from('sessions')
       .select('*')
       .eq('course_id', courseId)
-      .order('order_index', { ascending: true, nullsLast: true })
-      .order('starts_at', { ascending: true, nullsLast: true });
+      .order('order_index', { ascending: true, nullsFirst: false })
+      .order('starts_at', { ascending: true, nullsFirst: false });
 
     if (error) throw error;
     return data || [];
@@ -702,6 +697,30 @@ export const sessionService = {
 
   // Crear nueva sesión
   async createSession(session: Omit<Session, 'id' | 'created_at'>): Promise<Session> {
+    // Validación: Verificar que el curso exista
+    const { data: course, error: courseErr } = await supabase
+      .from('courses')
+      .select('id')
+      .eq('id', session.course_id)
+      .single();
+
+    if (courseErr || !course) {
+      throw new Error('El curso especificado no existe.');
+    }
+
+    // Validación: Verificar que la unidad exista (si se proporciona)
+    if (session.unit_id) {
+      const { data: unit, error: unitErr } = await supabase
+        .from('course_units')
+        .select('id')
+        .eq('id', session.unit_id)
+        .single();
+
+      if (unitErr || !unit) {
+        throw new Error('La unidad especificada no existe.');
+      }
+    }
+
     // Limpiar campos undefined
     const cleanSession: any = {};
     Object.keys(session).forEach(key => {
@@ -1028,7 +1047,7 @@ export const materialService = {
     courseId: number,
     teacherId: string,
     role: 'reader' | 'commenter' | 'writer' = 'reader'
-  ): Promise<{ success: any[], failed: any[] }> {
+  ): Promise<{ success: any[], failed: any[], viewLink?: string }> {
     console.log('Compartiendo material:', { materialId, courseId, role });
 
     try {
@@ -1047,8 +1066,6 @@ export const materialService = {
       }
 
       // 2. Obtener estudiantes del curso
-      // Nota: Esto asume que existe una tabla course_students o similar
-      // Si no existe, habría que ajustar esta consulta según el esquema real
       const { data: enrollments, error: enrollmentsError } = await supabase
         .from('course_enrollments')
         .select('student_id, users:student_id(email)')
@@ -1070,36 +1087,58 @@ export const materialService = {
 
       console.log(`Encontrados ${students.length} estudiantes para compartir`);
 
-      // 3. Llamar a Edge Function para compartir en Google Drive
-      // Como no tenemos acceso directo a la API de Drive desde el cliente,
-      // usamos una Edge Function o simulamos por ahora si no existe.
+      // 3. Compartir usando el servicio de Google Drive
+      // Importar el servicio dinámicamente para evitar dependencias circulares
+      const { googleDriveService } = await import('./googleDriveService');
 
-      // TODO: Implementar llamada real a Edge Function 'share-drive-file'
-      // Por ahora, simularemos una llamada exitosa para desbloquear la UI
-      // y dejaremos un log de que se necesita la implementación del backend
+      // Si el rol es 'reader', usar la función específica de solo lectura
+      if (role === 'reader') {
+        const result = await googleDriveService.shareFileReadOnly(
+          teacherId,
+          sourceFileId,
+          students
+        );
 
-      console.warn('⚠️ La Edge Function "share-drive-file" no está implementada aún.');
-      console.warn('⚠️ Simulando éxito para:', students);
+        // Guardar el enlace de vista previa en el metadata del material
+        if (result.viewLink) {
+          const updatedMetadata = {
+            ...material.metadata,
+            viewLink: result.viewLink, // Enlace de vista previa con permisos de solo lectura
+            sharedWithStudents: true,
+            sharedAt: new Date().toISOString(),
+          };
 
-      // Simulación de respuesta
-      return {
-        success: students.map((email: string) => ({ email })),
-        failed: []
-      };
+          const { error: updateError } = await supabase
+            .from('materials')
+            .update({ metadata: updatedMetadata })
+            .eq('id', materialId);
 
-      /* 
-      // Código real cuando exista la Edge Function:
-      const { data: shareResult, error: shareError } = await supabase.functions.invoke('share-drive-file', {
-        body: {
-          fileId: sourceFileId,
-          emails: students,
-          role: role
+          if (updateError) {
+            console.warn('⚠️ No se pudo actualizar el metadata del material con el viewLink:', updateError);
+          } else {
+            console.log('✅ Enlace de vista previa guardado en metadata del material');
+          }
         }
-      });
 
-      if (shareError) throw shareError;
-      return shareResult;
-      */
+        return {
+          success: result.success.map((email: string) => ({ email })),
+          failed: result.failed,
+          viewLink: result.viewLink,
+        };
+      } else {
+        // Para otros roles, usar la función general
+        const result = await googleDriveService.shareFileWithEmails(
+          teacherId,
+          sourceFileId,
+          students,
+          role
+        );
+
+        return {
+          success: result.success.map((email: string) => ({ email })),
+          failed: result.failed,
+        };
+      }
 
     } catch (error) {
       console.error('Error en shareMaterialWithCourseStudents:', error);
@@ -1118,33 +1157,113 @@ export const materialService = {
         .from('materials')
         .select('*')
         .eq('id', materialId)
-        .single();
+        .maybeSingle();
 
       if (materialError) throw materialError;
+      if (!material) {
+        throw new Error(`Material no encontrado o sin permisos (ID: ${materialId})`);
+      }
 
       const sourceFileId = material.metadata?.sourceFileId;
       if (!sourceFileId) {
         throw new Error('El material no tiene un ID de archivo de Google Drive asociado');
       }
 
-      // 2. Llamar a Edge Function para descargar y subir a bucket
-      const { data: migrateResult, error: migrateError } = await supabase.functions.invoke('migrate-drive-to-bucket', {
-        body: {
-          materialId,
-          sourceFileId,
-          courseId,
-          fileName: material.title,
-          mimeType: material.mime_type
-        }
-      });
+      // 2. Intentar migración (Cliente o Servidor)
+      let bucketPath = '';
+      let publicUrl = '';
 
-      if (migrateError) throw migrateError;
+      try {
+        console.log('🔄 Intentando obtener token para migración desde el cliente...');
+        // Intentar obtener solo el token para hacer la transferencia desde el navegador
+        // Esto evita timeouts de la Edge Function en archivos grandes
+        const { data: tokenData, error: tokenError } = await supabase.functions.invoke('migrate-drive-to-bucket', {
+          body: {
+            action: 'get_token',
+            materialId,
+            sourceFileId,
+            courseId
+          }
+        });
+
+        // Si obtenemos token, hacemos la migración en el cliente
+        if (!tokenError && tokenData?.accessToken) {
+          console.log('✅ Token obtenido, iniciando transferencia directa desde el navegador...');
+          const accessToken = tokenData.accessToken;
+
+          // A. Descargar de Google Drive
+          console.log(`⬇️ Descargando archivo de Drive: ${sourceFileId}`);
+          const driveResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${sourceFileId}?alt=media`, {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          });
+
+          if (!driveResponse.ok) {
+            const errText = await driveResponse.text();
+            throw new Error(`Error descargando de Drive (${driveResponse.status}): ${errText}`);
+          }
+
+          const blob = await driveResponse.blob();
+          console.log(`✅ Archivo descargado: ${blob.size} bytes`);
+
+          // B. Subir a Supabase Storage
+          const mimeType = material.mime_type || blob.type || 'application/octet-stream';
+          const fileExtension = mimeType.includes("pdf")
+            ? ".pdf"
+            : mimeType.includes("image")
+              ? ".jpg"
+              : ".bin";
+
+          const sanitizedFileName = material.title
+            .replace(/[^a-zA-Z0-9.-]/g, "_")
+            .substring(0, 100);
+          const timestamp = Date.now();
+          bucketPath = `materials/${courseId}/${sanitizedFileName}_${timestamp}${fileExtension}`;
+
+          console.log(`⬆️ Subiendo a Supabase Storage: ${bucketPath}`);
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('course-documents')
+            .upload(bucketPath, blob, {
+              contentType: mimeType,
+              upsert: false
+            });
+
+          if (uploadError) throw uploadError;
+
+          const { data: urlData } = supabase.storage.from('course-documents').getPublicUrl(bucketPath);
+          publicUrl = urlData.publicUrl;
+          console.log('✅ Transferencia completada exitosamente');
+
+        } else {
+          // Si no devuelve token (versión vieja de la función), lanzar error para ir al catch
+          throw new Error('La función no soporta get_token o no devolvió token');
+        }
+
+      } catch (clientMigrationError: any) {
+        console.warn('⚠️ Migración cliente falló o no soportada, intentando método servidor...', clientMigrationError.message);
+
+        // Fallback: Llamada original a Edge Function (modo migrate por defecto)
+        // Esto maneja el caso donde la función no ha sido actualizada o falla la descarga cliente
+        const { data: migrateResult, error: migrateError } = await supabase.functions.invoke('migrate-drive-to-bucket', {
+          body: {
+            materialId,
+            sourceFileId,
+            courseId,
+            fileName: material.title,
+            mimeType: material.mime_type
+          }
+        });
+
+        if (migrateError) throw migrateError;
+
+        bucketPath = migrateResult.bucketPath;
+        publicUrl = migrateResult.publicUrl;
+      }
 
       // 3. Actualizar el material con la nueva información
       const updatedMetadata = {
         ...material.metadata,
         source: 'bucket',
-        bucketPath: migrateResult.bucketPath,
+        bucketPath: bucketPath,
         migratedFromDrive: true,
         migratedAt: new Date().toISOString(),
         originalSourceFileId: sourceFileId // Mantener referencia al original
@@ -1154,7 +1273,7 @@ export const materialService = {
         .from('materials')
         .update({
           metadata: updatedMetadata,
-          url: migrateResult.publicUrl // URL pública del bucket
+          url: publicUrl // URL pública del bucket
         })
         .eq('id', materialId);
 
@@ -1162,7 +1281,7 @@ export const materialService = {
 
       return {
         success: true,
-        bucketPath: migrateResult.bucketPath
+        bucketPath: bucketPath
       };
 
     } catch (error: any) {
@@ -1199,13 +1318,13 @@ export const materialService = {
     }
   },
 
-  // Iniciar procesamiento RAG para un material en bucket
+  // Iniciar procesamiento RAG para un material (desde bucket o Google Drive)
   async processMaterialForRAG(
     materialId: string,
     courseId: number
   ): Promise<{ success: boolean; jobId?: string; error?: string }> {
     try {
-      // 1. Verificar que el material esté en bucket
+      // 1. Obtener información del material
       const { data: material, error: materialError } = await supabase
         .from('materials')
         .select('*')
@@ -1215,27 +1334,49 @@ export const materialService = {
       if (materialError) throw materialError;
 
       const source = material.metadata?.source;
-      if (source !== 'bucket') {
-        throw new Error('El material debe estar en bucket para procesamiento RAG. Usa migrateDriveToBucket primero.');
+      let bucketPath = material.metadata?.bucketPath;
+      let driveFileId = material.metadata?.sourceFileId;
+
+      // Determinar la fuente del archivo
+      if (source === 'bucket' && bucketPath) {
+        // Archivo ya migrado a Supabase Storage
+        console.log(`📦 Procesando desde Supabase Storage: ${bucketPath}`);
+      } else if (driveFileId) {
+        // Archivo en Google Drive
+        console.log(`☁️ Procesando desde Google Drive: ${driveFileId}`);
+        bucketPath = null; // No hay bucket path para archivos de Drive
+      } else {
+        throw new Error('El material no tiene una fuente válida (ni bucket ni Google Drive)');
       }
 
-      const bucketPath = material.metadata?.bucketPath;
-      if (!bucketPath) {
-        throw new Error('El material no tiene una ruta de bucket válida');
-      }
+      // 2. Crear job de procesamiento directamente en la base de datos
+      const currentUser = await supabase.auth.getUser();
+      const userId = currentUser.data.user?.id;
 
-      // 2. Llamar a Edge Function para crear job de procesamiento
-      const { data: processResult, error: processError } = await supabase.functions.invoke('createFileProcessingJob', {
-        body: {
-          materialId,
-          courseId,
-          bucketPath,
-          fileName: material.title,
-          mimeType: material.mime_type
-        }
-      });
+      const { data: jobData, error: jobError } = await supabase
+        .from('file_processing_jobs')
+        .insert({
+          material_id: materialId,
+          course_id: courseId,
+          bucket_path: bucketPath, // Puede ser null para archivos de Drive
+          file_name: material.title,
+          mime_type: material.mime_type,
+          user_id: userId,
+          status: 'pending',
+          metadata: {
+            source: source || 'google_drive',
+            driveFileId: driveFileId, // Incluir ID de Drive si existe
+            userId: userId, // Incluir userId para que el worker pueda obtener el token
+            materialId: materialId,
+            version: '1.0'
+          }
+        })
+        .select()
+        .single();
 
-      if (processError) throw processError;
+      if (jobError) throw jobError;
+
+      const processResult = { jobId: jobData.id };
 
       // 3. Actualizar metadata del material
       const updatedMetadata = {
@@ -1251,6 +1392,26 @@ export const materialService = {
 
       if (updateError) throw updateError;
 
+      // 4. Trigger la Cloud Function para procesar inmediatamente (on-demand)
+      try {
+        console.log('🚀 Triggering RAG worker Cloud Function...');
+        const triggerResponse = await fetch('https://us-central1-eduspark-py.cloudfunctions.net/rag-worker', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (triggerResponse.ok) {
+          console.log('✅ RAG worker triggered successfully');
+        } else {
+          console.warn('⚠️ RAG worker trigger failed, but job is queued');
+        }
+      } catch (triggerError) {
+        // No fallar si el trigger falla - el job está creado y se procesará eventualmente
+        console.warn('⚠️ Failed to trigger RAG worker:', triggerError);
+      }
+
       return {
         success: true,
         jobId: processResult.jobId
@@ -1261,6 +1422,32 @@ export const materialService = {
       return {
         success: false,
         error: error.message || 'Error desconocido al iniciar procesamiento'
+      };
+    }
+  },
+
+  // Cancelar un job de procesamiento atascado
+  async cancelProcessingJob(jobId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await supabase
+        .from('file_processing_jobs')
+        .update({
+          status: 'failed',
+          error_message: 'Cancelado manualmente por el usuario',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', jobId);
+
+      if (error) throw error;
+
+      console.log(`✅ Job ${jobId} cancelado exitosamente`);
+      return { success: true };
+
+    } catch (error: any) {
+      console.error('Error cancelando job:', error);
+      return {
+        success: false,
+        error: error.message || 'Error al cancelar job'
       };
     }
   },

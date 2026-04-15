@@ -328,6 +328,11 @@ CREATE TABLE subject_assignments (
 | **Gestión de Sesiones** | ✅ COMPLETO | Programación de clases |
 | **Gestión de Materiales** | ✅ COMPLETO | Subida de archivos |
 | **Gestión de Tareas** | ✅ COMPLETO | Creación y evaluación |
+| **Tutor IA Proactivo** | ✅ COMPLETO | Coach académico con contexto de riesgo |
+| **Control de Costos IA**| ✅ COMPLETO | Grifo de tokens y límites diarios |
+| **Análisis Semanal**  | ✅ COMPLETO | Reportes consolidados los viernes |
+| **Certificados PDF**  | ✅ COMPLETO | Diplomas automáticos al 100% |
+| **Modo Práctica**     | ✅ COMPLETO | Quizzes sin impacto en nota (?mode=practice) |
 
 ---
 
@@ -394,6 +399,8 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 - **Sesiones:** ✅ 100%
 - **Materiales:** ✅ 100%
 - **Tareas:** ✅ 100%
+- **IA & Costos:** ✅ 100% (Token Faucet & Weekly Cycle)
+- **Certificación:** ✅ 100% (jsPDF Auto-emission)
 
 ---
 

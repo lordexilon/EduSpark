@@ -1,0 +1,8 @@
+.gcloudignore
+.git
+.gitignore
+node_modules/
+eduspark_mobile/
+
+# Do NOT ignore dist, we need it for the COPY command in Dockerfile
+!dist/
