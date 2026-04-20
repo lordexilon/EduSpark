@@ -1,0 +1,111 @@
+﻿{
+  "apiVersion": "serving.knative.dev/v1",
+  "kind": "Revision",
+  "metadata": {
+    "annotations": {
+      "autoscaling.knative.dev/maxScale": "10",
+      "run.googleapis.com/build-source-location": "{\"eduspark-frontend-1\":\"gs://run-sources-project-6e0ec9e3-3db0-471c-925-us-central1/services/eduspark-frontend/1774439009.681232-30d476e16a7b4b9199032a7b8a6b1118.zip#1774439526616098\"}",
+      "run.googleapis.com/client-name": "gcloud",
+      "run.googleapis.com/client-version": "536.0.1",
+      "run.googleapis.com/cpu-throttling": "true",
+      "run.googleapis.com/operation-id": "f72431bc-4bce-4d12-91ce-944426202429",
+      "run.googleapis.com/startup-cpu-boost": "false",
+      "serving.knative.dev/creator": "notificacionesbmsa@gmail.com"
+    },
+    "creationTimestamp": "2026-03-25T11:53:32.356820Z",
+    "generation": 1,
+    "labels": {
+      "client.knative.dev/nonce": "sjjprmmtjq",
+      "cloud.googleapis.com/location": "us-central1",
+      "run.googleapis.com/startupProbeType": "Default",
+      "serving.knative.dev/configuration": "eduspark-frontend",
+      "serving.knative.dev/configurationGeneration": "22",
+      "serving.knative.dev/route": "eduspark-frontend",
+      "serving.knative.dev/service": "eduspark-frontend",
+      "serving.knative.dev/serviceUid": "841440ec-0708-40a2-aac1-8a1f293b698d"
+    },
+    "name": "eduspark-frontend-00022-fck",
+    "namespace": "151821961684",
+    "ownerReferences": [
+      {
+        "apiVersion": "serving.knative.dev/v1",
+        "blockOwnerDeletion": true,
+        "controller": true,
+        "kind": "Configuration",
+        "name": "eduspark-frontend",
+        "uid": "50314ca7-fdf9-4678-83fb-fafc043fee94"
+      }
+    ],
+    "resourceVersion": "AAZN1+sSN54",
+    "selfLink": "/apis/serving.knative.dev/v1/namespaces/151821961684/revisions/eduspark-frontend-00022-fck",
+    "uid": "211a93c3-11c4-4759-b404-a4f389ab5545"
+  },
+  "spec": {
+    "containerConcurrency": 80,
+    "containers": [
+      {
+        "image": "us-central1-docker.pkg.dev/project-6e0ec9e3-3db0-471c-925/cloud-run-source-deploy/eduspark-frontend@sha256:dbd38503f0d0adf7ed1296c736d57648ad7579a5493d53cd9f0379a1dcf205d4",
+        "name": "eduspark-frontend-1",
+        "ports": [
+          {
+            "containerPort": 8080,
+            "name": "http1"
+          }
+        ],
+        "resources": {
+          "limits": {
+            "cpu": "1",
+            "memory": "512Mi"
+          }
+        },
+        "startupProbe": {
+          "failureThreshold": 1,
+          "periodSeconds": 240,
+          "tcpSocket": {
+            "port": 8080
+          },
+          "timeoutSeconds": 240
+        }
+      }
+    ],
+    "serviceAccountName": "151821961684-compute@developer.gserviceaccount.com",
+    "timeoutSeconds": 300
+  },
+  "status": {
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-03-25T11:53:36.147207Z",
+        "message": "Deploying revision succeeded in 3.79s.",
+        "status": "True",
+        "type": "Ready"
+      },
+      {
+        "lastTransitionTime": "2026-03-25T11:53:36.209875Z",
+        "severity": "Info",
+        "status": "True",
+        "type": "Active"
+      },
+      {
+        "lastTransitionTime": "2026-03-25T11:53:36.116852Z",
+        "message": "Containers became healthy.",
+        "status": "True",
+        "type": "ContainerHealthy"
+      },
+      {
+        "lastTransitionTime": "2026-03-25T11:53:34.183110Z",
+        "message": "Container image import completed in 1.19s.",
+        "status": "True",
+        "type": "ContainerReady"
+      },
+      {
+        "lastTransitionTime": "2026-03-25T11:53:35.652248Z",
+        "message": "Provisioning imported containers completed in 1.47s. Checking container health. This will wait for up to 4m for the configured startup probe, including an initial delay of 0s.",
+        "status": "True",
+        "type": "ResourcesAvailable"
+      }
+    ],
+    "imageDigest": "us-central1-docker.pkg.dev/project-6e0ec9e3-3db0-471c-925/cloud-run-source-deploy/eduspark-frontend@sha256:dbd38503f0d0adf7ed1296c736d57648ad7579a5493d53cd9f0379a1dcf205d4",
+    "logUrl": "https://console.cloud.google.com/logs/viewer?project=project-6e0ec9e3-3db0-471c-925&resource=cloud_run_revision/service_name/eduspark-frontend/revision_name/eduspark-frontend-00022-fck&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22eduspark-frontend%22%0Aresource.labels.revision_name%3D%22eduspark-frontend-00022-fck%22",
+    "observedGeneration": 1
+  }
+}

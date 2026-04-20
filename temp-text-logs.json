@@ -1,0 +1,199 @@
+﻿[
+  {
+    "httpRequest": {
+      "latency": "0s",
+      "protocol": "HTTP/1.1",
+      "remoteIp": "2803:7d80:a406:8ad1:9150:5b6b:7c8a:b05a",
+      "requestMethod": "GET",
+      "requestSize": "1037",
+      "requestUrl": "https://eduspark-frontend-151821961684.us-central1.run.app/",
+      "serverIp": "2600:1900:4241:200::",
+      "status": 500,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    },
+    "insertId": "69d1275c000876e4b0cfcd79",
+    "logName": "projects/project-6e0ec9e3-3db0-471c-925/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-04-04T14:59:40.561610949Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "eduspark-frontend",
+        "location": "us-central1",
+        "project_id": "project-6e0ec9e3-3db0-471c-925",
+        "revision_name": "eduspark-frontend-00022-fck",
+        "service_name": "eduspark-frontend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "d4b8d7abd90d188c",
+    "textPayload": "The request failed because billing is disabled for this project.",
+    "timestamp": "2026-04-04T14:59:40.546110Z",
+    "trace": "projects/project-6e0ec9e3-3db0-471c-925/traces/fbb650482516fd012402d2c25a71fcf6",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0s",
+      "protocol": "HTTP/1.1",
+      "remoteIp": "186.158.200.224",
+      "requestMethod": "GET",
+      "requestSize": "1137",
+      "requestUrl": "https://eduspark-frontend-151821961684.us-central1.run.app/",
+      "serverIp": "34.143.74.2",
+      "status": 500,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+    },
+    "insertId": "69d1269d0008889bb384994f",
+    "logName": "projects/project-6e0ec9e3-3db0-471c-925/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-04-04T14:56:29.565831679Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "eduspark-frontend",
+        "location": "us-central1",
+        "project_id": "project-6e0ec9e3-3db0-471c-925",
+        "revision_name": "eduspark-frontend-00022-fck",
+        "service_name": "eduspark-frontend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "e7b19c87ed6c78f9",
+    "textPayload": "The request failed because billing is disabled for this project.",
+    "timestamp": "2026-04-04T14:56:29.541976Z",
+    "trace": "projects/project-6e0ec9e3-3db0-471c-925/traces/8235d579617574cf4cfdf2a1cb89ec9b",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0s",
+      "protocol": "HTTP/1.1",
+      "remoteIp": "185.241.208.50",
+      "requestMethod": "GET",
+      "requestSize": "1030",
+      "requestUrl": "https://eduspark-frontend-151821961684.us-central1.run.app/",
+      "serverIp": "34.143.74.2",
+      "status": 500,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    },
+    "insertId": "69cfeac40006ee7ec1e581e8",
+    "logName": "projects/project-6e0ec9e3-3db0-471c-925/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-04-03T16:28:52.462197136Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "eduspark-frontend",
+        "location": "us-central1",
+        "project_id": "project-6e0ec9e3-3db0-471c-925",
+        "revision_name": "eduspark-frontend-00022-fck",
+        "service_name": "eduspark-frontend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "2cc740de108c52dd",
+    "textPayload": "The request failed because billing is disabled for this project.",
+    "timestamp": "2026-04-03T16:28:52.444930Z",
+    "trace": "projects/project-6e0ec9e3-3db0-471c-925/traces/37c252b91bc42dd1a00454ed38b6ad86",
+    "traceSampled": true
+  },
+  {
+    "httpRequest": {
+      "latency": "0s",
+      "protocol": "HTTP/1.1",
+      "remoteIp": "2803:7d80:a406:8ad1:3d4b:e8dd:3abf:ff60",
+      "requestMethod": "GET",
+      "requestSize": "1114",
+      "requestUrl": "https://eduspark-frontend-xxt3dj5duq-uc.a.run.app/",
+      "serverIp": "2600:1900:4243:200::",
+      "status": 500,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+    },
+    "insertId": "69cfea4b00042131205bbc9e",
+    "logName": "projects/project-6e0ec9e3-3db0-471c-925/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-04-03T16:26:51.281006936Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "eduspark-frontend",
+        "location": "us-central1",
+        "project_id": "project-6e0ec9e3-3db0-471c-925",
+        "revision_name": "eduspark-frontend-00022-fck",
+        "service_name": "eduspark-frontend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "65d39f5cb7bc67f6",
+    "textPayload": "The request failed because billing is disabled for this project.",
+    "timestamp": "2026-04-03T16:26:51.262485Z",
+    "trace": "projects/project-6e0ec9e3-3db0-471c-925/traces/29cfe5b4a85def1a923ab2648d707463",
+    "traceSampled": true
+  },
+  {
+    "errorGroups": [
+      {
+        "id": "CKqF4cGSuODxngE"
+      }
+    ],
+    "httpRequest": {
+      "latency": "0s",
+      "protocol": "HTTP/1.1",
+      "remoteIp": "2803:7d80:a406:8ad1:3d4b:e8dd:3abf:ff60",
+      "requestMethod": "GET",
+      "requestSize": "926",
+      "requestUrl": "https://eduspark-frontend-151821961684.us-central1.run.app/",
+      "responseSize": "14",
+      "serverIp": "2600:1900:4241:200::",
+      "status": 429,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+    },
+    "insertId": "69cfe9cf00024a6975a773a8",
+    "logName": "projects/project-6e0ec9e3-3db0-471c-925/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-04-03T16:24:47.159212856Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "eduspark-frontend",
+        "location": "us-central1",
+        "project_id": "project-6e0ec9e3-3db0-471c-925",
+        "revision_name": "eduspark-frontend-00022-fck",
+        "service_name": "eduspark-frontend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "WARNING",
+    "spanId": "21e296dabb4b3553",
+    "textPayload": "The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/run/docs/troubleshooting#abort-request",
+    "timestamp": "2026-04-03T16:24:47.125861Z",
+    "trace": "projects/project-6e0ec9e3-3db0-471c-925/traces/279eff3c2fb64b42d4e87ad6c1293a52"
+  },
+  {
+    "httpRequest": {
+      "latency": "0s",
+      "protocol": "HTTP/1.1",
+      "remoteIp": "2803:7d80:a406:8ad1:3d4b:e8dd:3abf:ff60",
+      "requestMethod": "GET",
+      "requestSize": "1030",
+      "requestUrl": "https://eduspark-frontend-151821961684.us-central1.run.app/",
+      "serverIp": "2600:1900:4241:200::",
+      "status": 500,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    },
+    "insertId": "69cfdda70007af61ef717747",
+    "logName": "projects/project-6e0ec9e3-3db0-471c-925/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-04-03T15:32:55.509180289Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "eduspark-frontend",
+        "location": "us-central1",
+        "project_id": "project-6e0ec9e3-3db0-471c-925",
+        "revision_name": "eduspark-frontend-00022-fck",
+        "service_name": "eduspark-frontend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "69da2cdf97877f72",
+    "textPayload": "The request failed because billing is disabled for this project.",
+    "timestamp": "2026-04-03T15:32:55.481318Z",
+    "trace": "projects/project-6e0ec9e3-3db0-471c-925/traces/f7515ebad552929a29a7bd294c1560bb",
+    "traceSampled": true
+  }
+]

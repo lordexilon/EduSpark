@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduSpark - Plataforma Educativa Integral</title>
+    <meta name="description"
+        content="EduSpark: Plataforma educativa con gestión de instituciones, carreras, materias, sesiones, quizzes, foros y más.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #a5b4fc;
+            --accent: #06b6d4;
+            --accent-dark: #0891b2;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: #334155;
+            --glass: rgba(30, 41, 59, 0.7);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            backdrop-filter: blur(20px);
+            background: rgba(15, 23, 42, 0.85);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 72px;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+
+        .nav-logo .dot {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-links a {
+            padding: 8px 16px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--text-primary);
+            background: var(--bg-card);
+        }
+
+        /* Hero */
+        .hero {
+            padding: 140px 0 80px;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 20px;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--primary-light), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 640px;
+            margin: 0 auto 32px;
+        }
+
+        .hero-badges {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+
+        .badge {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .badge .material-symbols-outlined {
+            font-size: 16px;
+        }
+
+        /* Section Headers */
+        .section {
+            padding: 80px 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .section-header .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 16px;
+            background: var(--primary);
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+        }
+
+        .section-header h2 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            margin-bottom: 12px;
+        }
+
+        .section-header p {
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+        }
+
+        /* Institution Card */
+        .inst-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .inst-card .inst-banner {
+            height: 120px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 12px;
+            margin: -24px -24px 20px;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            padding: 16px 20px;
+        }
+
+        .inst-card .inst-avatar {
+            width: 56px;
+            height: 56px;
+            background: white;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .inst-card h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .inst-card .stats {
+            display: flex;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .inst-card .stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .inst-card .stat strong {
+            color: var(--text-primary);
+        }
+
+        /* Career Card */
+        .career-card {
+            border-left: 4px solid var(--primary);
+        }
+
+        .career-card .career-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .career-card .meta-tag {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary-light);
+            font-weight: 600;
+        }
+
+        /* Subject / Materia Tree */
+        .tree {
+            position: relative;
+            padding-left: 24px;
+        }
+
+        .tree::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border);
+        }
+
+        .tree-item {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .tree-item::before {
+            content: '';
+            position: absolute;
+            left: -14px;
+            top: 18px;
+            width: 14px;
+            height: 2px;
+            background: var(--border);
+        }
+
+        .tree-item .dot {
+            position: absolute;
+            left: -20px;
+            top: 12px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+            background: var(--bg-dark);
+            z-index: 1;
+        }
+
+        .tree-item.completed .dot {
+            background: var(--success);
+            border-color: var(--success);
+        }
+
+        /* Session Card */
+        .session-card {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .session-card .session-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+
+        .session-card .session-num {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .session-card .activities {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        /* Activity Pills */
+        .activity-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .pill-task {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+            border-color: rgba(59, 130, 246, 0.2);
+        }
+
+        .pill-task:hover {
+            background: rgba(59, 130, 246, 0.2);
+        }
+
+        .pill-quiz {
+            background: rgba(168, 85, 247, 0.1);
+            color: #c084fc;
+            border-color: rgba(168, 85, 247, 0.2);
+        }
+
+        .pill-quiz:hover {
+            background: rgba(168, 85, 247, 0.2);
+        }
+
+        .pill-flashcard {
+            background: rgba(6, 182, 212, 0.1);
+            color: #22d3ee;
+            border-color: rgba(6, 182, 212, 0.2);
+        }
+
+        .pill-flashcard:hover {
+            background: rgba(6, 182, 212, 0.2);
+        }
+
+        .pill-forum {
+            background: rgba(16, 185, 129, 0.1);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.2);
+        }
+
+        .pill-forum:hover {
+            background: rgba(16, 185, 129, 0.2);
+        }
+
+        .pill-video {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.2);
+        }
+
+        .pill-video:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .activity-pill .material-symbols-outlined {
+            font-size: 16px;
+        }
+
+        /* Communication Section */
+        .comm-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .comm-card {
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .comm-card .comm-header {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+        }
+
+        .comm-card .comm-body {
+            padding: 0 20px 20px;
+        }
+
+        .forum-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .forum-item:last-child {
+            border: none;
+        }
+
+        .forum-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .msg-item {
+            display: flex;
+            gap: 12px;
+            padding: 10px 0;
+        }
+
+        .msg-bubble {
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .msg-sent {
+            margin-left: auto;
+        }
+
+        .msg-sent .msg-bubble {
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg-received .msg-bubble {
+            background: var(--bg-card-hover);
+            border-bottom-left-radius: 4px;
+        }
+
+        /* Calendar */
+        .calendar {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .cal-header {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            padding: 12px;
+        }
+
+        .cal-day-name {
+            text-align: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            padding: 8px 0;
+            text-transform: uppercase;
+        }
+
+        .cal-day {
+            text-align: center;
+            padding: 10px 4px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .cal-day:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .cal-day.today {
+            background: var(--primary);
+            color: white;
+            font-weight: 700;
+            border-radius: 10px;
+        }
+
+        .cal-day.has-event::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+        }
+
+        .cal-day.event-quiz::after {
+            background: #c084fc;
+        }
+
+        .cal-day.event-task::after {
+            background: #60a5fa;
+        }
+
+        .cal-day.event-forum::after {
+            background: #34d399;
+        }
+
+        .cal-day.empty {
+            color: var(--text-muted);
+            opacity: 0.3;
+        }
+
+        /* Expandable */
+        .expandable-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+        }
+
+        .expandable-content.open {
+            max-height: 2000px;
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.6s ease;
+        }
+
+        /* Feature Cards (bottom) */
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        .feature-icon .material-symbols-outlined {
+            font-size: 24px;
+            color: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .comm-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeInUp 0.5s ease forwards;
+        }
+
+        .delay-1 {
+            animation-delay: 0.1s;
+            opacity: 0;
+        }
+
+        .delay-2 {
+            animation-delay: 0.2s;
+            opacity: 0;
+        }
+
+        .delay-3 {
+            animation-delay: 0.3s;
+            opacity: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="container nav-inner">
+            <div class="nav-logo">
+                <div class="dot"><span class="material-symbols-outlined"
+                        style="color:white;font-size:20px">school</span></div>
+                EduSpark
+            </div>
+            <div class="nav-links">
+                <a href="#institucion" class="active">Institución</a>
+                <a href="#carreras">Carreras</a>
+                <a href="#materia">Contenido</a>
+                <a href="#comunicacion">Comunicación</a>
+                <a href="#calendario">Calendario</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-badges animate-in">
+                <div class="badge"><span class="material-symbols-outlined">verified</span> Plataforma LMS</div>
+                <div class="badge"><span class="material-symbols-outlined">psychology</span> IA Integrada</div>
+                <div class="badge"><span class="material-symbols-outlined">devices</span> Multi-dispositivo</div>
+            </div>
+            <h1 class="animate-in delay-1">Gestión Educativa<br><span>Integral e Inteligente</span></h1>
+            <p class="animate-in delay-2">Desde la institución hasta cada actividad del aula: carreras, materias,
+                unidades, sesiones, tareas, quizzes, flashcards, foros, mensajes y calendario.</p>
+        </div>
+    </section>
+
+    <!-- Institución -->
+    <section class="section" id="institucion">
+        <div class="container">
+            <div class="section-header">
+                <div class="tag"><span class="material-symbols-outlined" style="font-size:14px">apartment</span> Nivel
+                    Institucional</div>
+                <h2>Tu Institución en EduSpark</h2>
+                <p>Cada institución tiene su landing personalizable, gestión de carreras y equipo académico.</p>
+            </div>
+            <div class="grid-2">
+                <!-- Institution Card 1 -->
+                <div class="card inst-card animate-in">
+                    <div class="inst-banner" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
+                        <div class="inst-avatar">CEC</div>
+                    </div>
+                    <h3>Centro Educativo Cacavelos</h3>
+                    <p style="color:var(--text-secondary);font-size:0.9rem">Formando líderes para el mañana con
+                        tecnología de vanguardia y calidad humana.</p>
+                    <div class="stats">
+                        <div class="stat"><span class="material-symbols-outlined"
+                                style="font-size:16px;color:var(--primary-light)">school</span> <strong>5</strong>
+                            Carreras</div>
+                        <div class="stat"><span class="material-symbols-outlined"
+                                style="font-size:16px;color:var(--accent)">groups</span> <strong>320</strong> Alumnos
+                        </div>
+                        <div class="stat"><span class="material-symbols-outlined"
+                                style="font-size:16px;color:var(--success)">person</span> <strong>28</strong> Docentes
+                        </div>
+                    </div>
+                </div>
+                <!-- Institution Card 2 -->
+                <div class="card inst-card animate-in delay-1">
+                    <div class="inst-banner" style="background:linear-gradient(135deg,#06b6d4,#10b981)">
+                        <div class="inst-avatar" style="color:#06b6d4">UT</div>
+                    </div>
+                    <h3>Universidad Tecnológica</h3>
+                    <p style="color:var(--text-secondary);font-size:0.9rem">Innovación y excelencia en educación
+                        superior con enfoque práctico y profesional.</p>
+                    <div class="stats">
+                        <div class="stat"><span class="material-symbols-outlined"
+                                style="font-size:16px;color:var(--primary-light)">school</span> <strong>12</strong>
+                            Carreras</div>
+                        <div class="stat"><span class="material-symbols-outlined"
+                                style="font-size:16px;color:var(--accent)">groups</span> <strong>1,240</strong> Alumnos
+                        </div>
+                        <div class="stat"><span class="material-symbols-outlined"
+                                style="font-size:16px;color:var(--success)">person</span> <strong>85</strong> Docentes
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Carreras -->
+    <section class="section" id="carreras" style="background:rgba(99,102,241,0.03)">
+        <div class="container">
+            <div class="section-header">
+                <div class="tag"><span class="material-symbols-outlined" style="font-size:14px">school</span> Oferta
+                    Académica</div>
+                <h2>Carreras y Programas</h2>
+                <p>Cada carrera organiza sus materias por semestres con créditos, requisitos y progreso académico.</p>
+            </div>
+            <div class="grid-3">
+                <div class="card career-card" style="border-left-color:#6366f1">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                        <span class="material-symbols-outlined" style="color:#6366f1">computer</span>
+                        <h3 style="font-size:1.1rem;font-weight:700">Ingeniería en Sistemas</h3>
+                    </div>
+                    <p style="font-size:0.85rem;color:var(--text-secondary)">Desarrollo de software, bases de datos,
+                        redes y arquitectura de sistemas.</p>
+                    <div class="career-meta">
+                        <span class="meta-tag">48 meses</span>
+                        <span class="meta-tag">240 créditos</span>
+                        <span class="meta-tag">Licenciatura</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width:65%;background:linear-gradient(90deg,#6366f1,#8b5cf6)">
+                        </div>
+                    </div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px">38 materias • 6to semestre
+                    </div>
+                </div>
+                <div class="card career-card" style="border-left-color:#06b6d4">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                        <span class="material-symbols-outlined" style="color:#06b6d4">gavel</span>
+                        <h3 style="font-size:1.1rem;font-weight:700">Derecho</h3>
+                    </div>
+                    <p style="font-size:0.85rem;color:var(--text-secondary)">Fundamentos jurídicos, derecho civil,
+                        penal, comercial y constitucional.</p>
+                    <div class="career-meta">
+                        <span class="meta-tag" style="background:rgba(6,182,212,0.1);color:#22d3ee">60 meses</span>
+                        <span class="meta-tag" style="background:rgba(6,182,212,0.1);color:#22d3ee">300 créditos</span>
+                        <span class="meta-tag" style="background:rgba(6,182,212,0.1);color:#22d3ee">Licenciatura</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width:40%;background:linear-gradient(90deg,#06b6d4,#10b981)">
+                        </div>
+                    </div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px">52 materias • 4to semestre
+                    </div>
+                </div>
+                <div class="card career-card" style="border-left-color:#f59e0b">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                        <span class="material-symbols-outlined" style="color:#f59e0b">trending_up</span>
+                        <h3 style="font-size:1.1rem;font-weight:700">Administración de Empresas</h3>
+                    </div>
+                    <p style="font-size:0.85rem;color:var(--text-secondary)">Gestión empresarial, marketing, finanzas y
+                        liderazgo organizacional.</p>
+                    <div class="career-meta">
+                        <span class="meta-tag" style="background:rgba(245,158,11,0.1);color:#fbbf24">48 meses</span>
+                        <span class="meta-tag" style="background:rgba(245,158,11,0.1);color:#fbbf24">220 créditos</span>
+                        <span class="meta-tag" style="background:rgba(245,158,11,0.1);color:#fbbf24">Licenciatura</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width:80%;background:linear-gradient(90deg,#f59e0b,#ef4444)">
+                        </div>
+                    </div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px">42 materias • 7mo semestre
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Materia → Unidades → Sesiones → Actividades -->
+    <section class="section" id="materia">
+        <div class="container">
+            <div class="section-header">
+                <div class="tag"><span class="material-symbols-outlined" style="font-size:14px">menu_book</span>
+                    Contenido Académico</div>
+                <h2>Materia: Programación Web</h2>
+                <p>Estructura completa: Unidades → Sesiones → Actividades interactivas con seguimiento de progreso.</p>
+            </div>
+
+            <!-- Subject Info Card -->
+            <div class="card"
+                style="margin-bottom:32px;border:1px solid rgba(99,102,241,0.3);background:linear-gradient(135deg,rgba(99,102,241,0.05),rgba(6,182,212,0.05))">
+                <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between">
+                    <div>
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                            <span class="material-symbols-outlined"
+                                style="font-size:28px;color:var(--primary-light)">code</span>
+                            <h3 style="font-size:1.3rem;font-weight:800">Programación Web Avanzada</h3>
+                        </div>
+                        <p style="color:var(--text-secondary);font-size:0.9rem">Carrera: Ingeniería en Sistemas • 3er
+                            Semestre • 6 créditos • 4 hrs/semana</p>
+                    </div>
+                    <div style="display:flex;gap:16px">
+                        <div style="text-align:center">
+                            <div style="font-size:1.8rem;font-weight:800;color:var(--primary-light)">4</div>
+                            <div style="font-size:0.7rem;color:var(--text-muted)">Unidades</div>
+                        </div>
+                        <div style="text-align:center">
+                            <div style="font-size:1.8rem;font-weight:800;color:var(--accent)">16</div>
+                            <div style="font-size:0.7rem;color:var(--text-muted)">Sesiones</div>
+                        </div>
+                        <div style="text-align:center">
+                            <div style="font-size:1.8rem;font-weight:800;color:var(--success)">72%</div>
+                            <div style="font-size:0.7rem;color:var(--text-muted)">Progreso</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Units Tree -->
+            <div style="display:flex;flex-direction:column;gap:20px">
+
+                <!-- UNIDAD 1 (expandida) -->
+                <div class="card" style="border-left:4px solid #6366f1" id="unit1">
+                    <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"
+                        onclick="toggleUnit('u1')">
+                        <div style="display:flex;align-items:center;gap:12px">
+                            <div
+                                style="width:40px;height:40px;border-radius:10px;background:rgba(99,102,241,0.15);display:flex;align-items:center;justify-content:center">
+                                <span class="material-symbols-outlined" style="color:#818cf8">looks_one</span>
+                            </div>
+                            <div>
+                                <h3 style="font-size:1rem;font-weight:700">Unidad 1: Fundamentos de HTML y CSS</h3>
+                                <p style="font-size:0.8rem;color:var(--text-muted)">4 sesiones • 12 actividades</p>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:12px">
+                            <div
+                                style="display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;background:rgba(16,185,129,0.1)">
+                                <span class="material-symbols-outlined"
+                                    style="font-size:14px;color:var(--success)">check_circle</span>
+                                <span style="font-size:0.75rem;font-weight:600;color:var(--success)">100%</span>
+                            </div>
+                            <span class="material-symbols-outlined" id="chevron-u1"
+                                style="transition:transform 0.3s;transform:rotate(180deg);color:var(--text-muted)">expand_more</span>
+                        </div>
+                    </div>
+                    <div class="expandable-content open" id="content-u1">
+                        <div style="margin-top:16px;display:flex;flex-direction:column;gap:12px">
+                            <!-- Sesión 1.1 -->
+                            <div class="session-card">
+                                <div class="session-header">
+                                    <div class="session-num" style="background:rgba(99,102,241,0.15);color:#818cf8">1.1
+                                    </div>
+                                    <div style="flex:1">
+                                        <div style="font-weight:600;font-size:0.9rem">Estructura HTML5 Semántica</div>
+                                        <div style="font-size:0.75rem;color:var(--text-muted)">3 actividades •
+                                            Completada</div>
+                                    </div>
+                                    <span class="material-symbols-outlined"
+                                        style="color:var(--success);font-size:20px">check_circle</span>
+                                </div>
+                                <div class="activities">
+                                    <div class="activity-pill pill-video"><span
+                                            class="material-symbols-outlined">play_circle</span> Video: Tags semánticos
+                                    </div>
+                                    <div class="activity-pill pill-task"><span
+                                            class="material-symbols-outlined">assignment</span> Tarea: Mi primera web
+                                    </div>
+                                    <div class="activity-pill pill-quiz"><span
+                                            class="material-symbols-outlined">quiz</span> Quiz: HTML Basics</div>
+                                </div>
+                            </div>
+                            <!-- Sesión 1.2 -->
+                            <div class="session-card">
+                                <div class="session-header">
+                                    <div class="session-num" style="background:rgba(99,102,241,0.15);color:#818cf8">1.2
+                                    </div>
+                                    <div style="flex:1">
+                                        <div style="font-weight:600;font-size:0.9rem">CSS Flexbox y Grid</div>
+                                        <div style="font-size:0.75rem;color:var(--text-muted)">4 actividades •
+                                            Completada</div>
+                                    </div>
+                                    <span class="material-symbols-outlined"
+                                        style="color:var(--success);font-size:20px">check_circle</span>
+                                </div>
+                                <div class="activities">
+                                    <div class="activity-pill pill-video"><span
+                                            class="material-symbols-outlined">play_circle</span> Video: Flexbox</div>
+                                    <div class="activity-pill pill-flashcard"><span
+                                            class="material-symbols-outlined">style</span> Flashcards: Propiedades CSS
+                                    </div>
+                                    <div class="activity-pill pill-task"><span
+                                            class="material-symbols-outlined">assignment</span> Tarea: Layout responsive
+                                    </div>
+                                    <div class="activity-pill pill-quiz"><span
+                                            class="material-symbols-outlined">quiz</span> Quiz: CSS Grid</div>
+                                </div>
+                            </div>
+                            <!-- Sesión 1.3 -->
+                            <div class="session-card">
+                                <div class="session-header">
+                                    <div class="session-num" style="background:rgba(99,102,241,0.15);color:#818cf8">1.3
+                                    </div>
+                                    <div style="flex:1">
+                                        <div style="font-weight:600;font-size:0.9rem">Responsive Design</div>
+                                        <div style="font-size:0.75rem;color:var(--text-muted)">3 actividades •
+                                            Completada</div>
+                                    </div>
+                                    <span class="material-symbols-outlined"
+                                        style="color:var(--success);font-size:20px">check_circle</span>
+                                </div>
+                                <div class="activities">
+                                    <div class="activity-pill pill-video"><span
+                                            class="material-symbols-outlined">play_circle</span> Video: Media Queries
+                                    </div>
+                                    <div class="activity-pill pill-task"><span
+                                            class="material-symbols-outlined">assignment</span> Tarea: Mobile First
+                                    </div>
+                                    <div class="activity-pill pill-forum"><span
+                                            class="material-symbols-outlined">forum</span> Foro: Mejores frameworks
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- UNIDAD 2 (colapsada, en progreso) -->
+                <div class="card" style="border-left:4px solid #06b6d4" id="unit2">
+                    <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"
+                        onclick="toggleUnit('u2')">
+                        <div style="display:flex;align-items:center;gap:12px">
+                            <div
+                                style="width:40px;height:40px;border-radius:10px;background:rgba(6,182,212,0.15);display:flex;align-items:center;justify-content:center">
+                                <span class="material-symbols-outlined" style="color:#22d3ee">looks_two</span>
+                            </div>
+                            <div>
+                                <h3 style="font-size:1rem;font-weight:700">Unidad 2: JavaScript Moderno</h3>
+                                <p style="font-size:0.8rem;color:var(--text-muted)">5 sesiones • 18 actividades</p>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:12px">
+                            <div
+                                style="display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;background:rgba(6,182,212,0.1)">
+                                <span class="material-symbols-outlined"
+                                    style="font-size:14px;color:var(--accent)">timelapse</span>
+                                <span style="font-size:0.75rem;font-weight:600;color:var(--accent)">60%</span>
+                            </div>
+                            <span class="material-symbols-outlined" id="chevron-u2"
+                                style="transition:transform 0.3s;color:var(--text-muted)">expand_more</span>
+                        </div>
+                    </div>
+                    <div class="expandable-content" id="content-u2">
+                        <div style="margin-top:16px;display:flex;flex-direction:column;gap:12px">
+                            <div class="session-card">
+                                <div class="session-header">
+                                    <div class="session-num" style="background:rgba(6,182,212,0.15);color:#22d3ee">2.1
+                                    </div>
+                                    <div style="flex:1">
+                                        <div style="font-weight:600;font-size:0.9rem">Variables, Tipos y Funciones</div>
+                                        <div style="font-size:0.75rem;color:var(--text-muted)">4 actividades •
+                                            Completada</div>
+                                    </div>
+                                    <span class="material-symbols-outlined"
+                                        style="color:var(--success);font-size:20px">check_circle</span>
+                                </div>
+                                <div class="activities">
+                                    <div class="activity-pill pill-video"><span
+                                            class="material-symbols-outlined">play_circle</span> Video: ES6+</div>
+                                    <div class="activity-pill pill-flashcard"><span
+                                            class="material-symbols-outlined">style</span> Flashcards: JS Concepts</div>
+                                    <div class="activity-pill pill-task"><span
+                                            class="material-symbols-outlined">assignment</span> Tarea: Calculadora</div>
+                                    <div class="activity-pill pill-quiz"><span
+                                            class="material-symbols-outlined">quiz</span> Quiz: Fundamentos JS</div>
+                                </div>
+                            </div>
+                            <div class="session-card" style="border:1px solid rgba(6,182,212,0.3)">
+                                <div class="session-header">
+                                    <div class="session-num" style="background:var(--accent);color:white">2.2</div>
+                                    <div style="flex:1">
+                                        <div style="font-weight:600;font-size:0.9rem">DOM Manipulation y Eventos</div>
+                                        <div style="font-size:0.75rem;color:var(--accent)">⚡ En progreso • 2/4
+                                            actividades</div>
+                                    </div>
+                                </div>
+                                <div class="activities">
+                                    <div class="activity-pill pill-video" style="opacity:0.5"><span
+                                            class="material-symbols-outlined">check_circle</span> Video: DOM API</div>
+                                    <div class="activity-pill pill-task" style="opacity:0.5"><span
+                                            class="material-symbols-outlined">check_circle</span> Tarea: Todo List</div>
+                                    <div class="activity-pill pill-quiz"><span
+                                            class="material-symbols-outlined">quiz</span> Quiz: DOM Events</div>
+                                    <div class="activity-pill pill-forum"><span
+                                            class="material-symbols-outlined">forum</span> Foro: SPA vs MPA</div>
+                                </div>
+                            </div>
+                            <div class="session-card" style="opacity:0.6">
+                                <div class="session-header">
+                                    <div class="session-num"
+                                        style="background:rgba(6,182,212,0.1);color:var(--text-muted)">2.3</div>
+                                    <div style="flex:1">
+                                        <div style="font-weight:600;font-size:0.9rem">Async/Await y Fetch API</div>
+                                        <div style="font-size:0.75rem;color:var(--text-muted)">Pendiente • 3 actividades
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- UNIDAD 3 (bloqueada) -->
+                <div class="card" style="border-left:4px solid var(--border);opacity:0.5">
+                    <div style="display:flex;align-items:center;justify-content:space-between">
+                        <div style="display:flex;align-items:center;gap:12px">
+                            <div
+                                style="width:40px;height:40px;border-radius:10px;background:rgba(100,116,139,0.15);display:flex;align-items:center;justify-content:center">
+                                <span class="material-symbols-outlined" style="color:var(--text-muted)">looks_3</span>
+                            </div>
+                            <div>
+                                <h3 style="font-size:1rem;font-weight:700">Unidad 3: React.js</h3>
+                                <p style="font-size:0.8rem;color:var(--text-muted)">4 sesiones • 14 actividades</p>
+                            </div>
+                        </div>
+                        <div
+                            style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;background:rgba(255,255,255,0.05)">
+                            <span class="material-symbols-outlined"
+                                style="font-size:14px;color:var(--text-muted)">lock</span>
+                            <span style="font-size:0.75rem;color:var(--text-muted)">Bloqueada</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- UNIDAD 4 (bloqueada) -->
+                <div class="card" style="border-left:4px solid var(--border);opacity:0.5">
+                    <div style="display:flex;align-items:center;justify-content:space-between">
+                        <div style="display:flex;align-items:center;gap:12px">
+                            <div
+                                style="width:40px;height:40px;border-radius:10px;background:rgba(100,116,139,0.15);display:flex;align-items:center;justify-content:center">
+                                <span class="material-symbols-outlined" style="color:var(--text-muted)">looks_4</span>
+                            </div>
+                            <div>
+                                <h3 style="font-size:1rem;font-weight:700">Unidad 4: Backend con Node.js</h3>
+                                <p style="font-size:0.8rem;color:var(--text-muted)">3 sesiones • 10 actividades</p>
+                            </div>
+                        </div>
+                        <div
+                            style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;background:rgba(255,255,255,0.05)">
+                            <span class="material-symbols-outlined"
+                                style="font-size:14px;color:var(--text-muted)">lock</span>
+                            <span style="font-size:0.75rem;color:var(--text-muted)">Bloqueada</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comunicación: Foros + Mensajes -->
+    <section class="section" id="comunicacion" style="background:rgba(6,182,212,0.03)">
+        <div class="container">
+            <div class="section-header">
+                <div class="tag"><span class="material-symbols-outlined" style="font-size:14px">chat</span> Comunicación
+                </div>
+                <h2>Foros y Mensajería</h2>
+                <p>Espacios de debate académico y comunicación directa entre estudiantes y docentes.</p>
+            </div>
+            <div class="comm-grid">
+                <!-- Foros -->
+                <div class="card comm-card">
+                    <div class="comm-header"
+                        style="background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(6,182,212,0.1));border-radius:12px 12px 0 0;margin:-24px -24px 0">
+                        <span class="material-symbols-outlined" style="color:var(--success)">forum</span>
+                        <span>Foros de Discusión</span>
+                        <span
+                            style="margin-left:auto;font-size:0.75rem;padding:3px 10px;background:rgba(16,185,129,0.2);border-radius:12px;color:var(--success)">3
+                            nuevos</span>
+                    </div>
+                    <div class="comm-body" style="margin-top:16px">
+                        <div class="forum-item">
+                            <div class="forum-avatar" style="background:rgba(99,102,241,0.15);color:#818cf8">MR</div>
+                            <div style="flex:1">
+                                <div style="font-weight:600;font-size:0.85rem">¿Flexbox o Grid para layouts complejos?
+                                </div>
+                                <div style="font-size:0.75rem;color:var(--text-muted)">María Rodríguez • 12 respuestas •
+                                    hace 2h</div>
+                            </div>
+                        </div>
+                        <div class="forum-item">
+                            <div class="forum-avatar" style="background:rgba(6,182,212,0.15);color:#22d3ee">JP</div>
+                            <div style="flex:1">
+                                <div style="font-weight:600;font-size:0.85rem">Dudas sobre async/await en fetch</div>
+                                <div style="font-size:0.75rem;color:var(--text-muted)">Juan Pérez • 8 respuestas • hace
+                                    5h</div>
+                            </div>
+                        </div>
+                        <div class="forum-item">
+                            <div class="forum-avatar" style="background:rgba(245,158,11,0.15);color:#fbbf24">AL</div>
+                            <div style="flex:1">
+                                <div style="font-weight:600;font-size:0.85rem">Compartiendo mi proyecto final 🚀</div>
+                                <div style="font-size:0.75rem;color:var(--text-muted)">Ana López • 15 respuestas • hace
+                                    1d</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Mensajes -->
+                <div class="card comm-card">
+                    <div class="comm-header"
+                        style="background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(168,85,247,0.1));border-radius:12px 12px 0 0;margin:-24px -24px 0">
+                        <span class="material-symbols-outlined" style="color:var(--primary-light)">mail</span>
+                        <span>Mensajes Directos</span>
+                        <span
+                            style="margin-left:auto;font-size:0.75rem;padding:3px 10px;background:rgba(99,102,241,0.2);border-radius:12px;color:var(--primary-light)">2
+                            sin leer</span>
+                    </div>
+                    <div class="comm-body" style="margin-top:16px">
+                        <div class="msg-item msg-received">
+                            <div class="forum-avatar"
+                                style="background:rgba(99,102,241,0.15);color:#818cf8;font-size:0.7rem">Prof</div>
+                            <div class="msg-bubble">Hola! Revisé tu tarea de Flexbox, muy buen trabajo. Solo un detalle
+                                en el media query del breakpoint tablet 📱</div>
+                        </div>
+                        <div class="msg-item msg-sent">
+                            <div class="msg-bubble">Gracias profesor! Ya lo corregí. ¿Puede revisar de nuevo?</div>
+                        </div>
+                        <div class="msg-item msg-received">
+                            <div class="forum-avatar"
+                                style="background:rgba(99,102,241,0.15);color:#818cf8;font-size:0.7rem">Prof</div>
+                            <div class="msg-bubble">Perfecto, nota actualizada a 95/100 ⭐</div>
+                        </div>
+                        <div style="margin-top:12px;display:flex;gap:8px">
+                            <input type="text" placeholder="Escribe un mensaje..."
+                                style="flex:1;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card-hover);color:var(--text-primary);font-size:0.85rem;outline:none">
+                            <button
+                                style="padding:10px 16px;border-radius:10px;background:var(--primary);border:none;cursor:pointer;display:flex;align-items:center">
+                                <span class="material-symbols-outlined" style="color:white;font-size:18px">send</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Calendario -->
+    <section class="section" id="calendario">
+        <div class="container">
+            <div class="section-header">
+                <div class="tag"><span class="material-symbols-outlined" style="font-size:14px">calendar_month</span>
+                    Planificación</div>
+                <h2>Calendario Académico</h2>
+                <p>Visualiza entregas, quizzes, sesiones en vivo y eventos de foro en un solo lugar.</p>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 360px;gap:24px">
+                <div class="calendar">
+                    <div class="cal-header">
+                        <button style="background:none;border:none;cursor:pointer"><span
+                                class="material-symbols-outlined"
+                                style="color:var(--text-secondary)">chevron_left</span></button>
+                        <span style="font-weight:700;font-size:1.1rem">Marzo 2026</span>
+                        <button style="background:none;border:none;cursor:pointer"><span
+                                class="material-symbols-outlined"
+                                style="color:var(--text-secondary)">chevron_right</span></button>
+                    </div>
+                    <div class="cal-grid">
+                        <div class="cal-day-name">Lun</div>
+                        <div class="cal-day-name">Mar</div>
+                        <div class="cal-day-name">Mié</div>
+                        <div class="cal-day-name">Jue</div>
+                        <div class="cal-day-name">Vie</div>
+                        <div class="cal-day-name">Sáb</div>
+                        <div class="cal-day-name">Dom</div>
+                        <div class="cal-day empty"></div>
+                        <div class="cal-day empty"></div>
+                        <div class="cal-day empty"></div>
+                        <div class="cal-day empty"></div>
+                        <div class="cal-day empty"></div>
+                        <div class="cal-day empty"></div>
+                        <div class="cal-day">1</div>
+                        <div class="cal-day today">2</div>
+                        <div class="cal-day has-event event-task">3</div>
+                        <div class="cal-day">4</div>
+                        <div class="cal-day has-event event-quiz">5</div>
+                        <div class="cal-day has-event event-forum">6</div>
+                        <div class="cal-day">7</div>
+                        <div class="cal-day">8</div>
+                        <div class="cal-day">9</div>
+                        <div class="cal-day has-event event-task">10</div>
+                        <div class="cal-day">11</div>
+                        <div class="cal-day has-event event-quiz">12</div>
+                        <div class="cal-day">13</div>
+                        <div class="cal-day">14</div>
+                        <div class="cal-day">15</div>
+                        <div class="cal-day">16</div>
+                        <div class="cal-day">17</div>
+                        <div class="cal-day has-event event-task">18</div>
+                        <div class="cal-day">19</div>
+                        <div class="cal-day has-event event-quiz">20</div>
+                        <div class="cal-day">21</div>
+                        <div class="cal-day">22</div>
+                        <div class="cal-day">23</div>
+                        <div class="cal-day">24</div>
+                        <div class="cal-day has-event event-forum">25</div>
+                        <div class="cal-day">26</div>
+                        <div class="cal-day">27</div>
+                        <div class="cal-day">28</div>
+                        <div class="cal-day">29</div>
+                        <div class="cal-day">30</div>
+                        <div class="cal-day">31</div>
+                    </div>
+                    <div style="padding:12px 20px;display:flex;gap:16px;border-top:1px solid var(--border)">
+                        <div style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:var(--text-muted)">
+                            <div style="width:8px;height:8px;border-radius:50%;background:#60a5fa"></div> Tareas
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:var(--text-muted)">
+                            <div style="width:8px;height:8px;border-radius:50%;background:#c084fc"></div> Quizzes
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:var(--text-muted)">
+                            <div style="width:8px;height:8px;border-radius:50%;background:#34d399"></div> Foros
+                        </div>
+                    </div>
+                </div>
+                <!-- Upcoming Events -->
+                <div style="display:flex;flex-direction:column;gap:12px">
+                    <h3 style="font-weight:700;margin-bottom:4px">Próximas entregas</h3>
+                    <div class="card" style="padding:14px;border-left:3px solid #60a5fa">
+                        <div style="font-weight:600;font-size:0.85rem">Tarea: DOM Manipulation</div>
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">📅 3 Mar • Sesión 2.2
+                        </div>
+                    </div>
+                    <div class="card" style="padding:14px;border-left:3px solid #c084fc">
+                        <div style="font-weight:600;font-size:0.85rem">Quiz: JavaScript Events</div>
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">📅 5 Mar • 15 preguntas •
+                            30 min</div>
+                    </div>
+                    <div class="card" style="padding:14px;border-left:3px solid #34d399">
+                        <div style="font-weight:600;font-size:0.85rem">Foro: Debate SPA vs MPA</div>
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">📅 6 Mar • Participación
+                            obligatoria</div>
+                    </div>
+                    <div class="card" style="padding:14px;border-left:3px solid #60a5fa">
+                        <div style="font-weight:600;font-size:0.85rem">Tarea: Fetch API App</div>
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">📅 10 Mar • Sesión 2.3
+                        </div>
+                    </div>
+                    <div class="card" style="padding:14px;border-left:3px solid #c084fc">
+                        <div style="font-weight:600;font-size:0.85rem">Quiz: Async JavaScript</div>
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">📅 12 Mar • 20 preguntas •
+                            25 min</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Grid -->
+    <section class="section" style="background:rgba(99,102,241,0.03)">
+        <div class="container">
+            <div class="section-header">
+                <div class="tag">✨ Funcionalidades</div>
+                <h2>Todo en una Plataforma</h2>
+            </div>
+            <div class="grid-4">
+                <div class="card" style="text-align:center;padding:28px 20px">
+                    <div class="feature-icon"
+                        style="background:linear-gradient(135deg,#6366f1,#8b5cf6);margin:0 auto 12px"><span
+                            class="material-symbols-outlined">assignment</span></div>
+                    <h4 style="font-size:0.9rem;font-weight:700;margin-bottom:6px">Tareas</h4>
+                    <p style="font-size:0.78rem;color:var(--text-secondary)">Entregas con rúbricas, calificación y
+                        retroalimentación IA</p>
+                </div>
+                <div class="card" style="text-align:center;padding:28px 20px">
+                    <div class="feature-icon"
+                        style="background:linear-gradient(135deg,#06b6d4,#10b981);margin:0 auto 12px"><span
+                            class="material-symbols-outlined">style</span></div>
+                    <h4 style="font-size:0.9rem;font-weight:700;margin-bottom:6px">Flashcards</h4>
+                    <p style="font-size:0.78rem;color:var(--text-secondary)">Repaso espaciado con algoritmo inteligente
+                        de retención</p>
+                </div>
+                <div class="card" style="text-align:center;padding:28px 20px">
+                    <div class="feature-icon"
+                        style="background:linear-gradient(135deg,#8b5cf6,#ec4899);margin:0 auto 12px"><span
+                            class="material-symbols-outlined">quiz</span></div>
+                    <h4 style="font-size:0.9rem;font-weight:700;margin-bottom:6px">Quizzes</h4>
+                    <p style="font-size:0.78rem;color:var(--text-secondary)">Evaluaciones con múltiples formatos y
+                        analytics</p>
+                </div>
+                <div class="card" style="text-align:center;padding:28px 20px">
+                    <div class="feature-icon"
+                        style="background:linear-gradient(135deg,#f59e0b,#ef4444);margin:0 auto 12px"><span
+                            class="material-symbols-outlined">smart_toy</span></div>
+                    <h4 style="font-size:0.9rem;font-weight:700;margin-bottom:6px">Tutor IA</h4>
+                    <p style="font-size:0.78rem;color:var(--text-secondary)">Asistente virtual con contexto del curso y
+                        material</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="padding:40px 0;border-top:1px solid var(--border);text-align:center">
+        <div class="container">
+            <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px">
+                <div class="dot"
+                    style="width:28px;height:28px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:8px;display:flex;align-items:center;justify-content:center">
+                    <span class="material-symbols-outlined" style="color:white;font-size:16px">school</span>
+                </div>
+                <span style="font-weight:700;font-size:1.1rem">EduSpark</span>
+            </div>
+            <p style="color:var(--text-muted);font-size:0.8rem">&copy; 2026 EduSpark. Plataforma Educativa Integral con
+                IA.</p>
+        </div>
+    </footer>
+
+    <script>
+        function toggleUnit(id) {
+            const content = document.getElementById('content-' + id);
+            const chevron = document.getElementById('chevron-' + id);
+            content.classList.toggle('open');
+            chevron.style.transform = content.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+
+        // Intersection Observer for animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-in');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.card').forEach(card => observer.observe(card));
+
+        // Smooth scroll for nav links
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                document.querySelectorAll('.nav-links a').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+
+</html>

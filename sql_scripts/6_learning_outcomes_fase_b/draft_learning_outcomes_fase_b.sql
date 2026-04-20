@@ -1,0 +1,4 @@
+-- Obsoleto como copia única: el esquema aplicable vive en:
+--   supabase/migrations/20260328_learning_outcomes_fase_b.sql
+-- (tablas, trigger de mismo curso, RLS).
+-- Mantener esta carpeta solo como ancla de documentación SCA.
