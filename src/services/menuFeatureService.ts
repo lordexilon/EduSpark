@@ -1,9 +1,9 @@
 import { supabase } from '@/lib/supabase';
 
 export type MenuFeature = {
-    key: string;
-    enabled: boolean;
-    allowed_roles: string[];
+  key: string;
+  enabled: boolean;
+  allowed_roles: string[];
 };
 
 /**
@@ -11,14 +11,14 @@ export type MenuFeature = {
  * La llamada se hace una sola vez después de la autenticación.
  */
 export const fetchMenuFeatures = async (): Promise<MenuFeature[]> => {
-    const { data, error } = await supabase
-        .from('menu_features')
-        .select('key, enabled, allowed_roles');
+  const { data, error } = await supabase
+    .from('menu_features')
+    .select('key, enabled, allowed_roles');
 
-    if (error) {
-        console.warn('⚠️  Error al cargar menu_features:', error);
-        return [];
-    }
+  if (error) {
+    console.warn('⚠️  Error al cargar menu_features:', error);
+    return [];
+  }
 
-    return data as MenuFeature[];
+  return data as MenuFeature[];
 };

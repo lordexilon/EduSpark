@@ -27,7 +27,8 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children, allowedRoles }) => {
   // Si no, usar la lógica por defecto de administración
   const isAuthorized = allowedRoles
     ? allowedRoles.includes(userRole)
-    : ['admin', 'coordinator', 'admin-campus', 'supervisor'].includes(userRole) || (userRole === 'student' && process.env.NODE_ENV === 'development'); // Student solo para testing local
+    : ['admin', 'coordinator', 'admin-campus', 'supervisor'].includes(userRole) ||
+      (userRole === 'student' && process.env.NODE_ENV === 'development'); // Student solo para testing local
 
   // Logging para diagnóstico
   console.log('🔐 AdminRoute - Verificación de permisos:', {
@@ -35,7 +36,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children, allowedRoles }) => {
     userId: user?.id,
     roleName: userRole,
     isAuthorized,
-    allowedRoles: allowedRoles || 'default admin roles'
+    allowedRoles: allowedRoles || 'default admin roles',
   });
 
   if (!user) {
@@ -50,4 +51,3 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children, allowedRoles }) => {
 };
 
 export default AdminRoute;
-

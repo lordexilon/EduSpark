@@ -33,7 +33,12 @@ export const CourseMaterialSelector: React.FC<CourseMaterialSelectorProps> = ({
   const [showCourseDropdown, setShowCourseDropdown] = useState(false);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
-  const categories: Array<{ value: MaterialCategory; label: string; icon: React.ReactNode; description: string }> = [
+  const categories: Array<{
+    value: MaterialCategory;
+    label: string;
+    icon: React.ReactNode;
+    description: string;
+  }> = [
     {
       value: 'book',
       label: 'Libro',
@@ -99,8 +104,8 @@ export const CourseMaterialSelector: React.FC<CourseMaterialSelectorProps> = ({
     }
   };
 
-  const selectedCourse = courses.find(c => String(c.id) === String(selectedCourseId));
-  const selectedCategoryData = categories.find(c => c.value === selectedCategory);
+  const selectedCourse = courses.find((c) => String(c.id) === String(selectedCourseId));
+  const selectedCategoryData = categories.find((c) => c.value === selectedCategory);
 
   return (
     <div className="space-y-4">
@@ -121,7 +126,10 @@ export const CourseMaterialSelector: React.FC<CourseMaterialSelectorProps> = ({
                 ? `${selectedCourse.title}${selectedCourse.code ? ` (${selectedCourse.code})` : ''}`
                 : 'Selecciona un curso'}
             </span>
-            <ChevronDown size={20} className={`transition-transform ${showCourseDropdown ? 'rotate-180' : ''}`} />
+            <ChevronDown
+              size={20}
+              className={`transition-transform ${showCourseDropdown ? 'rotate-180' : ''}`}
+            />
           </button>
 
           {showCourseDropdown && !disabled && (
@@ -129,7 +137,9 @@ export const CourseMaterialSelector: React.FC<CourseMaterialSelectorProps> = ({
               {loading ? (
                 <div className="px-4 py-2 text-gray-600 dark:text-gray-400">Cargando cursos...</div>
               ) : courses.length === 0 ? (
-                <div className="px-4 py-2 text-gray-600 dark:text-gray-400">No tienes cursos disponibles</div>
+                <div className="px-4 py-2 text-gray-600 dark:text-gray-400">
+                  No tienes cursos disponibles
+                </div>
               ) : (
                 courses.map((course) => (
                   <button
@@ -174,7 +184,10 @@ export const CourseMaterialSelector: React.FC<CourseMaterialSelectorProps> = ({
                 <span>Selecciona una categoría</span>
               )}
             </span>
-            <ChevronDown size={20} className={`transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+            <ChevronDown
+              size={20}
+              className={`transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`}
+            />
           </button>
 
           {showCategoryDropdown && !disabled && selectedCourseId && (
@@ -214,4 +227,3 @@ export const CourseMaterialSelector: React.FC<CourseMaterialSelectorProps> = ({
     </div>
   );
 };
-

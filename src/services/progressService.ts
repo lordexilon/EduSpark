@@ -11,7 +11,20 @@ function getDayKey(date: Date, timeframe: 'monthly' | 'weekly'): string {
     const days = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'];
     return days[date.getDay()];
   } else {
-    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const months = [
+      'Ene',
+      'Feb',
+      'Mar',
+      'Abr',
+      'May',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dic',
+    ];
     return `${months[date.getMonth()]} ${date.getDate()}`;
   }
 }
@@ -78,7 +91,8 @@ export const progressService = {
       const totalFlashcards = flashcards?.length || 0;
 
       // Si no hay contenido, el progreso es 0
-      const totalItems = totalUnits + totalSessions + totalAssessments + totalAssignments + totalFlashcards;
+      const totalItems =
+        totalUnits + totalSessions + totalAssessments + totalAssignments + totalFlashcards;
       if (totalItems === 0) return 0;
 
       let completedItems = 0;
@@ -110,9 +124,7 @@ export const progressService = {
 
         if (!sessionProgressError && sessionProgressData && sessionProgressData.length > 0) {
           const completedSet = new Set(
-            sessionProgressData
-              .map((progress: any) => progress.session_id)
-              .filter(Boolean)
+            sessionProgressData.map((progress: any) => progress.session_id).filter(Boolean)
           );
           const completedSessions = completedSet.size;
           completedItems += Math.min(completedSessions, totalSessions);
@@ -121,7 +133,7 @@ export const progressService = {
 
       // 7. Contar quizzes/trivias completados
       if (totalAssessments > 0) {
-        const assessmentIds = (assessments || []).map(a => a.id);
+        const assessmentIds = (assessments || []).map((a) => a.id);
         const { data: completedAssessments, error: completedError } = await supabase
           .from('assessment_attempts')
           .select('assessment_id')
@@ -130,14 +142,14 @@ export const progressService = {
           .in('status', ['submitted', 'graded']);
 
         if (!completedError && completedAssessments) {
-          const uniqueCompleted = new Set(completedAssessments.map(a => a.assessment_id));
+          const uniqueCompleted = new Set(completedAssessments.map((a) => a.assessment_id));
           completedItems += uniqueCompleted.size;
         }
       }
 
       // 8. Contar tareas (assignments) entregadas y calificadas
       if (totalAssignments > 0) {
-        const assignmentIds = (courseAssignments || []).map(a => a.id);
+        const assignmentIds = (courseAssignments || []).map((a) => a.id);
         const { data: completedAssignments, error: assignmentsCompletedError } = await supabase
           .from('assignment_submissions')
           .select('assignment_id')
@@ -146,14 +158,14 @@ export const progressService = {
           .not('grade', 'is', null); // Solo contar las que ya tienen calificación
 
         if (!assignmentsCompletedError && completedAssignments) {
-          const uniqueCompleted = new Set(completedAssignments.map(a => a.assignment_id));
+          const uniqueCompleted = new Set(completedAssignments.map((a) => a.assignment_id));
           completedItems += uniqueCompleted.size;
         }
       }
 
       // 9. Contar flashcards dominadas (mastery_level >= 4)
       if (totalFlashcards > 0) {
-        const flashcardIds = (flashcards || []).map(f => f.id);
+        const flashcardIds = (flashcards || []).map((f) => f.id);
         const { data: flashcardProgress, error: flashcardProgressError } = await supabase
           .from('flashcard_progress')
           .select('flashcard_id')
@@ -162,7 +174,7 @@ export const progressService = {
           .gte('mastery_level', 4); // Dominadas (nivel 4 o 5)
 
         if (!flashcardProgressError && flashcardProgress) {
-          const uniqueMastered = new Set(flashcardProgress.map(p => p.flashcard_id));
+          const uniqueMastered = new Set(flashcardProgress.map((p) => p.flashcard_id));
           completedItems += uniqueMastered.size;
         }
       }
@@ -189,7 +201,7 @@ export const progressService = {
         .update({
           completion_percentage: progress,
           last_access_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('student_id', studentId)
         .eq('course_id', courseId);
@@ -202,7 +214,7 @@ export const progressService = {
           .from('course_enrollments')
           .update({
             completed_at: new Date().toISOString(),
-            status: 'completed'
+            status: 'completed',
           })
           .eq('student_id', studentId)
           .eq('course_id', courseId);
@@ -348,7 +360,7 @@ export const progressService = {
       const totalActivities =
         typeof options?.totalActivities === 'number'
           ? options.totalActivities
-          : existing?.total_activities ?? 0;
+          : (existing?.total_activities ?? 0);
 
       const payload: Record<string, any> = {
         student_id: studentId,
@@ -442,7 +454,10 @@ export const progressService = {
    * @param timeframe 'monthly' o 'weekly'
    * @returns Array de objetos con { day, hours }
    */
-  async getLearningHours(studentId: string, timeframe: 'monthly' | 'weekly' = 'monthly'): Promise<Array<{ day: string; hours: number }>> {
+  async getLearningHours(
+    studentId: string,
+    timeframe: 'monthly' | 'weekly' = 'monthly'
+  ): Promise<Array<{ day: string; hours: number }>> {
     try {
       const now = new Date();
       let startDate: Date;
@@ -507,7 +522,10 @@ export const progressService = {
 
       // Procesar course_enrollments PRIMERO (fuente principal)
       if (!enrollmentsResult.error && enrollmentsResult.data && enrollmentsResult.data.length > 0) {
-        console.log('📊 Horas de aprendizaje - Enrollments encontrados:', enrollmentsResult.data.length);
+        console.log(
+          '📊 Horas de aprendizaje - Enrollments encontrados:',
+          enrollmentsResult.data.length
+        );
         enrollmentsResult.data.forEach((enrollment: any) => {
           // Intentar obtener time_spent_minutes de cualquier campo posible
           const totalMinutes = enrollment.time_spent_minutes || enrollment.time_spent || 0;
@@ -525,7 +543,10 @@ export const progressService = {
             // Si tiene 50% de progreso, estimar proporcionalmente
             const estimatedCourseHours = 15; // Horas estimadas para completar el curso
             minutesToUse = Math.round((completion / 100) * estimatedCourseHours * 60);
-            console.log('📊 Estimando tiempo basado en progreso:', completion + '% = ~' + Math.round(minutesToUse / 60) + ' horas');
+            console.log(
+              '📊 Estimando tiempo basado en progreso:',
+              completion + '% = ~' + Math.round(minutesToUse / 60) + ' horas'
+            );
           }
 
           if (minutesToUse === 0) {
@@ -534,8 +555,12 @@ export const progressService = {
           }
 
           // Usar cualquier campo de fecha disponible
-          const dateStr = enrollment.last_access_at || enrollment.last_accessed_at ||
-            enrollment.updated_at || enrollment.enrolled_at || enrollment.enrollment_date ||
+          const dateStr =
+            enrollment.last_access_at ||
+            enrollment.last_accessed_at ||
+            enrollment.updated_at ||
+            enrollment.enrolled_at ||
+            enrollment.enrollment_date ||
             enrollment.created_at;
           if (!dateStr) {
             console.log('📊 Enrollment sin fecha disponible');
@@ -543,7 +568,16 @@ export const progressService = {
           }
 
           const date = new Date(dateStr);
-          console.log('📊 Fecha encontrada:', dateStr, '->', date, 'startDate:', startDate, 'está en rango:', date >= startDate);
+          console.log(
+            '📊 Fecha encontrada:',
+            dateStr,
+            '->',
+            date,
+            'startDate:',
+            startDate,
+            'está en rango:',
+            date >= startDate
+          );
 
           if (date < startDate) {
             console.log('📊 Fecha fuera del rango de timeframe');
@@ -562,10 +596,15 @@ export const progressService = {
       // Procesar session_progress como fuente adicional (si no hay datos en enrollments o para complementar)
       // Filtrar solo sesiones de cursos habilitados
       if (!sessionProgressResult.error && sessionProgressResult.data) {
-        console.log('📊 Horas de aprendizaje - session_progress encontrados:', sessionProgressResult.data.length);
+        console.log(
+          '📊 Horas de aprendizaje - session_progress encontrados:',
+          sessionProgressResult.data.length
+        );
 
         // Obtener información de sesiones y cursos para validar fechas
-        const sessionIds = [...new Set(sessionProgressResult.data.map((sp: any) => sp.session_id).filter(Boolean))];
+        const sessionIds = [
+          ...new Set(sessionProgressResult.data.map((sp: any) => sp.session_id).filter(Boolean)),
+        ];
 
         if (sessionIds.length > 0) {
           const { data: sessionsData } = await supabase
@@ -576,18 +615,20 @@ export const progressService = {
           const { data: coursesData } = await supabase
             .from('courses')
             .select('id, start_date, end_date')
-            .in('id', [...new Set(sessionProgressResult.data.map((sp: any) => sp.course_id).filter(Boolean))]);
+            .in('id', [
+              ...new Set(sessionProgressResult.data.map((sp: any) => sp.course_id).filter(Boolean)),
+            ]);
 
           const courseMap = new Map();
           if (coursesData) {
-            coursesData.forEach(course => {
+            coursesData.forEach((course) => {
               courseMap.set(course.id, course);
             });
           }
 
           const sessionMap = new Map();
           if (sessionsData) {
-            sessionsData.forEach(session => {
+            sessionsData.forEach((session) => {
               sessionMap.set(session.id, session);
             });
           }
@@ -622,7 +663,8 @@ export const progressService = {
               }
             }
 
-            const dateStr = progress.last_accessed_at || progress.updated_at || progress.first_accessed_at;
+            const dateStr =
+              progress.last_accessed_at || progress.updated_at || progress.first_accessed_at;
             if (!dateStr) return;
             const date = new Date(dateStr);
             if (date < startDate) return;
@@ -655,11 +697,12 @@ export const progressService = {
     }
   },
 
-
   /**
    * Obtiene el tiempo total invertido por categoría (curso o tipo de actividad)
    */
-  async getLearningHoursByCategory(studentId: string): Promise<Array<{ category: string; hours: number; minutes: number }>> {
+  async getLearningHoursByCategory(
+    studentId: string
+  ): Promise<Array<{ category: string; hours: number; minutes: number }>> {
     try {
       const now = new Date();
 
@@ -698,7 +741,9 @@ export const progressService = {
           // Si no hay tiempo pero hay progreso, estimar
           if (minutes === 0 && enrollment.completion_percentage > 0) {
             const estimatedCourseHours = 15; // Mismo valor que en getLearningHours
-            minutes = Math.round((enrollment.completion_percentage / 100) * estimatedCourseHours * 60);
+            minutes = Math.round(
+              (enrollment.completion_percentage / 100) * estimatedCourseHours * 60
+            );
           }
 
           if (minutes > 0) {
@@ -718,8 +763,12 @@ export const progressService = {
 
         if (!sessionError && sessionProgress && sessionProgress.length > 0) {
           // Obtener información de los cursos y sesiones para validar fechas
-          const courseIds = [...new Set(sessionProgress.map((sp: any) => sp.course_id).filter(Boolean))];
-          const sessionIds = [...new Set(sessionProgress.map((sp: any) => sp.session_id).filter(Boolean))];
+          const courseIds = [
+            ...new Set(sessionProgress.map((sp: any) => sp.course_id).filter(Boolean)),
+          ];
+          const sessionIds = [
+            ...new Set(sessionProgress.map((sp: any) => sp.session_id).filter(Boolean)),
+          ];
 
           const { data: courses } = await supabase
             .from('courses')
@@ -733,14 +782,14 @@ export const progressService = {
 
           const courseMap = new Map();
           if (courses) {
-            courses.forEach(course => {
+            courses.forEach((course) => {
               courseMap.set(course.id, course);
             });
           }
 
           const sessionMap = new Map();
           if (sessions) {
-            sessions.forEach(session => {
+            sessions.forEach((session) => {
               sessionMap.set(session.id, session);
             });
           }
@@ -802,6 +851,5 @@ export const progressService = {
       console.error('Error obteniendo horas por categoría:', error);
       return [];
     }
-  }
+  },
 };
-

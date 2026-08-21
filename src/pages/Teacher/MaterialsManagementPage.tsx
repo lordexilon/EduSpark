@@ -39,7 +39,7 @@ import {
   HardDrive,
   MoreVertical,
   ChevronDown,
-  Hash
+  Hash,
 } from 'lucide-react';
 import type { MaterialCategory } from '@/types/fileProcessing';
 
@@ -59,7 +59,14 @@ export const MaterialsManagementPage: React.FC = () => {
     }
 
     // Verificar si el usuario tiene permisos para acceder
-    const allowedRoles = ['admin', 'admin-campus', 'coordinator', 'supervisor', 'teacher', 'student'];
+    const allowedRoles = [
+      'admin',
+      'admin-campus',
+      'coordinator',
+      'supervisor',
+      'teacher',
+      'student',
+    ];
     if (!allowedRoles.includes(user.role?.name || '')) {
       alert('No tienes permisos para acceder a esta página');
       navigate('/dashboard');
@@ -91,7 +98,9 @@ export const MaterialsManagementPage: React.FC = () => {
 
   // Compartir con estudiantes
   const [sharingMaterial, setSharingMaterial] = useState<string | null>(null);
-  const [sharingStatus, setSharingStatus] = useState<{ success: number; failed: number } | null>(null);
+  const [sharingStatus, setSharingStatus] = useState<{ success: number; failed: number } | null>(
+    null
+  );
 
   // Migración y procesamiento
   const [migratingMaterial, setMigratingMaterial] = useState<string | null>(null);
@@ -99,12 +108,12 @@ export const MaterialsManagementPage: React.FC = () => {
 
   // Referencia para el scroll de la tabla
   const tableScrollRef = useRef<HTMLDivElement>(null);
-  
+
   // Estado para menús desplegables de acciones
   const [openActionMenus, setOpenActionMenus] = useState<Set<string>>(new Set());
-  
+
   const toggleActionMenu = (materialId: string) => {
-    setOpenActionMenus(prev => {
+    setOpenActionMenus((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(materialId)) {
         newSet.delete(materialId);
@@ -114,7 +123,7 @@ export const MaterialsManagementPage: React.FC = () => {
       return newSet;
     });
   };
-  
+
   // Cerrar menús al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -125,40 +134,56 @@ export const MaterialsManagementPage: React.FC = () => {
         }
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openActionMenus]);
 
   // Modal de asignación de cursos
   const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
-  const [selectedMaterialForAssignment, setSelectedMaterialForAssignment] = useState<Material | null>(null);
+  const [selectedMaterialForAssignment, setSelectedMaterialForAssignment] =
+    useState<Material | null>(null);
 
   // Cursos asignados por material
-  const [materialCourses, setMaterialCourses] = useState<Record<string, Array<{
-    course_id: number;
-    course_title: string;
-    course_code: string;
-  }>>>({});
+  const [materialCourses, setMaterialCourses] = useState<
+    Record<
+      string,
+      Array<{
+        course_id: number;
+        course_title: string;
+        course_code: string;
+      }>
+    >
+  >({});
 
   // Unidades asignadas por material
-  const [materialUnits, setMaterialUnits] = useState<Record<string, Array<{
-    unit_id: string;
-    unit_title: string;
-    unit_number: number;
-    course_id: number;
-    course_title: string;
-  }>>>({});
+  const [materialUnits, setMaterialUnits] = useState<
+    Record<
+      string,
+      Array<{
+        unit_id: string;
+        unit_title: string;
+        unit_number: number;
+        course_id: number;
+        course_title: string;
+      }>
+    >
+  >({});
 
   // Sesiones asignadas por material
-  const [materialSessions, setMaterialSessions] = useState<Record<string, Array<{
-    session_id: string;
-    session_title: string;
-    course_id: number;
-    course_title: string;
-    unit_id?: string;
-    unit_title?: string;
-  }>>>({});
+  const [materialSessions, setMaterialSessions] = useState<
+    Record<
+      string,
+      Array<{
+        session_id: string;
+        session_title: string;
+        course_id: number;
+        course_title: string;
+        unit_id?: string;
+        unit_title?: string;
+      }>
+    >
+  >({});
 
   // Estadísticas
   const [stats, setStats] = useState({
@@ -188,9 +213,13 @@ export const MaterialsManagementPage: React.FC = () => {
   }, [materials]);
 
   useEffect(() => {
-    console.log(`📊 [MaterialsManagementPage] useEffect para loadChunksCount: materials.length = ${materials.length}`);
+    console.log(
+      `📊 [MaterialsManagementPage] useEffect para loadChunksCount: materials.length = ${materials.length}`
+    );
     if (materials.length > 0) {
-      console.log(`📊 [MaterialsManagementPage] Ejecutando loadChunksCount para ${materials.length} materiales`);
+      console.log(
+        `📊 [MaterialsManagementPage] Ejecutando loadChunksCount para ${materials.length} materiales`
+      );
       loadChunksCount();
     } else {
       console.log(`📊 [MaterialsManagementPage] No hay materiales, saltando loadChunksCount`);
@@ -203,15 +232,17 @@ export const MaterialsManagementPage: React.FC = () => {
 
     const unsubscribe = subscribeToAllJobs(user.id, async (jobs: FileProcessingJob[]) => {
       // Usar el estado actual de materials sin incluirlo en dependencias
-      setMaterials(currentMaterials => {
+      setMaterials((currentMaterials) => {
         // Buscar materiales que necesitan actualización
-        const materialsToUpdate: { id: string; status: 'processing' | 'completed' | 'failed' }[] = [];
+        const materialsToUpdate: { id: string; status: 'processing' | 'completed' | 'failed' }[] =
+          [];
 
         for (const material of currentMaterials) {
           // Buscar job asociado por materialId o sourceFileId
-          const job = jobs.find(j =>
-            j.metadata?.materialId === material.id ||
-            j.metadata?.sourceFileId === material.metadata?.sourceFileId
+          const job = jobs.find(
+            (j) =>
+              j.metadata?.materialId === material.id ||
+              j.sourceFileId === material.metadata?.sourceFileId
           );
 
           if (job) {
@@ -226,7 +257,7 @@ export const MaterialsManagementPage: React.FC = () => {
             ) {
               materialsToUpdate.push({
                 id: material.id,
-                status: jobStatus as 'processing' | 'completed' | 'failed'
+                status: jobStatus as 'processing' | 'completed' | 'failed',
               });
             }
           }
@@ -261,13 +292,14 @@ export const MaterialsManagementPage: React.FC = () => {
           });
 
           // Actualizar estado local
-          return currentMaterials.map(m => {
-            const update = materialsToUpdate.find(u => u.id === m.id);
+          return currentMaterials.map((m) => {
+            const update = materialsToUpdate.find((u) => u.id === m.id);
             if (update) {
               return {
                 ...m,
                 rag_status: update.status,
-                processed_at: update.status === 'completed' ? new Date().toISOString() : m.processed_at
+                processed_at:
+                  update.status === 'completed' ? new Date().toISOString() : m.processed_at,
               };
             }
             return m;
@@ -299,7 +331,9 @@ export const MaterialsManagementPage: React.FC = () => {
 
       if (teacherCourses.length === 0) {
         console.warn('⚠️ No se encontraron cursos para el profesor');
-        setError('No tienes cursos creados. Crea un curso primero para poder gestionar materiales.');
+        setError(
+          'No tienes cursos creados. Crea un curso primero para poder gestionar materiales.'
+        );
       }
 
       setCourses(teacherCourses);
@@ -373,28 +407,37 @@ export const MaterialsManagementPage: React.FC = () => {
     try {
       console.log('🔄 Cargando asignaciones para', materials.length, 'materiales...');
 
-      const coursesMap: Record<string, Array<{
-        course_id: number;
-        course_title: string;
-        course_code: string;
-      }>> = {};
+      const coursesMap: Record<
+        string,
+        Array<{
+          course_id: number;
+          course_title: string;
+          course_code: string;
+        }>
+      > = {};
 
-      const unitsMap: Record<string, Array<{
-        unit_id: string;
-        unit_title: string;
-        unit_number: number;
-        course_id: number;
-        course_title: string;
-      }>> = {};
+      const unitsMap: Record<
+        string,
+        Array<{
+          unit_id: string;
+          unit_title: string;
+          unit_number: number;
+          course_id: number;
+          course_title: string;
+        }>
+      > = {};
 
-      const sessionsMap: Record<string, Array<{
-        session_id: string;
-        session_title: string;
-        course_id: number;
-        course_title: string;
-        unit_id?: string;
-        unit_title?: string;
-      }>> = {};
+      const sessionsMap: Record<
+        string,
+        Array<{
+          session_id: string;
+          session_title: string;
+          course_id: number;
+          course_title: string;
+          unit_id?: string;
+          unit_title?: string;
+        }>
+      > = {};
 
       // Cargar asignaciones para todos los materiales en paralelo
       const promises = materials.map(async (material) => {
@@ -411,7 +454,7 @@ export const MaterialsManagementPage: React.FC = () => {
             materialService.getMaterialSessions(material.id).catch((err) => {
               console.warn(`Error cargando sesiones para material ${material.id}:`, err);
               return [];
-            })
+            }),
           ]);
 
           if (assignedCourses.length > 0) {
@@ -431,14 +474,14 @@ export const MaterialsManagementPage: React.FC = () => {
       await Promise.all(promises);
 
       // Actualizar estados preservando valores existentes
-      setMaterialCourses(prev => ({ ...prev, ...coursesMap }));
-      setMaterialUnits(prev => ({ ...prev, ...unitsMap }));
-      setMaterialSessions(prev => ({ ...prev, ...sessionsMap }));
+      setMaterialCourses((prev) => ({ ...prev, ...coursesMap }));
+      setMaterialUnits((prev) => ({ ...prev, ...unitsMap }));
+      setMaterialSessions((prev) => ({ ...prev, ...sessionsMap }));
 
       console.log('✅ Asignaciones cargadas:', {
         cursos: Object.keys(coursesMap).length,
         unidades: Object.keys(unitsMap).length,
-        sesiones: Object.keys(sessionsMap).length
+        sesiones: Object.keys(sessionsMap).length,
       });
     } catch (err) {
       console.error('Error cargando asignaciones de materiales:', err);
@@ -448,23 +491,24 @@ export const MaterialsManagementPage: React.FC = () => {
   const calculateStats = () => {
     const newStats = {
       total: materials.length,
-      rag: materials.filter(m => m.purpose === 'rag').length,
-      download: materials.filter(m => m.purpose === 'download').length,
-      both: materials.filter(m => m.purpose === 'both').length,
-      pending: materials.filter(m => m.rag_status === 'pending').length,
-      processing: materials.filter(m => m.rag_status === 'processing').length,
-      completed: materials.filter(m => m.rag_status === 'completed').length,
-      failed: materials.filter(m => m.rag_status === 'failed').length,
+      rag: materials.filter((m) => m.purpose === 'rag').length,
+      download: materials.filter((m) => m.purpose === 'download').length,
+      both: materials.filter((m) => m.purpose === 'both').length,
+      pending: materials.filter((m) => m.rag_status === 'pending').length,
+      processing: materials.filter((m) => m.rag_status === 'processing').length,
+      completed: materials.filter((m) => m.rag_status === 'completed').length,
+      failed: materials.filter((m) => m.rag_status === 'failed').length,
     };
     setStats(newStats);
   };
 
-  const filteredMaterials = materials.filter(material => {
+  const filteredMaterials = materials.filter((material) => {
     // Filtro por curso
     if (selectedCourse !== 'all') {
-      const materialCourseId = typeof material.course_id === 'number'
-        ? material.course_id.toString()
-        : material.course_id?.toString() || '';
+      const materialCourseId =
+        typeof material.course_id === 'number'
+          ? material.course_id.toString()
+          : String(material.course_id ?? '') || '';
       if (materialCourseId !== selectedCourse) {
         return false;
       }
@@ -493,16 +537,16 @@ export const MaterialsManagementPage: React.FC = () => {
     return true;
   });
 
-  const handleUpdatePurpose = async (materialId: string, newPurpose: 'rag' | 'download' | 'both') => {
+  const handleUpdatePurpose = async (
+    materialId: string,
+    newPurpose: 'rag' | 'download' | 'both'
+  ) => {
     try {
-      await supabase
-        .from('materials')
-        .update({ purpose: newPurpose })
-        .eq('id', materialId);
+      await supabase.from('materials').update({ purpose: newPurpose }).eq('id', materialId);
 
-      setMaterials(prev => prev.map(m =>
-        m.id === materialId ? { ...m, purpose: newPurpose } : m
-      ));
+      setMaterials((prev) =>
+        prev.map((m) => (m.id === materialId ? { ...m, purpose: newPurpose } : m))
+      );
     } catch (err: any) {
       console.error('Error actualizando propósito:', err);
       alert('Error al actualizar el propósito del material');
@@ -524,9 +568,9 @@ export const MaterialsManagementPage: React.FC = () => {
 
       await materialService.updateMaterial(materialId, { course_id: courseIdNum });
 
-      setMaterials(prev => prev.map(m =>
-        m.id === materialId ? { ...m, course_id: courseIdNum } : m
-      ));
+      setMaterials((prev) =>
+        prev.map((m) => (m.id === materialId ? { ...m, course_id: courseIdNum } : m))
+      );
 
       alert('Curso actualizado correctamente');
     } catch (err: any) {
@@ -538,7 +582,14 @@ export const MaterialsManagementPage: React.FC = () => {
   const handleUpdateCategory = async (materialId: string, newCategory: MaterialCategory) => {
     try {
       // Validar que la categoría sea válida
-      const validCategories: MaterialCategory[] = ['book', 'bibliography', 'syllabus', 'exam', 'pamphlet', 'other'];
+      const validCategories: MaterialCategory[] = [
+        'book',
+        'bibliography',
+        'syllabus',
+        'exam',
+        'pamphlet',
+        'other',
+      ];
       if (!validCategories.includes(newCategory)) {
         console.error('Categoría inválida:', newCategory);
         alert('Categoría inválida. Por favor, selecciona una categoría válida.');
@@ -551,16 +602,16 @@ export const MaterialsManagementPage: React.FC = () => {
 
       console.log('Categoría actualizada exitosamente:', updated);
 
-      setMaterials(prev => prev.map(m =>
-        m.id === materialId ? { ...m, category: newCategory } : m
-      ));
+      setMaterials((prev) =>
+        prev.map((m) => (m.id === materialId ? { ...m, category: newCategory } : m))
+      );
     } catch (err: any) {
       console.error('Error actualizando categoría:', err);
       console.error('Detalles del error:', {
         message: err.message,
         code: err.code,
         details: err.details,
-        hint: err.hint
+        hint: err.hint,
       });
 
       let errorMessage = 'Error al actualizar la categoría del material';
@@ -582,11 +633,11 @@ export const MaterialsManagementPage: React.FC = () => {
       // Parsear hashtags: separar por comas, espacios o ambos, y limpiar
       const hashtags = hashtagsString
         .split(/[,\s]+/)
-        .map(tag => tag.trim().replace(/^#/, '')) // Remover # si existe al inicio
-        .filter(tag => tag.length > 0);
+        .map((tag) => tag.trim().replace(/^#/, '')) // Remover # si existe al inicio
+        .filter((tag) => tag.length > 0);
 
       // Obtener el material actual
-      const currentMaterial = materials.find(m => m.id === materialId);
+      const currentMaterial = materials.find((m) => m.id === materialId);
       if (!currentMaterial) {
         alert('Material no encontrado');
         return;
@@ -595,7 +646,7 @@ export const MaterialsManagementPage: React.FC = () => {
       // Actualizar metadata con los hashtags
       const updatedMetadata = {
         ...currentMaterial.metadata,
-        hashtags: hashtags.length > 0 ? hashtags : null
+        hashtags: hashtags.length > 0 ? hashtags : null,
       };
 
       // Actualizar en Supabase
@@ -609,9 +660,9 @@ export const MaterialsManagementPage: React.FC = () => {
       }
 
       // Actualizar estado local
-      setMaterials(prev => prev.map(m =>
-        m.id === materialId ? { ...m, metadata: updatedMetadata } : m
-      ));
+      setMaterials((prev) =>
+        prev.map((m) => (m.id === materialId ? { ...m, metadata: updatedMetadata } : m))
+      );
     } catch (err: any) {
       console.error('Error actualizando hashtags:', err);
       alert('Error al actualizar los hashtags: ' + (err.message || 'Error desconocido'));
@@ -622,7 +673,9 @@ export const MaterialsManagementPage: React.FC = () => {
   const getMaterialHashtags = (material: Material): string[] => {
     const hashtags = material.metadata?.hashtags;
     if (Array.isArray(hashtags)) {
-      return hashtags.filter(tag => typeof tag === 'string' && tag.trim()).map(tag => tag.trim());
+      return hashtags
+        .filter((tag) => typeof tag === 'string' && tag.trim())
+        .map((tag) => tag.trim());
     } else if (typeof hashtags === 'string' && hashtags.trim()) {
       return [hashtags.trim()];
     }
@@ -633,13 +686,17 @@ export const MaterialsManagementPage: React.FC = () => {
   // Ahora se usan las tablas de asignación múltiple (material_unit_assignments, material_session_assignments)
   // a través del MaterialAssignmentModal.
 
-  const handleUpdatePermission = async (materialId: string, permission: 'allow_download' | 'allow_view' | 'allow_print', value: boolean) => {
+  const handleUpdatePermission = async (
+    materialId: string,
+    permission: 'allow_download' | 'allow_view' | 'allow_print',
+    value: boolean
+  ) => {
     try {
       await materialService.updateMaterial(materialId, { [permission]: value });
 
-      setMaterials(prev => prev.map(m =>
-        m.id === materialId ? { ...m, [permission]: value } : m
-      ));
+      setMaterials((prev) =>
+        prev.map((m) => (m.id === materialId ? { ...m, [permission]: value } : m))
+      );
     } catch (err: any) {
       console.error(`Error actualizando permiso ${permission}:`, err);
       alert(`Error al actualizar el permiso: ${err.message || 'Error desconocido'}`);
@@ -653,19 +710,21 @@ export const MaterialsManagementPage: React.FC = () => {
     }
 
     if (!material.metadata?.sourceFileId) {
-      alert('Este material no tiene un archivo de Google Drive asociado. Solo se pueden compartir archivos de Google Drive.');
+      alert(
+        'Este material no tiene un archivo de Google Drive asociado. Solo se pueden compartir archivos de Google Drive.'
+      );
       return;
     }
 
     const confirmed = confirm(
       `¿Compartir "${material.title}" con todos los estudiantes del curso?\n\n` +
-      `Los estudiantes recibirán acceso de SOLO LECTURA al documento en Google Drive.\n\n` +
-      `🔒 Restricciones que se aplicarán:\n` +
-      `- Solo visualización (no pueden editar)\n` +
-      `- Sin descarga del archivo\n` +
-      `- Sin copia del contenido\n` +
-      `- Sin impresión (limitada)\n\n` +
-      `⚠️ NOTA: Los estudiantes recibirán una notificación por email con el enlace de acceso.`
+        `Los estudiantes recibirán acceso de SOLO LECTURA al documento en Google Drive.\n\n` +
+        `🔒 Restricciones que se aplicarán:\n` +
+        `- Solo visualización (no pueden editar)\n` +
+        `- Sin descarga del archivo\n` +
+        `- Sin copia del contenido\n` +
+        `- Sin impresión (limitada)\n\n` +
+        `⚠️ NOTA: Los estudiantes recibirán una notificación por email con el enlace de acceso.`
     );
 
     if (!confirmed) return;
@@ -683,20 +742,20 @@ export const MaterialsManagementPage: React.FC = () => {
 
       setSharingStatus({
         success: result.success.length,
-        failed: result.failed.length
+        failed: result.failed.length,
       });
 
       if (result.failed.length > 0) {
-        const failedEmails = result.failed.map(f => f.email).join(', ');
-        const message = 
+        const failedEmails = result.failed.map((f) => f.email).join(', ');
+        const message =
           `✅ Compartido con ${result.success.length} estudiante(s) exitosamente.\n\n` +
           `❌ Error con ${result.failed.length} estudiante(s):\n${failedEmails}\n\n` +
           `Verifica que estos emails sean válidos y que los estudiantes tengan cuentas de Google.\n\n` +
           (result.viewLink ? `🔗 Enlace de vista previa:\n${result.viewLink}` : '');
-        
+
         alert(message);
       } else {
-        const message = 
+        const message =
           `✅ Documento compartido exitosamente con ${result.success.length} estudiante(s).\n\n` +
           `Los estudiantes recibirán una notificación por email.\n\n` +
           `🔒 Restricciones aplicadas:\n` +
@@ -706,19 +765,19 @@ export const MaterialsManagementPage: React.FC = () => {
           `- Sin impresión (limitada)\n\n` +
           (result.viewLink ? `🔗 Enlace de vista previa:\n${result.viewLink}\n\n` : '') +
           `💡 Los estudiantes pueden acceder al documento desde su correo o desde Google Drive.`;
-        
+
         alert(message);
       }
     } catch (error: any) {
       console.error('Error compartiendo material:', error);
       const errorMessage = error.message || 'Error desconocido';
-      
+
       // Mensajes de error más específicos
       if (errorMessage.includes('token') || errorMessage.includes('autenticación')) {
         alert(
           `❌ Error de autenticación con Google Drive.\n\n` +
-          `Tu sesión de Google Drive ha expirado o no tienes permisos.\n\n` +
-          `Por favor, ve a tu perfil para reconectar tu cuenta de Google Drive.`
+            `Tu sesión de Google Drive ha expirado o no tienes permisos.\n\n` +
+            `Por favor, ve a tu perfil para reconectar tu cuenta de Google Drive.`
         );
       } else {
         alert(`❌ Error al compartir el material:\n\n${errorMessage}`);
@@ -736,8 +795,8 @@ export const MaterialsManagementPage: React.FC = () => {
 
     const confirmed = confirm(
       `¿Migrar "${material.title}" de Google Drive a Bucket?\n\n` +
-      `Esto copiará el archivo al bucket de Supabase para permitir procesamiento RAG.\n\n` +
-      `El archivo original en Google Drive se mantendrá intacto.`
+        `Esto copiará el archivo al bucket de Supabase para permitir procesamiento RAG.\n\n` +
+        `El archivo original en Google Drive se mantendrá intacto.`
     );
 
     if (!confirmed) return;
@@ -751,7 +810,8 @@ export const MaterialsManagementPage: React.FC = () => {
         // Recargar materiales para actualizar metadata
         await loadData();
       } else {
-        const isAuthError = result.error?.includes('401') ||
+        const isAuthError =
+          result.error?.includes('401') ||
           result.error?.includes('UNAUTHENTICATED') ||
           result.error?.includes('token') ||
           result.error?.includes('permisos');
@@ -759,8 +819,8 @@ export const MaterialsManagementPage: React.FC = () => {
         if (isAuthError) {
           const goToProfile = confirm(
             `❌ Error de autenticación con Google Drive.\n\n` +
-            `Tu sesión de Google Drive ha expirado o no tienes permisos.\n\n` +
-            `¿Quieres ir a tu perfil para reconectar tu cuenta de Google?`
+              `Tu sesión de Google Drive ha expirado o no tienes permisos.\n\n` +
+              `¿Quieres ir a tu perfil para reconectar tu cuenta de Google?`
           );
 
           if (goToProfile) {
@@ -792,8 +852,8 @@ export const MaterialsManagementPage: React.FC = () => {
 
     const confirmed = confirm(
       `¿Iniciar procesamiento RAG para "${material.title}"?\n\n` +
-      `Esto generará chunks del documento para el Tutor Virtual.\n\n` +
-      `El procesamiento puede tomar varios minutos dependiendo del tamaño del archivo.`
+        `Esto generará chunks del documento para el Tutor Virtual.\n\n` +
+        `El procesamiento puede tomar varios minutos dependiendo del tamaño del archivo.`
     );
 
     if (!confirmed) return;
@@ -803,7 +863,9 @@ export const MaterialsManagementPage: React.FC = () => {
       const result = await materialService.processMaterialForRAG(material.id, material.course_id);
 
       if (result.success) {
-        alert(`✅ Procesamiento iniciado exitosamente.\n\nJob ID: ${result.jobId}\n\nPuedes monitorear el progreso en la página de procesamiento.`);
+        alert(
+          `✅ Procesamiento iniciado exitosamente.\n\nJob ID: ${result.jobId}\n\nPuedes monitorear el progreso en la página de procesamiento.`
+        );
         // Recargar materiales para actualizar metadata
         await loadData();
       } else {
@@ -819,12 +881,12 @@ export const MaterialsManagementPage: React.FC = () => {
 
   const getCategoryLabel = (category?: string): string => {
     const categoryMap: Record<string, string> = {
-      'book': 'Libro',
-      'bibliography': 'Bibliografía',
-      'syllabus': 'Temario',
-      'exam': 'Examen',
-      'pamphlet': 'Folleto',
-      'other': 'Otro',
+      book: 'Libro',
+      bibliography: 'Bibliografía',
+      syllabus: 'Temario',
+      exam: 'Examen',
+      pamphlet: 'Folleto',
+      other: 'Otro',
     };
     return categoryMap[category || ''] || 'Sin categoría';
   };
@@ -866,7 +928,9 @@ export const MaterialsManagementPage: React.FC = () => {
           allChunks = allChunks.concat(chunks);
           hasMore = chunks.length === pageSize;
           page++;
-          console.log(`📊 [MaterialsManagementPage] Página ${page}: ${chunks.length} chunks obtenidos`);
+          console.log(
+            `📊 [MaterialsManagementPage] Página ${page}: ${chunks.length} chunks obtenidos`
+          );
         } else {
           hasMore = false;
         }
@@ -880,8 +944,8 @@ export const MaterialsManagementPage: React.FC = () => {
       if (chunks) {
         let chunksConMaterialId = 0;
         let chunksSinMaterialId = 0;
-        
-        chunks.forEach(chunk => {
+
+        chunks.forEach((chunk) => {
           const materialId = chunk.metadata?.material_id || chunk.metadata?.sourceFileId;
           if (materialId) {
             chunksCount[materialId] = (chunksCount[materialId] || 0) + 1;
@@ -890,45 +954,72 @@ export const MaterialsManagementPage: React.FC = () => {
             chunksSinMaterialId++;
           }
         });
-        
+
         console.log(`📊 [MaterialsManagementPage] Chunks con material_id: ${chunksConMaterialId}`);
         console.log(`📊 [MaterialsManagementPage] Chunks sin material_id: ${chunksSinMaterialId}`);
-        console.log(`📊 [MaterialsManagementPage] Materiales con chunks: ${Object.keys(chunksCount).length}`);
+        console.log(
+          `📊 [MaterialsManagementPage] Materiales con chunks: ${Object.keys(chunksCount).length}`
+        );
         console.log(`📊 [MaterialsManagementPage] Conteo por material:`, chunksCount);
-        
+
         // Verificar qué materiales tienen chunks pero no están en la lista de materiales cargados
         const materialIdsConChunks = Object.keys(chunksCount);
-        const materialIdsCargados = materials.map(m => m.id);
-        const materialesConChunksNoCargados = materialIdsConChunks.filter(id => !materialIdsCargados.includes(id));
-        
-        console.log(`📊 [MaterialsManagementPage] Materiales cargados (${materialIdsCargados.length}):`, materialIdsCargados);
-        console.log(`📊 [MaterialsManagementPage] Materiales con chunks (${materialIdsConChunks.length}):`, materialIdsConChunks);
-        
+        const materialIdsCargados = materials.map((m) => m.id);
+        const materialesConChunksNoCargados = materialIdsConChunks.filter(
+          (id) => !materialIdsCargados.includes(id)
+        );
+
+        console.log(
+          `📊 [MaterialsManagementPage] Materiales cargados (${materialIdsCargados.length}):`,
+          materialIdsCargados
+        );
+        console.log(
+          `📊 [MaterialsManagementPage] Materiales con chunks (${materialIdsConChunks.length}):`,
+          materialIdsConChunks
+        );
+
         // Verificar qué materiales cargados tienen chunks
-        const materialesCargadosConChunks = materialIdsCargados.filter(id => chunksCount[id]);
-        const detallesMaterialesConChunks = materialesCargadosConChunks.map(id => {
-          const material = materials.find(m => m.id === id);
+        const materialesCargadosConChunks = materialIdsCargados.filter((id) => chunksCount[id]);
+        const detallesMaterialesConChunks = materialesCargadosConChunks.map((id) => {
+          const material = materials.find((m) => m.id === id);
           return {
             id,
             title: material?.title || 'N/A',
-            chunks: chunksCount[id]
+            chunks: chunksCount[id],
           };
         });
-        console.log(`✅ [MaterialsManagementPage] Materiales cargados CON chunks (${materialesCargadosConChunks.length}):`, detallesMaterialesConChunks);
-        console.log(`📊 [MaterialsManagementPage] Estado de materialChunks después de setMaterialChunks:`, chunksCount);
-        
-        const materialesCargadosSinChunks = materialIdsCargados.filter(id => !chunksCount[id]);
+        console.log(
+          `✅ [MaterialsManagementPage] Materiales cargados CON chunks (${materialesCargadosConChunks.length}):`,
+          detallesMaterialesConChunks
+        );
+        console.log(
+          `📊 [MaterialsManagementPage] Estado de materialChunks después de setMaterialChunks:`,
+          chunksCount
+        );
+
+        const materialesCargadosSinChunks = materialIdsCargados.filter((id) => !chunksCount[id]);
         if (materialesCargadosSinChunks.length > 0) {
-          console.log(`⚠️ [MaterialsManagementPage] Materiales cargados SIN chunks (${materialesCargadosSinChunks.length}):`, materialesCargadosSinChunks);
+          console.log(
+            `⚠️ [MaterialsManagementPage] Materiales cargados SIN chunks (${materialesCargadosSinChunks.length}):`,
+            materialesCargadosSinChunks
+          );
         }
-        
+
         if (materialesConChunksNoCargados.length > 0) {
-          console.log(`⚠️ [MaterialsManagementPage] ${materialesConChunksNoCargados.length} materiales tienen chunks pero no están en la lista cargada:`, materialesConChunksNoCargados);
-          
+          console.log(
+            `⚠️ [MaterialsManagementPage] ${materialesConChunksNoCargados.length} materiales tienen chunks pero no están en la lista cargada:`,
+            materialesConChunksNoCargados
+          );
+
           // Verificar si son IDs temporales
-          const idsTemporales = materialesConChunksNoCargados.filter(id => id.startsWith('job_temp_'));
+          const idsTemporales = materialesConChunksNoCargados.filter((id) =>
+            id.startsWith('job_temp_')
+          );
           if (idsTemporales.length > 0) {
-            console.log(`🔴 [MaterialsManagementPage] ${idsTemporales.length} IDs temporales encontrados (deberían limpiarse):`, idsTemporales);
+            console.log(
+              `🔴 [MaterialsManagementPage] ${idsTemporales.length} IDs temporales encontrados (deberían limpiarse):`,
+              idsTemporales
+            );
           }
         }
       }
@@ -1005,8 +1096,8 @@ export const MaterialsManagementPage: React.FC = () => {
 
     try {
       await materialService.deleteMaterial(materialId);
-      setMaterials(prev => prev.filter(m => m.id !== materialId));
-      setSelectedMaterials(prev => {
+      setMaterials((prev) => prev.filter((m) => m.id !== materialId));
+      setSelectedMaterials((prev) => {
         const newSet = new Set(prev);
         newSet.delete(materialId);
         return newSet;
@@ -1018,7 +1109,7 @@ export const MaterialsManagementPage: React.FC = () => {
   };
 
   const handleToggleSelectMaterial = (materialId: string) => {
-    setSelectedMaterials(prev => {
+    setSelectedMaterials((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(materialId)) {
         newSet.delete(materialId);
@@ -1035,7 +1126,7 @@ export const MaterialsManagementPage: React.FC = () => {
       setSelectedMaterials(new Set());
     } else {
       // Seleccionar todos los materiales filtrados
-      setSelectedMaterials(new Set(filteredMaterials.map(m => m.id)));
+      setSelectedMaterials(new Set(filteredMaterials.map((m) => m.id)));
     }
   };
 
@@ -1047,8 +1138,8 @@ export const MaterialsManagementPage: React.FC = () => {
 
     const count = selectedMaterials.size;
     const materialNames = filteredMaterials
-      .filter(m => selectedMaterials.has(m.id))
-      .map(m => m.title)
+      .filter((m) => selectedMaterials.has(m.id))
+      .map((m) => m.title)
       .slice(0, 5)
       .join(', ');
     const moreText = count > 5 ? ` y ${count - 5} más` : '';
@@ -1060,7 +1151,11 @@ export const MaterialsManagementPage: React.FC = () => {
     }
 
     // Segunda confirmación para mayor seguridad
-    if (!confirm(`⚠️ ÚLTIMA CONFIRMACIÓN\n\nVas a eliminar ${count} material(es) de forma permanente.\n\n¿Confirmas la eliminación?`)) {
+    if (
+      !confirm(
+        `⚠️ ÚLTIMA CONFIRMACIÓN\n\nVas a eliminar ${count} material(es) de forma permanente.\n\n¿Confirmas la eliminación?`
+      )
+    ) {
       return;
     }
 
@@ -1082,11 +1177,13 @@ export const MaterialsManagementPage: React.FC = () => {
       }
 
       // Actualizar lista de materiales
-      setMaterials(prev => prev.filter(m => !selectedMaterials.has(m.id)));
+      setMaterials((prev) => prev.filter((m) => !selectedMaterials.has(m.id)));
       setSelectedMaterials(new Set());
 
       if (errorCount > 0) {
-        alert(`Se eliminaron ${successCount} material(es) correctamente, pero ${errorCount} material(es) tuvieron errores.`);
+        alert(
+          `Se eliminaron ${successCount} material(es) correctamente, pero ${errorCount} material(es) tuvieron errores.`
+        );
       } else {
         alert(`✅ Se eliminaron ${successCount} material(es) correctamente.`);
       }
@@ -1162,9 +1259,7 @@ export const MaterialsManagementPage: React.FC = () => {
     <div className="w-full px-6 py-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Administración de Materiales
-        </h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Administración de Materiales</h1>
         <p className="text-gray-600">
           Gestiona materiales procesados para RAG y materiales para descargar
         </p>
@@ -1175,7 +1270,7 @@ export const MaterialsManagementPage: React.FC = () => {
         {/* Decoración de fondo */}
         <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-white opacity-5 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-32 h-32 bg-indigo-400 opacity-10 rounded-full blur-2xl"></div>
-        
+
         <div className="p-6 relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-6">
             <div className="hidden sm:flex w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl items-center justify-center border border-white/20 shadow-inner">
@@ -1190,28 +1285,31 @@ export const MaterialsManagementPage: React.FC = () => {
                 EduSpark Desktop Uploader
               </h2>
               <p className="text-indigo-100 max-w-xl text-sm leading-relaxed opacity-90">
-                ¿Tienes libros pesados o documentos de cientos de páginas? Nuestra <strong>App para Windows</strong> utiliza el procesador local y el nuevo motor <strong>Gemini Embedding 2</strong> para procesar archivos masivos sin errores de navegador.
+                ¿Tienes libros pesados o documentos de cientos de páginas? Nuestra{' '}
+                <strong>App para Windows</strong> utiliza el procesador local y el nuevo motor{' '}
+                <strong>Gemini Embedding 2</strong> para procesar archivos masivos sin errores de
+                navegador.
               </p>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-            <a 
-              href="/downloads/EduSparkUploader.exe" 
-              download 
+            <a
+              href="/downloads/EduSparkUploader.exe"
+              download
               className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-indigo-700 hover:bg-indigo-50 font-bold rounded-xl transition-all shadow-lg hover:shadow-indigo-500/20 active:scale-95 text-center"
             >
               <Download className="w-5 h-5" />
               Descargar App
             </a>
-            <button 
+            <button
               onClick={() => {
-                const info = 
-                  "VENTAJAS TÉCNICAS DEL UPLOADER:\n\n" +
+                const info =
+                  'VENTAJAS TÉCNICAS DEL UPLOADER:\n\n' +
                   "• Motor Gemini 2: Utiliza el modelo 'gemini-embedding-2-preview' para mayor precisión semántica.\n" +
-                  "• Procesamiento Local: Extrae texto y genera vectores en tu PC, enviando solo datos optimizados a la nube.\n" +
-                  "• Capacidad Extendida: Procesa documentos de hasta 2000 páginas sin restricciones de memoria.\n" +
-                  "• Resiliencia: Sistema de reintentos automáticos ante micro-cortes de internet.\n" +
-                  "• Sincronización: Detecta automáticamente archivos pesados delegados desde la plataforma web.";
+                  '• Procesamiento Local: Extrae texto y genera vectores en tu PC, enviando solo datos optimizados a la nube.\n' +
+                  '• Capacidad Extendida: Procesa documentos de hasta 2000 páginas sin restricciones de memoria.\n' +
+                  '• Resiliencia: Sistema de reintentos automáticos ante micro-cortes de internet.\n' +
+                  '• Sincronización: Detecta automáticamente archivos pesados delegados desde la plataforma web.';
                 alert(info);
               }}
               className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-500/20 hover:bg-indigo-500/30 text-white font-medium rounded-xl border border-white/10 transition-all text-center"
@@ -1295,9 +1393,11 @@ export const MaterialsManagementPage: React.FC = () => {
             >
               <option value="all">Todos los cursos</option>
               {courses.length === 0 ? (
-                <option value="none" disabled>No hay cursos disponibles</option>
+                <option value="none" disabled>
+                  No hay cursos disponibles
+                </option>
               ) : (
-                courses.map(course => (
+                courses.map((course) => (
                   <option key={course.id} value={course.id.toString()}>
                     {course.title || course.code || `Curso ${course.id}`}
                   </option>
@@ -1344,9 +1444,7 @@ export const MaterialsManagementPage: React.FC = () => {
           </div>
 
           <div className="min-w-[180px]">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Estado RAG
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Estado RAG</label>
             <select
               value={selectedRAGStatus}
               onChange={(e) => setSelectedRAGStatus(e.target.value as RAGStatus)}
@@ -1360,11 +1458,7 @@ export const MaterialsManagementPage: React.FC = () => {
             </select>
           </div>
 
-          <Button
-            onClick={loadData}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
+          <Button onClick={loadData} variant="outline" className="flex items-center gap-2">
             <RefreshCw className="w-4 h-4" />
             Actualizar
           </Button>
@@ -1378,9 +1472,10 @@ export const MaterialsManagementPage: React.FC = () => {
 
                 // Actualizar materiales basándose en jobs
                 for (const material of materials) {
-                  const job = jobs.find(j =>
-                    j.metadata?.materialId === material.id ||
-                    j.metadata?.sourceFileId === material.metadata?.sourceFileId
+                  const job = jobs.find(
+                    (j) =>
+                      j.metadata?.materialId === material.id ||
+                      j.sourceFileId === material.metadata?.sourceFileId
                   );
 
                   if (job && job.status !== material.rag_status) {
@@ -1394,10 +1489,7 @@ export const MaterialsManagementPage: React.FC = () => {
                       updateData.rag_error = job.errorMessage || 'Error en el procesamiento';
                     }
 
-                    await supabase
-                      .from('materials')
-                      .update(updateData)
-                      .eq('id', material.id);
+                    await supabase.from('materials').update(updateData).eq('id', material.id);
                   }
                 }
 
@@ -1459,10 +1551,7 @@ export const MaterialsManagementPage: React.FC = () => {
               <p className="text-red-700 font-medium">{error}</p>
             </div>
             {courses.length === 0 && (
-              <Button
-                onClick={() => navigate('/teacher/courses/new')}
-                className="mt-2"
-              >
+              <Button onClick={() => navigate('/teacher/courses/new')} className="mt-2">
                 Crear Primer Curso
               </Button>
             )}
@@ -1493,7 +1582,10 @@ export const MaterialsManagementPage: React.FC = () => {
             <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600 text-lg mb-2">No se encontraron materiales</p>
             <p className="text-gray-500 text-sm">
-              {searchQuery || selectedCourse !== 'all' || selectedPurpose !== 'all' || selectedRAGStatus !== 'all'
+              {searchQuery ||
+              selectedCourse !== 'all' ||
+              selectedPurpose !== 'all' ||
+              selectedRAGStatus !== 'all'
                 ? 'Intenta ajustar los filtros'
                 : 'Comienza procesando materiales desde la página de procesamiento'}
             </p>
@@ -1512,33 +1604,71 @@ export const MaterialsManagementPage: React.FC = () => {
                     <th className="text-left py-3 px-4 font-semibold text-gray-700 w-12 min-w-[50px]">
                       <input
                         type="checkbox"
-                        checked={filteredMaterials.length > 0 && selectedMaterials.size === filteredMaterials.length}
+                        checked={
+                          filteredMaterials.length > 0 &&
+                          selectedMaterials.size === filteredMaterials.length
+                        }
                         onChange={handleSelectAll}
                         className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
-                        title={selectedMaterials.size === filteredMaterials.length ? "Deseleccionar todos" : "Seleccionar todos"}
+                        title={
+                          selectedMaterials.size === filteredMaterials.length
+                            ? 'Deseleccionar todos'
+                            : 'Seleccionar todos'
+                        }
                       />
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[300px]">Título</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[250px]">Cursos Asignados</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[200px]">Unidad</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[200px]">Sesión</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[140px]">Origen</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[120px]">Tipo</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[160px]">Categoría</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[200px]">Hashtags</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[170px]">Propósito</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[160px]">Permisos</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[150px]">Estado RAG</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[120px]">Chunks</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[120px]">Tamaño</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 w-20">Acciones</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[300px]">
+                      Título
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[250px]">
+                      Cursos Asignados
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[200px]">
+                      Unidad
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[200px]">
+                      Sesión
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[140px]">
+                      Origen
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[120px]">
+                      Tipo
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[160px]">
+                      Categoría
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[200px]">
+                      Hashtags
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[170px]">
+                      Propósito
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[160px]">
+                      Permisos
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[150px]">
+                      Estado RAG
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[120px]">
+                      Chunks
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[120px]">
+                      Tamaño
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 w-20">
+                      Acciones
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredMaterials.map((material) => {
-                    const course = courses.find(c => {
+                    const course = courses.find((c) => {
                       const courseId = typeof c.id === 'number' ? c.id : parseInt(c.id);
-                      const materialCourseId = typeof material.course_id === 'number' ? material.course_id : parseInt(material.course_id);
+                      const materialCourseId =
+                        typeof material.course_id === 'number'
+                          ? material.course_id
+                          : parseInt(material.course_id);
                       return courseId === materialCourseId;
                     });
                     const isSelected = selectedMaterials.has(material.id);
@@ -1562,17 +1692,22 @@ export const MaterialsManagementPage: React.FC = () => {
                           </div>
                         </td>
                         <td className="py-3 px-4">
-                          {materialCourses[material.id] && materialCourses[material.id].length > 0 ? (
+                          {materialCourses[material.id] &&
+                          materialCourses[material.id].length > 0 ? (
                             <div className="flex flex-wrap gap-1">
                               {materialCourses[material.id].map((assignedCourse) => {
-                                const courseObj = courses.find(c => c.id === assignedCourse.course_id);
+                                const courseObj = courses.find(
+                                  (c) => c.id === assignedCourse.course_id
+                                );
                                 return (
                                   <span
                                     key={assignedCourse.course_id}
                                     className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded"
                                     title={assignedCourse.course_title}
                                   >
-                                    {assignedCourse.course_title || assignedCourse.course_code || `Curso ${assignedCourse.course_id}`}
+                                    {assignedCourse.course_title ||
+                                      assignedCourse.course_code ||
+                                      `Curso ${assignedCourse.course_id}`}
                                   </span>
                                 );
                               })}
@@ -1599,7 +1734,8 @@ export const MaterialsManagementPage: React.FC = () => {
                           )}
                         </td>
                         <td className="py-3 px-4">
-                          {materialSessions[material.id] && materialSessions[material.id].length > 0 ? (
+                          {materialSessions[material.id] &&
+                          materialSessions[material.id].length > 0 ? (
                             <div className="flex flex-wrap gap-1">
                               {materialSessions[material.id].map((assignedSession) => (
                                 <span
@@ -1621,11 +1757,16 @@ export const MaterialsManagementPage: React.FC = () => {
                             const Icon = sourceInfo.icon;
                             return (
                               <div className="flex items-center gap-2">
-                                <Icon className={`w-4 h-4 ${sourceInfo.source === 'bucket' ? 'text-green-600' : 'text-blue-600'}`} />
-                                <span className={`px-2 py-1 rounded text-xs font-medium ${sourceInfo.source === 'bucket'
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-blue-100 text-blue-800'
-                                  }`}>
+                                <Icon
+                                  className={`w-4 h-4 ${sourceInfo.source === 'bucket' ? 'text-green-600' : 'text-blue-600'}`}
+                                />
+                                <span
+                                  className={`px-2 py-1 rounded text-xs font-medium ${
+                                    sourceInfo.source === 'bucket'
+                                      ? 'bg-green-100 text-green-800'
+                                      : 'bg-blue-100 text-blue-800'
+                                  }`}
+                                >
                                   {sourceInfo.label}
                                 </span>
                               </div>
@@ -1640,7 +1781,9 @@ export const MaterialsManagementPage: React.FC = () => {
                         <td className="py-3 px-4">
                           <select
                             value={material.category || 'other'}
-                            onChange={(e) => handleUpdateCategory(material.id, e.target.value as MaterialCategory)}
+                            onChange={(e) =>
+                              handleUpdateCategory(material.id, e.target.value as MaterialCategory)
+                            }
                             className="px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[140px]"
                           >
                             <option value="book">Libro</option>
@@ -1662,19 +1805,21 @@ export const MaterialsManagementPage: React.FC = () => {
                                 // Actualizar en tiempo real el estado local para feedback visual
                                 const hashtags = e.target.value
                                   .split(/[,\s]+/)
-                                  .map(tag => tag.trim().replace(/^#/, ''))
-                                  .filter(tag => tag.length > 0);
-                                
-                                setMaterials(prev => prev.map(m => {
-                                  if (m.id === material.id) {
-                                    const updatedMetadata = {
-                                      ...m.metadata,
-                                      hashtags: hashtags.length > 0 ? hashtags : null
-                                    };
-                                    return { ...m, metadata: updatedMetadata };
-                                  }
-                                  return m;
-                                }));
+                                  .map((tag) => tag.trim().replace(/^#/, ''))
+                                  .filter((tag) => tag.length > 0);
+
+                                setMaterials((prev) =>
+                                  prev.map((m) => {
+                                    if (m.id === material.id) {
+                                      const updatedMetadata = {
+                                        ...m.metadata,
+                                        hashtags: hashtags.length > 0 ? hashtags : null,
+                                      };
+                                      return { ...m, metadata: updatedMetadata };
+                                    }
+                                    return m;
+                                  })
+                                );
                               }}
                               onBlur={(e) => {
                                 // Guardar cuando se pierde el foco
@@ -1706,7 +1851,12 @@ export const MaterialsManagementPage: React.FC = () => {
                         <td className="py-3 px-4">
                           <select
                             value={material.purpose || 'download'}
-                            onChange={(e) => handleUpdatePurpose(material.id, e.target.value as 'rag' | 'download' | 'both')}
+                            onChange={(e) =>
+                              handleUpdatePurpose(
+                                material.id,
+                                e.target.value as 'rag' | 'download' | 'both'
+                              )
+                            }
                             className="px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           >
                             <option value="rag">Solo RAG</option>
@@ -1720,7 +1870,13 @@ export const MaterialsManagementPage: React.FC = () => {
                               <input
                                 type="checkbox"
                                 checked={material.allow_download !== false}
-                                onChange={(e) => handleUpdatePermission(material.id, 'allow_download', e.target.checked)}
+                                onChange={(e) =>
+                                  handleUpdatePermission(
+                                    material.id,
+                                    'allow_download',
+                                    e.target.checked
+                                  )
+                                }
                                 className="w-3 h-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                 title="Permitir descarga"
                               />
@@ -1730,7 +1886,13 @@ export const MaterialsManagementPage: React.FC = () => {
                               <input
                                 type="checkbox"
                                 checked={material.allow_view !== false}
-                                onChange={(e) => handleUpdatePermission(material.id, 'allow_view', e.target.checked)}
+                                onChange={(e) =>
+                                  handleUpdatePermission(
+                                    material.id,
+                                    'allow_view',
+                                    e.target.checked
+                                  )
+                                }
                                 className="w-3 h-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                 title="Permitir visualización"
                               />
@@ -1740,7 +1902,13 @@ export const MaterialsManagementPage: React.FC = () => {
                               <input
                                 type="checkbox"
                                 checked={material.allow_print !== false}
-                                onChange={(e) => handleUpdatePermission(material.id, 'allow_print', e.target.checked)}
+                                onChange={(e) =>
+                                  handleUpdatePermission(
+                                    material.id,
+                                    'allow_print',
+                                    e.target.checked
+                                  )
+                                }
                                 className="w-3 h-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                 title="Permitir impresión"
                               />
@@ -1754,33 +1922,42 @@ export const MaterialsManagementPage: React.FC = () => {
                             <span className="text-sm text-gray-700">
                               {getRAGStatusLabel(material.rag_status)}
                             </span>
-                            {material.rag_status === 'processing' && material.metadata?.processingJobId && (
-                              <button
-                                onClick={async () => {
-                                  if (confirm('¿Cancelar este job? Se marcará como fallido.')) {
-                                    const result = await materialService.cancelProcessingJob(material.metadata.processingJobId);
-                                    if (result.success) {
-                                      alert('Job cancelado exitosamente');
-                                      loadMaterials();
-                                    } else {
-                                      alert(`Error: ${result.error}`);
+                            {material.rag_status === 'processing' &&
+                              material.metadata?.processingJobId && (
+                                <button
+                                  onClick={async () => {
+                                    if (confirm('¿Cancelar este job? Se marcará como fallido.')) {
+                                      const result = await materialService.cancelProcessingJob(
+                                        material.metadata.processingJobId
+                                      );
+                                      if (result.success) {
+                                        alert('Job cancelado exitosamente');
+                                        loadData();
+                                      } else {
+                                        alert(`Error: ${result.error}`);
+                                      }
                                     }
-                                  }
-                                }}
-                                className="text-xs text-red-600 hover:text-red-800 underline ml-2"
-                                title="Cancelar procesamiento atascado"
-                              >
-                                Cancelar
-                              </button>
-                            )}
+                                  }}
+                                  className="text-xs text-red-600 hover:text-red-800 underline ml-2"
+                                  title="Cancelar procesamiento atascado"
+                                >
+                                  Cancelar
+                                </button>
+                              )}
                           </div>
                         </td>
                         <td className="py-3 px-4">
                           {material.rag_status === 'completed' ? (
                             <div className="flex items-center gap-2">
                               <Brain className="w-4 h-4 text-purple-500" />
-                              <span className="text-sm font-medium text-purple-700" title={`Material ID: ${material.id}, Chunks en estado: ${materialChunks[material.id] ?? 'undefined'}`}>
-                                {materialChunks[material.id] || material.metadata?.totalChunks || material.metadata?.chunksTotal || 0}
+                              <span
+                                className="text-sm font-medium text-purple-700"
+                                title={`Material ID: ${material.id}, Chunks en estado: ${materialChunks[material.id] ?? 'undefined'}`}
+                              >
+                                {materialChunks[material.id] ||
+                                  material.metadata?.totalChunks ||
+                                  material.metadata?.chunksTotal ||
+                                  0}
                               </span>
                               <button
                                 onClick={() => loadChunksForMaterial(material.id)}
@@ -1795,7 +1972,11 @@ export const MaterialsManagementPage: React.FC = () => {
                           )}
                         </td>
                         <td className="py-3 px-4 text-gray-600 text-sm">
-                          {formatFileSize(material.size_bytes || material.metadata?.fileSize || material.metadata?.file_size_bytes)}
+                          {formatFileSize(
+                            material.size_bytes ||
+                              material.metadata?.fileSize ||
+                              material.metadata?.file_size_bytes
+                          )}
                         </td>
                         <td className="py-3 px-4">
                           <div className="relative action-menu-container">
@@ -1826,7 +2007,10 @@ export const MaterialsManagementPage: React.FC = () => {
 
                                 {(material.url || material.metadata?.sourceFileId) && (
                                   <a
-                                    href={material.url || `https://drive.google.com/file/d/${material.metadata?.sourceFileId}/view`}
+                                    href={
+                                      material.url ||
+                                      `https://drive.google.com/file/d/${material.metadata?.sourceFileId}/view`
+                                    }
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     onClick={() => setOpenActionMenus(new Set())}
@@ -1869,10 +2053,15 @@ export const MaterialsManagementPage: React.FC = () => {
                                   const isGoogleDrive = sourceInfo.source === 'google_drive';
                                   const isBucket = sourceInfo.source === 'bucket';
                                   const isProcessed = material.metadata?.processed === true;
-                                  const hasActions = (isGoogleDrive && material.metadata?.sourceFileId && material.course_id) ||
-                                                    (isBucket && !isProcessed && material.course_id) ||
-                                                    (isGoogleDrive && material.metadata?.sourceFileId && material.course_id);
-                                  
+                                  const hasActions =
+                                    (isGoogleDrive &&
+                                      material.metadata?.sourceFileId &&
+                                      material.course_id) ||
+                                    (isBucket && !isProcessed && material.course_id) ||
+                                    (isGoogleDrive &&
+                                      material.metadata?.sourceFileId &&
+                                      material.course_id);
+
                                   return hasActions ? (
                                     <div className="border-t border-gray-200 my-1" />
                                   ) : null;
@@ -1888,28 +2077,30 @@ export const MaterialsManagementPage: React.FC = () => {
                                   return (
                                     <>
                                       {/* Botón para migrar de Drive a Bucket */}
-                                      {isGoogleDrive && material.metadata?.sourceFileId && material.course_id && (
-                                        <button
-                                          onClick={() => {
-                                            handleMigrateDriveToBucket(material);
-                                            setOpenActionMenus(new Set());
-                                          }}
-                                          disabled={migratingMaterial === material.id}
-                                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                          {migratingMaterial === material.id ? (
-                                            <>
-                                              <RefreshCw className="w-4 h-4 animate-spin" />
-                                              <span>Migrando...</span>
-                                            </>
-                                          ) : (
-                                            <>
-                                              <Upload className="w-4 h-4" />
-                                              <span>Migrar a Bucket</span>
-                                            </>
-                                          )}
-                                        </button>
-                                      )}
+                                      {isGoogleDrive &&
+                                        material.metadata?.sourceFileId &&
+                                        material.course_id && (
+                                          <button
+                                            onClick={() => {
+                                              handleMigrateDriveToBucket(material);
+                                              setOpenActionMenus(new Set());
+                                            }}
+                                            disabled={migratingMaterial === material.id}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                          >
+                                            {migratingMaterial === material.id ? (
+                                              <>
+                                                <RefreshCw className="w-4 h-4 animate-spin" />
+                                                <span>Migrando...</span>
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Upload className="w-4 h-4" />
+                                                <span>Migrar a Bucket</span>
+                                              </>
+                                            )}
+                                          </button>
+                                        )}
 
                                       {/* Botón para procesar para RAG */}
                                       {isBucket && !isProcessed && material.course_id && (
@@ -1936,28 +2127,30 @@ export const MaterialsManagementPage: React.FC = () => {
                                       )}
 
                                       {/* Botón para compartir con estudiantes */}
-                                      {isGoogleDrive && material.metadata?.sourceFileId && material.course_id && (
-                                        <button
-                                          onClick={() => {
-                                            handleShareWithStudents(material);
-                                            setOpenActionMenus(new Set());
-                                          }}
-                                          disabled={sharingMaterial === material.id}
-                                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                          {sharingMaterial === material.id ? (
-                                            <>
-                                              <RefreshCw className="w-4 h-4 animate-spin" />
-                                              <span>Compartiendo...</span>
-                                            </>
-                                          ) : (
-                                            <>
-                                              <Share2 className="w-4 h-4" />
-                                              <span>Compartir con estudiantes</span>
-                                            </>
-                                          )}
-                                        </button>
-                                      )}
+                                      {isGoogleDrive &&
+                                        material.metadata?.sourceFileId &&
+                                        material.course_id && (
+                                          <button
+                                            onClick={() => {
+                                              handleShareWithStudents(material);
+                                              setOpenActionMenus(new Set());
+                                            }}
+                                            disabled={sharingMaterial === material.id}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                          >
+                                            {sharingMaterial === material.id ? (
+                                              <>
+                                                <RefreshCw className="w-4 h-4 animate-spin" />
+                                                <span>Compartiendo...</span>
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Share2 className="w-4 h-4" />
+                                                <span>Compartir con estudiantes</span>
+                                              </>
+                                            )}
+                                          </button>
+                                        )}
                                     </>
                                   );
                                 })()}
@@ -1996,9 +2189,7 @@ export const MaterialsManagementPage: React.FC = () => {
           <Card className="max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-semibold text-gray-900">
-                  Chunks Procesados
-                </h3>
+                <h3 className="text-xl font-semibold text-gray-900">Chunks Procesados</h3>
                 <p className="text-sm text-gray-600 mt-1">
                   {chunksContent.length} chunks encontrados
                 </p>
@@ -2024,7 +2215,8 @@ export const MaterialsManagementPage: React.FC = () => {
                   <Brain className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600">No se encontraron chunks para este material</p>
                   <p className="text-sm text-gray-500 mt-2">
-                    Los chunks se crean durante el procesamiento RAG. Verifica que el material esté completamente procesado.
+                    Los chunks se crean durante el procesamiento RAG. Verifica que el material esté
+                    completamente procesado.
                   </p>
                 </div>
               ) : (
@@ -2063,10 +2255,12 @@ export const MaterialsManagementPage: React.FC = () => {
               <p className="text-sm text-gray-600">
                 Estos chunks están disponibles para el Tutor Virtual RAG
               </p>
-              {filteredMaterials.find(m => m.id === selectedMaterialForChunks)?.course_id && (
+              {filteredMaterials.find((m) => m.id === selectedMaterialForChunks)?.course_id && (
                 <Button
                   onClick={() => {
-                    const material = filteredMaterials.find(m => m.id === selectedMaterialForChunks);
+                    const material = filteredMaterials.find(
+                      (m) => m.id === selectedMaterialForChunks
+                    );
                     if (material?.course_id) {
                       openTutorWithCourse(material.course_id.toString());
                     }
@@ -2097,22 +2291,28 @@ export const MaterialsManagementPage: React.FC = () => {
             if (selectedMaterialForAssignment) {
               try {
                 const [assignedCourses, assignedUnits, assignedSessions] = await Promise.all([
-                  materialService.getMaterialCourses(selectedMaterialForAssignment.id).catch(() => []),
-                  materialService.getMaterialUnits(selectedMaterialForAssignment.id).catch(() => []),
-                  materialService.getMaterialSessions(selectedMaterialForAssignment.id).catch(() => [])
+                  materialService
+                    .getMaterialCourses(selectedMaterialForAssignment.id)
+                    .catch(() => []),
+                  materialService
+                    .getMaterialUnits(selectedMaterialForAssignment.id)
+                    .catch(() => []),
+                  materialService
+                    .getMaterialSessions(selectedMaterialForAssignment.id)
+                    .catch(() => []),
                 ]);
 
-                setMaterialCourses(prev => ({
+                setMaterialCourses((prev) => ({
                   ...prev,
-                  [selectedMaterialForAssignment.id]: assignedCourses
+                  [selectedMaterialForAssignment.id]: assignedCourses,
                 }));
-                setMaterialUnits(prev => ({
+                setMaterialUnits((prev) => ({
                   ...prev,
-                  [selectedMaterialForAssignment.id]: assignedUnits
+                  [selectedMaterialForAssignment.id]: assignedUnits,
                 }));
-                setMaterialSessions(prev => ({
+                setMaterialSessions((prev) => ({
                   ...prev,
-                  [selectedMaterialForAssignment.id]: assignedSessions
+                  [selectedMaterialForAssignment.id]: assignedSessions,
                 }));
               } catch (error) {
                 console.error('Error reloading material assignments:', error);
@@ -2124,4 +2324,3 @@ export const MaterialsManagementPage: React.FC = () => {
     </div>
   );
 };
-

@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     server: {
-      port: 5173,
+      port: 5174,
       host: '0.0.0.0',
       strictPort: true,
       // Configuración para evitar problemas de caché
@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
         overlay: true,
         protocol: 'ws',
         host: 'localhost',
-        port: 5173,
+        port: 5174,
         timeout: 30000,  // Timeout más largo para HMR
         reloadDelay: 100,  // Pequeño delay para recargas
         reloadOnConfigChange: true
@@ -63,8 +63,17 @@ export default defineConfig(({ mode }) => {
               if (id.includes('@tiptap/')) return 'vendor-tiptap';
               if (id.includes('react') || id.includes('scheduler')) return 'vendor-react';
               if (id.includes('lucide-react')) return 'vendor-icons';
-              if (id.includes('xlsx')) return 'vendor-xlsx';
-              if (id.includes('jspdf')) return 'vendor-jspdf';
+              
+              // Heavy processing libs
+              if (id.includes('pdfjs-dist') || id.includes('pdf-lib') || id.includes('jspdf') || id.includes('pdf-parse')) {
+                return 'vendor-pdf-libs';
+              }
+              if (id.includes('firebase')) return 'vendor-firebase';
+              if (id.includes('@google/genai')) return 'vendor-ai-sdk';
+              if (id.includes('xlsx') || id.includes('jszip') || id.includes('mammoth')) {
+                return 'vendor-office-libs';
+              }
+              
               return 'vendor-misc';
             }
 
@@ -85,8 +94,8 @@ export default defineConfig(({ mode }) => {
           }
         }
       },
-      // Aumentar límite de advertencia de chunk
-      chunkSizeWarningLimit: 1000
+      // Aumentar límite de advertencia de chunk ya que es una App pesada de IA
+      chunkSizeWarningLimit: 1500
     },
     // Configuración de caché
     cacheDir: '.vite-temp',

@@ -35,6 +35,7 @@ export interface ProcessingCost {
 }
 
 export interface CostSummary {
+  user_id?: string | null;
   total_jobs: number;
   total_cost: number;
   avg_cost_per_job: number;
@@ -208,4 +209,3 @@ export const costService = {
     };
   },
 };
-

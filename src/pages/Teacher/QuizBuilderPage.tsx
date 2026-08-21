@@ -1,24 +1,42 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { quizService, Assessment, Question } from '@/services/quizService';
-import { courseService, unitService, sessionService, materialService } from '@/services/teacherCourses';
+import {
+  courseService,
+  unitService,
+  sessionService,
+  materialService,
+} from '@/services/teacherCourses';
 import { AiService } from '@/services/aiService';
 import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/Common/Button';
 import Card from '@/components/Common/Card';
 import Breadcrumbs from '@/components/Common/Breadcrumbs';
 import { QuestionBuilder } from '@/components/Features/QuestionBuilder';
-import { IconPlus, IconTrash, IconEdit, IconCheck, IconX, IconArrowLeft, IconSave, IconChartBar } from '@/components/Common/Icons';
+import {
+  IconPlus,
+  IconTrash,
+  IconEdit,
+  IconCheck,
+  IconX,
+  IconArrowLeft,
+  IconSave,
+  IconChartBar,
+} from '@/components/Common/Icons';
 
 // Utility to strip HTML
 const stripHtml = (html: string) => {
-  const tmp = document.createElement("DIV");
+  const tmp = document.createElement('DIV');
   tmp.innerHTML = html;
-  return tmp.textContent || tmp.innerText || "";
+  return tmp.textContent || tmp.innerText || '';
 };
 
 export const QuizBuilderPage: React.FC = () => {
-  const { courseId, unitId, quizId } = useParams<{ courseId?: string; unitId?: string; quizId?: string }>();
+  const { courseId, unitId, quizId } = useParams<{
+    courseId?: string;
+    unitId?: string;
+    quizId?: string;
+  }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -27,7 +45,7 @@ export const QuizBuilderPage: React.FC = () => {
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiConfig, setAiConfig] = useState({
     numQuestions: 5,
-    difficulty: 'medium'
+    difficulty: 'medium',
   });
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
 
@@ -54,7 +72,7 @@ export const QuizBuilderPage: React.FC = () => {
     setIsGeneratingAi(true);
     try {
       // 1. Gather Context
-      let context = "";
+      let context = '';
 
       // Fetch Unit Data
       try {
@@ -68,19 +86,21 @@ export const QuizBuilderPage: React.FC = () => {
         console.warn('Error fetching unit context', e);
       }
 
-      // Fetch Materials 
+      // Fetch Materials
       try {
         const materials = await materialService.getUnitMaterials(targetUnitId);
         if (materials.length > 0) {
           context += `\nMATERIALES ADJUNTOS (Utiliza estos títulos como referencia de temas):\n`;
-          materials.forEach(m => context += `- ${m.title}: ${m.metadata?.description || ''}\n`);
+          materials.forEach((m) => (context += `- ${m.title}: ${m.metadata?.description || ''}\n`));
         }
       } catch (err) {
         console.warn('Could not fetch materials for context', err);
       }
 
       if (context.length < 50) {
-        alert('No hay suficiente contenido en la Unidad para generar preguntas. Asegúrate de que la unidad tenga descripción o contenido.');
+        alert(
+          'No hay suficiente contenido en la Unidad para generar preguntas. Asegúrate de que la unidad tenga descripción o contenido.'
+        );
         setIsGeneratingAi(false);
         return;
       }
@@ -88,7 +108,7 @@ export const QuizBuilderPage: React.FC = () => {
       // 2. Call AI Service
       const aiQuestions = await AiService.generateQuiz(context, {
         numQuestions: aiConfig.numQuestions,
-        difficulty: aiConfig.difficulty
+        difficulty: aiConfig.difficulty,
       });
 
       // 3. Map to Question format
@@ -101,23 +121,24 @@ export const QuizBuilderPage: React.FC = () => {
         options: (q.options || []).map((o: any) => ({
           id: crypto.randomUUID(),
           text: o.text,
-          is_correct: !!o.correct
+          is_correct: !!o.correct,
         })),
         explanation: q.explanation,
         order_index: questions.length + index,
         is_required: true,
         partial_credit: false,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       }));
 
       // 4. Update State
       // I need to know the name of the state setter for questions.
       // Usually setQuestions.
-      setQuestions(prev => [...prev, ...newQuestions]);
+      setQuestions((prev) => [...prev, ...newQuestions]);
       setIsAiModalOpen(false);
-      alert(`¡${newQuestions.length} preguntas generadas con éxito! No olvides GUARDAR los cambios.`);
-
+      alert(
+        `¡${newQuestions.length} preguntas generadas con éxito! No olvides GUARDAR los cambios.`
+      );
     } catch (error: any) {
       console.error('Error generating quiz:', error);
       alert(error.message || 'Error al generar preguntas con IA');
@@ -156,7 +177,7 @@ export const QuizBuilderPage: React.FC = () => {
   // Datos del quiz
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [assessmentType, setAssessmentType] = useState<'quiz' | 'trivia' | 'exam'>('quiz');
+  const [assessmentType, setAssessmentType] = useState<Assessment['assessment_type']>('quiz');
   const [instructions, setInstructions] = useState('');
   const [timeLimit, setTimeLimit] = useState<number | null>(null);
   const [maxAttempts, setMaxAttempts] = useState<number>(3);
@@ -175,14 +196,14 @@ export const QuizBuilderPage: React.FC = () => {
   // Solo actualizar cuando cambian los parámetros de la URL, no cuando cambian los estados
   useEffect(() => {
     // Solo actualizar si los valores son diferentes para evitar loops
-    setFinalCourseId(prev => {
+    setFinalCourseId((prev) => {
       if (urlCourseIdParam !== prev) {
         return urlCourseIdParam;
       }
       return prev;
     });
 
-    setFinalUnitId(prev => {
+    setFinalUnitId((prev) => {
       if (urlUnitIdParam !== prev) {
         return urlUnitIdParam;
       }
@@ -233,7 +254,7 @@ export const QuizBuilderPage: React.FC = () => {
         try {
           const [unitsData, sessionsData] = await Promise.all([
             unitService.getCourseUnits(Number(finalCourseId)),
-            sessionService.getCourseSessions(Number(finalCourseId))
+            sessionService.getCourseSessions(Number(finalCourseId)),
           ]);
           setAvailableUnits(unitsData);
           setAvailableSessions(sessionsData);
@@ -257,7 +278,8 @@ export const QuizBuilderPage: React.FC = () => {
       }
 
       if (quizId) {
-        const { assessment, questions: loadedQuestions } = await quizService.getAssessmentWithQuestions(quizId);
+        const { assessment, questions: loadedQuestions } =
+          await quizService.getAssessmentWithQuestions(quizId);
         setTitle(assessment.title || '');
         setDescription(assessment.description || '');
         setAssessmentType(assessment.assessment_type || 'quiz');
@@ -276,14 +298,17 @@ export const QuizBuilderPage: React.FC = () => {
         if (!urlCourseIdParam && assessment.course_id) {
           const newCourseId = String(assessment.course_id);
           // Solo actualizar si es diferente
-          setFinalCourseId(prev => {
+          setFinalCourseId((prev) => {
             if (prev !== newCourseId) {
               // Cargar el curso de forma asíncrona para no bloquear
-              courseService.getCourse(assessment.course_id).then(courseData => {
-                setCourse(courseData);
-              }).catch(err => {
-                console.error('Error cargando curso:', err);
-              });
+              courseService
+                .getCourse(assessment.course_id)
+                .then((courseData) => {
+                  setCourse(courseData);
+                })
+                .catch((err) => {
+                  console.error('Error cargando curso:', err);
+                });
               return newCourseId;
             }
             return prev;
@@ -294,14 +319,17 @@ export const QuizBuilderPage: React.FC = () => {
         if (!urlUnitIdParam && assessment.unit_id) {
           const newUnitId = assessment.unit_id;
           // Solo actualizar si es diferente
-          setFinalUnitId(prev => {
+          setFinalUnitId((prev) => {
             if (prev !== newUnitId) {
               // Cargar la unidad de forma asíncrona para no bloquear
-              unitService.getUnit(assessment.unit_id).then(unitData => {
-                setUnit(unitData);
-              }).catch(err => {
-                console.error('Error cargando unidad:', err);
-              });
+              unitService
+                .getUnit(assessment.unit_id)
+                .then((unitData) => {
+                  setUnit(unitData);
+                })
+                .catch((err) => {
+                  console.error('Error cargando unidad:', err);
+                });
               return newUnitId;
             }
             return prev;
@@ -311,11 +339,14 @@ export const QuizBuilderPage: React.FC = () => {
         // Si hay session_id en el assessment, cargarlo
         if (assessment.session_id) {
           setFinalSessionId(assessment.session_id);
-          sessionService.getSession(assessment.session_id).then(sessionData => {
-            setSession(sessionData);
-          }).catch(err => {
-            console.error('Error cargando sesión:', err);
-          });
+          sessionService
+            .getSession(assessment.session_id)
+            .then((sessionData) => {
+              setSession(sessionData);
+            })
+            .catch((err) => {
+              console.error('Error cargando sesión:', err);
+            });
         }
       }
     } catch (error) {
@@ -335,7 +366,7 @@ export const QuizBuilderPage: React.FC = () => {
       options: [],
       points: 1,
       partial_credit: false,
-      is_required: true
+      is_required: true,
     };
     setEditingQuestion(newQuestion as Question);
     setShowQuestionForm(true);
@@ -353,15 +384,20 @@ export const QuizBuilderPage: React.FC = () => {
       if (editingQuestion?.id) {
         // Actualizar pregunta existente
         savedQuestion = await quizService.updateQuestion(editingQuestion.id, questionData);
-        setQuestions(prev => prev.map(q => q.id === editingQuestion.id ? savedQuestion : q));
+        setQuestions((prev) => prev.map((q) => (q.id === editingQuestion.id ? savedQuestion : q)));
       } else {
         // Crear nueva pregunta
         savedQuestion = await quizService.createQuestion({
           ...questionData,
+          question_text: questionData.question_text ?? '',
+          question_type: questionData.question_type ?? 'multiple_choice',
+          points: questionData.points ?? 1,
+          partial_credit: questionData.partial_credit ?? false,
+          is_required: questionData.is_required ?? true,
           assessment_id: quizId,
-          order_index: questions.length
+          order_index: questions.length,
         });
-        setQuestions(prev => [...prev, savedQuestion]);
+        setQuestions((prev) => [...prev, savedQuestion]);
       }
 
       setEditingQuestion(null);
@@ -376,7 +412,7 @@ export const QuizBuilderPage: React.FC = () => {
 
     try {
       await quizService.deleteQuestion(questionId);
-      setQuestions(prev => prev.filter(q => q.id !== questionId));
+      setQuestions((prev) => prev.filter((q) => q.id !== questionId));
     } catch (error: any) {
       alert(error.message || 'Error eliminando pregunta');
     }
@@ -420,7 +456,7 @@ export const QuizBuilderPage: React.FC = () => {
         is_final_exam: isFinalExam && assessmentType === 'exam', // Solo permitir si es tipo 'exam'
         available_from: availableFrom || undefined,
         available_until: availableUntil || undefined,
-        created_by: user.id
+        created_by: user.id,
       };
 
       console.log('📤 Enviando datos:', quizData);
@@ -440,13 +476,15 @@ export const QuizBuilderPage: React.FC = () => {
         if (questions.length > 0) {
           console.log(`📤 Guardando ${questions.length} preguntas pendientes...`);
           try {
-            await Promise.all(questions.map(q =>
-              quizService.createQuestion({
-                ...q,
-                assessment_id: savedAssessment.id,
-                id: undefined as any // Dejar que Supabase genere el UUID real
+            await Promise.all(
+              questions.map((q) => {
+                const { id: _qid, created_at: _qca, updated_at: _qua, ...questionWithoutId } = q;
+                return quizService.createQuestion({
+                  ...questionWithoutId,
+                  assessment_id: savedAssessment.id,
+                });
               })
-            ));
+            );
           } catch (qErr) {
             console.error('Error guardando preguntas iniciales:', qErr);
             alert('El quiz se creó pero hubo un error al guardar algunas preguntas.');
@@ -463,7 +501,7 @@ export const QuizBuilderPage: React.FC = () => {
         message: error.message,
         code: error.code,
         details: error.details,
-        hint: error.hint
+        hint: error.hint,
       });
       alert(error.message || 'Error guardando quiz');
     }
@@ -486,7 +524,7 @@ export const QuizBuilderPage: React.FC = () => {
           { label: 'Panel Docente', path: '/teacher' },
           { label: 'Mis Cursos', path: '/teacher/courses' },
           ...(course ? [{ label: course.title, path: `/teacher/courses/${course.id}` }] : []),
-          { label: 'Crear Quiz' }
+          { label: 'Crear Quiz' },
         ]}
       />
 
@@ -552,7 +590,7 @@ export const QuizBuilderPage: React.FC = () => {
                       try {
                         const [unitsData, sessionsData] = await Promise.all([
                           unitService.getCourseUnits(Number(selectedCourseId)),
-                          sessionService.getCourseSessions(Number(selectedCourseId))
+                          sessionService.getCourseSessions(Number(selectedCourseId)),
                         ]);
                         setAvailableUnits(unitsData);
                         setAvailableSessions(sessionsData);
@@ -583,7 +621,11 @@ export const QuizBuilderPage: React.FC = () => {
               ) : (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <p className="text-sm text-yellow-800">
-                    No tienes cursos disponibles. <Link to="/teacher/courses/new" className="text-blue-600 underline">Crea un curso primero</Link>.
+                    No tienes cursos disponibles.{' '}
+                    <Link to="/teacher/courses/new" className="text-blue-600 underline">
+                      Crea un curso primero
+                    </Link>
+                    .
                   </p>
                 </div>
               )}
@@ -606,11 +648,14 @@ export const QuizBuilderPage: React.FC = () => {
 
                     // Si se selecciona una unidad, verificar si la sesión actual pertenece a ella
                     if (selectedUnitId) {
-                      unitService.getUnit(selectedUnitId).then(unitData => {
-                        setUnit(unitData);
-                      }).catch(err => {
-                        console.error('Error cargando unidad:', err);
-                      });
+                      unitService
+                        .getUnit(selectedUnitId)
+                        .then((unitData) => {
+                          setUnit(unitData);
+                        })
+                        .catch((err) => {
+                          console.error('Error cargando unidad:', err);
+                        });
 
                       // Si hay una sesión seleccionada que NO pertenece a esta unidad, limpiarla
                       if (session && session.unit_id !== selectedUnitId) {
@@ -648,16 +693,19 @@ export const QuizBuilderPage: React.FC = () => {
 
                     if (selectedSessionId) {
                       // Cargar la sesión seleccionada
-                      sessionService.getSession(selectedSessionId).then(sessionData => {
-                        setSession(sessionData);
-                        // Auto-seleccionar la unidad si la sesión pertenece a una
-                        if (sessionData?.unit_id && !finalUnitId) {
-                          setFinalUnitId(sessionData.unit_id);
-                          unitService.getUnit(sessionData.unit_id).then(u => setUnit(u));
-                        }
-                      }).catch(err => {
-                        console.error('Error cargando sesión:', err);
-                      });
+                      sessionService
+                        .getSession(selectedSessionId)
+                        .then((sessionData) => {
+                          setSession(sessionData);
+                          // Auto-seleccionar la unidad si la sesión pertenece a una
+                          if (sessionData?.unit_id && !finalUnitId) {
+                            setFinalUnitId(sessionData.unit_id);
+                            unitService.getUnit(sessionData.unit_id).then((u) => setUnit(u));
+                          }
+                        })
+                        .catch((err) => {
+                          console.error('Error cargando sesión:', err);
+                        });
                     } else {
                       setSession(null);
                     }
@@ -666,7 +714,7 @@ export const QuizBuilderPage: React.FC = () => {
                 >
                   <option value="">Sin sesión específica</option>
                   {(finalUnitId
-                    ? availableSessions.filter(s => s.unit_id === finalUnitId)
+                    ? availableSessions.filter((s) => s.unit_id === finalUnitId)
                     : availableSessions
                   ).map((s) => (
                     <option key={s.id} value={s.id}>
@@ -697,9 +745,7 @@ export const QuizBuilderPage: React.FC = () => {
 
           {/* Descripción */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Descripción
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -857,8 +903,8 @@ export const QuizBuilderPage: React.FC = () => {
                     Marcar como Examen Final
                   </span>
                   <span className="block text-xs text-blue-700 mt-1">
-                    El examen final aparecerá antes de "Materiales del Curso" en la vista del estudiante.
-                    Solo puede haber un examen final por curso.
+                    El examen final aparecerá antes de "Materiales del Curso" en la vista del
+                    estudiante. Solo puede haber un examen final por curso.
                   </span>
                 </div>
               </label>
@@ -908,19 +954,18 @@ export const QuizBuilderPage: React.FC = () => {
           <>
             <div className="space-y-3">
               {questions.map((question, idx) => (
-                <div key={question.id} className="border border-gray-200 rounded-lg p-4 hover:border-primary transition-colors">
+                <div
+                  key={question.id}
+                  className="border border-gray-200 rounded-lg p-4 hover:border-primary transition-colors"
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-sm font-semibold text-primary">
                           Pregunta {idx + 1}
                         </span>
-                        <span className="text-xs text-gray-500">
-                          ({question.question_type})
-                        </span>
-                        <span className="text-xs text-gray-600">
-                          {question.points} puntos
-                        </span>
+                        <span className="text-xs text-gray-500">({question.question_type})</span>
+                        <span className="text-xs text-gray-600">{question.points} puntos</span>
                       </div>
                       <p className="text-gray-900">{question.question_text}</p>
                       {question.options && question.options.length > 0 && (
@@ -932,7 +977,11 @@ export const QuizBuilderPage: React.FC = () => {
                               ) : (
                                 <IconX className="w-4 h-4 text-gray-400" />
                               )}
-                              <span className={opt.correct ? 'font-medium text-green-700' : 'text-gray-600'}>
+                              <span
+                                className={
+                                  opt.correct ? 'font-medium text-green-700' : 'text-gray-600'
+                                }
+                              >
                                 {opt.text}
                               </span>
                             </div>
@@ -942,7 +991,10 @@ export const QuizBuilderPage: React.FC = () => {
                     </div>
                     <div className="flex gap-2 ml-4">
                       <button
-                        onClick={() => { setEditingQuestion(question); setShowQuestionForm(true); }}
+                        onClick={() => {
+                          setEditingQuestion(question);
+                          setShowQuestionForm(true);
+                        }}
                         className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                       >
                         <IconEdit className="w-5 h-5 text-gray-600" />
@@ -990,10 +1042,7 @@ export const QuizBuilderPage: React.FC = () => {
 
       {/* Botones de Acción */}
       <div className="flex gap-3 justify-end">
-        <Button
-          variant="secondary"
-          onClick={() => navigate(-1)}
-        >
+        <Button variant="secondary" onClick={() => navigate(-1)}>
           Cancelar
         </Button>
         <Button
@@ -1034,10 +1083,14 @@ export const QuizBuilderPage: React.FC = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad de Preguntas</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cantidad de Preguntas
+                </label>
                 <select
                   value={aiConfig.numQuestions}
-                  onChange={(e) => setAiConfig({ ...aiConfig, numQuestions: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setAiConfig({ ...aiConfig, numQuestions: Number(e.target.value) })
+                  }
                   className="w-full border border-gray-300 rounded-md p-2 focus:ring-purple-500 focus:border-purple-500"
                 >
                   <option value={5}>5 preguntas</option>
@@ -1061,12 +1114,18 @@ export const QuizBuilderPage: React.FC = () => {
               </div>
 
               <div className="text-xs text-gray-600 bg-purple-50 p-3 rounded border border-purple-100">
-                <strong>Nota:</strong> La IA analizará el título, descripción y contenido de la <u>Unidad actual</u> y sus materiales para generar preguntas relevantes y evitar alucinaciones.
+                <strong>Nota:</strong> La IA analizará el título, descripción y contenido de la{' '}
+                <u>Unidad actual</u> y sus materiales para generar preguntas relevantes y evitar
+                alucinaciones.
               </div>
             </div>
 
             <div className="mt-6 flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setIsAiModalOpen(false)} disabled={isGeneratingAi}>
+              <Button
+                variant="ghost"
+                onClick={() => setIsAiModalOpen(false)}
+                disabled={isGeneratingAi}
+              >
                 Cancelar
               </Button>
               <Button
@@ -1087,4 +1146,3 @@ export const QuizBuilderPage: React.FC = () => {
 };
 
 export default QuizBuilderPage;
-

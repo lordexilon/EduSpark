@@ -11,7 +11,6 @@ import Button from '@/components/Common/Button';
 
 import { RichTextDisplay } from '@/components/Common/RichTextDisplay';
 
-
 export const TeacherAssignmentsPage: React.FC = () => {
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -68,7 +67,7 @@ export const TeacherAssignmentsPage: React.FC = () => {
 
     try {
       await assignmentService.deleteAssignment(id);
-      setAssignments(assignments.filter(a => a.id !== id));
+      setAssignments(assignments.filter((a) => a.id !== id));
     } catch (err) {
       setError('Error al eliminar la tarea');
       console.error(err);
@@ -111,7 +110,9 @@ export const TeacherAssignmentsPage: React.FC = () => {
     return (
       <div className="text-center py-8">
         <h2 className="text-xl font-semibold text-gray-900">No tienes cursos</h2>
-        <p className="text-gray-600 mt-2">Primero necesitas crear un curso para poder gestionar tareas.</p>
+        <p className="text-gray-600 mt-2">
+          Primero necesitas crear un curso para poder gestionar tareas.
+        </p>
         <Link to="/teacher/courses/new" className="mt-4 inline-block">
           <Button>Crear Curso</Button>
         </Link>
@@ -141,7 +142,12 @@ export const TeacherAssignmentsPage: React.FC = () => {
           <Link to={`/teacher/assignments/new?course=${selectedCourse}`}>
             <Button>
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
               </svg>
               Nueva Tarea
             </Button>
@@ -156,8 +162,18 @@ export const TeacherAssignmentsPage: React.FC = () => {
       ) : assignments.length === 0 ? (
         <Card>
           <div className="text-center py-8">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <svg
+              className="mx-auto h-12 w-12 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
             </svg>
             <h3 className="mt-2 text-sm font-medium text-gray-900">No hay tareas</h3>
             <p className="mt-1 text-sm text-gray-500">Comienza creando tu primera tarea.</p>
@@ -183,7 +199,7 @@ export const TeacherAssignmentsPage: React.FC = () => {
                           className="text-gray-600 text-sm mt-2 prose prose-sm max-w-none line-clamp-3 break-words"
                           style={{
                             wordBreak: 'break-word',
-                            overflowWrap: 'break-word'
+                            overflowWrap: 'break-word',
                           }}
                         >
                           <RichTextDisplay content={assignment.description} />
@@ -192,7 +208,9 @@ export const TeacherAssignmentsPage: React.FC = () => {
                     </div>
                     <div className="flex space-x-2">
                       <Link to={`/teacher/assignments/${assignment.id}/edit`}>
-                        <Button size="sm" variant="outline">Editar</Button>
+                        <Button size="sm" variant="outline">
+                          Editar
+                        </Button>
                       </Link>
                       <button
                         onClick={() => handleDeleteAssignment(assignment.id)}
@@ -207,7 +225,9 @@ export const TeacherAssignmentsPage: React.FC = () => {
                     <div>
                       <span className="text-gray-500">Fecha límite:</span>
                       <p className={`font-medium ${dueStatus.color}`}>
-                        {assignment.due_at ? new Date(assignment.due_at).toLocaleDateString() : 'Sin fecha'}
+                        {assignment.due_at
+                          ? new Date(assignment.due_at).toLocaleDateString()
+                          : 'Sin fecha'}
                       </p>
                       <p className={`text-xs ${dueStatus.color}`}>{dueStatus.text}</p>
                     </div>
@@ -221,7 +241,9 @@ export const TeacherAssignmentsPage: React.FC = () => {
                     </div>
                     <div>
                       <span className="text-gray-500">Calificadas:</span>
-                      <p className="font-medium">{assignment.graded_count} de {assignment.submission_count}</p>
+                      <p className="font-medium">
+                        {assignment.graded_count} de {assignment.submission_count}
+                      </p>
                     </div>
                   </div>
 
@@ -232,9 +254,7 @@ export const TeacherAssignmentsPage: React.FC = () => {
                       </Button>
                     </Link>
                     <Link to={`/teacher/assignments/${assignment.id}`}>
-                      <Button size="sm">
-                        Ver Detalles
-                      </Button>
+                      <Button size="sm">Ver Detalles</Button>
                     </Link>
                   </div>
                 </div>

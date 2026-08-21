@@ -28,7 +28,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
     email: '',
     password: '',
     confirmPassword: '',
-    roleId: isAdmin ? '' : '1' // Solo estudiantes por defecto, admin puede elegir (1=student)
+    roleId: isAdmin ? '' : '1', // Solo estudiantes por defecto, admin puede elegir (1=student)
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -94,7 +94,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
         lastName: formData.lastName,
         email: formData.email.trim().toLowerCase(), // Normalizar email
         password: formData.password,
-        roleId: roleIdToUse
+        roleId: roleIdToUse,
       });
 
       if (result.success) {
@@ -105,12 +105,15 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
           email: '',
           password: '',
           confirmPassword: '',
-          roleId: isAdmin ? '' : '1' // Siempre estudiante (1=student) por defecto
+          roleId: isAdmin ? '' : '1', // Siempre estudiante (1=student) por defecto
         });
         setError('');
         onSuccess?.();
       } else {
-        setError(result.error || 'Error en el registro. Por favor, verifica los datos e intenta nuevamente.');
+        setError(
+          result.error ||
+            'Error en el registro. Por favor, verifica los datos e intenta nuevamente.'
+        );
       }
     } catch (error: any) {
       console.error('Error inesperado en registro:', error);
@@ -119,9 +122,9 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     }));
   };
 
@@ -139,12 +142,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
               </button>
             )}
             <div className="flex-1">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                ¡Únete a EduSpark!
-              </h2>
-              <p className="text-gray-600">
-                Crea tu cuenta y comienza a aprender
-              </p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Únete a EduSpark!</h2>
+              <p className="text-gray-600">Crea tu cuenta y comienza a aprender</p>
             </div>
             {onSwitchToLogin && <div className="w-5"></div>}
           </div>
@@ -237,9 +236,13 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
                     <option value="">Selecciona un rol</option>
                     {roles.map((role) => (
                       <option key={role.id} value={role.id}>
-                        {role.name === 'admin' ? 'Administrador' :
-                          role.name === 'teacher' ? 'Docente' :
-                            role.name === 'student' ? 'Estudiante' : role.name}
+                        {role.name === 'admin'
+                          ? 'Administrador'
+                          : role.name === 'teacher'
+                            ? 'Docente'
+                            : role.name === 'student'
+                              ? 'Estudiante'
+                              : role.name}
                       </option>
                     ))}
                   </>
@@ -252,7 +255,9 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
           ) : (
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
               <p className="text-sm text-blue-800">
-                <strong>Nota:</strong> Todas las cuentas nuevas se crean como <strong>Estudiante</strong>. Un administrador puede cambiar tu rol después del registro si es necesario.
+                <strong>Nota:</strong> Todas las cuentas nuevas se crean como{' '}
+                <strong>Estudiante</strong>. Un administrador puede cambiar tu rol después del
+                registro si es necesario.
               </p>
             </div>
           )}
@@ -284,7 +289,10 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="confirmPassword"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Confirmar Contraseña
             </label>
             <div className="relative">
@@ -335,7 +343,9 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess, onSwitchToLogin 
                 <div className="w-full border-t border-gray-200"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400">¿Ya tienes cuenta?</span>
+                <span className="px-2 bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400">
+                  ¿Ya tienes cuenta?
+                </span>
               </div>
             </div>
             <button

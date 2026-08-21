@@ -9,10 +9,15 @@ import { courseService, Course } from '@/services/teacherCourses';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
 import Breadcrumbs from '@/components/Common/Breadcrumbs';
-import { IconArrowLeft, IconEdit, IconTrash, IconClock, IconFileText } from '@/components/Common/Icons';
+import {
+  IconArrowLeft,
+  IconEdit,
+  IconTrash,
+  IconClock,
+  IconFileText,
+} from '@/components/Common/Icons';
 
 import { RichTextDisplay } from '@/components/Common/RichTextDisplay';
-
 
 export const AssignmentDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -88,15 +93,13 @@ export const AssignmentDetailPage: React.FC = () => {
           items={[
             { label: 'Dashboard', path: '/teacher/dashboard' },
             { label: 'Tareas', path: '/teacher/assignments' },
-            { label: 'Detalles' }
+            { label: 'Detalles' },
           ]}
         />
         <Card>
           <div className="text-center py-8">
             <p className="text-red-600 mb-4">{error || 'Tarea no encontrada'}</p>
-            <Button onClick={() => navigate('/teacher/assignments')}>
-              Volver a Tareas
-            </Button>
+            <Button onClick={() => navigate('/teacher/assignments')}>Volver a Tareas</Button>
           </div>
         </Card>
       </div>
@@ -109,7 +112,7 @@ export const AssignmentDetailPage: React.FC = () => {
         items={[
           { label: 'Dashboard', path: '/teacher/dashboard' },
           { label: 'Tareas', path: '/teacher/assignments' },
-          { label: assignment.title }
+          { label: assignment.title },
         ]}
       />
 
@@ -123,9 +126,7 @@ export const AssignmentDetailPage: React.FC = () => {
           </Link>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{assignment.title}</h1>
-            {course && (
-              <p className="text-gray-600 mt-1">{course.title}</p>
-            )}
+            {course && <p className="text-gray-600 mt-1">{course.title}</p>}
           </div>
         </div>
         <div className="flex gap-2">
@@ -182,11 +183,16 @@ export const AssignmentDetailPage: React.FC = () => {
               <h2 className="text-xl font-semibold text-gray-900 mb-3">Archivos Adjuntos</h2>
               <div className="space-y-2">
                 {assignment.attachments.map((attachment: any, index: number) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  >
                     <div className="flex items-center gap-3">
                       <IconFileText className="w-5 h-5 text-gray-400" />
                       <div>
-                        <p className="font-medium text-gray-900">{attachment.name || `Archivo ${index + 1}`}</p>
+                        <p className="font-medium text-gray-900">
+                          {attachment.name || `Archivo ${index + 1}`}
+                        </p>
                         {attachment.size && (
                           <p className="text-sm text-gray-500">
                             {(attachment.size / 1024).toFixed(2)} KB
@@ -213,14 +219,10 @@ export const AssignmentDetailPage: React.FC = () => {
           {/* Acciones */}
           <div className="flex gap-3 pt-6 border-t border-gray-200">
             <Link to={`/teacher/assignments/${id}/submissions`}>
-              <Button variant="primary">
-                Ver Entregas
-              </Button>
+              <Button variant="primary">Ver Entregas</Button>
             </Link>
             <Link to={`/teacher/assignments/${id}/edit`}>
-              <Button variant="outline">
-                Editar Tarea
-              </Button>
+              <Button variant="outline">Editar Tarea</Button>
             </Link>
           </div>
         </div>
@@ -230,4 +232,3 @@ export const AssignmentDetailPage: React.FC = () => {
 };
 
 export default AssignmentDetailPage;
-

@@ -20,7 +20,7 @@ const DebugMonitor: React.FC = () => {
       // Presionar F12 + D para mostrar/ocultar debug
       if (event.key === 'F12') {
         event.preventDefault();
-        setIsVisible(prev => !prev);
+        setIsVisible((prev) => !prev);
       }
     };
 
@@ -54,18 +54,20 @@ const DebugMonitor: React.FC = () => {
   if (!isVisible) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: '10px',
-      right: '10px',
-      background: 'rgba(0,0,0,0.8)',
-      color: 'white',
-      padding: '10px',
-      borderRadius: '5px',
-      fontSize: '12px',
-      zIndex: 9999,
-      fontFamily: 'monospace'
-    }}>
+    <div
+      style={{
+        position: 'fixed',
+        top: '10px',
+        right: '10px',
+        background: 'rgba(0,0,0,0.8)',
+        color: 'white',
+        padding: '10px',
+        borderRadius: '5px',
+        fontSize: '12px',
+        zIndex: 9999,
+        fontFamily: 'monospace',
+      }}
+    >
       <div>🔍 Load Status: {loadStatus}</div>
       <div>📍 URL: {window.location.href}</div>
       <div>🕒 Time: {new Date().toLocaleTimeString()}</div>
@@ -86,7 +88,7 @@ const DebugMonitor: React.FC = () => {
           border: 'none',
           borderRadius: '3px',
           cursor: 'pointer',
-          fontWeight: 'bold'
+          fontWeight: 'bold',
         }}
       >
         🚨 FORCE RELOAD
@@ -95,8 +97,8 @@ const DebugMonitor: React.FC = () => {
         onClick={() => {
           console.log('🔄 Recarga con limpieza de caché...');
           if ('caches' in window) {
-            caches.keys().then(names => {
-              names.forEach(name => caches.delete(name));
+            caches.keys().then((names) => {
+              names.forEach((name) => caches.delete(name));
               (window as any).location.reload();
             });
           } else {
@@ -112,7 +114,7 @@ const DebugMonitor: React.FC = () => {
           border: 'none',
           borderRadius: '3px',
           cursor: 'pointer',
-          fontWeight: 'bold'
+          fontWeight: 'bold',
         }}
       >
         🧹 CLEAN RELOAD
@@ -144,7 +146,7 @@ const NavigationHandler: React.FC = () => {
           appChildren: appElement?.children.length || 0,
           loadingElement: !!loadingElement,
           bodyChildren,
-          location: window.location.href
+          location: window.location.href,
         });
 
         // Si hay un elemento de carga pero no hay contenido de la app
@@ -159,7 +161,9 @@ const NavigationHandler: React.FC = () => {
         const appElement = document.querySelector('#root');
         // Solo recargar si no hay NINGUNA estructura en root después de 10 segundos
         if (!appElement || appElement.children.length === 0) {
-          console.warn('🚨 Verificación agresiva: Sin contenido detectado después de 10s, forzando recarga...');
+          console.warn(
+            '🚨 Verificación agresiva: Sin contenido detectado después de 10s, forzando recarga...'
+          );
           // Evitar bucle infinito si la página está realmente vacía por diseño
           if (window.location.search.includes('no-retry')) return;
           const separator = window.location.href.includes('?') ? '&' : '?';
@@ -188,10 +192,8 @@ const NavigationHandler: React.FC = () => {
 
     // Limpiar LocalStorage de caché si existe (solo Vite, NO auth)
     try {
-      const cacheKeys = Object.keys(localStorage).filter(key =>
-        key.includes('vite')
-      );
-      cacheKeys.forEach(key => localStorage.removeItem(key));
+      const cacheKeys = Object.keys(localStorage).filter((key) => key.includes('vite'));
+      cacheKeys.forEach((key) => localStorage.removeItem(key));
     } catch (e) {
       console.warn('Error limpiando localStorage:', e);
     }
@@ -247,11 +249,14 @@ const RouterWrapper: React.FC<RouterWrapperProps> = ({ children }) => {
   useEffect(() => {
     // Limpiar caché de Service Worker al cargar
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        registrations.forEach((registration) => {
-          registration.unregister().catch(console.warn);
-        });
-      }).catch(console.warn);
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((registrations) => {
+          registrations.forEach((registration) => {
+            registration.unregister().catch(console.warn);
+          });
+        })
+        .catch(console.warn);
     }
 
     // Limpiar caché de IndexedDB si existe
@@ -259,19 +264,22 @@ const RouterWrapper: React.FC<RouterWrapperProps> = ({ children }) => {
       try {
         // indexedDB.databases() retorna una Promise
         if (typeof (indexedDB as any).databases === 'function') {
-          (indexedDB as any).databases().then((dbs: Array<{ name: string }>) => {
-            dbs.forEach((db) => {
-              if (db.name) {
-                try {
-                  indexedDB.deleteDatabase(db.name);
-                } catch (e) {
-                  console.warn('Error eliminando BD:', db.name, e);
+          (indexedDB as any)
+            .databases()
+            .then((dbs: Array<{ name: string }>) => {
+              dbs.forEach((db) => {
+                if (db.name) {
+                  try {
+                    indexedDB.deleteDatabase(db.name);
+                  } catch (e) {
+                    console.warn('Error eliminando BD:', db.name, e);
+                  }
                 }
-              }
+              });
+            })
+            .catch((e: any) => {
+              console.warn('Error accediendo a bases de datos:', e);
             });
-          }).catch((e: any) => {
-            console.warn('Error accediendo a bases de datos:', e);
-          });
         }
       } catch (e) {
         console.warn('Error limpiando IndexedDB:', e);
@@ -283,7 +291,7 @@ const RouterWrapper: React.FC<RouterWrapperProps> = ({ children }) => {
   useEffect(() => {
     // Silenciar errores comunes causados por extensiones del navegador
     const handleUnhandled = (e: PromiseRejectionEvent) => {
-      const msg = String((e as any)?.reason || '')
+      const msg = String((e as any)?.reason || '');
       const errorMsg = msg.toLowerCase();
 
       // Detectar varios tipos de errores relacionados con extensiones
@@ -355,7 +363,7 @@ const RouterWrapper: React.FC<RouterWrapperProps> = ({ children }) => {
       // Limpiar localStorage
       try {
         const keys = Object.keys(localStorage);
-        keys.forEach(key => {
+        keys.forEach((key) => {
           if (key.includes('vite') || key.includes('cache')) {
             localStorage.removeItem(key);
           }
@@ -386,7 +394,7 @@ const RouterWrapper: React.FC<RouterWrapperProps> = ({ children }) => {
     <BrowserRouter
       future={{
         v7_startTransition: true,
-        v7_relativeSplatPath: true
+        v7_relativeSplatPath: true,
       }}
     >
       <NavigationHandler />

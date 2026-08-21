@@ -42,7 +42,7 @@ export const useUnreadAnnouncements = () => {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'announcements'
+          table: 'announcements',
         },
         async (payload) => {
           // Cuando se crea un nuevo aviso, verificar si el usuario es destinatario
@@ -54,7 +54,7 @@ export const useUnreadAnnouncements = () => {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'announcement_recipients'
+          table: 'announcement_recipients',
         },
         async (payload) => {
           // Cuando se crea un registro de destinatario, verificar si es para el usuario actual
@@ -69,7 +69,7 @@ export const useUnreadAnnouncements = () => {
           event: 'UPDATE',
           schema: 'public',
           table: 'announcement_recipients',
-          filter: `recipient_id=eq.${user.id}`
+          filter: `recipient_id=eq.${user.id}`,
         },
         async (payload) => {
           // Cuando se marca un aviso como leído, recargar el conteo
@@ -96,4 +96,3 @@ export const useUnreadAnnouncements = () => {
 
   return { unreadCount, loading };
 };
-

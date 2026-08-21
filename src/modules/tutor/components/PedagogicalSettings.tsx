@@ -6,21 +6,22 @@
 
 import React, { useState, useEffect } from 'react';
 import type {
-  PedagogicalSettings,
+  PedagogicalSettings as PedagogicalSettingsType,
   TeachingStyle,
   TonePreference,
   DetailLevel,
   VoiceName,
   GradingScale,
-  Course
+  GradingScaleItem,
+  Course,
 } from '../types/pedagogical';
 
 interface PedagogicalSettingsProps {
   courseId: string;
   course?: Course | null;
-  initialSettings?: PedagogicalSettings | null;
+  initialSettings?: PedagogicalSettingsType | null;
   initialGradingScale?: GradingScale | null;
-  onSave: (settings: Partial<PedagogicalSettings>) => Promise<boolean>;
+  onSave: (settings: Partial<PedagogicalSettingsType>) => Promise<boolean>;
   onSaveGradingScale?: (gradingScale: Partial<GradingScale>) => Promise<boolean>;
   onUploadImage?: (file: File) => Promise<string | null>;
   isLoading?: boolean;
@@ -36,10 +37,10 @@ export const PedagogicalSettings: React.FC<PedagogicalSettingsProps> = ({
   onSaveGradingScale,
   onUploadImage,
   isLoading = false,
-  isTeacher = true
+  isTeacher = true,
 }) => {
   // Estados del formulario
-  const [settings, setSettings] = useState<Partial<PedagogicalSettings>>({
+  const [settings, setSettings] = useState<Partial<PedagogicalSettingsType>>({
     teachingStyle: 'constructivista',
     tonePreference: 'amigable',
     detailLevel: 'medio',
@@ -48,7 +49,7 @@ export const PedagogicalSettings: React.FC<PedagogicalSettingsProps> = ({
     voiceName: 'Kore',
     voiceSpeed: 1.0,
     enableAudioResponse: true,
-    systemPromptOverride: ''
+    systemPromptOverride: '',
   });
 
   // Estados para escala de calificación
@@ -60,16 +61,20 @@ export const PedagogicalSettings: React.FC<PedagogicalSettingsProps> = ({
       { grade: 'B+', minScore: 85, maxScore: 89, description: 'Bueno' },
       { grade: 'B', minScore: 80, maxScore: 84, description: 'Satisfactorio' },
       { grade: 'C', minScore: 70, maxScore: 79, description: 'Aceptable' },
-      { grade: 'F', minScore: 0, maxScore: 69, description: 'Reprobado' }
-    ]
+      { grade: 'F', minScore: 0, maxScore: 69, description: 'Reprobado' },
+    ],
   });
 
   // Estados de UI
   const [isDirty, setIsDirty] = useState(false);
   const [isGradingDirty, setIsGradingDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
-  const [gradingSaveStatus, setGradingSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
-  const [activeTab, setActiveTab] = useState<'pedagogical' | 'grading' | 'images' | 'advanced'>('pedagogical');
+  const [gradingSaveStatus, setGradingSaveStatus] = useState<
+    'idle' | 'saving' | 'success' | 'error'
+  >('idle');
+  const [activeTab, setActiveTab] = useState<'pedagogical' | 'grading' | 'images' | 'advanced'>(
+    'pedagogical'
+  );
   const [previewMode, setPreviewMode] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
@@ -85,7 +90,7 @@ export const PedagogicalSettings: React.FC<PedagogicalSettingsProps> = ({
         voiceName: initialSettings.voiceName,
         voiceSpeed: initialSettings.voiceSpeed,
         enableAudioResponse: initialSettings.enableAudioResponse ?? true,
-        systemPromptOverride: initialSettings.systemPromptOverride || ''
+        systemPromptOverride: initialSettings.systemPromptOverride || '',
       });
       setIsDirty(false);
     }
@@ -96,22 +101,22 @@ export const PedagogicalSettings: React.FC<PedagogicalSettingsProps> = ({
     if (initialGradingScale) {
       setGradingScale({
         name: initialGradingScale.name,
-        scale: initialGradingScale.scale
+        scale: initialGradingScale.scale,
       });
       setIsGradingDirty(false);
     }
   }, [initialGradingScale]);
 
   // Manejar cambios en el formulario
-  const handleChange = (field: keyof PedagogicalSettings, value: any) => {
-    setSettings(prev => ({ ...prev, [field]: value }));
+  const handleChange = (field: keyof PedagogicalSettingsType, value: any) => {
+    setSettings((prev) => ({ ...prev, [field]: value }));
     setIsDirty(true);
     setSaveStatus('idle');
   };
 
   // Manejar cambios en la escala de calificación
   const handleGradingChange = (field: keyof GradingScale, value: any) => {
-    setGradingScale(prev => ({ ...prev, [field]: value }));
+    setGradingScale((prev) => ({ ...prev, [field]: value }));
     setIsGradingDirty(true);
     setGradingSaveStatus('idle');
   };
@@ -122,31 +127,30 @@ export const PedagogicalSettings: React.FC<PedagogicalSettingsProps> = ({
       grade: '',
       minScore: 0,
       maxScore: 0,
-      description: ''
+      description: '',
     };
-    setGradingScale(prev => ({
+    setGradingScale((prev) => ({
       ...prev,
-      scale: [...(prev.scale || []), newGrade]
+      scale: [...(prev.scale || []), newGrade],
     }));
     setIsGradingDirty(true);
   };
 
   // Eliminar grado de la escala
   const removeGrade = (index: number) => {
-    setGradingScale(prev => ({
+    setGradingScale((prev) => ({
       ...prev,
-      scale: prev.scale?.filter((_, i) => i !== index) || []
+      scale: prev.scale?.filter((_, i) => i !== index) || [],
     }));
     setIsGradingDirty(true);
   };
 
   // Actualizar grado específico
-  const updateGrade = (index: number, field: keyof GradingScale['scale'][0], value: any) => {
-    setGradingScale(prev => ({
+  const updateGrade = (index: number, field: keyof GradingScaleItem, value: any) => {
+    setGradingScale((prev) => ({
       ...prev,
-      scale: prev.scale?.map((grade, i) =>
-        i === index ? { ...grade, [field]: value } : grade
-      ) || []
+      scale:
+        prev.scale?.map((grade, i) => (i === index ? { ...grade, [field]: value } : grade)) || [],
     }));
     setIsGradingDirty(true);
   };
@@ -213,9 +217,9 @@ export const PedagogicalSettings: React.FC<PedagogicalSettingsProps> = ({
 
   // Generar preview del prompt
   const generatePromptPreview = () => {
-    const style = teachingStyleOptions.find(opt => opt.value === settings.teachingStyle);
-    const tone = toneOptions.find(opt => opt.value === settings.tonePreference);
-    const detail = detailLevelOptions.find(opt => opt.value === settings.detailLevel);
+    const style = teachingStyleOptions.find((opt) => opt.value === settings.teachingStyle);
+    const tone = toneOptions.find((opt) => opt.value === settings.tonePreference);
+    const detail = detailLevelOptions.find((opt) => opt.value === settings.detailLevel);
 
     return `Eres EduSpark, un tutor de IA especializado en educación personalizada.
 
@@ -235,23 +239,35 @@ ${settings.systemPromptOverride ? `INSTRUCCIONES PERSONALIZADAS:\n${settings.sys
 
   // Opciones para los selects
   const teachingStyleOptions: { value: TeachingStyle; label: string; description: string }[] = [
-    { value: 'socratico', label: 'Socrático', description: 'Preguntas guiadas para que el estudiante llegue a sus propias conclusiones' },
+    {
+      value: 'socratico',
+      label: 'Socrático',
+      description: 'Preguntas guiadas para que el estudiante llegue a sus propias conclusiones',
+    },
     { value: 'directo', label: 'Directo', description: 'Explicaciones claras y estructuradas' },
-    { value: 'colaborativo', label: 'Colaborativo', description: 'Fomenta el trabajo en equipo y la discusión' },
-    { value: 'constructivista', label: 'Constructivista', description: 'Ayuda al estudiante a construir su propio conocimiento' }
+    {
+      value: 'colaborativo',
+      label: 'Colaborativo',
+      description: 'Fomenta el trabajo en equipo y la discusión',
+    },
+    {
+      value: 'constructivista',
+      label: 'Constructivista',
+      description: 'Ayuda al estudiante a construir su propio conocimiento',
+    },
   ];
 
   const toneOptions: { value: TonePreference; label: string; description: string }[] = [
     { value: 'amigable', label: 'Amigable', description: 'Tono casual y cercano' },
     { value: 'formal', label: 'Formal', description: 'Tono académico y profesional' },
     { value: 'motivador', label: 'Motivador', description: 'Tono alentador y positivo' },
-    { value: 'neutro', label: 'Neutro', description: 'Tono equilibrado y objetivo' }
+    { value: 'neutro', label: 'Neutro', description: 'Tono equilibrado y objetivo' },
   ];
 
   const detailLevelOptions: { value: DetailLevel; label: string; description: string }[] = [
     { value: 'basico', label: 'Básico', description: 'Explicaciones simples y directas' },
     { value: 'medio', label: 'Medio', description: 'Explicaciones balanceadas' },
-    { value: 'avanzado', label: 'Avanzado', description: 'Explicaciones detalladas y técnicas' }
+    { value: 'avanzado', label: 'Avanzado', description: 'Explicaciones detalladas y técnicas' },
   ];
 
   const voiceOptions: { value: VoiceName; label: string; description: string }[] = [
@@ -259,19 +275,31 @@ ${settings.systemPromptOverride ? `INSTRUCCIONES PERSONALIZADAS:\n${settings.sys
     { value: 'Charon', label: 'Charon', description: 'Voz masculina, profunda y autoritaria' },
     { value: 'Fenrir', label: 'Fenrir', description: 'Voz masculina, energética y motivadora' },
     { value: 'Aoede', label: 'Aoede', description: 'Voz femenina, cálida y expresiva' },
-    { value: 'Puck', label: 'Puck', description: 'Voz neutra, versátil y amigable' }
+    { value: 'Puck', label: 'Puck', description: 'Voz neutra, versátil y amigable' },
   ];
 
   if (!isTeacher) {
     return (
       <div className="bg-slate-800 rounded-lg p-6 text-center">
         <div className="text-slate-400 mb-4">
-          <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          <svg
+            className="w-16 h-16 mx-auto mb-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+            />
           </svg>
         </div>
         <h3 className="text-xl font-semibold text-white mb-2">Acceso Restringido</h3>
-        <p className="text-slate-400">Solo los docentes pueden configurar las preferencias pedagógicas del curso.</p>
+        <p className="text-slate-400">
+          Solo los docentes pueden configurar las preferencias pedagógicas del curso.
+        </p>
       </div>
     );
   }
@@ -283,9 +311,7 @@ ${settings.systemPromptOverride ? `INSTRUCCIONES PERSONALIZADAS:\n${settings.sys
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-xl font-semibold text-white">Configuración Pedagógica</h3>
-            {course && (
-              <p className="text-slate-400 text-sm">Curso: {course.name}</p>
-            )}
+            {course && <p className="text-slate-400 text-sm">Curso: {course.name}</p>}
           </div>
           <div className="flex items-center gap-2">
             {(isDirty || isGradingDirty) && (
@@ -307,15 +333,16 @@ ${settings.systemPromptOverride ? `INSTRUCCIONES PERSONALIZADAS:\n${settings.sys
           { id: 'pedagogical', label: 'Pedagógico', icon: '🎓' },
           { id: 'grading', label: 'Calificaciones', icon: '📊' },
           { id: 'images', label: 'Imágenes', icon: '🖼️' },
-          { id: 'advanced', label: 'Avanzado', icon: '⚙️' }
-        ].map(tab => (
+          { id: 'advanced', label: 'Avanzado', icon: '⚙️' },
+        ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`px-6 py-3 text-sm font-medium transition-colors ${activeTab === tab.id
+            className={`px-6 py-3 text-sm font-medium transition-colors ${
+              activeTab === tab.id
                 ? 'text-sky-400 border-b-2 border-sky-400 bg-slate-700'
                 : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700'
-              }`}
+            }`}
           >
             <span className="mr-2">{tab.icon}</span>
             {tab.label}
@@ -337,77 +364,74 @@ ${settings.systemPromptOverride ? `INSTRUCCIONES PERSONALIZADAS:\n${settings.sys
                 onChange={(e) => handleChange('teachingStyle', e.target.value as TeachingStyle)}
                 className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
               >
-                {teachingStyleOptions.map(option => (
+                {teachingStyleOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
                 ))}
               </select>
               <p className="text-xs text-slate-400">
-                {teachingStyleOptions.find(opt => opt.value === settings.teachingStyle)?.description}
+                {
+                  teachingStyleOptions.find((opt) => opt.value === settings.teachingStyle)
+                    ?.description
+                }
               </p>
             </div>
 
             {/* Tono de Respuestas */}
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">
-                Tono de Respuestas
-              </label>
+              <label className="block text-sm font-medium text-slate-300">Tono de Respuestas</label>
               <select
                 value={settings.tonePreference || 'amigable'}
                 onChange={(e) => handleChange('tonePreference', e.target.value as TonePreference)}
                 className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
               >
-                {toneOptions.map(option => (
+                {toneOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
                 ))}
               </select>
               <p className="text-xs text-slate-400">
-                {toneOptions.find(opt => opt.value === settings.tonePreference)?.description}
+                {toneOptions.find((opt) => opt.value === settings.tonePreference)?.description}
               </p>
             </div>
 
             {/* Nivel de Detalle */}
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">
-                Nivel de Detalle
-              </label>
+              <label className="block text-sm font-medium text-slate-300">Nivel de Detalle</label>
               <select
                 value={settings.detailLevel || 'medio'}
                 onChange={(e) => handleChange('detailLevel', e.target.value as DetailLevel)}
                 className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
               >
-                {detailLevelOptions.map(option => (
+                {detailLevelOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
                 ))}
               </select>
               <p className="text-xs text-slate-400">
-                {detailLevelOptions.find(opt => opt.value === settings.detailLevel)?.description}
+                {detailLevelOptions.find((opt) => opt.value === settings.detailLevel)?.description}
               </p>
             </div>
 
             {/* Voz del Tutor */}
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">
-                Voz del Tutor
-              </label>
+              <label className="block text-sm font-medium text-slate-300">Voz del Tutor</label>
               <select
                 value={settings.voiceName || 'Kore'}
                 onChange={(e) => handleChange('voiceName', e.target.value as VoiceName)}
                 className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
               >
-                {voiceOptions.map(option => (
+                {voiceOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
                 ))}
               </select>
               <p className="text-xs text-slate-400">
-                {voiceOptions.find(opt => opt.value === settings.voiceName)?.description}
+                {voiceOptions.find((opt) => opt.value === settings.voiceName)?.description}
               </p>
             </div>
           </div>
@@ -467,8 +491,12 @@ ${settings.systemPromptOverride ? `INSTRUCCIONES PERSONALIZADAS:\n${settings.sys
                     className="w-4 h-4 text-sky-600 bg-slate-700 border-slate-600 rounded focus:ring-sky-500"
                   />
                   <div className="flex flex-col">
-                    <span className="text-slate-300 font-medium">Habilitar Respuesta por Audio</span>
-                    <span className="text-xs text-slate-400">Permite que el tutor responda con voz automáticamente o bajo petición.</span>
+                    <span className="text-slate-300 font-medium">
+                      Habilitar Respuesta por Audio
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      Permite que el tutor responda con voz automáticamente o bajo petición.
+                    </span>
                   </div>
                 </label>
 
@@ -477,9 +505,15 @@ ${settings.systemPromptOverride ? `INSTRUCCIONES PERSONALIZADAS:\n${settings.sys
                     <div className="flex gap-3">
                       <span className="text-amber-400">⚠️</span>
                       <div className="space-y-1">
-                        <p className="text-sm font-medium text-amber-200">Aviso de Compatibilidad</p>
+                        <p className="text-sm font-medium text-amber-200">
+                          Aviso de Compatibilidad
+                        </p>
                         <p className="text-xs text-amber-300/80 leading-relaxed">
-                          Las funciones de voz y reconocimiento de audio pueden no funcionar correctamente en navegadores con bloqueadores estrictos como <strong>Brave</strong> o en navegadores móviles antiguos. Se recomienda usar <strong>Google Chrome</strong> o <strong>Microsoft Edge</strong> para la mejor experiencia.
+                          Las funciones de voz y reconocimiento de audio pueden no funcionar
+                          correctamente en navegadores con bloqueadores estrictos como{' '}
+                          <strong>Brave</strong> o en navegadores móviles antiguos. Se recomienda
+                          usar <strong>Google Chrome</strong> o <strong>Microsoft Edge</strong> para
+                          la mejor experiencia.
                         </p>
                       </div>
                     </div>
@@ -494,7 +528,8 @@ ${settings.systemPromptOverride ? `INSTRUCCIONES PERSONALIZADAS:\n${settings.sys
             <button
               onClick={handleSave}
               disabled={!isDirty || isLoading || saveStatus === 'saving'}
-              className={`px-6 py-2 rounded-md font-medium transition-colors ${saveStatus === 'saving' || isLoading
+              className={`px-6 py-2 rounded-md font-medium transition-colors ${
+                saveStatus === 'saving' || isLoading
                   ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
                   : saveStatus === 'success'
                     ? 'bg-green-600 text-white'
@@ -503,11 +538,15 @@ ${settings.systemPromptOverride ? `INSTRUCCIONES PERSONALIZADAS:\n${settings.sys
                       : isDirty
                         ? 'bg-sky-600 text-white hover:bg-sky-500'
                         : 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                }`}
+              }`}
             >
-              {saveStatus === 'saving' ? 'Guardando...' :
-                saveStatus === 'success' ? '✓ Guardado' :
-                  saveStatus === 'error' ? '✗ Error' : 'Guardar Configuración'}
+              {saveStatus === 'saving'
+                ? 'Guardando...'
+                : saveStatus === 'success'
+                  ? '✓ Guardado'
+                  : saveStatus === 'error'
+                    ? '✗ Error'
+                    : 'Guardar Configuración'}
             </button>
           </div>
         </div>
@@ -607,7 +646,8 @@ ${settings.systemPromptOverride ? `INSTRUCCIONES PERSONALIZADAS:\n${settings.sys
             <button
               onClick={handleSaveGrading}
               disabled={!isGradingDirty || !onSaveGradingScale || gradingSaveStatus === 'saving'}
-              className={`px-6 py-2 rounded-md font-medium transition-colors ${gradingSaveStatus === 'saving'
+              className={`px-6 py-2 rounded-md font-medium transition-colors ${
+                gradingSaveStatus === 'saving'
                   ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
                   : gradingSaveStatus === 'success'
                     ? 'bg-green-600 text-white'
@@ -616,11 +656,15 @@ ${settings.systemPromptOverride ? `INSTRUCCIONES PERSONALIZADAS:\n${settings.sys
                       : isGradingDirty
                         ? 'bg-sky-600 text-white hover:bg-sky-500'
                         : 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                }`}
+              }`}
             >
-              {gradingSaveStatus === 'saving' ? 'Guardando...' :
-                gradingSaveStatus === 'success' ? '✓ Guardado' :
-                  gradingSaveStatus === 'error' ? '✗ Error' : 'Guardar Escala'}
+              {gradingSaveStatus === 'saving'
+                ? 'Guardando...'
+                : gradingSaveStatus === 'success'
+                  ? '✓ Guardado'
+                  : gradingSaveStatus === 'error'
+                    ? '✗ Error'
+                    : 'Guardar Escala'}
             </button>
           </div>
         </div>
@@ -631,16 +675,33 @@ ${settings.systemPromptOverride ? `INSTRUCCIONES PERSONALIZADAS:\n${settings.sys
         <div className="space-y-6">
           <div className="text-center py-8">
             <div className="text-slate-400 mb-4">
-              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <svg
+                className="w-16 h-16 mx-auto"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
               </svg>
             </div>
             <h4 className="text-lg font-medium text-white mb-2">Gestión de Imágenes</h4>
-            <p className="text-slate-400 mb-4">Sube imágenes para enriquecer el contenido del curso</p>
+            <p className="text-slate-400 mb-4">
+              Sube imágenes para enriquecer el contenido del curso
+            </p>
 
             <label className="inline-flex items-center px-6 py-3 bg-sky-600 text-white rounded-lg hover:bg-sky-500 transition-colors cursor-pointer">
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
               </svg>
               {uploadingImage ? 'Subiendo...' : 'Subir Imagen'}
               <input
@@ -690,7 +751,8 @@ ${settings.systemPromptOverride ? `INSTRUCCIONES PERSONALIZADAS:\n${settings.sys
             <button
               onClick={handleSave}
               disabled={!isDirty || isLoading || saveStatus === 'saving'}
-              className={`px-6 py-2 rounded-md font-medium transition-colors ${saveStatus === 'saving' || isLoading
+              className={`px-6 py-2 rounded-md font-medium transition-colors ${
+                saveStatus === 'saving' || isLoading
                   ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
                   : saveStatus === 'success'
                     ? 'bg-green-600 text-white'
@@ -699,11 +761,15 @@ ${settings.systemPromptOverride ? `INSTRUCCIONES PERSONALIZADAS:\n${settings.sys
                       : isDirty
                         ? 'bg-sky-600 text-white hover:bg-sky-500'
                         : 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                }`}
+              }`}
             >
-              {saveStatus === 'saving' ? 'Guardando...' :
-                saveStatus === 'success' ? '✓ Guardado' :
-                  saveStatus === 'error' ? '✗ Error' : 'Guardar Configuración'}
+              {saveStatus === 'saving'
+                ? 'Guardando...'
+                : saveStatus === 'success'
+                  ? '✓ Guardado'
+                  : saveStatus === 'error'
+                    ? '✗ Error'
+                    : 'Guardar Configuración'}
             </button>
           </div>
         </div>

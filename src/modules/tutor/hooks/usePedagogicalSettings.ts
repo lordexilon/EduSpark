@@ -4,8 +4,8 @@
 // =====================================================
 
 import { useState, useEffect, useCallback } from 'react';
-import type { PedagogicalSettings, GradingScale, Course } from '../types/pedagogical';
-import * as supabaseService from "../services/supabaseService";
+import type { PedagogicalSettings, GradingScale } from '../types/pedagogical';
+import * as supabaseService from '../services/supabaseService';
 
 interface UsePedagogicalSettingsProps {
   courseId: string;
@@ -21,7 +21,7 @@ interface UsePedagogicalSettingsReturn {
   isLoading: boolean;
   isSaving: boolean;
   error: string | null;
-  
+
   // Acciones
   updateSettings: (updates: Partial<PedagogicalSettings>) => Promise<boolean>;
   updateGradingScale: (updates: Partial<GradingScale>) => Promise<boolean>;
@@ -29,7 +29,7 @@ interface UsePedagogicalSettingsReturn {
   resetGradingScale: () => void;
   refreshSettings: () => Promise<void>;
   refreshGradingScale: () => Promise<void>;
-  
+
   // Utilidades
   hasChanges: boolean;
   canSave: boolean;
@@ -40,11 +40,13 @@ export const usePedagogicalSettings = ({
   courseId,
   teacherId,
   initialSettings,
-  initialGradingScale
+  initialGradingScale,
 }: UsePedagogicalSettingsProps): UsePedagogicalSettingsReturn => {
   // Estados
   const [settings, setSettings] = useState<PedagogicalSettings | null>(initialSettings || null);
-  const [gradingScale, setGradingScale] = useState<GradingScale | null>(initialGradingScale || null);
+  const [gradingScale, setGradingScale] = useState<GradingScale | null>(
+    initialGradingScale || null
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +54,7 @@ export const usePedagogicalSettings = ({
 
   // Configuración por defecto
   const defaultSettings: PedagogicalSettings = {
+    id: '',
     courseId,
     teacherId: teacherId || '',
     teachingStyle: 'constructivista',
@@ -61,13 +64,30 @@ export const usePedagogicalSettings = ({
     encourageQuestions: true,
     voiceName: 'Kore',
     voiceSpeed: 1.0,
+    enableAudioResponse: true,
     systemPromptOverride: '',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   const defaultGradingScale: GradingScale = {
+    id: '',
     courseId,
+    teacherId: teacherId || '',
+    scaleType: 'numeric',
+    minScore: 0,
+    maxScore: 100,
+    passingScore: 60,
+    scaleDefinition: [
+      { min: 95, max: 100, grade: 'A+', label: 'Excelente' },
+      { min: 90, max: 94, grade: 'A', label: 'Muy bueno' },
+      { min: 85, max: 89, grade: 'B+', label: 'Bueno' },
+      { min: 80, max: 84, grade: 'B', label: 'Satisfactorio' },
+      { min: 70, max: 79, grade: 'C', label: 'Aceptable' },
+      { min: 0, max: 69, grade: 'F', label: 'Reprobado' },
+    ],
+    roundingRule: 'nearest',
+    showPercentage: true,
     name: 'Escala Estándar',
     scale: [
       { grade: 'A+', minScore: 95, maxScore: 100, description: 'Excelente' },
@@ -75,10 +95,10 @@ export const usePedagogicalSettings = ({
       { grade: 'B+', minScore: 85, maxScore: 89, description: 'Bueno' },
       { grade: 'B', minScore: 80, maxScore: 84, description: 'Satisfactorio' },
       { grade: 'C', minScore: 70, maxScore: 79, description: 'Aceptable' },
-      { grade: 'F', minScore: 0, maxScore: 69, description: 'Reprobado' }
+      { grade: 'F', minScore: 0, maxScore: 69, description: 'Reprobado' },
     ],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   // Cargar configuración inicial
@@ -99,68 +119,74 @@ export const usePedagogicalSettings = ({
   }, [initialGradingScale, courseId]);
 
   // Actualizar configuración pedagógica
-  const updateSettings = useCallback(async (updates: Partial<PedagogicalSettings>): Promise<boolean> => {
-    if (!settings) return false;
+  const updateSettings = useCallback(
+    async (updates: Partial<PedagogicalSettings>): Promise<boolean> => {
+      if (!settings) return false;
 
-    try {
-      setIsSaving(true);
-      setError(null);
+      try {
+        setIsSaving(true);
+        setError(null);
 
-      const updatedSettings = {
-        ...settings,
-        ...updates,
-        updatedAt: new Date().toISOString()
-      };
+        const updatedSettings = {
+          ...settings,
+          ...updates,
+          updatedAt: new Date(),
+        };
 
-      const success = await supabaseService.savePedagogicalSettings(updatedSettings);
-      
-      if (success) {
-        setSettings(updatedSettings);
-        setHasChanges(false);
-        return true;
-      } else {
-        setError('Error al guardar la configuración');
+        const success = await supabaseService.savePedagogicalSettings(updatedSettings);
+
+        if (success) {
+          setSettings(updatedSettings);
+          setHasChanges(false);
+          return true;
+        } else {
+          setError('Error al guardar la configuración');
+          return false;
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error desconocido');
         return false;
+      } finally {
+        setIsSaving(false);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
-      return false;
-    } finally {
-      setIsSaving(false);
-    }
-  }, [settings]);
+    },
+    [settings]
+  );
 
   // Actualizar escala de calificación
-  const updateGradingScale = useCallback(async (updates: Partial<GradingScale>): Promise<boolean> => {
-    if (!gradingScale) return false;
+  const updateGradingScale = useCallback(
+    async (updates: Partial<GradingScale>): Promise<boolean> => {
+      if (!gradingScale) return false;
 
-    try {
-      setIsSaving(true);
-      setError(null);
+      try {
+        setIsSaving(true);
+        setError(null);
 
-      const updatedGradingScale = {
-        ...gradingScale,
-        ...updates,
-        updatedAt: new Date().toISOString()
-      };
+        const updatedGradingScale = {
+          ...gradingScale,
+          ...updates,
+          updatedAt: new Date(),
+        };
 
-      const success = await supabaseService.saveGradingScale(updatedGradingScale);
-      
-      if (success) {
-        setGradingScale(updatedGradingScale);
-        setHasChanges(false);
-        return true;
-      } else {
-        setError('Error al guardar la escala de calificación');
+        const success = await supabaseService.saveGradingScale(updatedGradingScale);
+
+        if (success) {
+          setGradingScale(updatedGradingScale);
+          setHasChanges(false);
+          return true;
+        } else {
+          setError('Error al guardar la escala de calificación');
+          return false;
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error desconocido');
         return false;
+      } finally {
+        setIsSaving(false);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
-      return false;
-    } finally {
-      setIsSaving(false);
-    }
-  }, [gradingScale]);
+    },
+    [gradingScale]
+  );
 
   // Resetear configuración
   const resetSettings = useCallback(() => {
@@ -182,9 +208,9 @@ export const usePedagogicalSettings = ({
       setError(null);
 
       const fetchedSettings = await supabaseService.getPedagogicalSettings(courseId);
-      
-      if (fetchedSettings) {
-        setSettings(fetchedSettings);
+
+      if (fetchedSettings.success && fetchedSettings.data) {
+        setSettings(fetchedSettings.data);
         setHasChanges(false);
       }
     } catch (err) {
@@ -200,9 +226,9 @@ export const usePedagogicalSettings = ({
       setError(null);
 
       const fetchedGradingScale = await supabaseService.getGradingScale(courseId);
-      
-      if (fetchedGradingScale) {
-        setGradingScale(fetchedGradingScale);
+
+      if (fetchedGradingScale.success && fetchedGradingScale.data) {
+        setGradingScale(fetchedGradingScale.data);
         setHasChanges(false);
       }
     } catch (err) {
@@ -219,7 +245,7 @@ export const usePedagogicalSettings = ({
     const style = settings.teachingStyle.charAt(0).toUpperCase() + settings.teachingStyle.slice(1);
     const tone = settings.tonePreference.charAt(0).toUpperCase() + settings.tonePreference.slice(1);
     const detail = settings.detailLevel.charAt(0).toUpperCase() + settings.detailLevel.slice(1);
-    
+
     return `${style} • ${tone} • ${detail} • ${settings.voiceName} (${settings.voiceSpeed}x)`;
   }, [settings]);
 
@@ -238,7 +264,7 @@ export const usePedagogicalSettings = ({
     isLoading,
     isSaving,
     error,
-    
+
     // Acciones
     updateSettings,
     updateGradingScale,
@@ -246,10 +272,10 @@ export const usePedagogicalSettings = ({
     resetGradingScale,
     refreshSettings,
     refreshGradingScale,
-    
+
     // Utilidades
     hasChanges,
     canSave: hasChanges && !isSaving && !isLoading,
-    getSettingsSummary
+    getSettingsSummary,
   };
 };

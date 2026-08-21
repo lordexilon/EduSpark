@@ -20,47 +20,47 @@ export interface PedagogicalSettings {
 }
 
 export type TeachingStyle =
-  | 'socratico'      // Método socrático: preguntas guiadas
-  | 'directo'        // Instrucción directa: explicaciones claras
-  | 'colaborativo'   // Aprendizaje colaborativo: trabajo en equipo
+  | 'socratico' // Método socrático: preguntas guiadas
+  | 'directo' // Instrucción directa: explicaciones claras
+  | 'colaborativo' // Aprendizaje colaborativo: trabajo en equipo
   | 'constructivista'; // Constructivismo: construcción del conocimiento
 
 export type TonePreference =
-  | 'amigable'       // Tono casual y cercano
-  | 'formal'         // Tono académico y profesional
-  | 'motivador'      // Tono alentador y positivo
-  | 'neutro';        // Tono equilibrado
+  | 'amigable' // Tono casual y cercano
+  | 'formal' // Tono académico y profesional
+  | 'motivador' // Tono alentador y positivo
+  | 'neutro'; // Tono equilibrado
 
 export type DetailLevel =
-  | 'basico'         // Explicaciones simples y directas
-  | 'medio'          // Explicaciones balanceadas
-  | 'avanzado';      // Explicaciones detalladas y técnicas
+  | 'basico' // Explicaciones simples y directas
+  | 'medio' // Explicaciones balanceadas
+  | 'avanzado'; // Explicaciones detalladas y técnicas
 
 export type VoiceName =
-  | 'Kore'           // Voz femenina, clara y profesional (Expresiva)
-  | 'Charon'         // Voz masculina, profunda y autoritaria (Expresiva)
-  | 'Fenrir'         // Voz masculina, energética y motivadora (Expresiva)
-  | 'Aoede'          // Voz femenina, cálida y expresiva (Expresiva)
-  | 'Puck';          // Voz neutra, versátil y amigable (Expresiva)
+  | 'Kore' // Voz femenina, clara y profesional (Expresiva)
+  | 'Charon' // Voz masculina, profunda y autoritaria (Expresiva)
+  | 'Fenrir' // Voz masculina, energética y motivadora (Expresiva)
+  | 'Aoede' // Voz femenina, cálida y expresiva (Expresiva)
+  | 'Puck'; // Voz neutra, versátil y amigable (Expresiva)
 
 /**
  * Estilos expresivos para voces de Gemini 2.5 Flash
  * Permiten controlar el tono, estilo y emoción del habla
  */
 export type ExpressiveStyle =
-  | 'friendly'           // Amigable y cercano
-  | 'professional'       // Profesional y formal
-  | 'energetic'          // Energético y motivador
-  | 'calm'               // Calmado y relajante
-  | 'excited'            // Emocionado y entusiasta
-  | 'empathetic'         // Empático y comprensivo
-  | 'authoritative'      // Autoritario y confiable
-  | 'warm'               // Cálido y acogedor
-  | 'clear'              // Claro y preciso
-  | 'amused'             // Divertido y alegre
-  | 'fast'               // Rápido
-  | 'slow'               // Lento
-  | 'normal';            // Normal (sin estilo específico)
+  | 'friendly' // Amigable y cercano
+  | 'professional' // Profesional y formal
+  | 'energetic' // Energético y motivador
+  | 'calm' // Calmado y relajante
+  | 'excited' // Emocionado y entusiasta
+  | 'empathetic' // Empático y comprensivo
+  | 'authoritative' // Autoritario y confiable
+  | 'warm' // Cálido y acogedor
+  | 'clear' // Claro y preciso
+  | 'amused' // Divertido y alegre
+  | 'fast' // Rápido
+  | 'slow' // Lento
+  | 'normal'; // Normal (sin estilo específico)
 
 // =====================================================
 // Sistema de Calificaciones
@@ -77,26 +77,36 @@ export interface GradingScale {
   scaleDefinition: ScaleDefinition[];
   roundingRule: RoundingRule;
   showPercentage: boolean;
+  // Campos legacy para compatibilidad con la UI de escalas
+  name?: string;
+  scale?: GradingScaleItem[];
   createdAt: Date;
   updatedAt: Date;
 }
 
+export interface GradingScaleItem {
+  grade: string;
+  minScore: number;
+  maxScore: number;
+  description?: string;
+}
+
 export type ScaleType =
-  | 'numeric'        // Escala numérica (0-100)
-  | 'letter'         // Escala de letras (A, B, C, D, F)
-  | 'custom';        // Escala personalizada
+  | 'numeric' // Escala numérica (0-100)
+  | 'letter' // Escala de letras (A, B, C, D, F)
+  | 'custom'; // Escala personalizada
 
 export type RoundingRule =
-  | 'nearest'        // Redondear al más cercano
-  | 'up'             // Redondear hacia arriba
-  | 'down';          // Redondear hacia abajo
+  | 'nearest' // Redondear al más cercano
+  | 'up' // Redondear hacia arriba
+  | 'down'; // Redondear hacia abajo
 
 export interface ScaleDefinition {
   min: number;
   max: number;
   grade: string;
   label: string;
-  color?: string;    // Color para UI (opcional)
+  color?: string; // Color para UI (opcional)
   description?: string;
 }
 
@@ -119,9 +129,9 @@ export interface StudentProfile {
 }
 
 export type LearningStyle =
-  | 'visual'         // Aprende mejor con imágenes, diagramas, gráficos
-  | 'auditivo'       // Aprende mejor con audio, música, conversaciones
-  | 'kinestesico'    // Aprende mejor con movimiento, práctica, experimentos
+  | 'visual' // Aprende mejor con imágenes, diagramas, gráficos
+  | 'auditivo' // Aprende mejor con audio, música, conversaciones
+  | 'kinestesico' // Aprende mejor con movimiento, práctica, experimentos
   | 'lectoescritor'; // Aprende mejor leyendo y escribiendo
 
 // =====================================================
@@ -142,22 +152,33 @@ export interface CourseImage {
 }
 
 export type ImageType =
-  | 'cover'          // Imagen de portada del curso
-  | 'banner'         // Banner del curso
-  | 'material'       // Imagen de material educativo
-  | 'content';       // Imagen de contenido específico
+  | 'cover' // Imagen de portada del curso
+  | 'banner' // Banner del curso
+  | 'material' // Imagen de material educativo
+  | 'content'; // Imagen de contenido específico
 
 // =====================================================
 // Configuración de Curso
 // =====================================================
 
-export interface CourseContext {
+export interface Course {
   id: string;
-  title: string;
-  code: string;
+  name: string;
   description: string;
   teacherId: string;
-  teacherName: string;
+  code?: string;
+  coverImageUrl?: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+}
+
+export interface CourseContext {
+  id?: string;
+  title?: string;
+  code?: string;
+  description?: string;
+  teacherId?: string;
+  teacherName?: string;
   coverImageUrl?: string;
   bannerImageUrl?: string;
   pedagogicalSettings: PedagogicalSettings;
@@ -181,7 +202,10 @@ export interface CourseMaterial {
 // Templates de Configuración
 // =====================================================
 
-export const DEFAULT_PEDAGOGICAL_SETTINGS: Omit<PedagogicalSettings, 'id' | 'courseId' | 'teacherId' | 'createdAt' | 'updatedAt'> = {
+export const DEFAULT_PEDAGOGICAL_SETTINGS: Omit<
+  PedagogicalSettings,
+  'id' | 'courseId' | 'teacherId' | 'createdAt' | 'updatedAt'
+> = {
   teachingStyle: 'constructivista',
   tonePreference: 'amigable',
   detailLevel: 'medio',
@@ -189,10 +213,13 @@ export const DEFAULT_PEDAGOGICAL_SETTINGS: Omit<PedagogicalSettings, 'id' | 'cou
   encourageQuestions: true,
   voiceName: 'Kore',
   voiceSpeed: 1.0,
-  enableAudioResponse: true
+  enableAudioResponse: true,
 };
 
-export const DEFAULT_GRADING_SCALE: Omit<GradingScale, 'id' | 'courseId' | 'teacherId' | 'createdAt' | 'updatedAt'> = {
+export const DEFAULT_GRADING_SCALE: Omit<
+  GradingScale,
+  'id' | 'courseId' | 'teacherId' | 'createdAt' | 'updatedAt'
+> = {
   scaleType: 'numeric',
   minScore: 0,
   maxScore: 100,
@@ -202,10 +229,10 @@ export const DEFAULT_GRADING_SCALE: Omit<GradingScale, 'id' | 'courseId' | 'teac
     { min: 80, max: 89, grade: 'B', label: 'Bueno', color: '#3B82F6' },
     { min: 70, max: 79, grade: 'C', label: 'Satisfactorio', color: '#F59E0B' },
     { min: 60, max: 69, grade: 'D', label: 'Aprobado', color: '#EF4444' },
-    { min: 0, max: 59, grade: 'F', label: 'Reprobado', color: '#6B7280' }
+    { min: 0, max: 59, grade: 'F', label: 'Reprobado', color: '#6B7280' },
   ],
   roundingRule: 'nearest',
-  showPercentage: true
+  showPercentage: true,
 };
 
 // =====================================================

@@ -2,8 +2,8 @@
 // Servicio optimizado para Google Gemini API
 // Inspirado en la arquitectura A2A de AOIGO, adaptado para contexto educativo
 
-import { GoogleGenAI } from "@google/genai";
-import { resolveGeminiApiKey, isGeminiApiConfigured } from "@/modules/tutor/utils/env";
+import { GoogleGenAI } from '@google/genai';
+import { resolveGeminiApiKey, isGeminiApiConfigured } from '@/modules/tutor/utils/env';
 
 // =====================================================
 // CONFIGURACIÓN Y CONSTANTES
@@ -15,7 +15,8 @@ const PRO_MODEL = 'gemini-2.5-pro';
 // Las voces expresivas se activan mediante indicaciones naturales en el texto
 const TTS_MODEL = 'gemini-2.5-flash'; // Usar el modelo principal con Modality.AUDIO para voces expresivas
 
-const DEFAULT_SYSTEM_INSTRUCTION = "Eres EduSpark, un tutor de IA amigable y alentador para una plataforma educativa. Mantén tus respuestas concisas, útiles y atractivas para estudiantes de todas las edades. IMPORTANTE: Responde siempre en el mismo idioma en que el estudiante te pregunta (español o inglés).";
+const DEFAULT_SYSTEM_INSTRUCTION =
+  'Eres EduSpark, un tutor de IA amigable y alentador para una plataforma educativa. Mantén tus respuestas concisas, útiles y atractivas para estudiantes de todas las edades. IMPORTANTE: Responde siempre en el mismo idioma en que el estudiante te pregunta (español o inglés).';
 
 // Configuración de reintentos (inspirada en AOIGO)
 const RETRY_CONFIG = {
@@ -173,7 +174,8 @@ async function executeWithRetry<T>(
       // Si no es recuperable, no reintentar
       if (!isRetryableError(error)) {
         // Silenciar errores 429 - solo log como warning, no como error
-        const isQuotaError = error.status === 429 || error.code === '429' || error.message?.includes('429');
+        const isQuotaError =
+          error.status === 429 || error.code === '429' || error.message?.includes('429');
         if (isQuotaError) {
           console.warn('⚠️ GeminiService: Cuota de API excedida. Usando análisis de respaldo.');
         } else {
@@ -190,8 +192,10 @@ async function executeWithRetry<T>(
 
       // Calcular delay y esperar antes de reintentar
       const delay = calculateRetryDelay(attempt, config.baseDelayMs, config.maxDelayMs);
-      console.warn(`⚠️ GeminiService: Intento ${attempt} falló (${error.message || error}). Reintentando en ${delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      console.warn(
+        `⚠️ GeminiService: Intento ${attempt} falló (${error.message || error}). Reintentando en ${delay}ms...`
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 
@@ -204,7 +208,7 @@ async function executeWithRetry<T>(
 
 /**
  * Genera contenido usando Gemini con manejo robusto de errores
- * 
+ *
  * @param prompt - Prompt del usuario
  * @param options - Opciones de configuración
  * @returns Respuesta de Gemini con metadata
@@ -217,7 +221,9 @@ export async function generateContent(
 
   if (missing || !client) {
     console.warn('⚠️ GeminiService: API key no configurada');
-    throw new Error('GEMINI_API_KEY no está configurada. Por favor, configura la variable de entorno.');
+    throw new Error(
+      'GEMINI_API_KEY no está configurada. Por favor, configura la variable de entorno.'
+    );
   }
 
   const model = options.model || CHAT_MODEL;
@@ -254,17 +260,20 @@ export async function generateContent(
         metadata: {
           model,
           finishReason: response.candidates?.[0]?.finishReason,
-          usage: (response as any).usage ? {
-            promptTokens: (response as any).usage.promptTokenCount,
-            candidatesTokens: (response as any).usage.candidatesTokenCount,
-            totalTokens: (response as any).usage.totalTokenCount,
-          } : undefined,
+          usage: (response as any).usage
+            ? {
+                promptTokens: (response as any).usage.promptTokenCount,
+                candidatesTokens: (response as any).usage.candidatesTokenCount,
+                totalTokens: (response as any).usage.totalTokenCount,
+              }
+            : undefined,
           timestamp: new Date().toISOString(),
         },
       };
     } catch (error: any) {
       // Silenciar errores 429 (cuota excedida) - solo log como warning, no como error
-      const isQuotaError = error.status === 429 || error.code === '429' || error.message?.includes('429');
+      const isQuotaError =
+        error.status === 429 || error.code === '429' || error.message?.includes('429');
       if (!isQuotaError) {
         console.error('❌ GeminiService: Error generando contenido:', {
           model,
@@ -344,7 +353,9 @@ export async function processDocument(
     return response.text;
   } catch (error) {
     console.error('Error procesando documento:', error);
-    throw new Error('No se pudo procesar el documento. Por favor, verifica que sea un archivo de texto válido.');
+    throw new Error(
+      'No se pudo procesar el documento. Por favor, verifica que sea un archivo de texto válido.'
+    );
   }
 }
 
@@ -353,37 +364,37 @@ export async function processDocument(
  * Las voces expresivas permiten control de estilo, acento y tono mediante indicaciones naturales
  */
 export type ExpressiveVoiceName =
-  | 'Kore'           // Voz femenina, clara y profesional
-  | 'Charon'         // Voz masculina, profunda y autoritaria
-  | 'Fenrir'         // Voz masculina, energética y motivadora
-  | 'Aoede'          // Voz femenina, cálida y expresiva
-  | 'Puck';          // Voz neutra, versátil y amigable
+  | 'Kore' // Voz femenina, clara y profesional
+  | 'Charon' // Voz masculina, profunda y autoritaria
+  | 'Fenrir' // Voz masculina, energética y motivadora
+  | 'Aoede' // Voz femenina, cálida y expresiva
+  | 'Puck'; // Voz neutra, versátil y amigable
 
 /**
  * Estilos expresivos disponibles para las voces
  * Se pueden combinar múltiples estilos usando indicaciones naturales
  */
 export type ExpressiveStyle =
-  | 'friendly'           // Amigable y cercano
-  | 'professional'       // Profesional y formal
-  | 'energetic'          // Energético y motivador
-  | 'calm'               // Calmado y relajante
-  | 'excited'            // Emocionado y entusiasta
-  | 'empathetic'         // Empático y comprensivo
-  | 'authoritative'      // Autoritario y confiable
-  | 'warm'               // Cálido y acogedor
-  | 'clear'              // Claro y preciso
-  | 'amused'             // Divertido y alegre
-  | 'fast'               // Rápido
-  | 'slow'               // Lento
-  | 'normal';            // Normal (sin estilo específico)
+  | 'friendly' // Amigable y cercano
+  | 'professional' // Profesional y formal
+  | 'energetic' // Energético y motivador
+  | 'calm' // Calmado y relajante
+  | 'excited' // Emocionado y entusiasta
+  | 'empathetic' // Empático y comprensivo
+  | 'authoritative' // Autoritario y confiable
+  | 'warm' // Cálido y acogedor
+  | 'clear' // Claro y preciso
+  | 'amused' // Divertido y alegre
+  | 'fast' // Rápido
+  | 'slow' // Lento
+  | 'normal'; // Normal (sin estilo específico)
 
 /**
  * Sintetiza texto a voz usando Google Cloud Text-to-Speech API
- * 
+ *
  * NOTA: Gemini 2.5 Flash NO soporta salida de audio.
  * Este servicio usa Google Cloud TTS con voces Neural2 de alta calidad.
- * 
+ *
  * @param text - Texto a sintetizar
  * @param options - Opciones de voz:
  *   - voiceName: Nombre de la voz (se mapea a voces Neural2)
@@ -412,38 +423,45 @@ export async function synthesizeSpeech(
     console.log('🌍 TTS: Idioma detectado:', detectedLanguage);
 
     // Mapear voces por idioma
-    type VoiceType = 'es-US-Journey-F' | 'es-US-Journey-D' | 'es-US-Studio-B' |
-      'en-US-Journey-F' | 'en-US-Journey-D' |
-      'pt-BR-Journey-F' | 'pt-BR-Journey-D';
+    type VoiceType =
+      | 'es-US-Journey-F'
+      | 'es-US-Journey-D'
+      | 'es-US-Studio-B'
+      | 'en-US-Journey-F'
+      | 'en-US-Journey-D'
+      | 'pt-BR-Journey-F'
+      | 'pt-BR-Journey-D'
+      | 'pt-BR-Neural2-A'
+      | 'pt-BR-Neural2-B';
 
     const voiceMapByLanguage: Record<string, Record<ExpressiveVoiceName, VoiceType>> = {
-      'spanish': {
-        'Kore': 'es-US-Journey-F',
-        'Aoede': 'es-US-Journey-F',
-        'Puck': 'es-US-Journey-F',
-        'Charon': 'es-US-Journey-D',
-        'Fenrir': 'es-US-Studio-B',
+      spanish: {
+        Kore: 'es-US-Journey-F',
+        Aoede: 'es-US-Journey-F',
+        Puck: 'es-US-Journey-F',
+        Charon: 'es-US-Journey-D',
+        Fenrir: 'es-US-Studio-B',
       },
-      'english': {
-        'Kore': 'en-US-Journey-F',
-        'Aoede': 'en-US-Journey-F',
-        'Puck': 'en-US-Journey-F',
-        'Charon': 'en-US-Journey-D',
-        'Fenrir': 'en-US-Journey-D',
+      english: {
+        Kore: 'en-US-Journey-F',
+        Aoede: 'en-US-Journey-F',
+        Puck: 'en-US-Journey-F',
+        Charon: 'en-US-Journey-D',
+        Fenrir: 'en-US-Journey-D',
       },
-      'portuguese': {
-        'Kore': 'pt-BR-Neural2-A', // Voz femenina Neural2 (Journey no disponible para pt-BR)
-        'Aoede': 'pt-BR-Neural2-A', // Voz femenina Neural2
-        'Puck': 'pt-BR-Neural2-A', // Voz femenina Neural2
-        'Charon': 'pt-BR-Neural2-B', // Voz masculina Neural2
-        'Fenrir': 'pt-BR-Neural2-B', // Voz masculina Neural2
-      }
+      portuguese: {
+        Kore: 'pt-BR-Neural2-A', // Voz femenina Neural2 (Journey no disponible para pt-BR)
+        Aoede: 'pt-BR-Neural2-A', // Voz femenina Neural2
+        Puck: 'pt-BR-Neural2-A', // Voz femenina Neural2
+        Charon: 'pt-BR-Neural2-B', // Voz masculina Neural2
+        Fenrir: 'pt-BR-Neural2-B', // Voz masculina Neural2
+      },
     };
 
     const languageCodeMap: Record<string, string> = {
-      'spanish': 'es-US',
-      'english': 'en-US',
-      'portuguese': 'pt-BR'
+      spanish: 'es-US',
+      english: 'en-US',
+      portuguese: 'pt-BR',
     };
 
     const voiceName = options.voiceName || 'Kore';
@@ -472,7 +490,6 @@ export async function synthesizeSpeech(
 
     console.log('✅ TTS: Audio sintetizado exitosamente con Google Cloud');
     return audioBase64;
-
   } catch (error) {
     console.error('❌ Error en síntesis de voz con Google Cloud TTS:', error);
     return null;
@@ -486,35 +503,84 @@ function detectTextLanguage(text: string): 'spanish' | 'english' | 'portuguese' 
   const lowerText = text.toLowerCase();
 
   // Palabras clave por idioma
-  const spanishWords = ['que', 'como', 'donde', 'cuando', 'porque', 'cual', 'quien', 'para', 'con', 'por', 'una', 'este', 'esta'];
-  const englishWords = ['what', 'how', 'where', 'when', 'why', 'which', 'who', 'the', 'and', 'for', 'with', 'this', 'that'];
-  const portugueseWords = ['que', 'como', 'onde', 'quando', 'porque', 'qual', 'quem', 'para', 'com', 'por', 'uma', 'este', 'esta', 'você', 'são'];
+  const spanishWords = [
+    'que',
+    'como',
+    'donde',
+    'cuando',
+    'porque',
+    'cual',
+    'quien',
+    'para',
+    'con',
+    'por',
+    'una',
+    'este',
+    'esta',
+  ];
+  const englishWords = [
+    'what',
+    'how',
+    'where',
+    'when',
+    'why',
+    'which',
+    'who',
+    'the',
+    'and',
+    'for',
+    'with',
+    'this',
+    'that',
+  ];
+  const portugueseWords = [
+    'que',
+    'como',
+    'onde',
+    'quando',
+    'porque',
+    'qual',
+    'quem',
+    'para',
+    'com',
+    'por',
+    'uma',
+    'este',
+    'esta',
+    'você',
+    'são',
+  ];
 
   let spanishCount = 0;
   let englishCount = 0;
   let portugueseCount = 0;
 
   // Contar coincidencias
-  spanishWords.forEach(word => {
+  spanishWords.forEach((word) => {
     const regex = new RegExp(`\\b${word}\\b`, 'gi');
     const matches = lowerText.match(regex);
     if (matches) spanishCount += matches.length;
   });
 
-  englishWords.forEach(word => {
+  englishWords.forEach((word) => {
     const regex = new RegExp(`\\b${word}\\b`, 'gi');
     const matches = lowerText.match(regex);
     if (matches) englishCount += matches.length;
   });
 
-  portugueseWords.forEach(word => {
+  portugueseWords.forEach((word) => {
     const regex = new RegExp(`\\b${word}\\b`, 'gi');
     const matches = lowerText.match(regex);
     if (matches) portugueseCount += matches.length;
   });
 
   // Detectores específicos de portugués
-  if (lowerText.includes('ção') || lowerText.includes('ões') || lowerText.includes('você') || lowerText.includes('são')) {
+  if (
+    lowerText.includes('ção') ||
+    lowerText.includes('ões') ||
+    lowerText.includes('você') ||
+    lowerText.includes('são')
+  ) {
     portugueseCount += 3;
   }
 
@@ -693,4 +759,3 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 
 // Exportar por compatibilidad con código existente
 export const getTutorResponse = generateContent;
-

@@ -16,7 +16,7 @@ import {
   IconClock,
   IconEye,
   IconTrendingUp,
-  IconAlertTriangle
+  IconAlertTriangle,
 } from '@/components/Common/Icons';
 
 interface AnnouncementStats {
@@ -55,7 +55,12 @@ const AnnouncementStatsPage: React.FC = () => {
   const [loadingRecipients, setLoadingRecipients] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isTeacher = user?.role?.name === 'teacher' || user?.role?.name === 'admin' || user?.role?.name === 'coordinator' || user?.role?.name === 'admin-campus' || user?.role?.name === 'supervisor';
+  const isTeacher =
+    user?.role?.name === 'teacher' ||
+    user?.role?.name === 'admin' ||
+    user?.role?.name === 'coordinator' ||
+    user?.role?.name === 'admin-campus' ||
+    user?.role?.name === 'supervisor';
   const isTeacherRoute = location.pathname.startsWith('/teacher/announcements');
 
   // Redirigir estudiantes que intentan acceder a ruta de teacher
@@ -124,7 +129,7 @@ const AnnouncementStatsPage: React.FC = () => {
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -186,20 +191,18 @@ const AnnouncementStatsPage: React.FC = () => {
         items={[
           {
             label: 'Dashboard',
-            path: user?.role?.name === 'teacher' ? '/teacher/dashboard' : '/dashboard'
+            path: user?.role?.name === 'teacher' ? '/teacher/dashboard' : '/dashboard',
           },
           {
             label: 'Avisos',
-            path: user?.role?.name === 'teacher' ? '/teacher/announcements' : '/announcements'
+            path: user?.role?.name === 'teacher' ? '/teacher/announcements' : '/announcements',
           },
-          { label: 'Estadísticas' }
+          { label: 'Estadísticas' },
         ]}
       />
 
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
-          Estadísticas de Avisos
-        </h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Estadísticas de Avisos</h1>
         <Button
           variant="secondary"
           onClick={() => navigate(-1)}
@@ -243,10 +246,11 @@ const AnnouncementStatsPage: React.FC = () => {
                   <button
                     key={announcement.id}
                     onClick={() => setSelectedAnnouncement(announcement)}
-                    className={`w-full text-left p-3 rounded-lg border-2 transition-all ${selectedAnnouncement?.id === announcement.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                    className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                      selectedAnnouncement?.id === announcement.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
@@ -254,7 +258,9 @@ const AnnouncementStatsPage: React.FC = () => {
                         <p className="text-xs text-gray-600 mt-1">
                           {formatDate(announcement.published_at)}
                         </p>
-                        <span className={`inline-block mt-2 px-2 py-0.5 text-xs rounded border ${getPriorityColor(announcement.priority)}`}>
+                        <span
+                          className={`inline-block mt-2 px-2 py-0.5 text-xs rounded border ${getPriorityColor(announcement.priority)}`}
+                        >
                           {getPriorityLabel(announcement.priority)}
                         </span>
                       </div>
@@ -277,7 +283,9 @@ const AnnouncementStatsPage: React.FC = () => {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <h2 className="text-xl font-bold mb-2">{selectedAnnouncement.title}</h2>
-                      <p className="text-sm text-gray-600 mb-2">{getScopeLabel(selectedAnnouncement)}</p>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {getScopeLabel(selectedAnnouncement)}
+                      </p>
                       <div className="flex items-center gap-4 text-sm text-gray-600">
                         <span>Publicado: {formatDate(selectedAnnouncement.published_at)}</span>
                         {selectedAnnouncement.expires_at && (
@@ -286,7 +294,9 @@ const AnnouncementStatsPage: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <span className={`px-3 py-1 text-xs rounded border ${getPriorityColor(selectedAnnouncement.priority)}`}>
+                      <span
+                        className={`px-3 py-1 text-xs rounded border ${getPriorityColor(selectedAnnouncement.priority)}`}
+                      >
                         {getPriorityLabel(selectedAnnouncement.priority)}
                       </span>
                       {selectedAnnouncement.is_pinned && (
@@ -295,7 +305,9 @@ const AnnouncementStatsPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="border-t pt-4">
-                    <p className="text-gray-700 whitespace-pre-wrap">{selectedAnnouncement.content}</p>
+                    <p className="text-gray-700 whitespace-pre-wrap">
+                      {selectedAnnouncement.content}
+                    </p>
                   </div>
                 </Card>
 
@@ -308,11 +320,15 @@ const AnnouncementStatsPage: React.FC = () => {
                     </h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="text-center p-4 bg-blue-50 rounded-lg">
-                        <div className="text-2xl font-bold text-blue-600">{stats.total_recipients}</div>
+                        <div className="text-2xl font-bold text-blue-600">
+                          {stats.total_recipients}
+                        </div>
                         <div className="text-sm text-gray-600 mt-1">Total Destinatarios</div>
                       </div>
                       <div className="text-center p-4 bg-green-50 rounded-lg">
-                        <div className="text-2xl font-bold text-green-600">{stats.received_count}</div>
+                        <div className="text-2xl font-bold text-green-600">
+                          {stats.received_count}
+                        </div>
                         <div className="text-sm text-gray-600 mt-1">Recibidos</div>
                       </div>
                       <div className="text-center p-4 bg-purple-50 rounded-lg">
@@ -320,14 +336,20 @@ const AnnouncementStatsPage: React.FC = () => {
                         <div className="text-sm text-gray-600 mt-1">Leídos</div>
                       </div>
                       <div className="text-center p-4 bg-orange-50 rounded-lg">
-                        <div className="text-2xl font-bold text-orange-600">{stats.unread_count}</div>
+                        <div className="text-2xl font-bold text-orange-600">
+                          {stats.unread_count}
+                        </div>
                         <div className="text-sm text-gray-600 mt-1">No Leídos</div>
                       </div>
                     </div>
                     <div className="mt-4 pt-4 border-t">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-700">Porcentaje de Lectura</span>
-                        <span className="text-lg font-bold text-blue-600">{stats.read_percentage}%</span>
+                        <span className="text-sm font-medium text-gray-700">
+                          Porcentaje de Lectura
+                        </span>
+                        <span className="text-lg font-bold text-blue-600">
+                          {stats.read_percentage}%
+                        </span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-3">
                         <div
@@ -379,10 +401,11 @@ const AnnouncementStatsPage: React.FC = () => {
                         {recipients.map((recipient) => (
                           <div
                             key={recipient.id}
-                            className={`p-4 rounded-lg border-2 ${recipient.read_at
-                              ? 'border-green-200 bg-green-50'
-                              : 'border-orange-200 bg-orange-50'
-                              }`}
+                            className={`p-4 rounded-lg border-2 ${
+                              recipient.read_at
+                                ? 'border-green-200 bg-green-50'
+                                : 'border-orange-200 bg-orange-50'
+                            }`}
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
@@ -397,10 +420,13 @@ const AnnouncementStatsPage: React.FC = () => {
                                       ? `${recipient.user.first_name} ${recipient.user.last_name}`
                                       : 'Usuario'}
                                   </span>
-                                  <span className={`px-2 py-0.5 text-xs rounded ${recipient.read_at
-                                    ? 'bg-green-200 text-green-800'
-                                    : 'bg-orange-200 text-orange-800'
-                                    }`}>
+                                  <span
+                                    className={`px-2 py-0.5 text-xs rounded ${
+                                      recipient.read_at
+                                        ? 'bg-green-200 text-green-800'
+                                        : 'bg-orange-200 text-orange-800'
+                                    }`}
+                                  >
                                     {recipient.read_at ? 'Leído' : 'No Leído'}
                                   </span>
                                 </div>
@@ -445,4 +471,3 @@ const AnnouncementStatsPage: React.FC = () => {
 };
 
 export default AnnouncementStatsPage;
-

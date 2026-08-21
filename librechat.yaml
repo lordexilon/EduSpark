@@ -1,0 +1,203 @@
+# =====================================================================
+# 💬 Configuración Personalizada de LibreChat para EduSpark AI Gateway
+# =====================================================================
+# PLATFORM_MODE: DUAL (Educación + Desarrollo General)
+# Solo el administrador puede habilitar/deshabilitar presets.
+# =====================================================================
+
+version: 1.1.5
+
+cache: true
+
+# =====================================================================
+# 🔌 Endpoints de IA
+# =====================================================================
+endpoints:
+  custom:
+    # ── 🤖 AI Local (Ollama) — Uso General y Visión ──────────────────
+    - name: "AI Local (Ollama)"
+      baseURL: "http://host.docker.internal:11434/v1"
+      apiKey: "ollama"
+      models:
+        default:
+          - "qwen3.5:4b"
+          - "qwen-vision:32k"
+          - "gemma4:26b"
+          - "qwen2.5-vl:7b"
+          - "llama3.2-vision:11b"
+          - "aratan/qwen3.5-agent-multimodal:9b"
+          - "exilon-qwopus:latest"
+          - "deepseek-r1:8b"
+          - "hermes3:8b"
+        fetch: true
+      titleConvo: true
+      titleModel: "qwen3.5:4b"
+      summarize: true
+      iconURL: "https://ollama.com/public/ollama.png"
+
+    # ── 🎓 EduSpark AI Gateway — Modo Educación ───────────────────────
+    - name: "EduSpark AI"
+      baseURL: "http://host.docker.internal:54331/functions/v1/eduspark-gateway/tutor"
+      apiKey: "edsp_live_05b29ac8ed56a6e41fda0d18109a717f2b00acee1d3c6049"
+      models:
+        default: ["eduspark-tutor-v1"]
+        fetch: false
+      titleConvo: false
+      summarize: true
+      iconURL: "https://raw.githubusercontent.com/lordexilon/EduSpark/main/public/logo192.png"
+
+    # ── 💼 BusinessSpark AI Gateway (Langflow) ───────────────────────
+    - name: "BusinessSpark AI"
+      baseURL: "http://langflow-proxy:54333"
+      apiKey: "bspark_gateway_key"
+      models:
+        default: ["langflow-pyinvest-agent"]
+        fetch: true
+      titleConvo: false
+      summarize: true
+      iconURL: "https://pyinvest.com.py/wp-content/uploads/2025/09/logo2.png"
+
+# =====================================================================
+# 🎨 Presets por Modo de Plataforma (Model Specs configurables)
+# =====================================================================
+modelSpecs:
+  enforce: false
+  list:
+    # ─── MODO EDUCACIÓN (Activo) ─────────────────────────────────────
+    - name: "tutor-eduspark"
+      label: "🎓 Tutor EduSpark"
+      description: "Tutor virtual socrático para estudiantes en EduSpark LMS"
+      iconURL: "https://raw.githubusercontent.com/lordexilon/EduSpark/main/public/logo192.png"
+      preset:
+        endpoint: "EduSpark AI"
+        model: "eduspark-tutor-v1"
+        promptPrefix: "Eres el Tutor Virtual de EduSpark LMS. Tu rol es guiar al estudiante en su aprendizaje con pedagogía socrática: haz preguntas antes de dar respuestas directas. Cita siempre las fuentes del material del curso. Responde en español con lenguaje claro y adaptado al nivel del estudiante."
+        temperature: 0.5
+
+    # ─── MODO ARQUITECTURA / RAZONAMIENTO PROFUNDO ──────────────────
+    - name: "antigravity-architect"
+      label: "⚙️ Antigravity Architect"
+      description: "Arquitecto Senior para razonamiento profundo: Supabase, Deno, Docker, orquestación de agentes."
+      iconURL: "https://ollama.com/public/deepseek.png"
+      preset:
+        endpoint: "AI Local (Ollama)"
+        model: "exilon-qwopus:latest"
+        promptPrefix: "Eres \"Antigravity\", un Arquitecto de Software Senior especializado en orquestación de agentes y sistemas de alta disponibilidad. No priorices la velocidad; tómate tu tiempo para razonar paso a paso. Tu objetivo es auditar lógica de negocio, diseñar arquitecturas escalables y resolver problemas complejos de backend (Supabase, Deno, Docker). Escribe código robusto, modular y documentado. Cuando analices errores, explica el \"por qué\" antes de dar la solución."
+        temperature: 0.3
+        maxContextTokens: 12288
+        stream: true
+
+    # ─── MODO GENERAL / DESARROLLO (Activos) ─────────────────────────
+    - name: "dev-assistant-sca"
+      label: "🛠️ Dev Assistant (SCA)"
+      description: "Asistente de desarrollo de software con framework SCA y MCPs"
+      iconURL: "https://ollama.com/public/qwen.png"
+      preset:
+        endpoint: "AI Local (Ollama)"
+        model: "qwen-vision:32k"
+        promptPrefix: "Eres un asistente experto en desarrollo de software con el framework SCA (Smart Context Architecture). Tienes acceso a herramientas MCP: filesystem para leer/escribir código, office-docs para generar documentación, memory para recordar decisiones de arquitectura entre sesiones, y sequential-thinking para razonamiento estructurado. Responde en español salvo que el usuario escriba en otro idioma."
+        temperature: 0.6
+        maxContextTokens: 12288
+
+    - name: "analista-documentos"
+      label: "👁️ Analista de Documentos e Imágenes"
+      description: "OCR, lectura de archivos Word/Excel/PDF e interpretación visual"
+      iconURL: "https://ollama.com/public/qwen.png"
+      preset:
+        endpoint: "AI Local (Ollama)"
+        model: "qwen-vision:32k"
+        promptPrefix: "Eres un experto en análisis de documentos, imágenes, tablas y texto escaneado. Puedes leer archivos Word, Excel, PDF e imágenes usando tus herramientas MCP. Extrae datos estructurados, genera resúmenes ejecutivos y crea nuevos documentos basados en tu análisis. Responde siempre en español."
+        temperature: 0.4
+        maxContextTokens: 12288
+
+    - name: "hermes-tutor"
+      label: "🔮 Hermes Tutor"
+      description: "Asistente local con Hermes 3 - 8B (rápido, zero API)"
+      iconURL: "https://ollama.com/public/qwen.png"
+      preset:
+        endpoint: "AI Local (Ollama)"
+        model: "hermes3:8b"
+        promptPrefix: "Eres un asistente de IA útil, conciso y directo. Respondes en español de forma natural y profesional."
+        temperature: 0.6
+        maxContextTokens: 12288
+
+    - name: "asesor-pyinvest"
+      label: "👔 Asesor Inversor"
+      description: "Asesor virtual financiero y de inversiones (Langflow RAG)."
+      iconURL: "https://pyinvest.com.py/wp-content/uploads/2025/09/logo2.png"
+      preset:
+        endpoint: "BusinessSpark AI"
+        model: "langflow-pyinvest-agent"
+        promptPrefix: "Eres el Asesor Virtual Senior de Inversiones. Trabajas con BusinessSpark AI Hub."
+        temperature: 0.3
+        maxContextTokens: 16384
+
+    - name: "pc-agent"
+      label: "🤖 PC Agent"
+      description: "Agente autónomo con control de navegador, archivos y herramientas"
+      iconURL: "https://ollama.com/public/qwen.png"
+      mcpServers:
+        - browser
+        - filesystem
+        - memory
+        - sequential-thinking
+        - office-docs
+      preset:
+        endpoint: "agents"
+        model: "qwen3.5:4b"
+        modelLabel: "AI Local (Ollama)"
+        promptPrefix: "Eres un agente autónomo de IA con control total sobre herramientas del sistema. Tienes acceso a: navegador web (navegar, hacer clic, capturar pantalla, extraer datos), sistema de archivos (leer, escribir, buscar), documentos (Word, Excel, PDF), y razonamiento estructurado. Puedes ejecutar múltiples pasos de forma autónoma para completar tareas complejas. Responde en español, explica cada paso que realizas y usa las herramientas disponibles cuando sea necesario. Al finalizar el análisis de un problema o archivo extenso, guarda automáticamente las observaciones y decisiones clave en la memoria MCP mediante la herramienta create_entities/add_observations."
+        temperature: 0.4
+        maxContextTokens: 16384
+        resendFiles: false
+        # Agregamos compresión automática de contexto:
+        forcePromptPrefix: true
+# =====================================================================
+# 🌐 Interfaz
+# =====================================================================
+interface:
+  appTitle: "ApplicandoLA AI"
+  privacyPolicy:
+    enabled: false
+  termsOfService:
+    enabled: false
+
+# =====================================================================
+# 🔌 MCP Servers (Model Context Protocol)
+# =====================================================================
+mcpServers:
+  filesystem:
+    type: stdio
+    command: npx
+    args:
+      - "-y"
+      - "@modelcontextprotocol/server-filesystem"
+      - "/data/documents"
+
+  memory:
+    type: stdio
+    command: npx
+    args:
+      - "-y"
+      - "@modelcontextprotocol/server-memory"
+
+  sequential-thinking:
+    type: stdio
+    command: npx
+    args:
+      - "-y"
+      - "@modelcontextprotocol/server-sequential-thinking"
+
+  office-docs:
+    type: stdio
+    command: node
+    args:
+      - "--no-warnings"
+      - "/data/documents/ApplicandoLA/EduSpark LMS/eduspark/scripts/office-mcp/bundle.mjs"
+
+  browser:
+    type: stdio
+    command: npx
+    args:
+      - "-y"
+      - "@playwright/mcp"

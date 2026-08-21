@@ -7,7 +7,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
-import { IconRefreshCw, IconFilter, IconDownload, IconCheck, IconX, IconClock } from '@/components/Common/Icons';
+import {
+  IconRefreshCw,
+  IconFilter,
+  IconDownload,
+  IconCheck,
+  IconX,
+  IconClock,
+} from '@/components/Common/Icons';
 
 interface GeneralKnowledgeResponse {
   id: string;
@@ -30,7 +37,9 @@ export const TutorFeedbackReportPage: React.FC = () => {
   const [responses, setResponses] = useState<GeneralKnowledgeResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'processed' | 'rejected'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'processed' | 'rejected'>(
+    'all'
+  );
   const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
   const [courses, setCourses] = useState<Array<{ id: number; title: string }>>([]);
 
@@ -43,10 +52,7 @@ export const TutorFeedbackReportPage: React.FC = () => {
 
   const loadCourses = async () => {
     try {
-      const { data, error } = await supabase
-        .from('courses')
-        .select('id, title')
-        .order('title');
+      const { data, error } = await supabase.from('courses').select('id, title').order('title');
 
       if (error) throw error;
       setCourses(data || []);
@@ -106,7 +112,7 @@ export const TutorFeedbackReportPage: React.FC = () => {
         const user = item.student_id ? usersMap.get(item.student_id) : null;
 
         // Construir nombre completo
-        const studentName = user 
+        const studentName = user
           ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || 'Desconocido'
           : 'Desconocido';
 
@@ -159,8 +165,19 @@ export const TutorFeedbackReportPage: React.FC = () => {
   };
 
   const exportToCSV = () => {
-    const headers = ['ID', 'Curso', 'Estudiante', 'Pregunta', 'Respuesta', 'Confianza RAG', 'Estado', 'Calidad', 'Usos', 'Fecha'];
-    const rows = responses.map(r => [
+    const headers = [
+      'ID',
+      'Curso',
+      'Estudiante',
+      'Pregunta',
+      'Respuesta',
+      'Confianza RAG',
+      'Estado',
+      'Calidad',
+      'Usos',
+      'Fecha',
+    ];
+    const rows = responses.map((r) => [
       r.id,
       r.course_title || '',
       r.student_name || '',
@@ -173,7 +190,7 @@ export const TutorFeedbackReportPage: React.FC = () => {
       formatDate(r.created_at),
     ]);
 
-    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const csv = [headers, ...rows].map((row) => row.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -183,9 +200,9 @@ export const TutorFeedbackReportPage: React.FC = () => {
 
   const stats = {
     total: responses.length,
-    pending: responses.filter(r => r.status === 'pending').length,
-    processed: responses.filter(r => r.status === 'processed').length,
-    rejected: responses.filter(r => r.status === 'rejected').length,
+    pending: responses.filter((r) => r.status === 'pending').length,
+    processed: responses.filter((r) => r.status === 'processed').length,
+    rejected: responses.filter((r) => r.status === 'rejected').length,
   };
 
   if (loading && responses.length === 0) {
@@ -261,11 +278,7 @@ export const TutorFeedbackReportPage: React.FC = () => {
 
           <div className="flex-1"></div>
 
-          <Button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="flex items-center gap-2"
-          >
+          <Button onClick={handleRefresh} disabled={refreshing} className="flex items-center gap-2">
             <IconRefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             Actualizar
           </Button>
@@ -284,7 +297,9 @@ export const TutorFeedbackReportPage: React.FC = () => {
       <div className="space-y-4">
         {responses.length === 0 ? (
           <Card className="p-8 text-center">
-            <p className="text-gray-500">No hay respuestas que coincidan con los filtros seleccionados.</p>
+            <p className="text-gray-500">
+              No hay respuestas que coincidan con los filtros seleccionados.
+            </p>
           </Card>
         ) : (
           responses.map((response) => (
@@ -292,8 +307,14 @@ export const TutorFeedbackReportPage: React.FC = () => {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadge(response.status)}`}>
-                      {response.status === 'pending' ? 'Pendiente' : response.status === 'processed' ? 'Procesada' : 'Rechazada'}
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadge(response.status)}`}
+                    >
+                      {response.status === 'pending'
+                        ? 'Pendiente'
+                        : response.status === 'processed'
+                          ? 'Procesada'
+                          : 'Rechazada'}
                     </span>
                     <span className="text-sm text-gray-600">{response.course_title}</span>
                     <span className="text-sm text-gray-500">•</span>
@@ -302,9 +323,7 @@ export const TutorFeedbackReportPage: React.FC = () => {
                   <div className="text-sm text-gray-500 mb-3">
                     {formatDate(response.created_at)}
                     {response.processed_at && (
-                      <span className="ml-2">
-                        • Procesada: {formatDate(response.processed_at)}
-                      </span>
+                      <span className="ml-2">• Procesada: {formatDate(response.processed_at)}</span>
                     )}
                   </div>
                 </div>
@@ -318,7 +337,9 @@ export const TutorFeedbackReportPage: React.FC = () => {
                   {response.quality_score !== null && (
                     <div className="text-right">
                       <div className="text-sm text-gray-600">Calidad</div>
-                      <div className={`text-lg font-bold px-2 py-1 rounded ${getQualityBadge(response.quality_score)}`}>
+                      <div
+                        className={`text-lg font-bold px-2 py-1 rounded ${getQualityBadge(response.quality_score)}`}
+                      >
                         {response.quality_score}/100
                       </div>
                     </div>

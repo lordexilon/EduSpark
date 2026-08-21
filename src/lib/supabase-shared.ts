@@ -5,4 +5,3 @@
 
 export { supabase } from './supabase';
 export type { User, AuthUser, Role } from './supabase';
-

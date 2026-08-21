@@ -3,7 +3,12 @@
 
 import { getPendingJobs, updateJob, createChildJobs, getJob } from './firestoreService';
 import { downloadFile, getFileMetadata } from './driveService';
-import { detectPdfType, countPdfPages, extractTextFromPages, type PageContent } from './pdfProcessor';
+import {
+  detectPdfType,
+  countPdfPages,
+  extractTextFromPages,
+  type PageContent,
+} from './pdfProcessor';
 import { processPagesIntoChunks, processTextIntoChunks } from './chunkProcessor';
 import { generateEmbeddingsBatch } from './geminiService';
 import { saveChunksBatch } from './supabaseService';
@@ -59,14 +64,18 @@ async function processSplitJob(job: FileProcessingJob): Promise<void> {
 
     // VALIDAR: El PDF debe tener páginas
     if (totalPages === 0) {
-      throw new Error('No se pudieron detectar páginas en el PDF. El archivo puede estar corrupto.');
+      throw new Error(
+        'No se pudieron detectar páginas en el PDF. El archivo puede estar corrupto.'
+      );
     }
 
     console.log(`[Split] Archivo: ${job.sourceFileName}, Tipo: ${pdfType}, Páginas: ${totalPages}`);
 
     // ADVERTENCIA: Si el PDF tiene muy pocas páginas, puede ser un archivo incompleto
     if (totalPages < 50 && job.sourceFileName.toLowerCase().includes('williams')) {
-      console.warn(`[Split] ⚠️ ADVERTENCIA: El PDF "${job.sourceFileName}" tiene solo ${totalPages} páginas. Williams Ginecología debería tener ~995 páginas. Verifica que el archivo esté completo.`);
+      console.warn(
+        `[Split] ⚠️ ADVERTENCIA: El PDF "${job.sourceFileName}" tiene solo ${totalPages} páginas. Williams Ginecología debería tener ~995 páginas. Verifica que el archivo esté completo.`
+      );
     }
 
     // Actualizar trabajo con información
@@ -80,7 +89,9 @@ async function processSplitJob(job: FileProcessingJob): Promise<void> {
     const childJobs: Array<Omit<FileProcessingJob, 'id' | 'createdAt' | 'updatedAt'>> = [];
     const numChunks = Math.ceil(totalPages / CHUNK_SIZE);
 
-    console.log(`[Split] Creando ${numChunks} trabajos hijos para procesar ${totalPages} páginas (${CHUNK_SIZE} páginas por chunk)`);
+    console.log(
+      `[Split] Creando ${numChunks} trabajos hijos para procesar ${totalPages} páginas (${CHUNK_SIZE} páginas por chunk)`
+    );
 
     for (let i = 0; i < numChunks; i++) {
       const pageStart = i * CHUNK_SIZE + 1;
@@ -115,7 +126,9 @@ async function processSplitJob(job: FileProcessingJob): Promise<void> {
       chunksCreated: childJobs.length,
     });
 
-    console.log(`[Split] ✅ Trabajo ${job.id} completado. Creados ${childJobs.length} trabajos hijos para procesar ${totalPages} páginas.`);
+    console.log(
+      `[Split] ✅ Trabajo ${job.id} completado. Creados ${childJobs.length} trabajos hijos para procesar ${totalPages} páginas.`
+    );
   } catch (error: any) {
     console.error(`[Split] ❌ Error procesando trabajo ${job.id}:`, error);
     await updateJob(job.id, {
@@ -193,7 +206,9 @@ async function processChunkJob(job: FileProcessingJob): Promise<void> {
       sourceFileName: job.sourceFileName,
     });
 
-    console.log(`[Chunk] Texto extraído: ${totalChars} caracteres en ${pages.length} páginas, dividido en ${chunks.length} chunks`);
+    console.log(
+      `[Chunk] Texto extraído: ${totalChars} caracteres en ${pages.length} páginas, dividido en ${chunks.length} chunks`
+    );
     console.log(`[Chunk] ✅ sourceFileName usado: "${job.sourceFileName}"`);
 
     // VALIDAR: Verificar que chunks tienen sourceFileName en metadata
@@ -203,18 +218,24 @@ async function processChunkJob(job: FileProcessingJob): Promise<void> {
     }
 
     // Generar embeddings
-    const chunkTexts = chunks.map(c => c.content);
+    const chunkTexts = chunks.map((c) => c.content);
     const embeddings = await generateEmbeddingsBatch(chunkTexts);
 
     console.log(`[Chunk] Embeddings generados: ${embeddings.length}`);
 
     // Obtener información del material (unit_id, session_id) si está disponible
-    let materialInfo: { course_id: number | string; unit_id: string | null; session_id: string | null } | null = null;
+    let materialInfo: {
+      course_id: number | string;
+      unit_id: string | null;
+      session_id: string | null;
+    } | null = null;
     if (job.metadata?.materialId) {
       try {
         materialInfo = await getMaterialInfo(job.metadata.materialId);
         if (materialInfo) {
-          console.log(`[Chunk] Material vinculado: unit_id=${materialInfo.unit_id}, session_id=${materialInfo.session_id}`);
+          console.log(
+            `[Chunk] Material vinculado: unit_id=${materialInfo.unit_id}, session_id=${materialInfo.session_id}`
+          );
         }
       } catch (err) {
         console.warn(`[Chunk] No se pudo obtener información del material:`, err);
@@ -227,7 +248,9 @@ async function processChunkJob(job: FileProcessingJob): Promise<void> {
     const records = chunks.map((chunk, index) => {
       // VALIDAR: Verificar que chunk.metadata tiene sourceFileName
       if (!chunk.metadata.sourceFileName) {
-        console.error(`[Chunk] ❌ ERROR: chunk.metadata no tiene sourceFileName para chunk ${index}`);
+        console.error(
+          `[Chunk] ❌ ERROR: chunk.metadata no tiene sourceFileName para chunk ${index}`
+        );
         throw new Error(`Chunk ${index} no tiene sourceFileName en metadata`);
       }
 
@@ -241,11 +264,11 @@ async function processChunkJob(job: FileProcessingJob): Promise<void> {
           ocrUsed: pdfType === 'scanned',
           category: job.metadata?.category || 'other',
           material_id: job.metadata?.materialId, // Priorizar underscores para sistema RAG
-          materialId: job.metadata?.materialId,  // Alias para compatibilidad con UI
+          materialId: job.metadata?.materialId, // Alias para compatibilidad con UI
           unit_id: materialInfo?.unit_id || undefined,
           session_id: materialInfo?.session_id || undefined,
-          unitId: materialInfo?.unit_id || undefined,    // Alias camelCase
-          sessionId: materialInfo?.session_id || undefined // Alias camelCase
+          unitId: materialInfo?.unit_id || undefined, // Alias camelCase
+          sessionId: materialInfo?.session_id || undefined, // Alias camelCase
         },
       };
     });
@@ -253,7 +276,9 @@ async function processChunkJob(job: FileProcessingJob): Promise<void> {
     // VALIDAR: Verificar que sourceFileName está en los records antes de guardar
     const firstRecord = records[0];
     if (firstRecord?.metadata?.sourceFileName) {
-      console.log(`[Chunk] ✅ sourceFileName confirmado en records: "${firstRecord.metadata.sourceFileName}"`);
+      console.log(
+        `[Chunk] ✅ sourceFileName confirmado en records: "${firstRecord.metadata.sourceFileName}"`
+      );
     } else {
       console.error(`[Chunk] ❌ ERROR: sourceFileName NO está en records!`, {
         hasMetadata: !!firstRecord?.metadata,
@@ -265,7 +290,9 @@ async function processChunkJob(job: FileProcessingJob): Promise<void> {
 
     await saveChunksBatch(records);
 
-    console.log(`[Chunk] ✅ ${records.length} chunks guardados en Supabase con sourceFileName: "${job.sourceFileName}"`);
+    console.log(
+      `[Chunk] ✅ ${records.length} chunks guardados en Supabase con sourceFileName: "${job.sourceFileName}"`
+    );
 
     // Marcar como completado
     await updateJob(job.id, {
@@ -315,7 +342,10 @@ export async function processTextContentJob(job: FileProcessingJob): Promise<voi
     }
 
     // Limpiar HTML si es necesario
-    const cleanText = job.textContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const cleanText = job.textContent
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
 
     if (!cleanText || cleanText.length === 0) {
       throw new Error('El contenido de texto está vacío después de limpiar');
@@ -328,10 +358,12 @@ export async function processTextContentJob(job: FileProcessingJob): Promise<voi
       pageEnd: 1,
     });
 
-    console.log(`[TextContent] Texto procesado: ${cleanText.length} caracteres, dividido en ${chunks.length} chunks`);
+    console.log(
+      `[TextContent] Texto procesado: ${cleanText.length} caracteres, dividido en ${chunks.length} chunks`
+    );
 
     // Generar embeddings
-    const chunkTexts = chunks.map(c => c.content);
+    const chunkTexts = chunks.map((c) => c.content);
     const embeddings = await generateEmbeddingsBatch(chunkTexts);
 
     console.log(`[TextContent] Embeddings generados: ${embeddings.length}`);

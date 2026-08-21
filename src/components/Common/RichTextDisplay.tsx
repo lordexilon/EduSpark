@@ -20,7 +20,7 @@ export const RichTextDisplay: React.FC<RichTextDisplayProps> = ({ content, class
 
     let processed = html;
 
-    // Si el HTML ya contiene elementos HTML estructurados (p, div, etc.), 
+    // Si el HTML ya contiene elementos HTML estructurados (p, div, etc.),
     // probablemente ya está formateado correctamente
     const hasHtmlStructure = /<[a-z][\s\S]*>/i.test(processed);
 
@@ -28,7 +28,9 @@ export const RichTextDisplay: React.FC<RichTextDisplayProps> = ({ content, class
     const blockMarkers: string[] = [];
     processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, (match, expr) => {
       const marker = `__MATH_BLOCK_${blockMarkers.length}__`;
-      blockMarkers.push(`<div class="math-block font-mono bg-gray-100 px-2 py-1 rounded my-2 text-sm whitespace-pre-wrap">${expr.trim()}</div>`);
+      blockMarkers.push(
+        `<div class="math-block font-mono bg-gray-100 px-2 py-1 rounded my-2 text-sm whitespace-pre-wrap">${expr.trim()}</div>`
+      );
       return marker;
     });
 
@@ -37,7 +39,9 @@ export const RichTextDisplay: React.FC<RichTextDisplayProps> = ({ content, class
     processed = processed.replace(/\$([^$\n]+?)\$/g, (match, expr) => {
       if (!expr.trim()) return match;
       const marker = `__MATH_INLINE_${inlineMarkers.length}__`;
-      inlineMarkers.push(`<span class="math-inline font-mono bg-gray-100 px-1 py-0.5 rounded text-xs inline-block">${expr.trim()}</span>`);
+      inlineMarkers.push(
+        `<span class="math-inline font-mono bg-gray-100 px-1 py-0.5 rounded text-xs inline-block">${expr.trim()}</span>`
+      );
       return marker;
     });
 
@@ -67,4 +71,3 @@ export const RichTextDisplay: React.FC<RichTextDisplayProps> = ({ content, class
     />
   );
 };
-

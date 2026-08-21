@@ -5,7 +5,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { assignmentService, Assignment } from '@/services/assignments';
-import { courseService, Course, unitService, sessionService, CourseUnit, Session } from '@/services/teacherCourses';
+import {
+  courseService,
+  Course,
+  unitService,
+  sessionService,
+  CourseUnit,
+  Session,
+} from '@/services/teacherCourses';
 import { uploadCourseDocument } from '@/services/storageService';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
@@ -35,7 +42,9 @@ export const CreateEditAssignmentPage: React.FC = () => {
     max_points: '100',
     due_at: '',
   });
-  const [attachments, setAttachments] = useState<Array<{ name: string; url: string; size?: number; path?: string }>>([]);
+  const [attachments, setAttachments] = useState<
+    Array<{ name: string; url: string; size?: number; path?: string }>
+  >([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,7 +56,7 @@ export const CreateEditAssignmentPage: React.FC = () => {
       // Si viene desde TeacherAssignmentsPage con un courseId, precargarlo
       const courseIdParam = searchParams.get('course');
       if (courseIdParam) {
-        setFormData(prev => ({ ...prev, course_id: courseIdParam }));
+        setFormData((prev) => ({ ...prev, course_id: courseIdParam }));
         loadUnitsAndSessions(parseInt(courseIdParam));
       }
     }
@@ -59,7 +68,7 @@ export const CreateEditAssignmentPage: React.FC = () => {
     } else {
       setUnits([]);
       setSessions([]);
-      setFormData(prev => ({ ...prev, unit_id: '', session_id: '' }));
+      setFormData((prev) => ({ ...prev, unit_id: '', session_id: '' }));
     }
   }, [formData.course_id]);
 
@@ -79,7 +88,7 @@ export const CreateEditAssignmentPage: React.FC = () => {
     try {
       const [unitsData, sessionsData] = await Promise.all([
         unitService.getCourseUnits(courseId),
-        sessionService.getCourseSessions(courseId)
+        sessionService.getCourseSessions(courseId),
       ]);
       setUnits(unitsData);
       setSessions(sessionsData);
@@ -92,7 +101,7 @@ export const CreateEditAssignmentPage: React.FC = () => {
     try {
       setLoadingData(true);
       const assignment = await assignmentService.getAssignment(assignmentId);
-      
+
       if (!assignment) {
         setError('Tarea no encontrada');
         return;
@@ -110,12 +119,14 @@ export const CreateEditAssignmentPage: React.FC = () => {
 
       // Cargar attachments si existen
       if (assignment.attachments && Array.isArray(assignment.attachments)) {
-        setAttachments(assignment.attachments.map((att: any) => ({
-          name: att.name || att.filename || 'Archivo',
-          url: att.url || att.path || '',
-          size: att.size,
-          path: att.path
-        })));
+        setAttachments(
+          assignment.attachments.map((att: any) => ({
+            name: att.name || att.filename || 'Archivo',
+            url: att.url || att.path || '',
+            size: att.size,
+            path: att.path,
+          }))
+        );
       }
 
       // Cargar unidades y sesiones del curso
@@ -135,13 +146,19 @@ export const CreateEditAssignmentPage: React.FC = () => {
 
     try {
       console.log('📝 Creando/Actualizando tarea con datos:', formData);
-      
+
       const assignmentData: Omit<Assignment, 'id' | 'created_at'> = {
         course_id: parseInt(formData.course_id),
         unit_id: formData.unit_id && formData.unit_id.trim() !== '' ? formData.unit_id : undefined,
-        session_id: formData.session_id && formData.session_id.trim() !== '' ? formData.session_id : undefined,
+        session_id:
+          formData.session_id && formData.session_id.trim() !== ''
+            ? formData.session_id
+            : undefined,
         title: formData.title.trim(),
-        description: formData.description && formData.description.trim() !== '' ? formData.description.trim() : undefined,
+        description:
+          formData.description && formData.description.trim() !== ''
+            ? formData.description.trim()
+            : undefined,
         max_points: parseInt(formData.max_points),
         due_at: formData.due_at && formData.due_at.trim() !== '' ? formData.due_at : undefined,
         attachments: attachments.length > 0 ? attachments : [],
@@ -169,18 +186,24 @@ export const CreateEditAssignmentPage: React.FC = () => {
         code: err.code,
         details: err.details,
         hint: err.hint,
-        fullError: err
+        fullError: err,
       });
-      setError(err.message || err.details || 'Error al guardar la tarea. Por favor, revisa los datos e inténtalo de nuevo.');
+      setError(
+        err.message ||
+          err.details ||
+          'Error al guardar la tarea. Por favor, revisa los datos e inténtalo de nuevo.'
+      );
     } finally {
       console.log('🏁 Finalizando handleSubmit, reseteando loading');
       setLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,16 +218,19 @@ export const CreateEditAssignmentPage: React.FC = () => {
     try {
       const file = files[0];
       const result = await uploadCourseDocument(formData.course_id, file, {
-        folder: 'assignments'
+        folder: 'assignments',
       });
 
       if (result.success && result.url) {
-        setAttachments(prev => [...prev, {
-          name: file.name,
-          url: result.url!,
-          size: file.size,
-          path: result.path
-        }]);
+        setAttachments((prev) => [
+          ...prev,
+          {
+            name: file.name,
+            url: result.url!,
+            size: file.size,
+            path: result.path,
+          },
+        ]);
       } else {
         setError(result.error || 'Error al subir el archivo');
       }
@@ -221,7 +247,7 @@ export const CreateEditAssignmentPage: React.FC = () => {
   };
 
   const handleRemoveAttachment = (index: number) => {
-    setAttachments(prev => prev.filter((_, i) => i !== index));
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
   if (loadingData) {
@@ -240,7 +266,9 @@ export const CreateEditAssignmentPage: React.FC = () => {
             {isEditing ? 'Editar Tarea' : 'Nueva Tarea'}
           </h1>
           <p className="text-gray-600 mt-2">
-            {isEditing ? 'Modifica los detalles de la tarea' : 'Crea una nueva tarea para tus estudiantes'}
+            {isEditing
+              ? 'Modifica los detalles de la tarea'
+              : 'Crea una nueva tarea para tus estudiantes'}
           </p>
         </div>
 
@@ -311,7 +339,7 @@ export const CreateEditAssignmentPage: React.FC = () => {
               >
                 <option value="">Sin sesión específica</option>
                 {sessions
-                  .filter(session => !formData.unit_id || session.unit_id === formData.unit_id)
+                  .filter((session) => !formData.unit_id || session.unit_id === formData.unit_id)
                   .map((session) => (
                     <option key={session.id} value={session.id}>
                       {session.title}
@@ -345,7 +373,7 @@ export const CreateEditAssignmentPage: React.FC = () => {
             </label>
             <RichTextEditor
               value={formData.description}
-              onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
+              onChange={(value) => setFormData((prev) => ({ ...prev, description: value }))}
               placeholder="Describe los requisitos y objetivos de la tarea. Puedes agregar imágenes, formatear el texto, crear listas, etc."
             />
             <p className="mt-2 text-sm text-gray-500">
@@ -378,9 +406,17 @@ export const CreateEditAssignmentPage: React.FC = () => {
                       : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
                   }`}
                 >
-                  <IconUpload className={`w-5 h-5 ${uploading || !formData.course_id ? 'text-gray-400' : 'text-gray-600'}`} />
-                  <span className={`text-sm font-medium ${uploading || !formData.course_id ? 'text-gray-400' : 'text-gray-700'}`}>
-                    {uploading ? 'Subiendo archivo...' : formData.course_id ? 'Seleccionar archivo para subir' : 'Selecciona un curso primero'}
+                  <IconUpload
+                    className={`w-5 h-5 ${uploading || !formData.course_id ? 'text-gray-400' : 'text-gray-600'}`}
+                  />
+                  <span
+                    className={`text-sm font-medium ${uploading || !formData.course_id ? 'text-gray-400' : 'text-gray-700'}`}
+                  >
+                    {uploading
+                      ? 'Subiendo archivo...'
+                      : formData.course_id
+                        ? 'Seleccionar archivo para subir'
+                        : 'Selecciona un curso primero'}
                   </span>
                 </label>
                 <p className="mt-1 text-xs text-gray-500">
@@ -399,7 +435,9 @@ export const CreateEditAssignmentPage: React.FC = () => {
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <IconFileText className="w-5 h-5 text-gray-400 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{attachment.name}</p>
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {attachment.name}
+                          </p>
                           {attachment.size && (
                             <p className="text-xs text-gray-500">
                               {(attachment.size / 1024).toFixed(2)} KB
@@ -488,4 +526,3 @@ export const CreateEditAssignmentPage: React.FC = () => {
     </div>
   );
 };
-

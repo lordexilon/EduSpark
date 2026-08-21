@@ -199,4 +199,3 @@ export async function getFileMetadata(fileId: string): Promise<{
     mimeType: response.data.mimeType!,
   };
 }
-

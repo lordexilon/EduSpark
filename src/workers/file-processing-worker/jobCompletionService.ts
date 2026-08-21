@@ -66,4 +66,3 @@ export async function checkAndUpdateMaterialCompletion(
     console.log(`[Completion] Material ${materialId} marcado como fallido`);
   }
 }
-

@@ -8,16 +8,8 @@ import { AgentCoordinator } from '../agents/AgentCoordinator';
 import { VoiceAgent } from '../agents/VoiceAgent';
 import { RAGAgent } from '../agents/RAGAgent';
 import { ContextAgent } from '../agents/ContextAgent';
-import type {
-  ChatMessage,
-  AgentResponse,
-  VoiceConfig,
-  AgentEvent
-} from '../types/agents';
-import type {
-  PedagogicalSettings,
-  StudentProfile
-} from '../types/pedagogical';
+import type { ChatMessage, AgentResponse, VoiceConfig, AgentEvent } from '../types/agents';
+import type { PedagogicalSettings, StudentProfile } from '../types/pedagogical';
 
 // =====================================================
 // Hook useAgentSystem
@@ -37,7 +29,7 @@ export const useAgentSystem = (courseId: string) => {
   const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
   const [voiceConfig, setVoiceConfig] = useState<VoiceConfig>({
     voiceName: 'Kore',
-    speed: 1.0
+    speed: 1.0,
   });
 
   // Referencias
@@ -48,221 +40,234 @@ export const useAgentSystem = (courseId: string) => {
   // Inicialización del Sistema
   // =====================================================
 
-  const initializeAgentSystem = useCallback(async (user: any, moduleId?: string, extraContext?: any) => {
-    console.log('🚀 initializeAgentSystem llamado:', {
-      courseId,
-      hasUser: !!user,
-      userId: user?.id,
-      moduleId,
-      hasExtraContext: !!extraContext,
-      isProcessing
-    });
+  const initializeAgentSystem = useCallback(
+    async (user: any, moduleId?: string, extraContext?: any) => {
+      console.log('🚀 initializeAgentSystem llamado:', {
+        courseId,
+        hasUser: !!user,
+        userId: user?.id,
+        moduleId,
+        hasExtraContext: !!extraContext,
+        isProcessing,
+      });
 
-    if (!courseId || !user) {
-      console.error('❌ Missing courseId or user for agent system initialization:', { courseId, hasUser: !!user });
-      setError('No se puede inicializar el sistema: falta curso o usuario');
-      return;
-    }
+      if (!courseId || !user) {
+        console.error('❌ Missing courseId or user for agent system initialization:', {
+          courseId,
+          hasUser: !!user,
+        });
+        setError('No se puede inicializar el sistema: falta curso o usuario');
+        return;
+      }
 
-    // Evitar múltiples inicializaciones simultáneas
-    if (isProcessing) {
-      console.warn('⚠️ Sistema ya está inicializándose, ignorando llamada duplicada');
-      return;
-    }
+      // Evitar múltiples inicializaciones simultáneas
+      if (isProcessing) {
+        console.warn('⚠️ Sistema ya está inicializándose, ignorando llamada duplicada');
+        return;
+      }
 
-    try {
-      setIsProcessing(true);
-      setError(null);
+      try {
+        setIsProcessing(true);
+        setError(null);
 
-      console.log('🚀 Iniciando sistema de agentes...', { courseId, userId: user.id });
+        console.log('🚀 Iniciando sistema de agentes...', { courseId, userId: user.id });
 
-      // Crear agentes con timeout
-      const createAgents = async () => {
-        const voiceAgent = new VoiceAgent(voiceConfig);
-        const ragAgent = new RAGAgent();
-        const contextAgent = new ContextAgent();
-        return { voiceAgent, ragAgent, contextAgent };
-      };
+        // Crear agentes con timeout
+        const createAgents = async () => {
+          const voiceAgent = new VoiceAgent(voiceConfig);
+          const ragAgent = new RAGAgent();
+          const contextAgent = new ContextAgent();
+          return { voiceAgent, ragAgent, contextAgent };
+        };
 
-      const { voiceAgent, ragAgent, contextAgent } = await Promise.race([
-        createAgents(),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout creando agentes')), 5000) // Reducido a 5s
-        )
-      ]) as any;
+        const { voiceAgent, ragAgent, contextAgent } = (await Promise.race([
+          createAgents(),
+          new Promise(
+            (_, reject) => setTimeout(() => reject(new Error('Timeout creando agentes')), 5000) // Reducido a 5s
+          ),
+        ])) as any;
 
-      // Crear coordinador
-      const newCoordinator = new AgentCoordinator(voiceAgent, ragAgent, contextAgent);
+        // Crear coordinador
+        const newCoordinator = new AgentCoordinator(voiceAgent, ragAgent, contextAgent);
 
-      // Configurar listener de eventos
-      const eventListener = (event: AgentEvent) => {
-        console.log('Agent event:', event);
+        // Configurar listener de eventos
+        const eventListener = (event: AgentEvent) => {
+          console.log('Agent event:', event);
 
-        switch (event.type) {
-          case 'message_sent':
-            setIsProcessing(false);
-            break;
-          case 'message_received':
-            setIsProcessing(false);
-            break;
-          case 'error_occurred':
-            setError(event.data.error);
-            setIsProcessing(false);
-            break;
+          switch (event.type) {
+            case 'message_sent':
+              setIsProcessing(false);
+              break;
+            case 'message_received':
+              setIsProcessing(false);
+              break;
+            case 'error_occurred':
+              setError(event.data.error);
+              setIsProcessing(false);
+              break;
+          }
+        };
+
+        newCoordinator.addEventListener(eventListener);
+        eventListenerRef.current = eventListener;
+
+        // Inicializar sistema con timeout aumentado
+        console.log('🔄 Inicializando coordinador...');
+        try {
+          await Promise.race([
+            newCoordinator.initialize(user.id, courseId, user, {
+              moduleId,
+              comprehensiveData: extraContext?.comprehensiveData,
+            }),
+            new Promise(
+              (_, reject) =>
+                setTimeout(
+                  () => reject(new Error('Timeout inicializando coordinador (15s)')),
+                  15000
+                ) // Aumentado a 15s
+            ),
+          ]);
+        } catch (initError) {
+          console.error('❌ Error durante inicialización del coordinador:', initError);
+          // Limpiar coordinador si falla
+          coordinatorRef.current = null;
+          throw initError;
         }
-      };
 
-      newCoordinator.addEventListener(eventListener);
-      eventListenerRef.current = eventListener;
+        // Obtener estado inicial
+        const status = newCoordinator.getSystemStatus();
 
-      // Inicializar sistema con timeout aumentado
-      console.log('🔄 Inicializando coordinador...');
-      try {
-        await Promise.race([
-          newCoordinator.initialize(user.id, courseId, user, {
-            moduleId,
-            comprehensiveData: extraContext?.comprehensiveData
-          }),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Timeout inicializando coordinador (15s)')), 15000) // Aumentado a 15s
-          )
-        ]);
-      } catch (initError) {
-        console.error('❌ Error durante inicialización del coordinador:', initError);
-        // Limpiar coordinador si falla
+        setCoordinator(newCoordinator);
+        setConversation(status.contextAgent);
+        setPedagogicalSettings(status.currentContext?.pedagogical || null);
+        setStudentProfile(status.currentContext?.student || null);
+        setIsInitialized(true);
+
+        console.log('✅ Sistema de agentes inicializado correctamente');
+
+        // Cargar historial de mensajes (opcional, no crítico)
+        try {
+          await loadConversationHistory();
+        } catch (historyError) {
+          console.warn('⚠️ Error cargando historial (no crítico):', historyError);
+        }
+
+        // Asegurar que isProcessing se resetee
+        setIsProcessing(false);
+      } catch (error) {
+        console.error('❌ Error initializing agent system:', error);
+        setError(error instanceof Error ? error.message : 'Error desconocido');
+        setIsInitialized(false);
+        setCoordinator(null);
         coordinatorRef.current = null;
-        throw initError;
+        // Limpiar listeners si existen
+        if (eventListenerRef.current && coordinatorRef.current) {
+          coordinatorRef.current.removeEventListener(eventListenerRef.current);
+          eventListenerRef.current = null;
+        }
+      } finally {
+        setIsProcessing(false);
       }
-
-      // Obtener estado inicial
-      const status = newCoordinator.getSystemStatus();
-
-      setCoordinator(newCoordinator);
-      setConversation(status.contextAgent);
-      setPedagogicalSettings(status.currentContext?.pedagogical || null);
-      setStudentProfile(status.currentContext?.student || null);
-      setIsInitialized(true);
-
-      console.log('✅ Sistema de agentes inicializado correctamente');
-
-      // Cargar historial de mensajes (opcional, no crítico)
-      try {
-        await loadConversationHistory();
-      } catch (historyError) {
-        console.warn('⚠️ Error cargando historial (no crítico):', historyError);
-      }
-
-      // Asegurar que isProcessing se resetee
-      setIsProcessing(false);
-
-    } catch (error) {
-      console.error('❌ Error initializing agent system:', error);
-      setError(error instanceof Error ? error.message : 'Error desconocido');
-      setIsInitialized(false);
-      setCoordinator(null);
-      coordinatorRef.current = null;
-      // Limpiar listeners si existen
-      if (eventListenerRef.current && coordinatorRef.current) {
-        coordinatorRef.current.removeEventListener(eventListenerRef.current);
-        eventListenerRef.current = null;
-      }
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [courseId, voiceConfig, isProcessing]);
+    },
+    [courseId, voiceConfig, isProcessing]
+  );
 
   // =====================================================
   // Gestión de Mensajes
   // =====================================================
 
-  const sendMessage = useCallback(async (text: string): Promise<void> => {
-    console.log('🔵 sendMessage llamado:', {
-      hasCoordinator: !!coordinator,
-      text: text?.trim(),
-      isInitialized,
-      courseId
-    });
-
-    if (!coordinator) {
-      console.error('❌ sendMessage: Coordinator no está disponible');
-      setError('El sistema de agentes no está inicializado. Por favor, espera a que se complete la inicialización.');
-      return;
-    }
-
-    if (!text.trim()) {
-      console.warn('⚠️ sendMessage: Texto vacío');
-      return;
-    }
-
-    try {
-      setIsProcessing(true);
-      setError(null);
-
-      // Agregar mensaje del usuario inmediatamente
-      const userMessage: ChatMessage = {
-        id: Date.now().toString(),
-        role: 'user',
-        text,
-        timestamp: new Date(),
-        metadata: {}
-      };
-
-      console.log('📤 useAgentSystem: Agregando mensaje del usuario:', {
-        id: userMessage.id,
-        text: userMessage.text.substring(0, 50),
-        role: userMessage.role
+  const sendMessage = useCallback(
+    async (text: string): Promise<void> => {
+      console.log('🔵 sendMessage llamado:', {
+        hasCoordinator: !!coordinator,
+        text: text?.trim(),
+        isInitialized,
+        courseId,
       });
 
-      setMessages(prev => {
-        const newMessages = [...prev, userMessage];
-        console.log('📋 useAgentSystem: Total mensajes después de agregar:', {
-          total: newMessages.length,
-          usuarios: newMessages.filter(m => m.role === 'user').length,
-          asistentes: newMessages.filter(m => m.role === 'assistant').length
-        });
-        return newMessages;
-      });
-
-      // Procesar con el coordinador
-      const response: AgentResponse = await coordinator.handleUserInput(text);
-
-      if (response.success) {
-        // Agregar respuesta del asistente
-        const assistantMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          text: response.message,
-          timestamp: new Date(),
-          metadata: {
-            confidence: response.metadata?.confidence,
-            sources: response.metadata?.sources,
-            sourceMetadata: response.metadata?.sourceMetadata,
-            contextUsed: response.metadata?.contextUsed,
-            audioUrl: response.audioUrl
-          }
-        };
-
-        setMessages(prev => [...prev, assistantMessage]);
-      } else {
-        // Agregar mensaje de error
-        const errorMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          text: response.message,
-          timestamp: new Date(),
-          metadata: { error: true }
-        };
-
-        setMessages(prev => [...prev, errorMessage]);
+      if (!coordinator) {
+        console.error('❌ sendMessage: Coordinator no está disponible');
+        setError(
+          'El sistema de agentes no está inicializado. Por favor, espera a que se complete la inicialización.'
+        );
+        return;
       }
 
-    } catch (error) {
-      console.error('Error sending message:', error);
-      setError(error instanceof Error ? error.message : 'Error al enviar mensaje');
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [coordinator]);
+      if (!text.trim()) {
+        console.warn('⚠️ sendMessage: Texto vacío');
+        return;
+      }
+
+      try {
+        setIsProcessing(true);
+        setError(null);
+
+        // Agregar mensaje del usuario inmediatamente
+        const userMessage: ChatMessage = {
+          id: Date.now().toString(),
+          role: 'user',
+          text,
+          timestamp: new Date(),
+          metadata: {},
+        };
+
+        console.log('📤 useAgentSystem: Agregando mensaje del usuario:', {
+          id: userMessage.id,
+          text: userMessage.text.substring(0, 50),
+          role: userMessage.role,
+        });
+
+        setMessages((prev) => {
+          const newMessages = [...prev, userMessage];
+          console.log('📋 useAgentSystem: Total mensajes después de agregar:', {
+            total: newMessages.length,
+            usuarios: newMessages.filter((m) => m.role === 'user').length,
+            asistentes: newMessages.filter((m) => m.role === 'assistant').length,
+          });
+          return newMessages;
+        });
+
+        // Procesar con el coordinador
+        const response: AgentResponse = await coordinator.handleUserInput(text);
+
+        if (response.success) {
+          // Agregar respuesta del asistente
+          const assistantMessage: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            text: response.message,
+            timestamp: new Date(),
+            metadata: {
+              confidence: response.metadata?.confidence,
+              sources: response.metadata?.sources,
+              sourceMetadata: response.metadata?.sourceMetadata,
+              contextUsed: response.metadata?.contextUsed,
+              audioUrl: response.audioUrl,
+            },
+          };
+
+          setMessages((prev) => [...prev, assistantMessage]);
+        } else {
+          // Agregar mensaje de error
+          const errorMessage: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            text: response.message,
+            timestamp: new Date(),
+            metadata: { error: true },
+          };
+
+          setMessages((prev) => [...prev, errorMessage]);
+        }
+      } catch (error) {
+        console.error('Error sending message:', error);
+        setError(error instanceof Error ? error.message : 'Error al enviar mensaje');
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [coordinator]
+  );
 
   const sendVoiceMessage = useCallback(async (): Promise<void> => {
     if (!coordinator) {
@@ -307,21 +312,21 @@ export const useAgentSystem = (courseId: string) => {
             role: 'user',
             text: recognizedText,
             timestamp: new Date(),
-            metadata: { voiceInput: true }
+            metadata: { voiceInput: true },
           };
 
           console.log('📤 useAgentSystem (voz): Agregando mensaje del usuario:', {
             id: userMessage.id,
             text: userMessage.text.substring(0, 50),
-            role: userMessage.role
+            role: userMessage.role,
           });
 
-          setMessages(prev => {
+          setMessages((prev) => {
             const newMessages = [...prev, userMessage];
             console.log('📋 useAgentSystem (voz): Total mensajes después de agregar usuario:', {
               total: newMessages.length,
-              usuarios: newMessages.filter(m => m.role === 'user').length,
-              asistentes: newMessages.filter(m => m.role === 'assistant').length
+              usuarios: newMessages.filter((m) => m.role === 'user').length,
+              asistentes: newMessages.filter((m) => m.role === 'assistant').length,
             });
             return newMessages;
           });
@@ -337,11 +342,11 @@ export const useAgentSystem = (courseId: string) => {
               sources: response.metadata?.sources,
               sourceMetadata: response.metadata?.sourceMetadata,
               contextUsed: response.metadata?.contextUsed,
-              audioUrl: response.audioUrl
-            }
+              audioUrl: response.audioUrl,
+            },
           };
 
-          setMessages(prev => [...prev, assistantMessage]);
+          setMessages((prev) => [...prev, assistantMessage]);
         } else {
           // Si falla, agregar mensaje de error del asistente
           const errorMessage: ChatMessage = {
@@ -349,15 +354,14 @@ export const useAgentSystem = (courseId: string) => {
             role: 'assistant',
             text: response.message || 'Error al procesar el mensaje de voz',
             timestamp: new Date(),
-            metadata: { error: true }
+            metadata: { error: true },
           };
 
-          setMessages(prev => [...prev, errorMessage]);
+          setMessages((prev) => [...prev, errorMessage]);
         }
       } catch (voiceError) {
         throw voiceError;
       }
-
     } catch (error) {
       console.error('Error sending voice message:', error);
       setError(error instanceof Error ? error.message : 'Error al procesar audio');
@@ -368,10 +372,10 @@ export const useAgentSystem = (courseId: string) => {
         role: 'assistant',
         text: 'Error al procesar el mensaje de voz. Por favor, intenta escribir tu mensaje.',
         timestamp: new Date(),
-        metadata: { error: true }
+        metadata: { error: true },
       };
 
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsProcessing(false);
     }
@@ -386,7 +390,8 @@ export const useAgentSystem = (courseId: string) => {
 
     try {
       // Obtener historial desde el contexto
-      const history = await coordinator.getSystemStatus().contextAgent?.getConversationHistory?.() || [];
+      const history =
+        (await coordinator.getSystemStatus().contextAgent?.getConversationHistory?.()) || [];
       setMessages(history);
     } catch (error) {
       console.error('Error loading conversation history:', error);
@@ -410,9 +415,9 @@ export const useAgentSystem = (courseId: string) => {
 
   const exportConversation = useCallback(async (): Promise<string> => {
     try {
-      const chatHistory = messages.map(msg =>
-        `${msg.role === 'user' ? 'Tú' : 'EduSpark'}: ${msg.text}`
-      ).join('\n\n');
+      const chatHistory = messages
+        .map((msg) => `${msg.role === 'user' ? 'Tú' : 'EduSpark'}: ${msg.text}`)
+        .join('\n\n');
 
       const blob = new Blob([chatHistory], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -437,33 +442,42 @@ export const useAgentSystem = (courseId: string) => {
   // Gestión de Configuración
   // =====================================================
 
-  const updateVoiceConfig = useCallback((newConfig: Partial<VoiceConfig>) => {
-    setVoiceConfig(prev => ({ ...prev, ...newConfig }));
+  const updateVoiceConfig = useCallback(
+    (newConfig: Partial<VoiceConfig>) => {
+      setVoiceConfig((prev) => ({ ...prev, ...newConfig }));
 
-    if (coordinator) {
-      // Actualizar configuración en el coordinador
-      const status = coordinator.getSystemStatus();
-      if (status.voiceAgent) {
-        // Aquí se actualizaría la configuración de voz
-        console.log('Voice config updated:', newConfig);
+      if (coordinator) {
+        // Actualizar configuración en el coordinador
+        const status = coordinator.getSystemStatus();
+        if (status.voiceAgent) {
+          // Aquí se actualizaría la configuración de voz
+          console.log('Voice config updated:', newConfig);
+        }
       }
-    }
-  }, [coordinator]);
+    },
+    [coordinator]
+  );
 
-  const updatePedagogicalSettings = useCallback((newSettings: Partial<PedagogicalSettings>) => {
-    if (pedagogicalSettings) {
-      setPedagogicalSettings(prev => prev ? { ...prev, ...newSettings } : null);
-      // Aquí se actualizaría en Supabase
-      console.log('Pedagogical settings updated:', newSettings);
-    }
-  }, [pedagogicalSettings]);
+  const updatePedagogicalSettings = useCallback(
+    (newSettings: Partial<PedagogicalSettings>) => {
+      if (pedagogicalSettings) {
+        setPedagogicalSettings((prev) => (prev ? { ...prev, ...newSettings } : null));
+        // Aquí se actualizaría en Supabase
+        console.log('Pedagogical settings updated:', newSettings);
+      }
+    },
+    [pedagogicalSettings]
+  );
 
-  const setAudioMuted = useCallback((muted: boolean) => {
-    if (coordinator) {
-      coordinator.setAudioMuted(muted);
-      console.log('Audio muted state updated:', muted);
-    }
-  }, [coordinator]);
+  const setAudioMuted = useCallback(
+    (muted: boolean) => {
+      if (coordinator) {
+        coordinator.setAudioMuted(muted);
+        console.log('Audio muted state updated:', muted);
+      }
+    },
+    [coordinator]
+  );
 
   const cancelCurrentResponse = useCallback(() => {
     if (coordinator) {
@@ -540,6 +554,6 @@ export const useAgentSystem = (courseId: string) => {
 
     // Estados de error
     hasError: !!error,
-    clearError: () => setError(null)
+    clearError: () => setError(null),
   };
 };

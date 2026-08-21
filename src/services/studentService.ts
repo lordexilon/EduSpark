@@ -66,15 +66,19 @@ export const studentService = {
     if (!student) return null;
 
     // Obtener inscripciones en carreras
-    const careerEnrollments = await careerEnrollmentService.getStudentEnrollments(studentId).catch(() => []);
+    const careerEnrollments = await careerEnrollmentService
+      .getStudentEnrollments(studentId)
+      .catch(() => []);
 
     // Obtener inscripciones en cursos
-    const courseEnrollments = await courseEnrollmentService.getStudentEnrollments(studentId).catch(() => []);
+    const courseEnrollments = await courseEnrollmentService
+      .getStudentEnrollments(studentId)
+      .catch(() => []);
 
     return {
       ...student,
       career_enrollments: careerEnrollments,
-      course_enrollments: courseEnrollments
+      course_enrollments: courseEnrollments,
     };
   },
 
@@ -101,5 +105,5 @@ export const studentService = {
       .eq('role_id', 1); // role_id 1 = student
 
     if (error) throw error;
-  }
+  },
 };

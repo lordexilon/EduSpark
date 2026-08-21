@@ -19,7 +19,11 @@ interface TeacherSidebarProps {
   onClose?: () => void;
 }
 
-const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ collapsed = false, onToggle, onClose }) => {
+const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
+  collapsed = false,
+  onToggle,
+  onClose,
+}) => {
   const { user, menuFeatures } = useAuth();
   const location = useLocation();
   const { unreadCount: unreadMessagesCount } = useUnreadMessages();
@@ -27,8 +31,9 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ collapsed = false, onTo
   const { institution } = useUserInstitution();
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
-  const activeClassName = "bg-blue-600 text-white font-medium shadow-md shadow-blue-600/20";
-  const inactiveClassName = "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700";
+  const activeClassName = 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/20';
+  const inactiveClassName =
+    'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700';
 
   const userRole = user?.role?.name || '';
   const isAdmin = ['admin', 'coordinator', 'admin-campus', 'supervisor'].includes(userRole);
@@ -36,7 +41,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ collapsed = false, onTo
   // Función para filtrar items por feature flags
   const isVisible = (item: MenuItem): boolean => {
     if (item.featureKey) {
-      const flag = menuFeatures?.find(f => f.key === item.featureKey);
+      const flag = menuFeatures?.find((f) => f.key === item.featureKey);
       if (flag && !flag.enabled) return false;
 
       if (flag && flag.allowed_roles && flag.allowed_roles.length > 0 && userRole) {
@@ -48,12 +53,15 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ collapsed = false, onTo
 
   // Función para filtrar items y sus hijos recursivamente
   const filterItems = (items: MenuItem[]): MenuItem[] => {
-    return items.filter(isVisible).map(item => {
-      if (item.children) {
-        return { ...item, children: item.children.filter(isVisible) };
-      }
-      return item;
-    }).filter(item => !item.children || item.children.length > 0);
+    return items
+      .filter(isVisible)
+      .map((item) => {
+        if (item.children) {
+          return { ...item, children: item.children.filter(isVisible) };
+        }
+        return item;
+      })
+      .filter((item) => !item.children || item.children.length > 0);
   };
 
   // Obtener items filtrados
@@ -67,7 +75,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ collapsed = false, onTo
 
     allItems.forEach((item) => {
       if (item.children) {
-        const hasActiveChild = item.children.some(child => {
+        const hasActiveChild = item.children.some((child) => {
           if (!child.path) return false;
           return location.pathname === child.path || location.pathname.startsWith(child.path);
         });
@@ -81,7 +89,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ collapsed = false, onTo
   }, [location.pathname, userRole]);
 
   const toggleMenu = (menuName: string) => {
-    setExpandedMenus(prev => {
+    setExpandedMenus((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(menuName)) {
         newSet.delete(menuName);
@@ -93,7 +101,9 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ collapsed = false, onTo
   };
 
   return (
-    <aside className={`${collapsed ? 'w-20' : 'w-64'} h-full bg-surface text-text-dark flex flex-col p-4 border-r border-border transition-all duration-300 relative`}>
+    <aside
+      className={`${collapsed ? 'w-20' : 'w-64'} h-full bg-surface text-text-dark flex flex-col p-4 border-r border-border transition-all duration-300 relative`}
+    >
       {/* Botón de cerrar para móvil */}
       {onClose && (
         <div className="flex items-center justify-between mb-4 lg:hidden">
@@ -116,7 +126,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ collapsed = false, onTo
         <button
           onClick={onToggle}
           className="hidden lg:flex absolute -right-3 top-6 z-10 bg-white border border-gray-300 rounded-full p-1.5 shadow-md hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-primary"
-          aria-label={collapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+          aria-label={collapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
         >
           {collapsed ? (
             <IconChevronRight className="w-4 h-4 text-gray-600" />
@@ -221,15 +231,22 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ collapsed = false, onTo
           to="/profile"
           onClick={onClose}
           className={`group flex items-center gap-3 p-4 transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 ${collapsed ? 'justify-center' : ''}`}
-          title={collapsed ? "Mi Perfil" : ''}
+          title={collapsed ? 'Mi Perfil' : ''}
         >
           {/* Avatar */}
           <div className="relative flex-shrink-0">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-sm group-hover:shadow-md transition-all">
               {user?.avatar_url ? (
-                <img src={user.avatar_url} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                <img
+                  src={user.avatar_url}
+                  alt="Profile"
+                  className="w-full h-full rounded-full object-cover"
+                />
               ) : (
-                <span>{user?.first_name?.[0]?.toUpperCase()}{user?.last_name?.[0]?.toUpperCase()}</span>
+                <span>
+                  {user?.first_name?.[0]?.toUpperCase()}
+                  {user?.last_name?.[0]?.toUpperCase()}
+                </span>
               )}
             </div>
           </div>
@@ -242,17 +259,28 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ collapsed = false, onTo
                 </span>
 
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${user?.role?.name === 'admin' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                    user?.role?.name === 'admin-campus' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
-                      user?.role?.name === 'coordinator' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                        user?.role?.name === 'supervisor' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                          'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                    }`}>
-                    {user?.role?.name === 'admin-campus' ? 'Admin Campus' :
-                      user?.role?.name === 'admin' ? 'Admin' :
-                        user?.role?.name === 'coordinator' ? 'Coord' :
-                          user?.role?.name === 'supervisor' ? 'Supervisor' :
-                            'Docente'}
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                      user?.role?.name === 'admin'
+                        ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                        : user?.role?.name === 'admin-campus'
+                          ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                          : user?.role?.name === 'coordinator'
+                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                            : user?.role?.name === 'supervisor'
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    {user?.role?.name === 'admin-campus'
+                      ? 'Admin Campus'
+                      : user?.role?.name === 'admin'
+                        ? 'Admin'
+                        : user?.role?.name === 'coordinator'
+                          ? 'Coord'
+                          : user?.role?.name === 'supervisor'
+                            ? 'Supervisor'
+                            : 'Docente'}
                   </span>
                 </div>
 
@@ -270,7 +298,10 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({ collapsed = false, onTo
             <div className="flex items-center gap-1.5 opacity-50 hover:opacity-100 transition-opacity cursor-default group/brand">
               <IconEduSparkLogo className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 group-hover/brand:text-primary transition-colors" />
               <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 tracking-tight">
-                Powered by <span className="text-gray-900 dark:text-white group-hover/brand:text-primary transition-colors">EduSpark</span>
+                Powered by{' '}
+                <span className="text-gray-900 dark:text-white group-hover/brand:text-primary transition-colors">
+                  EduSpark
+                </span>
               </span>
             </div>
           </div>

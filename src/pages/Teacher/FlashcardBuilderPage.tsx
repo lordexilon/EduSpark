@@ -18,7 +18,15 @@ import Button from '@/components/Common/Button';
 import Card from '@/components/Common/Card';
 import FlashcardEditor from '@/components/Features/flashcards/FlashcardEditor';
 import FlashcardGenerator from '@/components/Features/flashcards/FlashcardGenerator';
-import { IconPlus, IconTrash, IconEdit, IconArrowLeft, IconBookOpen, IconEye, IconSparkles } from '@/components/Common/Icons';
+import {
+  IconPlus,
+  IconTrash,
+  IconEdit,
+  IconArrowLeft,
+  IconBookOpen,
+  IconEye,
+  IconSparkles,
+} from '@/components/Common/Icons';
 
 export const FlashcardBuilderPage: React.FC = () => {
   const { courseId } = useParams<{ courseId?: string }>();
@@ -165,35 +173,37 @@ export const FlashcardBuilderPage: React.FC = () => {
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
 
   // ... (useEffect and loadData remain similar, just need to preserve them or assume they are there in previous blocks if I don't touch them)
-  // Actually, I am replacing a large chunk so I need to include them if I replace the whole body, or just insert the new logic. 
+  // Actually, I am replacing a large chunk so I need to include them if I replace the whole body, or just insert the new logic.
   // Better to insert the logic and then update the UI.
 
   // Let's implement the handlers first.
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedCards(filteredFlashcards.map(f => f.id));
+      setSelectedCards(filteredFlashcards.map((f) => f.id));
     } else {
       setSelectedCards([]);
     }
   };
 
   const toggleSelectCard = (id: string) => {
-    setSelectedCards(prev =>
-      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
-    );
+    setSelectedCards((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
   };
 
   const handleBulkDelete = async () => {
     if (selectedCards.length === 0) return;
 
-    if (!confirm(`⚠️ ¿Estás seguro de que deseas eliminar ${selectedCards.length} flashcards seleccionadas?\n\nEsta acción eliminará permanentemente las tarjetas y su historial de progreso asociado.\n\nEsta acción NO se puede deshacer.`)) {
+    if (
+      !confirm(
+        `⚠️ ¿Estás seguro de que deseas eliminar ${selectedCards.length} flashcards seleccionadas?\n\nEsta acción eliminará permanentemente las tarjetas y su historial de progreso asociado.\n\nEsta acción NO se puede deshacer.`
+      )
+    ) {
       return;
     }
 
     try {
       setLoading(true);
       // Ejecutar eliminaciones en paralelo
-      await Promise.all(selectedCards.map(id => deleteFlashcard(id)));
+      await Promise.all(selectedCards.map((id) => deleteFlashcard(id)));
 
       await loadData();
       setSelectedCards([]); // Limpiar selección
@@ -234,26 +244,27 @@ export const FlashcardBuilderPage: React.FC = () => {
       const courseIdNum = parseInt(finalCourseId);
 
       // Guardar todas las flashcards en paralelo
-      await Promise.all(generatedCards.map(card => {
-        // Asegurar que tengan los IDs correctos para la base de datos
-        // Nota: 'card' viene de la IA con un ID temporal tipo 'gen-...'
-        // createFlashcard ignorará el ID si lo pasamos, pero es mejor limpiar
-        const { id, ...cardData } = card;
+      await Promise.all(
+        generatedCards.map((card) => {
+          // Asegurar que tengan los IDs correctos para la base de datos
+          // Nota: 'card' viene de la IA con un ID temporal tipo 'gen-...'
+          // createFlashcard ignorará el ID si lo pasamos, pero es mejor limpiar
+          const { id, ...cardData } = card;
 
-        return createFlashcard({
-          ...cardData,
-          course_id: courseIdNum,
-          unit_id: selectedUnitId || undefined,
-          session_id: selectedSessionId || undefined,
-          created_by: user.id,
-        });
-      }));
+          return createFlashcard({
+            ...cardData,
+            course_id: courseIdNum,
+            unit_id: selectedUnitId || undefined,
+            session_id: selectedSessionId || undefined,
+            created_by: user.id,
+          });
+        })
+      );
 
       // Recargar datos y volver a la vista principal
       await loadData();
       setShowGenerator(false);
       alert(`${generatedCards.length} flashcards guardadas con éxito!`);
-
     } catch (error) {
       console.error('Error saving generated flashcards:', error);
       alert('Error al guardar las flashcards generadas');
@@ -265,10 +276,7 @@ export const FlashcardBuilderPage: React.FC = () => {
     return (
       <div className="p-6">
         <div className="mb-4">
-          <Button
-            variant="secondary"
-            onClick={() => setShowGenerator(false)}
-          >
+          <Button variant="secondary" onClick={() => setShowGenerator(false)}>
             <IconArrowLeft className="w-4 h-4 mr-2" />
             Volver a la lista
           </Button>
@@ -304,7 +312,9 @@ export const FlashcardBuilderPage: React.FC = () => {
             <p className="text-sm text-blue-800">
               <strong>Creando flashcard para:</strong>
               {selectedUnit && (
-                <span className="ml-2">Unidad {selectedUnit.number}: {selectedUnit.title}</span>
+                <span className="ml-2">
+                  Unidad {selectedUnit.number}: {selectedUnit.title}
+                </span>
               )}
               {selectedSession && (
                 <span className="ml-2">
@@ -343,7 +353,10 @@ export const FlashcardBuilderPage: React.FC = () => {
             <p className="text-text-light">{course?.title}</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => navigate(`/teacher/courses/${finalCourseId}`)}>
+            <Button
+              variant="secondary"
+              onClick={() => navigate(`/teacher/courses/${finalCourseId}`)}
+            >
               <IconArrowLeft className="w-4 h-4 mr-2" />
               Volver al Curso
             </Button>
@@ -406,7 +419,10 @@ export const FlashcardBuilderPage: React.FC = () => {
               <input
                 type="checkbox"
                 className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                checked={filteredFlashcards.length > 0 && selectedCards.length === filteredFlashcards.length}
+                checked={
+                  filteredFlashcards.length > 0 &&
+                  selectedCards.length === filteredFlashcards.length
+                }
                 onChange={(e) => handleSelectAll(e.target.checked)}
                 disabled={filteredFlashcards.length === 0}
               />
@@ -438,12 +454,9 @@ export const FlashcardBuilderPage: React.FC = () => {
             return (
               <Card
                 key={flashcard.id}
-                className={`p-4 hover:shadow-lg transition-all border-2 relative ${isSelected ? 'border-indigo-500 bg-indigo-50/30' : 'border-transparent'
-                  }`}
-                onClick={(e) => {
-                  // Permitir seleccionar haciendo click en la tarjeta (opcional, cuidado con los botones)
-                  // Mejor solo en el checkbox para evitar conflictos con drag/edit
-                }}
+                className={`p-4 hover:shadow-lg transition-all border-2 relative ${
+                  isSelected ? 'border-indigo-500 bg-indigo-50/30' : 'border-transparent'
+                }`}
               >
                 <div className="absolute top-4 left-4 z-10">
                   <input
@@ -462,16 +475,15 @@ export const FlashcardBuilderPage: React.FC = () => {
                     <h3 className="font-semibold text-text-dark mb-1">
                       {flashcard.title || 'Sin título'}
                     </h3>
-                    {unit && (
-                      <p className="text-xs text-text-light mb-1">Unidad: {unit.title}</p>
-                    )}
-                    {session && (
-                      <p className="text-xs text-text-light">Sesión: {session.title}</p>
-                    )}
+                    {unit && <p className="text-xs text-text-light mb-1">Unidad: {unit.title}</p>}
+                    {session && <p className="text-xs text-text-light">Sesión: {session.title}</p>}
                   </div>
                   <div className="flex gap-1">
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleEditFlashcard(flashcard); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditFlashcard(flashcard);
+                      }}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       title="Editar"
                     >
@@ -479,7 +491,10 @@ export const FlashcardBuilderPage: React.FC = () => {
                     </button>
                     {!isSelected && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteFlashcard(flashcard.id); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteFlashcard(flashcard.id);
+                        }}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Eliminar"
                       >
@@ -491,7 +506,9 @@ export const FlashcardBuilderPage: React.FC = () => {
 
                 <div className="space-y-2 mt-4 pl-2 border-l-2 border-gray-100">
                   <div className="text-sm text-text-light">
-                    <p className="font-medium mb-1 text-xs uppercase tracking-wider text-gray-400">Pregunta</p>
+                    <p className="font-medium mb-1 text-xs uppercase tracking-wider text-gray-400">
+                      Pregunta
+                    </p>
                     <p className="line-clamp-2">
                       {flashcard.front_text || flashcard.front_image_url ? (
                         flashcard.front_text || '[Imagen]'
@@ -501,7 +518,9 @@ export const FlashcardBuilderPage: React.FC = () => {
                     </p>
                   </div>
                   <div className="text-sm text-text-light mt-2">
-                    <p className="font-medium mb-1 text-xs uppercase tracking-wider text-gray-400">Respuesta</p>
+                    <p className="font-medium mb-1 text-xs uppercase tracking-wider text-gray-400">
+                      Respuesta
+                    </p>
                     <p className="line-clamp-2">{flashcard.back_text}</p>
                   </div>
                 </div>
@@ -511,10 +530,7 @@ export const FlashcardBuilderPage: React.FC = () => {
                     {flashcard.tags && flashcard.tags.length > 0 && (
                       <div className="flex gap-1">
                         {flashcard.tags.slice(0, 2).map((tag, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-1 bg-gray-100 rounded-full text-xs"
-                          >
+                          <span key={idx} className="px-2 py-1 bg-gray-100 rounded-full text-xs">
                             {tag}
                           </span>
                         ))}
@@ -522,9 +538,13 @@ export const FlashcardBuilderPage: React.FC = () => {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-[10px] font-bold">Lvl {flashcard.difficulty_level}</span>
+                    <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-[10px] font-bold">
+                      Lvl {flashcard.difficulty_level}
+                    </span>
                     {flashcard.points_value > 0 && (
-                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-[10px] font-bold">+{flashcard.points_value} pts</span>
+                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-[10px] font-bold">
+                        +{flashcard.points_value} pts
+                      </span>
                     )}
                   </div>
                 </div>
@@ -564,4 +584,3 @@ export const FlashcardBuilderPage: React.FC = () => {
     </div>
   );
 };
-

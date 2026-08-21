@@ -55,7 +55,7 @@ export const messagingService = {
     const { data, error } = await supabase.rpc('get_or_create_conversation', {
       p_participant1_id: participant1Id,
       p_participant2_id: participant2Id,
-      p_course_id: courseId || null
+      p_course_id: courseId || null,
     });
 
     if (error) throw error;
@@ -85,7 +85,9 @@ export const messagingService = {
 
   // Obtener una conversación por ID
   async getConversation(conversationId: string): Promise<Conversation> {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuario no autenticado');
 
     const { data, error } = await supabase
@@ -100,7 +102,8 @@ export const messagingService = {
     const [participant1Response, participant2Response] = await Promise.all([
       supabase
         .from('users')
-        .select(`
+        .select(
+          `
           id,
           first_name,
           last_name,
@@ -108,12 +111,14 @@ export const messagingService = {
           avatar_url,
           role_id,
           roles(id, name)
-        `)
+        `
+        )
         .eq('id', data.participant1_id)
         .maybeSingle(),
       supabase
         .from('users')
-        .select(`
+        .select(
+          `
           id,
           first_name,
           last_name,
@@ -121,9 +126,10 @@ export const messagingService = {
           avatar_url,
           role_id,
           roles(id, name)
-        `)
+        `
+        )
         .eq('id', data.participant2_id)
-        .maybeSingle()
+        .maybeSingle(),
     ]);
 
     // Manejar errores silenciosamente (puede ser que un usuario no exista o no sea accesible)
@@ -138,19 +144,26 @@ export const messagingService = {
     }
 
     // Determinar quién es el otro usuario (puede ser null si no existe o no es accesible)
-    const otherUser = data.participant1_id === user.id
-      ? (participant2Data ? { ...participant2Data, role: participant2Data?.roles } : null)
-      : (participant1Data ? { ...participant1Data, role: participant1Data?.roles } : null);
+    const otherUser =
+      data.participant1_id === user.id
+        ? participant2Data
+          ? { ...participant2Data, role: participant2Data?.roles }
+          : null
+        : participant1Data
+          ? { ...participant1Data, role: participant1Data?.roles }
+          : null;
 
     return {
       ...data,
-      other_user: otherUser
+      other_user: otherUser,
     };
   },
 
   // Obtener todas las conversaciones del usuario actual
   async getMyConversations(institutionId?: number): Promise<Conversation[]> {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuario no autenticado');
 
     let query = supabase
@@ -171,14 +184,14 @@ export const messagingService = {
     // Procesar conversaciones para determinar el otro usuario y contar no leídos
     const conversations = await Promise.all(
       (data || []).map(async (conv) => {
-        const otherUserId = conv.participant1_id === user.id
-          ? conv.participant2_id
-          : conv.participant1_id;
+        const otherUserId =
+          conv.participant1_id === user.id ? conv.participant2_id : conv.participant1_id;
 
         // Obtener información del otro usuario
         const { data: otherUserData, error: otherUserError } = await supabase
           .from('users')
-          .select(`
+          .select(
+            `
             id,
             first_name,
             last_name,
@@ -186,7 +199,8 @@ export const messagingService = {
             avatar_url,
             role_id,
             roles(id, name)
-          `)
+          `
+          )
           .eq('id', otherUserId)
           .maybeSingle();
 
@@ -195,10 +209,12 @@ export const messagingService = {
           console.warn(`Error obteniendo información del usuario ${otherUserId}:`, otherUserError);
         }
 
-        const otherUser = otherUserData ? {
-          ...otherUserData,
-          role: otherUserData.roles
-        } : null;
+        const otherUser = otherUserData
+          ? {
+              ...otherUserData,
+              role: otherUserData.roles,
+            }
+          : null;
 
         // Contar mensajes no leídos
         // Usar try-catch para manejar errores de permisos RLS
@@ -248,7 +264,7 @@ export const messagingService = {
 
           lastMessage = {
             ...lastMessageData,
-            sender: senderData || undefined
+            sender: senderData || undefined,
           };
         }
 
@@ -256,7 +272,7 @@ export const messagingService = {
           ...conv,
           other_user: otherUser,
           unread_count: unreadCount,
-          last_message: lastMessage
+          last_message: lastMessage,
         };
       })
     );
@@ -286,7 +302,7 @@ export const messagingService = {
 
         return {
           ...message,
-          sender: senderData || undefined
+          sender: senderData || undefined,
         };
       })
     );
@@ -295,11 +311,10 @@ export const messagingService = {
   },
 
   // Enviar un mensaje
-  async sendMessage(
-    conversationId: string,
-    content: string
-  ): Promise<Message> {
-    const { data: { user } } = await supabase.auth.getUser();
+  async sendMessage(conversationId: string, content: string): Promise<Message> {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuario no autenticado');
 
     const { data: messageData, error } = await supabase
@@ -307,7 +322,7 @@ export const messagingService = {
       .insert({
         conversation_id: conversationId,
         sender_id: user.id,
-        content: content.trim()
+        content: content.trim(),
       })
       .select('*')
       .maybeSingle();
@@ -323,20 +338,22 @@ export const messagingService = {
 
     return {
       ...messageData,
-      sender: senderData || undefined
+      sender: senderData || undefined,
     };
   },
 
   // Marcar mensajes como leídos
   async markAsRead(conversationId: string): Promise<void> {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuario no autenticado');
 
     const { error } = await supabase
       .from('messages')
       .update({
         is_read: true,
-        read_at: new Date().toISOString()
+        read_at: new Date().toISOString(),
       })
       .eq('conversation_id', conversationId)
       .neq('sender_id', user.id)
@@ -346,10 +363,7 @@ export const messagingService = {
   },
 
   // Suscribirse a nuevos mensajes en tiempo real
-  subscribeToMessages(
-    conversationId: string,
-    callback: (message: Message) => void
-  ) {
+  subscribeToMessages(conversationId: string, callback: (message: Message) => void) {
     const channel = supabase
       .channel(`messages:${conversationId}-${Date.now()}`)
       .on(
@@ -358,7 +372,7 @@ export const messagingService = {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`
+          filter: `conversation_id=eq.${conversationId}`,
         },
         async (payload) => {
           try {
@@ -370,8 +384,8 @@ export const messagingService = {
               .maybeSingle();
 
             callback({
-              ...payload.new as Message,
-              sender: sender || undefined
+              ...(payload.new as Message),
+              sender: sender || undefined,
             });
           } catch (error) {
             console.error('Error loading sender in message subscription:', error);
@@ -393,7 +407,9 @@ export const messagingService = {
 
   // Suscribirse a nuevas conversaciones y actualizaciones
   async subscribeToConversations(callback: (conversation: Conversation) => void): Promise<any> {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return null;
 
     const channel = supabase
@@ -405,7 +421,7 @@ export const messagingService = {
           event: '*',
           schema: 'public',
           table: 'conversations',
-          filter: `participant1_id=eq.${user.id}`
+          filter: `participant1_id=eq.${user.id}`,
         },
         async (payload) => {
           try {
@@ -425,7 +441,7 @@ export const messagingService = {
           event: '*',
           schema: 'public',
           table: 'conversations',
-          filter: `participant2_id=eq.${user.id}`
+          filter: `participant2_id=eq.${user.id}`,
         },
         async (payload) => {
           try {
@@ -445,7 +461,7 @@ export const messagingService = {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'messages'
+          table: 'messages',
         },
         async (payload) => {
           try {
@@ -487,7 +503,9 @@ export const messagingService = {
     if (!userIds || userIds.length === 0) return [];
 
     // Intentar usar RPC primero (para saltar RLS si es necesario)
-    const { data: rpcData, error: rpcError } = await supabase.rpc('get_basic_users_info', { user_ids: userIds });
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_basic_users_info', {
+      user_ids: userIds,
+    });
 
     if (!rpcError && rpcData) {
       console.log('✅ [messagingService] Usuarios obtenidos vía RPC secure function');
@@ -500,23 +518,28 @@ export const messagingService = {
         role_id: u.role_id,
         role: {
           id: u.role_id,
-          name: u.role_name
+          name: u.role_name,
         },
-        roles: { // Compatibilidad con código existente
+        roles: {
+          // Compatibilidad con código existente
           id: u.role_id,
-          name: u.role_name
-        }
+          name: u.role_name,
+        },
       }));
     }
 
     if (rpcError) {
-      console.warn('⚠️ [messagingService] RPC get_basic_users_info falló o no existe, usando fallback directo:', rpcError.message);
+      console.warn(
+        '⚠️ [messagingService] RPC get_basic_users_info falló o no existe, usando fallback directo:',
+        rpcError.message
+      );
     }
 
     // Fallback a consulta directa (puede fallar para estudiantes por RLS)
     const { data: users, error: usersError } = await supabase
       .from('users')
-      .select(`
+      .select(
+        `
         id,
         first_name,
         last_name,
@@ -524,14 +547,14 @@ export const messagingService = {
         avatar_url,
         role_id,
         roles(id, name)
-      `)
+      `
+      )
       .in('id', userIds);
 
     if (usersError) throw usersError;
     return (users || []).map((u: any) => ({
       ...u,
-      role: u.roles // Normalizar estructura
+      role: u.roles, // Normalizar estructura
     }));
-  }
+  },
 };
-

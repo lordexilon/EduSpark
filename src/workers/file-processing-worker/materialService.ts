@@ -85,7 +85,7 @@ export async function updateMaterialRagStatus(
     updateData.metadata = {
       ...currentMetadata,
       processingError: errorMessage,
-      lastProcessingAttempt: new Date().toISOString()
+      lastProcessingAttempt: new Date().toISOString(),
     };
   } else if (status === 'completed') {
     // Si se completó, limpiar errores previos
@@ -101,18 +101,14 @@ export async function updateMaterialRagStatus(
     updateData.metadata = {
       ...meta,
       lastProcessedAt: new Date().toISOString(),
-      ragProcessed: true
+      ragProcessed: true,
     };
   }
 
-  const { error } = await supabase
-    .from('materials')
-    .update(updateData)
-    .eq('id', materialId);
+  const { error } = await supabase.from('materials').update(updateData).eq('id', materialId);
 
   if (error) {
     console.error(`Error actualizando estado RAG del material ${materialId}:`, error);
     // No lanzar error para no interrumpir el procesamiento
   }
 }
-

@@ -19,7 +19,7 @@ export interface RubricCriterion {
   title: string;
   description?: string;
   order_index: number;
-  weight: number;      // % sobre 100
+  weight: number; // % sobre 100
   levels: RubricLevel[];
   created_at: string;
 }
@@ -57,26 +57,42 @@ export interface RubricResult {
 // ─── Niveles por defecto ──────────────────────────────────────────────────────
 
 export const DEFAULT_LEVELS: RubricLevel[] = [
-  { level: 'excelente',    label: 'Excelente',    description: 'Supera los criterios esperados',       score: 4 },
-  { level: 'bueno',        label: 'Bueno',        description: 'Cumple los criterios esperados',       score: 3 },
-  { level: 'regular',      label: 'Regular',      description: 'Cumple parcialmente los criterios',    score: 2 },
-  { level: 'insuficiente', label: 'Insuficiente', description: 'No cumple los criterios mínimos',      score: 1 },
+  {
+    level: 'excelente',
+    label: 'Excelente',
+    description: 'Supera los criterios esperados',
+    score: 4,
+  },
+  { level: 'bueno', label: 'Bueno', description: 'Cumple los criterios esperados', score: 3 },
+  {
+    level: 'regular',
+    label: 'Regular',
+    description: 'Cumple parcialmente los criterios',
+    score: 2,
+  },
+  {
+    level: 'insuficiente',
+    label: 'Insuficiente',
+    description: 'No cumple los criterios mínimos',
+    score: 1,
+  },
 ];
 
 // ─── Servicio ─────────────────────────────────────────────────────────────────
 
 export const rubricService = {
-
   // ── CRUD de Rúbricas ────────────────────────────────────────────────────────
 
   /** Obtiene todas las rúbricas del docente autenticado (con criterios incluidos). */
   async getMyRubrics(courseId?: number): Promise<Rubric[]> {
     let query = supabase
       .from('rubrics')
-      .select(`
+      .select(
+        `
         *,
         rubric_criteria (*)
-      `)
+      `
+      )
       .order('created_at', { ascending: false });
 
     if (courseId) {
@@ -87,9 +103,11 @@ export const rubricService = {
     const { data, error } = await query;
     if (error) throw error;
 
-    return (data || []).map(r => ({
+    return (data || []).map((r) => ({
       ...r,
-      criteria: (r.rubric_criteria || []).sort((a: RubricCriterion, b: RubricCriterion) => a.order_index - b.order_index),
+      criteria: (r.rubric_criteria || []).sort(
+        (a: RubricCriterion, b: RubricCriterion) => a.order_index - b.order_index
+      ),
     }));
   },
 
@@ -106,13 +124,19 @@ export const rubricService = {
 
     return {
       ...data,
-      criteria: (data.rubric_criteria || []).sort((a: RubricCriterion, b: RubricCriterion) => a.order_index - b.order_index),
+      criteria: (data.rubric_criteria || []).sort(
+        (a: RubricCriterion, b: RubricCriterion) => a.order_index - b.order_index
+      ),
     };
   },
 
   /** Crea una rúbrica vacía. */
-  async createRubric(payload: Pick<Rubric, 'title' | 'description' | 'course_id'>): Promise<Rubric> {
-    const { data: { user } } = await supabase.auth.getUser();
+  async createRubric(
+    payload: Pick<Rubric, 'title' | 'description' | 'course_id'>
+  ): Promise<Rubric> {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
 
     const { data, error } = await supabase
@@ -126,7 +150,10 @@ export const rubricService = {
   },
 
   /** Actualiza título/descripción de una rúbrica. */
-  async updateRubric(id: string, updates: Partial<Pick<Rubric, 'title' | 'description' | 'course_id'>>): Promise<Rubric> {
+  async updateRubric(
+    id: string,
+    updates: Partial<Pick<Rubric, 'title' | 'description' | 'course_id'>>
+  ): Promise<Rubric> {
     const { data, error } = await supabase
       .from('rubrics')
       .update(updates)
@@ -212,17 +239,19 @@ export const rubricService = {
     criteria: RubricCriterion[];
     selections: RubricSelection[];
     teacher_comment?: string;
-    assignment_max_points: number;  // puntaje máximo de la tarea (para escalar el resultado)
+    assignment_max_points: number; // puntaje máximo de la tarea (para escalar el resultado)
   }): Promise<RubricResult> {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
 
     // Calcular puntaje: suma ponderada de niveles seleccionados
-    const maxLevelScore = Math.max(...(payload.criteria[0]?.levels?.map(l => l.score) ?? [4]));
+    const maxLevelScore = Math.max(...(payload.criteria[0]?.levels?.map((l) => l.score) ?? [4]));
 
     let totalWeighted = 0;
-    payload.criteria.forEach(criterion => {
-      const sel = payload.selections.find(s => s.criterion_id === criterion.id);
+    payload.criteria.forEach((criterion) => {
+      const sel = payload.selections.find((s) => s.criterion_id === criterion.id);
       if (sel) {
         // contribución = (score_seleccionado / max_score) * weight_del_criterio
         totalWeighted += (sel.selected_level_score / maxLevelScore) * criterion.weight;
@@ -231,21 +260,27 @@ export const rubricService = {
 
     // totalWeighted está en % (0-100). Escalar a los puntos de la tarea.
     const rawPercentage = Math.min(100, Math.max(0, totalWeighted));
-    const scaledScore = Math.round((rawPercentage / 100) * payload.assignment_max_points * 100) / 100;
+    const scaledScore =
+      Math.round((rawPercentage / 100) * payload.assignment_max_points * 100) / 100;
 
     const { data, error } = await supabase
       .from('rubric_results')
-      .upsert([{
-        rubric_id: payload.rubric_id,
-        submission_id: payload.submission_id,
-        graded_by: user.id,
-        selections: payload.selections,
-        total_score: scaledScore,
-        max_score: payload.assignment_max_points,
-        percentage: rawPercentage,
-        teacher_comment: payload.teacher_comment,
-        graded_at: new Date().toISOString(),
-      }], { onConflict: 'submission_id' })
+      .upsert(
+        [
+          {
+            rubric_id: payload.rubric_id,
+            submission_id: payload.submission_id,
+            graded_by: user.id,
+            selections: payload.selections,
+            total_score: scaledScore,
+            max_score: payload.assignment_max_points,
+            percentage: rawPercentage,
+            teacher_comment: payload.teacher_comment,
+            graded_at: new Date().toISOString(),
+          },
+        ],
+        { onConflict: 'submission_id' }
+      )
       .select()
       .single();
 

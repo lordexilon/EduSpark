@@ -20,7 +20,12 @@ interface SidebarProps {
   'data-tutorial'?: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle, onClose, 'data-tutorial': dataTutorial }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  collapsed = false,
+  onToggle,
+  onClose,
+  'data-tutorial': dataTutorial,
+}) => {
   const { user, menuFeatures } = useAuth();
   const location = useLocation();
   const { unreadCount: unreadMessagesCount } = useUnreadMessages();
@@ -28,8 +33,9 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle, onClose,
   const { institution } = useUserInstitution();
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
-  const activeClassName = "bg-indigo-600 text-white shadow-md shadow-indigo-600/20";
-  const inactiveClassName = "text-gray-500 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700";
+  const activeClassName = 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20';
+  const inactiveClassName =
+    'text-gray-500 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700';
 
   // Función para filtrar items por rol y feature flags
   const isVisible = (item: MenuItem) => {
@@ -40,7 +46,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle, onClose,
 
     // 2. Filtro por feature flag
     if (item.featureKey) {
-      const flag = menuFeatures?.find(f => f.key === item.featureKey);
+      const flag = menuFeatures?.find((f) => f.key === item.featureKey);
       if (flag && !flag.enabled) return false;
 
       // 3. Filtro por roles dinámicos del flag
@@ -52,15 +58,17 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle, onClose,
     return true;
   };
 
-  const filteredItems = MENU_ITEMS.filter(isVisible).map(item => {
-    if (item.children) {
-      return {
-        ...item,
-        children: item.children.filter(isVisible)
-      };
-    }
-    return item;
-  }).filter(item => !item.children || item.children.length > 0);
+  const filteredItems = MENU_ITEMS.filter(isVisible)
+    .map((item) => {
+      if (item.children) {
+        return {
+          ...item,
+          children: item.children.filter(isVisible),
+        };
+      }
+      return item;
+    })
+    .filter((item) => !item.children || item.children.length > 0);
 
   // Auto-expandir menús si la ruta actual está dentro de un submenú
   useEffect(() => {
@@ -68,7 +76,9 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle, onClose,
 
     filteredItems.forEach((item) => {
       if (item.children) {
-        const hasActiveChild = item.children.some(child => child.path && location.pathname.startsWith(child.path));
+        const hasActiveChild = item.children.some(
+          (child) => child.path && location.pathname.startsWith(child.path)
+        );
         if (hasActiveChild) {
           newExpanded.add(item.name);
         }
@@ -79,7 +89,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle, onClose,
   }, [location.pathname, menuFeatures]);
 
   const toggleMenu = (menuName: string) => {
-    setExpandedMenus(prev => {
+    setExpandedMenus((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(menuName)) {
         newSet.delete(menuName);
@@ -146,7 +156,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle, onClose,
         <button
           onClick={onToggle}
           className="hidden lg:flex absolute -right-3 top-4 z-20 bg-white border border-gray-300 rounded-full p-1.5 shadow-md hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-primary"
-          aria-label={collapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+          aria-label={collapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
         >
           {collapsed ? (
             <IconChevronRight className="w-4 h-4 text-gray-600" />
@@ -179,7 +189,9 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle, onClose,
 
       <div className="border-t border-border pt-4">
         {/* Logo EduSpark - Ahora abajo */}
-        <div className={`hidden lg:flex ${collapsed ? 'justify-center px-0' : 'px-4'} py-2 mb-3 items-center space-x-2`}>
+        <div
+          className={`hidden lg:flex ${collapsed ? 'justify-center px-0' : 'px-4'} py-2 mb-3 items-center space-x-2`}
+        >
           <IconEduSparkLogo className="w-8 h-8 flex-shrink-0 block" />
           {!collapsed && <h2 className="text-xl font-bold text-text-dark">EduSpark</h2>}
         </div>
@@ -187,7 +199,9 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle, onClose,
         {/* Información del usuario */}
         {!collapsed && (
           <div className="px-3 py-2 text-xs text-text-light">
-            <p className="font-medium">{user?.first_name} {user?.last_name}</p>
+            <p className="font-medium">
+              {user?.first_name} {user?.last_name}
+            </p>
             <p>{user?.email}</p>
           </div>
         )}
@@ -195,10 +209,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle, onClose,
           to="/profile"
           onClick={onClose}
           className={({ isActive }) =>
-            `flex items-center ${collapsed ? 'justify-center' : 'space-x-3'} p-3 rounded-lg transition-all duration-200 text-sm font-medium ${isActive ? activeClassName : inactiveClassName
+            `flex items-center ${collapsed ? 'justify-center' : 'space-x-3'} p-3 rounded-lg transition-all duration-200 text-sm font-medium ${
+              isActive ? activeClassName : inactiveClassName
             }`
           }
-          title={collapsed ? "Configuración" : ''}
+          title={collapsed ? 'Configuración' : ''}
         >
           <IconCog className="w-5 h-5 flex-shrink-0" />
           {!collapsed && <span>Configuración</span>}

@@ -77,17 +77,17 @@ export async function uploadFlashcardImage(
     const filePath = `flashcards/${courseId}/${fileName}`;
 
     // Usar el bucket 'course-media' que es el estándar para medios de cursos
-    const { data, error } = await supabase.storage
-      .from('course-media')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-      });
+    const { data, error } = await supabase.storage.from('course-media').upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false,
+    });
 
     if (error) {
       // Proporcionar mensaje de error más claro
       if (error.message?.includes('Bucket not found')) {
-        throw new Error('El bucket "course-media" no está configurado. Por favor, contacta al administrador para crear el bucket en Supabase Storage.');
+        throw new Error(
+          'El bucket "course-media" no está configurado. Por favor, contacta al administrador para crear el bucket en Supabase Storage.'
+        );
       }
       throw error;
     }
@@ -111,11 +111,7 @@ export async function createFlashcard(
   flashcard: Omit<Flashcard, 'id' | 'created_at' | 'updated_at'>
 ): Promise<Flashcard> {
   try {
-    const { data, error } = await supabase
-      .from('flashcards')
-      .insert([flashcard])
-      .select()
-      .single();
+    const { data, error } = await supabase.from('flashcards').insert([flashcard]).select().single();
 
     if (error) throw error;
     return data;
@@ -128,10 +124,7 @@ export async function createFlashcard(
 /**
  * Actualizar flashcard
  */
-export async function updateFlashcard(
-  id: string,
-  updates: Partial<Flashcard>
-): Promise<Flashcard> {
+export async function updateFlashcard(id: string, updates: Partial<Flashcard>): Promise<Flashcard> {
   try {
     const { data, error } = await supabase
       .from('flashcards')
@@ -185,9 +178,7 @@ export async function getFlashcardsBySession(sessionId: string): Promise<Flashca
   }
 }
 
-export async function getFlashcardsByCourse(
-  courseId: number
-): Promise<Flashcard[]> {
+export async function getFlashcardsByCourse(courseId: number): Promise<Flashcard[]> {
   try {
     const { data, error } = await supabase
       .from('flashcards')
@@ -207,9 +198,7 @@ export async function getFlashcardsByCourse(
 /**
  * Obtener flashcards por unidad
  */
-export async function getFlashcardsByUnit(
-  unitId: string
-): Promise<Flashcard[]> {
+export async function getFlashcardsByUnit(unitId: string): Promise<Flashcard[]> {
   try {
     const { data, error } = await supabase
       .from('flashcards')
@@ -307,13 +296,12 @@ export async function getFlashcardsToReview(
     if (progressError) throw progressError;
 
     // Filtrar registros donde flashcard es null (puede ocurrir con RLS o datos inconsistentes)
-    const validProgressData = progressData?.filter(item => item.flashcard !== null) || [];
+    const validProgressData = progressData?.filter((item) => item.flashcard !== null) || [];
 
-    const flashcardsToReview: FlashcardWithProgress[] =
-      validProgressData.map((item) => ({
-        ...(item.flashcard as Flashcard),
-        progress: item as FlashcardProgress,
-      }));
+    const flashcardsToReview: FlashcardWithProgress[] = validProgressData.map((item) => ({
+      ...(item.flashcard as Flashcard),
+      progress: item as FlashcardProgress,
+    }));
 
     // Si hay menos de 5 flashcards para revisar, agregar flashcards nuevas (sin progreso)
     if (flashcardsToReview.length < 5 && courseId) {
@@ -338,9 +326,7 @@ export async function getFlashcardsToReview(
           );
 
         if (!existingError && existingProgress) {
-          const existingIds = new Set(
-            existingProgress.map((p) => p.flashcard_id)
-          );
+          const existingIds = new Set(existingProgress.map((p) => p.flashcard_id));
 
           // Agregar flashcards nuevas (sin progreso)
           const newFlashcards = allFlashcards
@@ -386,15 +372,12 @@ export async function recordFlashcardStudy(
     const currentRepetitions = currentProgress?.repetitions || 0;
 
     // Llamar a función SQL para calcular próxima revisión
-    const { data: calculated, error: calcError } = await supabase.rpc(
-      'calculate_next_review',
-      {
-        p_quality: quality,
-        p_current_ease: currentEase,
-        p_current_interval: currentInterval,
-        p_current_repetitions: currentRepetitions,
-      }
-    );
+    const { data: calculated, error: calcError } = await supabase.rpc('calculate_next_review', {
+      p_quality: quality,
+      p_current_ease: currentEase,
+      p_current_interval: currentInterval,
+      p_current_repetitions: currentRepetitions,
+    });
 
     if (calcError) throw calcError;
 
@@ -411,20 +394,15 @@ export async function recordFlashcardStudy(
       newMasteryLevel = Math.max(0, (currentProgress?.mastery_level || 0) - 1);
     } else {
       // Mantener o mejorar nivel
-      newMasteryLevel = Math.max(
-        currentProgress?.mastery_level || 0,
-        quality
-      );
+      newMasteryLevel = Math.max(currentProgress?.mastery_level || 0, quality);
     }
 
     // Actualizar o crear progreso
     const updateData = {
       mastery_level: newMasteryLevel,
       times_studied: (currentProgress?.times_studied || 0) + 1,
-      times_correct:
-        (currentProgress?.times_correct || 0) + (quality >= 3 ? 1 : 0),
-      times_incorrect:
-        (currentProgress?.times_incorrect || 0) + (quality < 3 ? 1 : 0),
+      times_correct: (currentProgress?.times_correct || 0) + (quality >= 3 ? 1 : 0),
+      times_incorrect: (currentProgress?.times_incorrect || 0) + (quality < 3 ? 1 : 0),
       ease_factor: newValues.new_ease,
       interval_days: newValues.new_interval,
       repetitions: newValues.new_repetitions,
@@ -567,13 +545,10 @@ export async function getFlashcardMasteryPercentage(
   courseId: number
 ): Promise<number> {
   try {
-    const { data, error } = await supabase.rpc(
-      'calculate_flashcard_mastery_percentage',
-      {
-        p_student_id: studentId,
-        p_course_id: courseId,
-      }
-    );
+    const { data, error } = await supabase.rpc('calculate_flashcard_mastery_percentage', {
+      p_student_id: studentId,
+      p_course_id: courseId,
+    });
 
     if (error) throw error;
     return data || 0;
@@ -586,10 +561,7 @@ export async function getFlashcardMasteryPercentage(
 /**
  * Calcular puntos de flashcards dominadas (para calificaciones)
  */
-export async function getFlashcardPoints(
-  studentId: string,
-  courseId: number
-): Promise<number> {
+export async function getFlashcardPoints(studentId: string, courseId: number): Promise<number> {
   try {
     const { data, error } = await supabase.rpc('calculate_flashcard_points', {
       p_student_id: studentId,
@@ -603,4 +575,3 @@ export async function getFlashcardPoints(
     return 0;
   }
 }
-

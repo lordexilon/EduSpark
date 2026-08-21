@@ -5,7 +5,13 @@
 import { createClient } from '@supabase/supabase-js';
 // Importar tipos locales del worker
 import type { FileProcessingJob, JobStatus } from './fileProcessing';
-import { withRetry, withTimeout, CircuitBreaker, isServerError, isNetworkError } from './retryUtils';
+import {
+  withRetry,
+  withTimeout,
+  CircuitBreaker,
+  isServerError,
+  isNetworkError,
+} from './retryUtils';
 
 let supabaseClient: ReturnType<typeof createClient> | null = null;
 
@@ -13,7 +19,7 @@ let supabaseClient: ReturnType<typeof createClient> | null = null;
 const supabaseCircuitBreaker = new CircuitBreaker({
   failureThreshold: 5,
   resetTimeout: 60000, // 1 minuto
-  halfOpenMaxAttempts: 3
+  halfOpenMaxAttempts: 3,
 });
 
 /**
@@ -48,12 +54,12 @@ export async function downloadFileFromBucket(bucketPath: string): Promise<Buffer
   // El bucket donde se almacenan los archivos migrados
   const bucketName = 'course-documents';
 
-  const { data, error } = await supabase.storage
-    .from(bucketName)
-    .download(bucketPath);
+  const { data, error } = await supabase.storage.from(bucketName).download(bucketPath);
 
   if (error) {
-    throw new Error(`Error descargando archivo de Supabase Storage (${bucketPath}): ${JSON.stringify(error)}`);
+    throw new Error(
+      `Error descargando archivo de Supabase Storage (${bucketPath}): ${JSON.stringify(error)}`
+    );
   }
 
   const arrayBuffer = await data.arrayBuffer();
@@ -80,12 +86,10 @@ export async function getFileMetadataFromBucket(bucketPath: string): Promise<{
   const fileName = pathParts[pathParts.length - 1];
   const folderPath = pathParts.slice(0, -1).join('/');
 
-  const { data, error } = await supabase.storage
-    .from(bucketName)
-    .list(folderPath, {
-      limit: 1,
-      search: fileName,
-    });
+  const { data, error } = await supabase.storage.from(bucketName).list(folderPath, {
+    limit: 1,
+    search: fileName,
+  });
 
   if (error || !data || data.length === 0) {
     console.warn(`No se pudo obtener metadata para ${bucketPath}, devolviendo defaults`);
@@ -114,7 +118,9 @@ export async function getPendingJobs(): Promise<FileProcessingJob[]> {
   // Verificar si el circuito está abierto
   if (!supabaseCircuitBreaker.canAttempt()) {
     const state = supabaseCircuitBreaker.getState();
-    console.warn(`[Supabase] Circuit breaker está ${state}, saltando consulta de trabajos pendientes`);
+    console.warn(
+      `[Supabase] Circuit breaker está ${state}, saltando consulta de trabajos pendientes`
+    );
     return [];
   }
 
@@ -134,12 +140,19 @@ export async function getPendingJobs(): Promise<FileProcessingJob[]> {
 
             if (error) {
               // Detectar errores del servidor (522, 503, 504)
-              if (isServerError(error) || error.status === 522 || error.status === 503 || error.status === 504) {
-                const serverError = new Error(`Error del servidor Supabase (${error.status}): ${error.message}`);
+              if (
+                isServerError(error) ||
+                error.status === 522 ||
+                error.status === 503 ||
+                error.status === 504
+              ) {
+                const serverError = new Error(
+                  `Error del servidor Supabase (${error.status}): ${error.message}`
+                );
                 (serverError as any).status = error.status;
                 throw serverError;
               }
-              
+
               // Detectar errores de red
               if (isNetworkError(error)) {
                 const networkError = new Error(`Error de red: ${error.message}`);
@@ -182,29 +195,30 @@ export async function getPendingJobs(): Promise<FileProcessingJob[]> {
         retryableErrors: (error: any) => {
           // Solo reintentar en errores del servidor o de red
           return isServerError(error) || isNetworkError(error);
-        }
+        },
       }
     );
 
     // Si llegamos aquí, la operación fue exitosa
     supabaseCircuitBreaker.recordSuccess();
     return result;
-
   } catch (error: any) {
     // Registrar el fallo en el circuit breaker
     supabaseCircuitBreaker.recordFailure();
-    
+
     const state = supabaseCircuitBreaker.getState();
     console.error(`[Supabase] Error obteniendo trabajos pendientes (circuit breaker: ${state}):`, {
       message: error.message,
       status: error.status,
-      stack: error.stack?.substring(0, 200)
+      stack: error.stack?.substring(0, 200),
     });
 
     // Si el error es 522 o similar, retornar array vacío en lugar de lanzar error
     // Esto evita que el worker se detenga completamente
     if (isServerError(error)) {
-      console.warn('[Supabase] Error del servidor detectado, retornando array vacío para evitar saturación');
+      console.warn(
+        '[Supabase] Error del servidor detectado, retornando array vacío para evitar saturación'
+      );
       return [];
     }
 
@@ -217,10 +231,7 @@ export async function getPendingJobs(): Promise<FileProcessingJob[]> {
  * Actualiza un trabajo en la tabla file_processing_jobs
  * Con retry y timeout para manejar errores temporales
  */
-export async function updateJob(
-  jobId: string,
-  updates: Partial<FileProcessingJob>
-): Promise<void> {
+export async function updateJob(jobId: string, updates: Partial<FileProcessingJob>): Promise<void> {
   try {
     await withRetry(
       async () => {
@@ -237,7 +248,12 @@ export async function updateJob(
             if (updates.errorMessage) updateData.error_message = updates.errorMessage;
 
             // Actualizar metadata con campos adicionales
-            if (updates.totalPages || updates.pdfType || updates.chunksCreated || updates.metadata) {
+            if (
+              updates.totalPages ||
+              updates.pdfType ||
+              updates.chunksCreated ||
+              updates.metadata
+            ) {
               // Primero obtener metadata actual para hacer merge
               const { data: currentJob } = await supabase
                 .from<any>('file_processing_jobs')
@@ -281,7 +297,7 @@ export async function updateJob(
         initialDelay: 1000,
         maxDelay: 10000,
         backoffMultiplier: 2,
-        retryableErrors: (error: any) => isServerError(error) || isNetworkError(error)
+        retryableErrors: (error: any) => isServerError(error) || isNetworkError(error),
       }
     );
   } catch (error: any) {
@@ -298,7 +314,7 @@ export async function createChildJobs(
 ): Promise<void> {
   const supabase = initializeSupabase();
 
-  const records: any[] = jobs.map(job => ({
+  const records: any[] = jobs.map((job) => ({
     material_id: job.metadata?.materialId,
     course_id: Number(job.courseId),
     user_id: job.metadata?.userId,
@@ -316,9 +332,7 @@ export async function createChildJobs(
     updated_at: new Date().toISOString(),
   }));
 
-  const { error } = await supabase
-    .from<any>('file_processing_jobs')
-    .insert(records);
+  const { error } = await supabase.from<any>('file_processing_jobs').insert(records);
 
   if (error) {
     console.error('Error creando trabajos hijos:', error);
@@ -472,7 +486,7 @@ export async function saveChunksBatch(
 ): Promise<void> {
   const supabase = initializeSupabase();
 
-  const records = chunks.map(chunk => {
+  const records = chunks.map((chunk) => {
     // Convertir courseId a número si es posible (para compatibilidad con INTEGER)
     const courseIdValue = isNaN(Number(chunk.courseId)) ? chunk.courseId : Number(chunk.courseId);
 

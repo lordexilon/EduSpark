@@ -3,16 +3,9 @@
 // Búsqueda contextual de información con A2A (Agent-to-Agent)
 // =====================================================
 
-import { ragService } from "../services/ragService";
-import type {
-  RAGResponse,
-  ConversationContext
-} from '../types/agents';
-import type {
-  PedagogicalSettings,
-  StudentProfile,
-  PersonalizedPrompt
-} from '../types/pedagogical';
+import { ragService } from '../services/ragService';
+import type { RAGResponse, ConversationContext } from '../types/agents';
+import type { PedagogicalSettings, StudentProfile, PersonalizedPrompt } from '../types/pedagogical';
 
 // =====================================================
 // Clase RAGAgent
@@ -24,10 +17,7 @@ export class RAGAgent {
   /**
    * Realiza una consulta contextual usando RAG con A2A
    */
-  async query(
-    question: string,
-    context: ConversationContext
-  ): Promise<RAGResponse> {
+  async query(question: string, context: ConversationContext): Promise<RAGResponse> {
     try {
       // Enriquecer contexto con personalización pedagógica
       const enrichedContext = this.enrichContextWithPedagogy(
@@ -37,10 +27,7 @@ export class RAGAgent {
       );
 
       // Enviar consulta al servicio RAG con la pregunta limpia, el contexto de personalidad se manejará después
-      const response = await this.ragService.processQueryWithContext(
-        question,
-        context
-      );
+      const response = await this.ragService.processQueryWithContext(question, context);
 
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Failed to get response from RAG service');
@@ -50,18 +37,18 @@ export class RAGAgent {
       const ragResponse = this.processRAGResponse(response.data, context);
 
       return ragResponse;
-
     } catch (error) {
       console.error('RAG query error:', error);
       return {
-        answer: 'Lo siento, estoy teniendo problemas para acceder a la información del curso. Por favor, inténtalo de nuevo más tarde.',
+        answer:
+          'Lo siento, estoy teniendo problemas para acceder a la información del curso. Por favor, inténtalo de nuevo más tarde.',
         context: '',
         sources: [],
         confidence: 0,
         metadata: {
           error: error instanceof Error ? error.message : 'Unknown error',
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       };
     }
   }
@@ -101,7 +88,7 @@ export class RAGAgent {
       userPrompt,
       context,
       examples: pedagogicalSettings.useExamples ? this.getExamples(pedagogicalSettings) : undefined,
-      voiceInstructions: this.getVoiceInstructions(pedagogicalSettings)
+      voiceInstructions: this.getVoiceInstructions(pedagogicalSettings),
     };
   }
 
@@ -257,18 +244,28 @@ export class RAGAgent {
     // NOTA: Estilo de aprendizaje desactivado desde Enero 2026
     // contextParts.push(`- Estilo de aprendizaje: ${studentProfile.preferredLearningStyle}`);
     contextParts.push(`- Interacciones: ${studentProfile.interactionCount}`);
-    contextParts.push(`- Temas con dificultad: ${studentProfile.topicsStruggled.join(', ') || 'Ninguno'}`);
-    contextParts.push(`- Temas dominados: ${studentProfile.topicsMastered.join(', ') || 'Ninguno'}`);
+    contextParts.push(
+      `- Temas con dificultad: ${studentProfile.topicsStruggled.join(', ') || 'Ninguno'}`
+    );
+    contextParts.push(
+      `- Temas dominados: ${studentProfile.topicsMastered.join(', ') || 'Ninguno'}`
+    );
 
     if (studentProfile.comprehensiveData) {
       const { academicProgress, insights } = studentProfile.comprehensiveData;
       contextParts.push(`\nEstado Académico Actual:`);
-      contextParts.push(`- Progreso del curso: ${Math.round(academicProgress.completionPercentage)}%`);
-      contextParts.push(`- Nivel de riesgo: ${insights.riskLevel === 'high' ? 'ALTO' : insights.riskLevel === 'medium' ? 'MEDIO' : 'BAJO'}`);
+      contextParts.push(
+        `- Progreso del curso: ${Math.round(academicProgress.completionPercentage)}%`
+      );
+      contextParts.push(
+        `- Nivel de riesgo: ${insights.riskLevel === 'high' ? 'ALTO' : insights.riskLevel === 'medium' ? 'MEDIO' : 'BAJO'}`
+      );
       contextParts.push(`- Perfil de uso: ${insights.tutorUsageVsProgress}`);
 
       if (insights.recommendedActions.length > 0) {
-        contextParts.push(`- Recomendaciones del sistema: ${insights.recommendedActions.join('. ')}`);
+        contextParts.push(
+          `- Recomendaciones del sistema: ${insights.recommendedActions.join('. ')}`
+        );
       }
 
       const pendingQuizzes = academicProgress.totalQuizzes - academicProgress.completedQuizzes;
@@ -287,7 +284,11 @@ export class RAGAgent {
     const examples = [];
 
     if (pedagogicalSettings.teachingStyle === 'socratico') {
-      examples.push('¿Qué opinas sobre...?', '¿Cómo crees que se relaciona...?', '¿Qué pasaría si...?');
+      examples.push(
+        '¿Qué opinas sobre...?',
+        '¿Cómo crees que se relaciona...?',
+        '¿Qué pasaría si...?'
+      );
     }
 
     if (pedagogicalSettings.detailLevel === 'basico') {
@@ -316,10 +317,7 @@ export class RAGAgent {
   /**
    * Procesa la respuesta del servicio RAG
    */
-  private processRAGResponse(
-    ragResponse: any,
-    context: ConversationContext
-  ): RAGResponse {
+  private processRAGResponse(ragResponse: any, context: ConversationContext): RAGResponse {
     // Extraer citas de las fuentes con metadata
     const sourcesWithCitations = (ragResponse.metadata.sources || []).map((source: any) => {
       // Si source es un string, verificar si hay metadata en el contexto
@@ -330,7 +328,9 @@ export class RAGAgent {
       // Si source tiene metadata, formatear como cita
       const metadata = source.metadata || {};
       if (metadata.sourceFileName) {
-        const pageInfo = metadata.pageStart ? ` - Página ${metadata.pageStart}${metadata.pageEnd && metadata.pageEnd !== metadata.pageStart ? `-${metadata.pageEnd}` : ''}` : '';
+        const pageInfo = metadata.pageStart
+          ? ` - Página ${metadata.pageStart}${metadata.pageEnd && metadata.pageEnd !== metadata.pageStart ? `-${metadata.pageEnd}` : ''}`
+          : '';
         return `📄 ${metadata.sourceFileName}${pageInfo}`;
       }
 
@@ -349,8 +349,8 @@ export class RAGAgent {
         pedagogicalSettings: context.pedagogicalSettings,
         studentProfile: context.studentProfile,
         // Incluir metadata completa de las fuentes para mostrar citas
-        sourceMetadata: ragResponse.metadata.sourceMetadata || []
-      }
+        sourceMetadata: ragResponse.metadata.sourceMetadata || [],
+      },
     };
   }
 
@@ -365,10 +365,7 @@ export class RAGAgent {
   /**
    * Calcula la confianza de la respuesta
    */
-  private calculateConfidence(
-    ragResponse: any,
-    context: ConversationContext
-  ): number {
+  private calculateConfidence(ragResponse: any, context: ConversationContext): number {
     let confidence = ragResponse.metadata?.confidence || 0.5; // Base
 
     // Aumentar confianza si hay contexto usado
@@ -397,10 +394,7 @@ export class RAGAgent {
   /**
    * Aplica el perfil del estudiante a la respuesta
    */
-  applyStudentProfile(
-    response: string,
-    profile: StudentProfile
-  ): string {
+  applyStudentProfile(response: string, profile: StudentProfile): string {
     let personalizedResponse = response;
 
     // Adaptar según estilo de aprendizaje

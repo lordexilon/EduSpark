@@ -10,7 +10,10 @@ interface ProcessingNotificationProps {
   onDismiss: () => void;
 }
 
-export const ProcessingNotification: React.FC<ProcessingNotificationProps> = ({ job, onDismiss }) => {
+export const ProcessingNotification: React.FC<ProcessingNotificationProps> = ({
+  job,
+  onDismiss,
+}) => {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
@@ -116,4 +119,3 @@ export const ProcessingNotification: React.FC<ProcessingNotificationProps> = ({ 
     </div>
   );
 };
-

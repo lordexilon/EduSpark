@@ -1,4 +1,7 @@
-project_id = "mckfscukxcqwntpjagar"
+project_id = "eduspark-lms-local"
+
+[functions.eduspark-gateway]
+verify_jwt = false
 
 [functions.scheduled-weekly-reports]
 enabled = true
@@ -8,3 +11,27 @@ entrypoint = "./functions/scheduled-weekly-reports/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/scheduled-weekly-reports/*.html" ]
+
+[api]
+port = 54331
+
+[db]
+port = 54332
+shadow_port = 54330
+
+[db.pooler]
+port = 54339
+
+[studio]
+port = 54393
+
+[inbucket]
+port = 54334
+smtp_port = 54335
+pop3_port = 54336
+
+[analytics]
+port = 54337
+vector_port = 54338
+
+

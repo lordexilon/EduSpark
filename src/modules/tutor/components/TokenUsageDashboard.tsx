@@ -4,8 +4,14 @@
 // =====================================================
 
 import React, { useState, useEffect } from 'react';
-import { tokenMonitoring } from "../services/tokenMonitoringService";
-import { IconDollarSign, IconTrendingUp, IconAlertTriangle, IconDownload, IconRefreshCw } from '@/components/Common/Icons';
+import { tokenMonitoring } from '../services/tokenMonitoringService';
+import {
+  IconDollarSign,
+  IconTrendingUp,
+  IconAlertTriangle,
+  IconDownload,
+  IconRefreshCw,
+} from '@/components/Common/Icons';
 
 interface TokenUsageDashboardProps {
   isOpen: boolean;
@@ -102,10 +108,11 @@ export const TokenUsageDashboard: React.FC<TokenUsageDashboardProps> = ({ isOpen
                 {alerts.map((alert, index) => (
                   <div
                     key={index}
-                    className={`p-3 rounded-lg border-l-4 ${alert.severity === 'critical'
+                    className={`p-3 rounded-lg border-l-4 ${
+                      alert.severity === 'critical'
                         ? 'bg-red-50 border-red-500 text-red-800'
                         : 'bg-yellow-50 border-yellow-500 text-yellow-800'
-                      }`}
+                    }`}
                   >
                     <div className="font-medium">{alert.message}</div>
                     <div className="text-sm opacity-75">
@@ -121,22 +128,30 @@ export const TokenUsageDashboard: React.FC<TokenUsageDashboardProps> = ({ isOpen
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="text-sm text-blue-600 font-medium">Costo Hoy</div>
-              <div className="text-2xl font-bold text-blue-900">{formatCurrency(todayUsage.totalCost)}</div>
+              <div className="text-2xl font-bold text-blue-900">
+                {formatCurrency(todayUsage.totalCost)}
+              </div>
               <div className="text-xs text-blue-600">{todayUsage.requestCount} consultas</div>
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
               <div className="text-sm text-green-600 font-medium">Tokens Entrada</div>
-              <div className="text-2xl font-bold text-green-900">{formatNumber(todayUsage.totalInputTokens)}</div>
+              <div className="text-2xl font-bold text-green-900">
+                {formatNumber(todayUsage.totalInputTokens)}
+              </div>
               <div className="text-xs text-green-600">hoy</div>
             </div>
             <div className="bg-purple-50 p-4 rounded-lg">
               <div className="text-sm text-purple-600 font-medium">Tokens Salida</div>
-              <div className="text-2xl font-bold text-purple-900">{formatNumber(todayUsage.totalOutputTokens)}</div>
+              <div className="text-2xl font-bold text-purple-900">
+                {formatNumber(todayUsage.totalOutputTokens)}
+              </div>
               <div className="text-xs text-purple-600">hoy</div>
             </div>
             <div className="bg-orange-50 p-4 rounded-lg">
               <div className="text-sm text-orange-600 font-medium">Costo Mes</div>
-              <div className="text-2xl font-bold text-orange-900">{formatCurrency(monthUsage.totalCost)}</div>
+              <div className="text-2xl font-bold text-orange-900">
+                {formatCurrency(monthUsage.totalCost)}
+              </div>
               <div className="text-xs text-orange-600">{monthUsage.requestCount} consultas</div>
             </div>
           </div>
@@ -178,18 +193,19 @@ export const TokenUsageDashboard: React.FC<TokenUsageDashboardProps> = ({ isOpen
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="space-y-2">
                 {usageHistory.map((day, index) => (
-                  <div key={day.date} className="flex items-center justify-between bg-white p-3 rounded-lg">
+                  <div
+                    key={day.date}
+                    className="flex items-center justify-between bg-white p-3 rounded-lg"
+                  >
                     <div className="flex items-center gap-3">
                       <div className="text-sm font-medium text-gray-900">
                         {new Date(day.date).toLocaleDateString('es-ES', {
                           weekday: 'short',
                           month: 'short',
-                          day: 'numeric'
+                          day: 'numeric',
                         })}
                       </div>
-                      <div className="text-xs text-gray-500">
-                        {day.requestCount} consultas
-                      </div>
+                      <div className="text-xs text-gray-500">{day.requestCount} consultas</div>
                     </div>
                     <div className="flex items-center gap-4 text-sm">
                       <div className="text-gray-600">
@@ -207,7 +223,9 @@ export const TokenUsageDashboard: React.FC<TokenUsageDashboardProps> = ({ isOpen
 
           {/* Información de precios */}
           <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">Precios Actuales (por 1M tokens)</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              Precios Actuales (por 1M tokens)
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white p-3 rounded-lg">
                 <div className="font-medium text-gray-900">gemini-1.5-flash</div>
@@ -231,4 +249,3 @@ export const TokenUsageDashboard: React.FC<TokenUsageDashboardProps> = ({ isOpen
     </div>
   );
 };
-

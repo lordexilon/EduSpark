@@ -20,7 +20,7 @@ import {
   IconUsers,
   IconTrendingUp,
   IconEdit,
-  IconTrash
+  IconTrash,
 } from '@/components/Common/Icons';
 
 const AnnouncementsPage: React.FC = () => {
@@ -33,7 +33,8 @@ const AnnouncementsPage: React.FC = () => {
   const [readAnnouncements, setReadAnnouncements] = useState<Set<string>>(new Set());
 
   // Definir roles que pueden acceder a rutas de teacher
-  const isTeacher = user?.role?.name === 'teacher' ||
+  const isTeacher =
+    user?.role?.name === 'teacher' ||
     user?.role?.name === 'admin' ||
     user?.role?.name === 'admin-campus' ||
     user?.role?.name === 'coordinator' ||
@@ -64,15 +65,18 @@ const AnnouncementsPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await announcementService.getVisibleAnnouncements(user!.id, user?.institution_id);
+      const data = await announcementService.getVisibleAnnouncements(
+        user!.id,
+        user?.institution_id
+      );
       setAnnouncements(data);
 
       // Cargar avisos leídos
       if (user?.id) {
         const unreadAnnouncements = await announcementService.getUnreadAnnouncements(user.id);
-        const unreadIds = new Set(unreadAnnouncements.map(a => a.id));
-        const allIds = data.map(a => a.id);
-        const readIds = allIds.filter(id => !unreadIds.has(id));
+        const unreadIds = new Set(unreadAnnouncements.map((a) => a.id));
+        const allIds = data.map((a) => a.id);
+        const readIds = allIds.filter((id) => !unreadIds.has(id));
         setReadAnnouncements(new Set(readIds));
       }
     } catch (err: any) {
@@ -88,7 +92,7 @@ const AnnouncementsPage: React.FC = () => {
 
     try {
       await announcementService.markAsRead(announcementId, user.id);
-      setReadAnnouncements(prev => new Set([...prev, announcementId]));
+      setReadAnnouncements((prev) => new Set([...prev, announcementId]));
     } catch (err) {
       console.error('Error marking as read:', err);
     }
@@ -235,8 +239,9 @@ const AnnouncementsPage: React.FC = () => {
             return (
               <Card
                 key={announcement.id}
-                className={`transition-all hover:shadow-lg ${!isRead ? 'border-l-4 border-l-primary bg-primary/5 dark:bg-primary/10' : ''
-                  } ${announcement.is_pinned ? 'ring-2 ring-yellow-400/50 bg-yellow-400/5 dark:bg-yellow-400/10' : ''}`}
+                className={`transition-all hover:shadow-lg ${
+                  !isRead ? 'border-l-4 border-l-primary bg-primary/5 dark:bg-primary/10' : ''
+                } ${announcement.is_pinned ? 'ring-2 ring-yellow-400/50 bg-yellow-400/5 dark:bg-yellow-400/10' : ''}`}
               >
                 <div className="p-6">
                   {/* Header del aviso */}
@@ -283,15 +288,15 @@ const AnnouncementsPage: React.FC = () => {
 
                   {/* Contenido */}
                   <div className="prose max-w-none mb-4 dark:prose-invert">
-                    <p className="text-text-dark/90 whitespace-pre-wrap leading-relaxed">{announcement.content}</p>
+                    <p className="text-text-dark/90 whitespace-pre-wrap leading-relaxed">
+                      {announcement.content}
+                    </p>
                   </div>
 
                   <div className="flex items-center justify-between pt-4 border-t border-border">
                     <div className="text-xs text-text-light opacity-50">
                       {announcement.expires_at && (
-                        <span>
-                          Expira: {formatDate(announcement.expires_at)}
-                        </span>
+                        <span>Expira: {formatDate(announcement.expires_at)}</span>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
@@ -347,4 +352,3 @@ const AnnouncementsPage: React.FC = () => {
 };
 
 export default AnnouncementsPage;
-

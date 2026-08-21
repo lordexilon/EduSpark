@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
-import LoginForm from "@/components/Auth/LoginForm";
-import RegisterForm from "@/components/Auth/RegisterForm";
+import LoginForm from '@/components/Auth/LoginForm';
+import RegisterForm from '@/components/Auth/RegisterForm';
 import { BookOpen, Users, GraduationCap, Sparkles } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
@@ -36,7 +35,10 @@ const LoginPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-1">Aprendizaje Inteligente</h3>
-                  <p className="text-gray-600">Accede a contenido educativo personalizado y herramientas de aprendizaje avanzadas.</p>
+                  <p className="text-gray-600">
+                    Accede a contenido educativo personalizado y herramientas de aprendizaje
+                    avanzadas.
+                  </p>
                 </div>
               </div>
 
@@ -46,7 +48,10 @@ const LoginPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-1">Tutor Virtual IA</h3>
-                  <p className="text-gray-600">Chatea con nuestro asistente inteligente que responde dudas basándose en el contenido del curso.</p>
+                  <p className="text-gray-600">
+                    Chatea con nuestro asistente inteligente que responde dudas basándose en el
+                    contenido del curso.
+                  </p>
                 </div>
               </div>
 
@@ -56,14 +61,17 @@ const LoginPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-1">Comunidad Educativa</h3>
-                  <p className="text-gray-600">Conecta con estudiantes, docentes y administradores en una plataforma unificada.</p>
+                  <p className="text-gray-600">
+                    Conecta con estudiantes, docentes y administradores en una plataforma unificada.
+                  </p>
                 </div>
               </div>
             </div>
 
             <div className="mt-8 p-6 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-white/20 dark:border-slate-700/50">
               <p className="text-gray-600 text-sm">
-                "EduSpark revoluciona la educación combinando inteligencia artificial con pedagogía moderna para crear experiencias de aprendizaje únicas."
+                "EduSpark revoluciona la educación combinando inteligencia artificial con pedagogía
+                moderna para crear experiencias de aprendizaje únicas."
               </p>
             </div>
           </div>
@@ -86,22 +94,19 @@ const LoginPage: React.FC = () => {
 
           {/* Formularios */}
           {isLogin ? (
-            <LoginForm
-              onSuccess={handleSuccess}
-              onSwitchToRegister={() => setIsLogin(false)}
-            />
+            <LoginForm onSuccess={handleSuccess} onSwitchToRegister={() => setIsLogin(false)} />
           ) : (
-            <RegisterForm
-              onSuccess={handleSuccess}
-              onSwitchToLogin={() => setIsLogin(true)}
-            />
+            <RegisterForm onSuccess={handleSuccess} onSwitchToLogin={() => setIsLogin(true)} />
           )}
 
           {/* Información adicional */}
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-500">
               ¿Necesitas ayuda?{' '}
-              <a href="#" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
+              <a
+                href="#"
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+              >
                 Contacta soporte
               </a>
             </p>

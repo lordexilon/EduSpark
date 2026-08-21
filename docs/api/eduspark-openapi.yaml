@@ -1,0 +1,500 @@
+openapi: 3.1.0
+info:
+  title: EduSpark AI Gateway API
+  version: 1.0.0
+  description: |
+    API Gateway modular para la venta y consumo de servicios de Inteligencia Artificial (AIaaS) 
+    en el ámbito educativo y de enseñanza técnica. Desacopla el motor cognitivo de EduSpark 
+    para permitir su integración en LMS externos (Moodle, Canvas, Blackboard) vía LTI/REST 
+    y en plataformas conversacionales modernas como LibreChat u OpenChat.
+  contact:
+    name: Arquitectura SCA v3.0 - EduSpark Team
+    url: https://eduspark.ai
+servers:
+  - url: http://localhost:8766/api/v1
+    description: Servidor Local (Desarrollo / mcpo Proxy / Docker Swarm)
+  - url: https://api.eduspark.ai/v1
+    description: Servidor Producción (GCP Cloud Run / API Gateway)
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+paths:
+  /tutor/chat:
+    post:
+      summary: Servicio 1 - Tutor Asistente 24/7 (RAG Híbrido + Orquestación A2A)
+      description: |
+        Endpoint especializado para interacción de tutoría académica y técnica. 
+        Utiliza recuperación híbrida (vectorial + palabras clave) sobre manuales, libros de referencia 
+        (ej. Harrison, Williams, manuales técnicos) y sílabos institucionales.
+      operationId: chatWithTutor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TutorChatRequest'
+      responses:
+        '200':
+          description: Respuesta del Tutor IA enriquecida con citaciones y auditoría de recuperación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TutorChatResponse'
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '429':
+          $ref: '#/components/responses/429Error'
+
+  /tutor/chat/completions:
+    post:
+      summary: Endpoint Alias compatible 100% con el estándar OpenAI
+      description: |
+        Permite conectar LibreChat, OpenWebUI o cualquier cliente LLM estándar directamente a EduSpark AI Gateway 
+        sin necesidad de middlewares de transformación de payload. Enruta al modelo local (Qwen) o nube (Gemini) 
+        según la política de presupuesto de la institución.
+      operationId: openAiCompatibleChatCompletions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenAiChatRequest'
+      responses:
+        '200':
+          description: Respuesta estándar OpenAI ChatCompletion.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenAiChatResponse'
+
+  /analytics/dropout-risk:
+    post:
+      summary: Servicio 2 - Analítica Predictiva de Deserción (Early Warning AI)
+      description: |
+        Analiza de forma pasiva métricas de actividad académica y técnica (accesos, notas, entregas tardías, 
+        sentimiento en el chat) para emitir un score de riesgo de deserción en tiempo real 
+        con recomendaciones de intervención pedagógica para coordinadores y docentes.
+      operationId: analyzeDropoutRisk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DropoutRiskRequest'
+      responses:
+        '200':
+          description: Reporte predictivo de riesgo de deserción generado con éxito.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DropoutRiskResponse'
+        '401':
+          $ref: '#/components/responses/401Error'
+
+  /compliance/aneaes-audit:
+    post:
+      summary: Servicio 3 - Auditoría Regulatoria Automatizada (ANEAES / CONES)
+      description: |
+        Audita cursos, sílabos y mallas curriculares frente a estándares regulatorios oficiales (Paraguay ANEAES/CONES).
+        Verifica coherencia entre resultados de aprendizaje, bibliografía obligatoria, carga horaria 
+        y criterios de evaluación, generando un dictamen formal para comités de acreditación.
+      operationId: auditCourseCompliance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplianceAuditRequest'
+      responses:
+        '200':
+          description: Reporte formal de auditoría ANEAES/CONES generado con éxito.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceAuditResponse'
+        '401':
+          $ref: '#/components/responses/401Error'
+
+  /materials/search:
+    post:
+      summary: Búsqueda Semántica sobre Biblioteca de Manuales y Libros
+      description: |
+        Permite a agentes externos o herramientas MCP consultar directamente fragmentos relevantes 
+        en la base de conocimiento institucional para integrarlos en flujos de razonamiento propios.
+      operationId: searchMaterials
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+                - institution_id
+              properties:
+                query:
+                  type: string
+                  description: Consulta de búsqueda semántica o técnica.
+                institution_id:
+                  type: integer
+                  description: ID del tenant institucional.
+                course_id:
+                  type: integer
+                  description: Filtro opcional por curso.
+                limit:
+                  type: integer
+                  default: 5
+                  description: Número máximo de fragmentos a devolver.
+      responses:
+        '200':
+          description: Fragmentos recuperados con metadatos de página y archivo.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RetrievedChunk'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT de autenticación para estudiantes, docentes o administradores.
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-EduSpark-Api-Key
+      description: Clave API Institucional (Tenant Key) para consumo entre servidores (LMS / LibreChat).
+
+  schemas:
+    TutorChatRequest:
+      type: object
+      required:
+        - messages
+        - institution_id
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+        institution_id:
+          type: integer
+          example: 1
+        course_id:
+          type: integer
+          example: 12
+        unit_id:
+          type: string
+          format: uuid
+        user_context:
+          type: object
+          properties:
+            user_id:
+              type: string
+            role:
+              type: string
+              enum: [student, teacher, technician, admin]
+            external_lms_id:
+              type: string
+              description: ID del curso en Moodle/Canvas si proviene de integración LTI.
+        model_preference:
+          type: string
+          enum: [auto, fast-local, advanced-cloud]
+          default: auto
+          description: Enrutamiento del Router Bimodal (Qwen local vs Gemini nube).
+        stream:
+          type: boolean
+          default: false
+
+    TutorChatResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reply:
+          type: string
+          description: Texto de respuesta generado por el agente tutor en Markdown.
+        metadata:
+          type: object
+          properties:
+            model_used:
+              type: string
+              example: "gemini-1.5-flash"
+            tokens_used:
+              type: integer
+            estimated_cost_usd:
+              type: number
+              format: float
+            source_metadata:
+              type: array
+              items:
+                $ref: '#/components/schemas/RetrievedChunk'
+            retrieval_audit:
+              type: object
+              properties:
+                strategy:
+                  type: string
+                  example: "hybrid-vector-keyword"
+                vector_matches:
+                  type: integer
+                text_matches:
+                  type: integer
+
+    RetrievedChunk:
+      type: object
+      properties:
+        chunk_id:
+          type: string
+          format: uuid
+        content:
+          type: string
+        document_title:
+          type: string
+          example: "Harrison Principios de Medicina Interna, 20a Ed."
+        page_start:
+          type: integer
+          example: 350
+        page_end:
+          type: integer
+          example: 352
+        similarity_score:
+          type: number
+          format: float
+
+    OpenAiChatRequest:
+      type: object
+      required:
+        - messages
+      properties:
+        model:
+          type: string
+          example: "eduspark-tutor-v1"
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+        temperature:
+          type: number
+          default: 0.7
+        stream:
+          type: boolean
+          default: false
+
+    OpenAiChatResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        object:
+          type: string
+          example: "chat.completion"
+        created:
+          type: integer
+        model:
+          type: string
+        choices:
+          type: array
+          items:
+            type: object
+            properties:
+              index:
+                type: integer
+              message:
+                $ref: '#/components/schemas/ChatMessage'
+              finish_reason:
+                type: string
+        usage:
+          type: object
+          properties:
+            prompt_tokens:
+              type: integer
+            completion_tokens:
+              type: integer
+            total_tokens:
+              type: integer
+
+    ChatMessage:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum: [system, user, assistant, function, tool]
+        content:
+          type: string
+
+    DropoutRiskRequest:
+      type: object
+      required:
+        - institution_id
+        - student_metrics
+      properties:
+        institution_id:
+          type: integer
+        course_id:
+          type: integer
+        student_metrics:
+          type: array
+          items:
+            type: object
+            required:
+              - student_id
+            properties:
+              student_id:
+                type: string
+              login_frequency_days:
+                type: number
+              late_submissions_count:
+                type: integer
+              average_grade:
+                type: number
+              forum_participation_score:
+                type: number
+              chat_frustration_index:
+                type: number
+                description: Índice calculado en base a análisis de sentimiento en consultas del tutor (0.0 a 1.0).
+
+    DropoutRiskResponse:
+      type: object
+      properties:
+        institution_id:
+          type: integer
+        analyzed_count:
+          type: integer
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              student_id:
+                type: string
+              risk_score:
+                type: number
+                format: float
+                example: 78.5
+                description: Puntuación de riesgo de deserción sobre 100.
+              risk_level:
+                type: string
+                enum: [LOW, MEDIUM, HIGH, CRITICAL]
+              key_risk_factors:
+                type: array
+                items:
+                  type: string
+                example: ["Ausencia de accesos al LMS en 12 días", "Promedio en baja continua en pruebas formativas"]
+              pedagogical_recommendation:
+                type: string
+                example: "Asignar tutor de seguimiento e invitar a sesión de refuerzo en Unidad 3."
+
+    ComplianceAuditRequest:
+      type: object
+      required:
+        - institution_id
+        - accreditation_standard
+        - syllabus_data
+      properties:
+        institution_id:
+          type: integer
+        accreditation_standard:
+          type: string
+          enum: [ANEAES-MEDICINA, CONES-GENERAL, ANEAES-INGENIERIA, ANEAES-TECNICO-SUPERIOR]
+        course_title:
+          type: string
+        syllabus_data:
+          type: object
+          properties:
+            learning_outcomes:
+              type: array
+              items:
+                type: string
+            total_hours:
+              type: integer
+            units:
+              type: array
+              items:
+                type: object
+            bibliography:
+              type: array
+              items:
+                type: string
+
+    ComplianceAuditResponse:
+      type: object
+      properties:
+        audit_id:
+          type: string
+          format: uuid
+        accreditation_standard:
+          type: string
+        compliance_score:
+          type: number
+          format: float
+          example: 92.0
+        status:
+          type: string
+          enum: [COMPLIANT, PARTIAL, NON_COMPLIANT]
+        summary:
+          type: string
+        dimensions:
+          type: array
+          items:
+            type: object
+            properties:
+              dimension_name:
+                type: string
+                example: "Bibliografía Obligatoria y de Referencia"
+              score:
+                type: number
+              status:
+                type: string
+              findings:
+                type: array
+                items:
+                  type: string
+        action_plan:
+          type: array
+          items:
+            type: string
+          description: Recomendaciones puntuais para el comité de autoevaluación institucional.
+
+  responses:
+    400Error:
+      description: Petición inválida o formato incorrecto.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorPayload'
+    401Error:
+      description: No autorizado. API Key institucional inválida, revocada o expirada.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorPayload'
+    429Error:
+      description: Límite de peticiones o cuota mensual del presupuesto excedida ($50 USD / mes).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorPayload'
+
+    ErrorPayload:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        code:
+          type: integer
+          example: 401

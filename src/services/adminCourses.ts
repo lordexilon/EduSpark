@@ -56,5 +56,3 @@ export async function getEnrollmentsByStudent(userId: string) {
   if (error) throw error;
   return data || [];
 }
-
-

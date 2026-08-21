@@ -3,11 +3,24 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { adminReportsService, InstitutionReport, GlobalMetrics } from '@/services/adminReportsService';
+import {
+  adminReportsService,
+  InstitutionReport,
+  GlobalMetrics,
+} from '@/services/adminReportsService';
 import { Link } from 'react-router-dom';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
-import { IconChevronRight, IconRefreshCw, IconBookOpen, IconUsers, IconRobot, IconDollarSign, IconChartBar, IconTrendingUp } from '@/components/Common/Icons';
+import {
+  IconChevronRight,
+  IconRefreshCw,
+  IconBookOpen,
+  IconUsers,
+  IconRobot,
+  IconDollarSign,
+  IconChartBar,
+  IconTrendingUp,
+} from '@/components/Common/Icons';
 import ProgressBar from '@/components/Common/ProgressBar';
 import ExportAdminReportButton from '@/components/Features/ExportAdminReportButton';
 
@@ -37,14 +50,8 @@ export const AdminComprehensiveReportsPage: React.FC = () => {
       setError(null);
 
       const [institutionsData, globalMetricsData] = await Promise.all([
-        adminReportsService.getAllInstitutionsReports(
-          dateFrom || undefined,
-          dateTo || undefined
-        ),
-        adminReportsService.getGlobalMetrics(
-          dateFrom || undefined,
-          dateTo || undefined
-        )
+        adminReportsService.getAllInstitutionsReports(dateFrom || undefined, dateTo || undefined),
+        adminReportsService.getGlobalMetrics(dateFrom || undefined, dateTo || undefined),
       ]);
 
       setInstitutions(institutionsData);
@@ -111,7 +118,8 @@ export const AdminComprehensiveReportsPage: React.FC = () => {
         <Card className="bg-yellow-50 border-yellow-200">
           <div className="p-4">
             <p className="text-yellow-800">
-              No tienes permisos para acceder a esta página. Solo los administradores pueden ver reportes globales.
+              No tienes permisos para acceder a esta página. Solo los administradores pueden ver
+              reportes globales.
             </p>
           </div>
         </Card>
@@ -190,7 +198,9 @@ export const AdminComprehensiveReportsPage: React.FC = () => {
               <IconUsers className="w-8 h-8 text-blue-600" />
               <div>
                 <p className="text-sm text-gray-600">Instituciones</p>
-                <p className="text-2xl font-bold text-gray-900">{globalMetrics.totalInstitutions}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {globalMetrics.totalInstitutions}
+                </p>
               </div>
             </div>
           </Card>
@@ -224,9 +234,9 @@ export const AdminComprehensiveReportsPage: React.FC = () => {
                   {formatCurrency(globalMetrics.totalAllCosts || 0)}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Tutor: {formatCurrency(globalMetrics.totalCost || 0)} | 
-                  Procesamiento: {formatCurrency(globalMetrics.processingCost || 0)} | 
-                  IA: {formatCurrency(globalMetrics.aiUsageCost || 0)}
+                  Tutor: {formatCurrency(globalMetrics.totalCost || 0)} | Procesamiento:{' '}
+                  {formatCurrency(globalMetrics.processingCost || 0)} | IA:{' '}
+                  {formatCurrency(globalMetrics.aiUsageCost || 0)}
                 </p>
               </div>
             </div>
@@ -237,9 +247,7 @@ export const AdminComprehensiveReportsPage: React.FC = () => {
       {/* Desglose de Costos */}
       {globalMetrics && (
         <Card className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Desglose de Costos Totales
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Desglose de Costos Totales</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <p className="text-sm text-gray-600 mb-1">Tutor IA</p>
@@ -247,7 +255,7 @@ export const AdminComprehensiveReportsPage: React.FC = () => {
                 {formatCurrency(globalMetrics.totalCost)}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                {globalMetrics.totalAllCosts > 0 
+                {globalMetrics.totalAllCosts > 0
                   ? `${((globalMetrics.totalCost / globalMetrics.totalAllCosts) * 100).toFixed(1)}% del total`
                   : '0%'}
               </p>
@@ -258,7 +266,7 @@ export const AdminComprehensiveReportsPage: React.FC = () => {
                 {formatCurrency(globalMetrics.processingCost || 0)}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                {(globalMetrics.totalAllCosts || 0) > 0 
+                {(globalMetrics.totalAllCosts || 0) > 0
                   ? `${(((globalMetrics.processingCost || 0) / globalMetrics.totalAllCosts) * 100).toFixed(1)}% del total`
                   : '0%'}
               </p>
@@ -269,7 +277,7 @@ export const AdminComprehensiveReportsPage: React.FC = () => {
                 {formatCurrency(globalMetrics.aiUsageCost || 0)}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                {(globalMetrics.totalAllCosts || 0) > 0 
+                {(globalMetrics.totalAllCosts || 0) > 0
                   ? `${(((globalMetrics.aiUsageCost || 0) / globalMetrics.totalAllCosts) * 100).toFixed(1)}% del total`
                   : '0%'}
               </p>
@@ -279,9 +287,7 @@ export const AdminComprehensiveReportsPage: React.FC = () => {
               <p className="text-xl font-bold text-orange-600">
                 {formatCurrency(globalMetrics.totalAllCosts)}
               </p>
-              <p className="text-xs text-gray-500 mt-1">
-                100% del total
-              </p>
+              <p className="text-xs text-gray-500 mt-1">100% del total</p>
             </div>
           </div>
         </Card>
@@ -298,8 +304,8 @@ export const AdminComprehensiveReportsPage: React.FC = () => {
             <p className="text-2xl font-bold text-gray-900">
               {globalMetrics.averageProgress.toFixed(1)}%
             </p>
-            <ProgressBar 
-              value={globalMetrics.averageProgress} 
+            <ProgressBar
+              value={globalMetrics.averageProgress}
               color="var(--primary)"
               height="h-2"
               className="mt-2"
@@ -377,9 +383,9 @@ export const AdminComprehensiveReportsPage: React.FC = () => {
                         {formatCurrency(institution.totalAllCosts || institution.totalCost)}
                       </p>
                       <p className="text-xs text-gray-500">
-                        Tutor: {formatCurrency(institution.totalCost || 0)} | 
-                        Proc: {formatCurrency(institution.processingCost || 0)} | 
-                        IA: {formatCurrency(institution.aiUsageCost || 0)}
+                        Tutor: {formatCurrency(institution.totalCost || 0)} | Proc:{' '}
+                        {formatCurrency(institution.processingCost || 0)} | IA:{' '}
+                        {formatCurrency(institution.aiUsageCost || 0)}
                       </p>
                     </div>
                     <IconChevronRight
@@ -426,7 +432,9 @@ export const AdminComprehensiveReportsPage: React.FC = () => {
                     </div>
                     <div className="mt-3 pt-3 border-t border-gray-200">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-900">Costo Total de la Institución:</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          Costo Total de la Institución:
+                        </p>
                         <p className="text-lg font-bold text-orange-600">
                           {formatCurrency(institution.totalAllCosts || institution.totalCost || 0)}
                         </p>
@@ -448,7 +456,9 @@ export const AdminComprehensiveReportsPage: React.FC = () => {
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex-1">
-                                  <h5 className="font-medium text-gray-900">{course.courseTitle}</h5>
+                                  <h5 className="font-medium text-gray-900">
+                                    {course.courseTitle}
+                                  </h5>
                                   <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">
                                     <span>{course.totalStudents} estudiantes</span>
                                     <span>•</span>
@@ -480,4 +490,3 @@ export const AdminComprehensiveReportsPage: React.FC = () => {
 };
 
 export default AdminComprehensiveReportsPage;
-

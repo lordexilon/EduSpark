@@ -2,7 +2,7 @@
 // Modal para avisar al usuario sobre la habilitación de audio
 
 import React from 'react';
-import { IconX } from "@/components/Common/Icons";
+import { IconX } from '@/components/Common/Icons';
 
 interface AudioEnableModalProps {
   isOpen: boolean;
@@ -33,15 +33,11 @@ export const AudioEnableModal: React.FC<AudioEnableModalProps> = ({
         <div className="text-center">
           <div className="mb-4">
             <div className="text-5xl mb-2">🎤</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Habilitar Audio
-            </h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Habilitar Audio</h2>
           </div>
 
           <div className="text-left space-y-3 mb-6">
-            <p className="text-gray-700">
-              Al habilitar el audio, podrás:
-            </p>
+            <p className="text-gray-700">Al habilitar el audio, podrás:</p>
             <ul className="list-disc list-inside space-y-2 text-sm text-gray-600 ml-2">
               <li>Escuchar las respuestas del tutor en voz</li>
               <li>Usar comandos de voz para interactuar</li>
@@ -49,7 +45,7 @@ export const AudioEnableModal: React.FC<AudioEnableModalProps> = ({
             </ul>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
               <p className="text-sm text-blue-800">
-                <strong>Nota:</strong> El navegador te pedirá permiso para acceder al micrófono. 
+                <strong>Nota:</strong> El navegador te pedirá permiso para acceder al micrófono.
                 Puedes desactivar el audio en cualquier momento.
               </p>
             </div>
@@ -75,4 +71,3 @@ export const AudioEnableModal: React.FC<AudioEnableModalProps> = ({
     </div>
   );
 };
-

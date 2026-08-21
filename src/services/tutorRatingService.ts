@@ -32,7 +32,10 @@ export async function rateMessage(
     // Validar que messageId sea un UUID válido antes de insertar
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(messageId)) {
-      console.warn('rateMessage: messageId no es un UUID válido, no se puede guardar el rating:', messageId);
+      console.warn(
+        'rateMessage: messageId no es un UUID válido, no se puede guardar el rating:',
+        messageId
+      );
       return null; // No lanzar error, simplemente retornar null si no es UUID válido
     }
 
@@ -186,15 +189,15 @@ async function getRatingStatsFallback(messageId: string): Promise<RatingStats | 
 /**
  * Elimina el rating de un mensaje (permite "descalificar")
  */
-export async function removeRating(
-  messageId: string,
-  studentId: string
-): Promise<boolean> {
+export async function removeRating(messageId: string, studentId: string): Promise<boolean> {
   try {
     // Validar que messageId sea un UUID válido antes de eliminar
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(messageId)) {
-      console.warn('removeRating: messageId no es un UUID válido, no se puede eliminar el rating:', messageId);
+      console.warn(
+        'removeRating: messageId no es un UUID válido, no se puede eliminar el rating:',
+        messageId
+      );
       return false; // Retornar false si no es UUID válido
     }
 
@@ -356,4 +359,3 @@ export async function getCourseRatingStats(courseId: string | number): Promise<R
     return null;
   }
 }
-

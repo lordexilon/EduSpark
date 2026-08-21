@@ -3,19 +3,35 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { paymentService, PaymentStatus, Payment, StudentSubscription, PaymentPlan } from '@/services/paymentService';
+import {
+  paymentService,
+  PaymentStatus,
+  Payment,
+  StudentSubscription,
+  PaymentPlan,
+} from '@/services/paymentService';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
-import { IconDollarSign, IconCheckCircle, IconXCircle, IconAlertTriangle, IconRefreshCw, IconBan, IconCheck } from '@/components/Common/Icons';
+import {
+  IconDollarSign,
+  IconCheckCircle,
+  IconXCircle,
+  IconAlertTriangle,
+  IconRefreshCw,
+  IconBan,
+  IconCheck,
+} from '@/components/Common/Icons';
 import AdminRoute from '@/components/Common/AdminRoute';
 
 const StudentPaymentManagementPage: React.FC = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [studentsWithPayments, setStudentsWithPayments] = useState<Array<{
-    student: any;
-    payment_status: PaymentStatus;
-  }>>([]);
+  const [studentsWithPayments, setStudentsWithPayments] = useState<
+    Array<{
+      student: any;
+      payment_status: PaymentStatus;
+    }>
+  >([]);
   const [overduePayments, setOverduePayments] = useState<Payment[]>([]);
   const [filter, setFilter] = useState<'all' | 'overdue' | 'active' | 'suspended'>('all');
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
@@ -29,11 +45,11 @@ const StudentPaymentManagementPage: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      
+
       // Cargar estudiantes con información de pagos
       const students = await paymentService.getAllStudentsWithPaymentInfo();
       setStudentsWithPayments(students);
-      
+
       // Cargar pagos vencidos
       const overdue = await paymentService.getOverduePayments();
       setOverduePayments(overdue);
@@ -49,9 +65,9 @@ const StudentPaymentManagementPage: React.FC = () => {
     try {
       const [subscription, payments] = await Promise.all([
         paymentService.getStudentSubscription(studentId),
-        paymentService.getStudentPayments(studentId)
+        paymentService.getStudentPayments(studentId),
       ]);
-      
+
       setStudentSubscription(subscription);
       setStudentPayments(payments);
       setSelectedStudent(studentId);
@@ -64,18 +80,18 @@ const StudentPaymentManagementPage: React.FC = () => {
   const getFilteredStudents = () => {
     if (filter === 'all') return studentsWithPayments;
     if (filter === 'overdue') {
-      return studentsWithPayments.filter(s => s.payment_status.has_unpaid_payments);
+      return studentsWithPayments.filter((s) => s.payment_status.has_unpaid_payments);
     }
     if (filter === 'active') {
-      return studentsWithPayments.filter(s => 
-        s.payment_status.subscription?.status === 'active' && 
-        !s.payment_status.has_unpaid_payments
+      return studentsWithPayments.filter(
+        (s) =>
+          s.payment_status.subscription?.status === 'active' &&
+          !s.payment_status.has_unpaid_payments
       );
     }
     if (filter === 'suspended') {
-      return studentsWithPayments.filter(s => 
-        s.payment_status.subscription?.status === 'suspended' ||
-        !s.student.is_active
+      return studentsWithPayments.filter(
+        (s) => s.payment_status.subscription?.status === 'suspended' || !s.student.is_active
       );
     }
     return studentsWithPayments;
@@ -84,12 +100,10 @@ const StudentPaymentManagementPage: React.FC = () => {
   const getStatusBadge = (paymentStatus: PaymentStatus) => {
     if (paymentStatus.error) {
       return (
-        <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs">
-          Sin información
-        </span>
+        <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs">Sin información</span>
       );
     }
-    
+
     if (paymentStatus.has_unpaid_payments) {
       return (
         <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-medium">
@@ -97,7 +111,7 @@ const StudentPaymentManagementPage: React.FC = () => {
         </span>
       );
     }
-    
+
     if (paymentStatus.subscription?.status === 'suspended') {
       return (
         <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">
@@ -105,7 +119,7 @@ const StudentPaymentManagementPage: React.FC = () => {
         </span>
       );
     }
-    
+
     if (paymentStatus.has_subscription && paymentStatus.subscription?.status === 'active') {
       return (
         <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
@@ -113,11 +127,9 @@ const StudentPaymentManagementPage: React.FC = () => {
         </span>
       );
     }
-    
+
     return (
-      <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs">
-        Sin suscripción
-      </span>
+      <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs">Sin suscripción</span>
     );
   };
 
@@ -142,16 +154,14 @@ const StudentPaymentManagementPage: React.FC = () => {
           <div className="mb-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Gestión de Pagos de Estudiantes</h1>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Gestión de Pagos de Estudiantes
+                </h1>
                 <p className="mt-2 text-gray-600">
                   Administra suscripciones, pagos y vincula con suspensión/reactivación
                 </p>
               </div>
-              <Button
-                onClick={loadData}
-                variant="secondary"
-                className="flex items-center gap-2"
-              >
+              <Button onClick={loadData} variant="secondary" className="flex items-center gap-2">
                 <IconRefreshCw className="w-5 h-5" />
                 Actualizar
               </Button>
@@ -169,7 +179,7 @@ const StudentPaymentManagementPage: React.FC = () => {
                 <IconDollarSign className="w-8 h-8 text-blue-600" />
               </div>
             </Card>
-            
+
             <Card className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -179,32 +189,38 @@ const StudentPaymentManagementPage: React.FC = () => {
                 <IconAlertTriangle className="w-8 h-8 text-red-600" />
               </div>
             </Card>
-            
+
             <Card className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Al Día</p>
                   <p className="text-2xl font-bold text-green-600">
-                    {studentsWithPayments.filter(s => 
-                      s.payment_status.has_subscription && 
-                      !s.payment_status.has_unpaid_payments &&
-                      s.payment_status.subscription?.status === 'active'
-                    ).length}
+                    {
+                      studentsWithPayments.filter(
+                        (s) =>
+                          s.payment_status.has_subscription &&
+                          !s.payment_status.has_unpaid_payments &&
+                          s.payment_status.subscription?.status === 'active'
+                      ).length
+                    }
                   </p>
                 </div>
                 <IconCheckCircle className="w-8 h-8 text-green-600" />
               </div>
             </Card>
-            
+
             <Card className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Suspendidos</p>
                   <p className="text-2xl font-bold text-yellow-600">
-                    {studentsWithPayments.filter(s => 
-                      s.payment_status.subscription?.status === 'suspended' ||
-                      !s.student.is_active
-                    ).length}
+                    {
+                      studentsWithPayments.filter(
+                        (s) =>
+                          s.payment_status.subscription?.status === 'suspended' ||
+                          !s.student.is_active
+                      ).length
+                    }
                   </p>
                 </div>
                 <IconBan className="w-8 h-8 text-yellow-600" />
@@ -249,7 +265,9 @@ const StudentPaymentManagementPage: React.FC = () => {
 
           {/* Lista de estudiantes */}
           <Card className="p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">Estudiantes ({getFilteredStudents().length})</h2>
+            <h2 className="text-xl font-semibold mb-4">
+              Estudiantes ({getFilteredStudents().length})
+            </h2>
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {getFilteredStudents().map((item, index) => (
                 <div
@@ -270,8 +288,8 @@ const StudentPaymentManagementPage: React.FC = () => {
                       </div>
                       {item.payment_status.subscription && (
                         <div className="text-xs text-gray-500 mt-1">
-                          Plan: {item.payment_status.subscription.plan?.name || 'N/A'} • 
-                          Próximo pago: {item.payment_status.next_payment_date || 'N/A'}
+                          Plan: {item.payment_status.subscription.plan?.name || 'N/A'} • Próximo
+                          pago: {item.payment_status.next_payment_date || 'N/A'}
                         </div>
                       )}
                     </div>
@@ -317,9 +335,13 @@ const StudentPaymentManagementPage: React.FC = () => {
                     </div>
                     <div>
                       <span className="text-gray-600">Estado:</span>
-                      <span className={`ml-2 font-medium ${
-                        studentSubscription.status === 'active' ? 'text-green-600' : 'text-yellow-600'
-                      }`}>
+                      <span
+                        className={`ml-2 font-medium ${
+                          studentSubscription.status === 'active'
+                            ? 'text-green-600'
+                            : 'text-yellow-600'
+                        }`}
+                      >
                         {studentSubscription.status === 'active' ? 'Activa' : 'Suspendida'}
                       </span>
                     </div>
@@ -329,7 +351,9 @@ const StudentPaymentManagementPage: React.FC = () => {
                     </div>
                     <div>
                       <span className="text-gray-600">Próximo pago:</span>
-                      <span className="ml-2 font-medium">{studentSubscription.next_payment_date || 'N/A'}</span>
+                      <span className="ml-2 font-medium">
+                        {studentSubscription.next_payment_date || 'N/A'}
+                      </span>
                     </div>
                     {studentSubscription.suspension_reason && (
                       <div className="col-span-2">
@@ -364,15 +388,22 @@ const StudentPaymentManagementPage: React.FC = () => {
                           </div>
                         </div>
                         <div>
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            payment.status === 'paid' ? 'bg-green-100 text-green-800' :
-                            payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {payment.status === 'paid' ? 'Pagado' :
-                             payment.status === 'pending' ? 'Pendiente' :
-                             payment.status === 'failed' ? 'Fallido' :
-                             payment.status}
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-medium ${
+                              payment.status === 'paid'
+                                ? 'bg-green-100 text-green-800'
+                                : payment.status === 'pending'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-red-100 text-red-800'
+                            }`}
+                          >
+                            {payment.status === 'paid'
+                              ? 'Pagado'
+                              : payment.status === 'pending'
+                                ? 'Pendiente'
+                                : payment.status === 'failed'
+                                  ? 'Fallido'
+                                  : payment.status}
                           </span>
                         </div>
                       </div>
@@ -390,12 +421,14 @@ const StudentPaymentManagementPage: React.FC = () => {
               <div>
                 <h3 className="font-medium text-blue-900 mb-1">ℹ️ Información</h3>
                 <p className="text-sm text-blue-800">
-                  Los estudiantes con pagos vencidos pueden ser suspendidos automáticamente.
-                  Al reactivar un estudiante, su suscripción también se reactiva si estaba suspendida por falta de pago.
+                  Los estudiantes con pagos vencidos pueden ser suspendidos automáticamente. Al
+                  reactivar un estudiante, su suscripción también se reactiva si estaba suspendida
+                  por falta de pago.
                 </p>
                 <p className="text-sm text-blue-800 mt-2">
-                  <strong>Nota:</strong> Esta funcionalidad está preparada para integración futura con pasarelas de pago.
-                  Los pagos pueden registrarse manualmente o mediante webhooks de sistemas de pago.
+                  <strong>Nota:</strong> Esta funcionalidad está preparada para integración futura
+                  con pasarelas de pago. Los pagos pueden registrarse manualmente o mediante
+                  webhooks de sistemas de pago.
                 </p>
               </div>
             </div>
@@ -407,4 +440,3 @@ const StudentPaymentManagementPage: React.FC = () => {
 };
 
 export default StudentPaymentManagementPage;
-

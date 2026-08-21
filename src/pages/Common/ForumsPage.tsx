@@ -126,7 +126,8 @@ const ForumsPage: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Foros de Discusión</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Participa en las conversaciones de tu curso, comparte dudas y colabora con tus compañeros.
+            Participa en las conversaciones de tu curso, comparte dudas y colabora con tus
+            compañeros.
           </p>
         </div>
         {canCreate && (
@@ -178,12 +179,14 @@ const ForumsPage: React.FC = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <IconMessage className="w-5 h-5 text-sky-600" />
-                      <h2 className="text-lg font-semibold text-slate-700 line-clamp-2">{topic.title}</h2>
+                      <h2 className="text-lg font-semibold text-slate-700 line-clamp-2">
+                        {topic.title}
+                      </h2>
                     </div>
                     <div className="text-xs text-slate-500 flex flex-wrap items-center gap-2">
-                      {topic.course_title && (
+                      {topic.courses?.title && (
                         <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-600 px-2 py-1 rounded-full">
-                          {topic.course_title}
+                          {topic.courses?.title}
                         </span>
                       )}
                       <span>{topic.reply_count ?? 0} respuestas</span>

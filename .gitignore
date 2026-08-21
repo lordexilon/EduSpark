@@ -93,3 +93,15 @@ jspm_packages/
 # Vite cache and temp directories
 .vite-cache/
 .vite-temp/
+
+# Secretos locales (no commitear)
+scripts/edge_runtime.env
+supabase/.temp/start-secrets/
+scripts/office-mcp/
+scripts/desktop_uploader/.env
+functions/rag-worker/.env.production
+archive/client_secret_*.json
+
+# Artefactos generados (Deno / Supabase Studio local)
+deno.lock
+supabase/snippets/

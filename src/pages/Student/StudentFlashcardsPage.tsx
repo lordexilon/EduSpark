@@ -3,13 +3,31 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { FlashcardWithProgress, getFlashcardsWithProgress, getFlashcardProgressStats } from '@/services/flashcardService';
-import { courseService, Course, unitService, sessionService, CourseUnit, Session } from '@/services/teacherCourses';
+import {
+  FlashcardWithProgress,
+  getFlashcardsWithProgress,
+  getFlashcardProgressStats,
+} from '@/services/flashcardService';
+import {
+  courseService,
+  Course,
+  unitService,
+  sessionService,
+  CourseUnit,
+  Session,
+} from '@/services/teacherCourses';
 import { courseEnrollmentService } from '@/services/academicService';
 import { useAuth } from '@/hooks/useAuth';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
-import { IconCards, IconBookOpen, IconArrowRight, IconCheckCircle, IconClock, IconTrendingUp } from '@/components/Common/Icons';
+import {
+  IconCards,
+  IconBookOpen,
+  IconArrowRight,
+  IconCheckCircle,
+  IconClock,
+  IconTrendingUp,
+} from '@/components/Common/Icons';
 
 export const StudentFlashcardsPage: React.FC = () => {
   const { courseId } = useParams<{ courseId?: string }>();
@@ -17,7 +35,9 @@ export const StudentFlashcardsPage: React.FC = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
   const [flashcards, setFlashcards] = useState<FlashcardWithProgress[]>([]);
-  const [selectedCourse, setSelectedCourse] = useState<number | null>(courseId ? parseInt(courseId) : null);
+  const [selectedCourse, setSelectedCourse] = useState<number | null>(
+    courseId ? parseInt(courseId) : null
+  );
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     total: 0,
@@ -51,9 +71,7 @@ export const StudentFlashcardsPage: React.FC = () => {
         return;
       }
 
-      const coursesData = await Promise.all(
-        courseIds.map((id) => courseService.getCourse(id))
-      );
+      const coursesData = await Promise.all(courseIds.map((id) => courseService.getCourse(id)));
 
       setCourses(coursesData.filter(Boolean) as Course[]);
 
@@ -99,7 +117,7 @@ export const StudentFlashcardsPage: React.FC = () => {
     const now = new Date();
 
     if (session.unit_id) {
-      const parentUnit = units.find(u => u.id === session.unit_id);
+      const parentUnit = units.find((u) => u.id === session.unit_id);
       if (parentUnit && !isUnitAvailable(parentUnit, course)) return false;
     }
 
@@ -126,17 +144,22 @@ export const StudentFlashcardsPage: React.FC = () => {
     return true;
   };
 
-  const isFlashcardAvailable = (flashcard: FlashcardWithProgress, units: CourseUnit[], sessions: Session[], course: Course): boolean => {
+  const isFlashcardAvailable = (
+    flashcard: FlashcardWithProgress,
+    units: CourseUnit[],
+    sessions: Session[],
+    course: Course
+  ): boolean => {
     if (user?.role?.name !== 'student') return true;
     const now = new Date();
 
     if (flashcard.session_id) {
-      const parentSession = sessions.find(s => s.id === flashcard.session_id);
+      const parentSession = sessions.find((s) => s.id === flashcard.session_id);
       if (parentSession && !isSessionAvailable(parentSession, units, course)) return false;
     }
 
     if (flashcard.unit_id) {
-      const parentUnit = units.find(u => u.id === flashcard.unit_id);
+      const parentUnit = units.find((u) => u.id === flashcard.unit_id);
       if (parentUnit && !isUnitAvailable(parentUnit, course)) return false;
     }
 
@@ -161,21 +184,25 @@ export const StudentFlashcardsPage: React.FC = () => {
         courseService.getCourse(selectedCourse),
         unitService.getCourseUnits(selectedCourse),
         sessionService.getCourseSessions(selectedCourse),
-        getFlashcardsWithProgress(selectedCourse, user.id)
+        getFlashcardsWithProgress(selectedCourse, user.id),
       ]);
 
-      const visibleFlashcards = flashcardsData.filter(f =>
+      const visibleFlashcards = flashcardsData.filter((f) =>
         isFlashcardAvailable(f, unitsData, sessionsData, courseData)
       );
 
       setFlashcards(visibleFlashcards);
 
       const total = visibleFlashcards.length;
-      const mastered = visibleFlashcards.filter(f => (f.progress?.mastery_level || 0) >= 5).length;
-      const learning = visibleFlashcards.filter(f => (f.progress?.mastery_level || 0) > 0 && (f.progress?.mastery_level || 0) < 5).length;
-      const newCards = visibleFlashcards.filter(f => !f.progress).length;
-      const dueToday = visibleFlashcards.filter(f =>
-        f.progress?.next_review_at && new Date(f.progress.next_review_at) <= new Date()
+      const mastered = visibleFlashcards.filter(
+        (f) => (f.progress?.mastery_level || 0) >= 5
+      ).length;
+      const learning = visibleFlashcards.filter(
+        (f) => (f.progress?.mastery_level || 0) > 0 && (f.progress?.mastery_level || 0) < 5
+      ).length;
+      const newCards = visibleFlashcards.filter((f) => !f.progress).length;
+      const dueToday = visibleFlashcards.filter(
+        (f) => f.progress?.next_review_at && new Date(f.progress.next_review_at) <= new Date()
       ).length;
 
       setStats({
@@ -184,9 +211,8 @@ export const StudentFlashcardsPage: React.FC = () => {
         learning,
         new: newCards,
         dueToday,
-        masteryPercentage: total > 0 ? (mastered / total) * 100 : 0
+        masteryPercentage: total > 0 ? (mastered / total) * 100 : 0,
       });
-
     } catch (err) {
       console.error('Error loading flashcards:', err);
     } finally {
@@ -317,9 +343,7 @@ export const StudentFlashcardsPage: React.FC = () => {
                     <div key={flashcard.id} className="sfp-card">
                       <div className="sfp-card-top">
                         <div className="sfp-card-info">
-                          <h3 className="sfp-card-title">
-                            {flashcard.title || 'Sin título'}
-                          </h3>
+                          <h3 className="sfp-card-title">{flashcard.title || 'Sin título'}</h3>
                           <p className="sfp-card-preview">
                             {flashcard.front_text || flashcard.back_text}
                           </p>
@@ -345,15 +369,19 @@ export const StudentFlashcardsPage: React.FC = () => {
                       {flashcard.progress && (
                         <div className="sfp-card-meta">
                           <span>
-                            {flashcard.progress.times_studied} revisión{flashcard.progress.times_studied !== 1 ? 'es' : ''}
+                            {flashcard.progress.times_studied} revisión
+                            {flashcard.progress.times_studied !== 1 ? 'es' : ''}
                           </span>
                           {flashcard.progress.next_review_at && (
                             <span className="sfp-card-review">
                               <IconClock className="w-3 h-3" />
-                              {new Date(flashcard.progress.next_review_at).toLocaleDateString('es-ES', {
-                                day: 'numeric',
-                                month: 'short'
-                              })}
+                              {new Date(flashcard.progress.next_review_at).toLocaleDateString(
+                                'es-ES',
+                                {
+                                  day: 'numeric',
+                                  month: 'short',
+                                }
+                              )}
                             </span>
                           )}
                         </div>

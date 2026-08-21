@@ -44,7 +44,7 @@ export async function trackTutorInteraction(
   try {
     // Convertir courseId a número si es string (courses.id es INTEGER)
     const courseIdNum = typeof courseId === 'string' ? parseInt(courseId, 10) : courseId;
-    
+
     const { data, error } = await supabase
       .from('tutor_interactions')
       .insert({
@@ -259,4 +259,3 @@ export async function getInteractionStats(
     };
   }
 }
-

@@ -23,8 +23,10 @@ export const FileAnalysisModal: React.FC<FileAnalysisModalProps> = ({
   onSaveWithoutProcessing,
   isProcessing = false,
 }) => {
-  const [ragProcessingType, setRagProcessingType] = React.useState<'full' | 'readonly' | 'desktop'>('full');
-  
+  const [ragProcessingType, setRagProcessingType] = React.useState<'full' | 'readonly' | 'desktop'>(
+    'full'
+  );
+
   if (!isOpen || !analysis) return null;
 
   const formatFileSize = (bytes: number): string => {
@@ -61,7 +63,9 @@ export const FileAnalysisModal: React.FC<FileAnalysisModalProps> = ({
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Tamaño:</span>
-                <span className="font-medium text-gray-900">{formatFileSize(analysis.fileSize)}</span>
+                <span className="font-medium text-gray-900">
+                  {formatFileSize(analysis.fileSize)}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Total de páginas:</span>
@@ -81,7 +85,10 @@ export const FileAnalysisModal: React.FC<FileAnalysisModalProps> = ({
           {/* Desglose de costos */}
           <div>
             <h3 className="font-semibold text-gray-700 mb-2">Estimación de Costos</h3>
-            <CostBreakdown costs={analysis.estimatedCosts.estimatedCosts} pdfType={analysis.pdfType} />
+            <CostBreakdown
+              costs={analysis.estimatedCosts.estimatedCosts}
+              pdfType={analysis.pdfType}
+            />
           </div>
 
           {/* Tiempo estimado */}
@@ -103,8 +110,8 @@ export const FileAnalysisModal: React.FC<FileAnalysisModalProps> = ({
           {analysis.requiresOCR && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <p className="text-yellow-800 text-sm">
-                ⚠️ Este archivo es un PDF escaneado y requerirá OCR (Reconocimiento Óptico de Caracteres), 
-                lo que aumentará el costo y tiempo de procesamiento.
+                ⚠️ Este archivo es un PDF escaneado y requerirá OCR (Reconocimiento Óptico de
+                Caracteres), lo que aumentará el costo y tiempo de procesamiento.
               </p>
             </div>
           )}
@@ -125,7 +132,8 @@ export const FileAnalysisModal: React.FC<FileAnalysisModalProps> = ({
                 <div className="flex-1">
                   <div className="font-medium text-gray-900">Procesamiento Completo (RAG)</div>
                   <div className="text-sm text-gray-600">
-                    El archivo se procesará para búsqueda semántica. El material estará disponible para el tutor IA.
+                    El archivo se procesará para búsqueda semántica. El material estará disponible
+                    para el tutor IA.
                   </div>
                 </div>
               </label>
@@ -135,7 +143,9 @@ export const FileAnalysisModal: React.FC<FileAnalysisModalProps> = ({
                   name="ragProcessingType"
                   value="desktop"
                   checked={ragProcessingType === 'desktop'}
-                  onChange={(e) => setRagProcessingType(e.target.value as 'full' | 'readonly' | 'desktop')}
+                  onChange={(e) =>
+                    setRagProcessingType(e.target.value as 'full' | 'readonly' | 'desktop')
+                  }
                   className="mt-1"
                 />
                 <div className="flex-1">
@@ -146,7 +156,9 @@ export const FileAnalysisModal: React.FC<FileAnalysisModalProps> = ({
                     ✨ Recomendado para archivos de más de 50MB o más de 500 páginas.
                   </div>
                   <div className="text-sm text-green-700">
-                    El archivo se dejará en cola especial. Al abrir "EduSpark Uploader" en tu computadora, se descargarán los datos crudos y tu propia PC se encargará del procesamiento pesado, evitando todos los cierres y límites de la nube.
+                    El archivo se dejará en cola especial. Al abrir "EduSpark Uploader" en tu
+                    computadora, se descargarán los datos crudos y tu propia PC se encargará del
+                    procesamiento pesado, evitando todos los cierres y límites de la nube.
                   </div>
                 </div>
               </label>
@@ -156,13 +168,16 @@ export const FileAnalysisModal: React.FC<FileAnalysisModalProps> = ({
                   name="ragProcessingType"
                   value="readonly"
                   checked={ragProcessingType === 'readonly'}
-                  onChange={(e) => setRagProcessingType(e.target.value as 'full' | 'readonly' | 'desktop')}
+                  onChange={(e) =>
+                    setRagProcessingType(e.target.value as 'full' | 'readonly' | 'desktop')
+                  }
                   className="mt-1"
                 />
                 <div className="flex-1">
                   <div className="font-medium text-gray-900">Solo Lectura</div>
                   <div className="text-sm text-gray-600">
-                    El material se agregará al curso pero no se procesará para RAG. Útil para materiales de referencia que no necesitan búsqueda semántica.
+                    El material se agregará al curso pero no se procesará para RAG. Útil para
+                    materiales de referencia que no necesitan búsqueda semántica.
                   </div>
                 </div>
               </label>
@@ -197,13 +212,13 @@ export const FileAnalysisModal: React.FC<FileAnalysisModalProps> = ({
               disabled={isProcessing}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isProcessing 
-                ? 'Procesando...' 
-                : ragProcessingType === 'full' 
+              {isProcessing
+                ? 'Procesando...'
+                : ragProcessingType === 'full'
                   ? 'Procesar en Servidor'
                   : ragProcessingType === 'desktop'
-                    ? 'Delegar a App de Escritorio' 
-                  : 'Agregar como Solo Lectura'}
+                    ? 'Delegar a App de Escritorio'
+                    : 'Agregar como Solo Lectura'}
             </button>
           </div>
         </div>
@@ -211,4 +226,3 @@ export const FileAnalysisModal: React.FC<FileAnalysisModalProps> = ({
     </div>
   );
 };
-

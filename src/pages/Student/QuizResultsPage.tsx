@@ -3,11 +3,26 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { quizService, Assessment, Question, QuestionResponse, AssessmentAttempt } from '@/services/quizService';
+import {
+  quizService,
+  Assessment,
+  Question,
+  QuestionResponse,
+  AssessmentAttempt,
+} from '@/services/quizService';
 import { useAuth } from '@/hooks/useAuth';
 import Card from '@/components/Common/Card';
 import Breadcrumbs from '@/components/Common/Breadcrumbs';
-import { IconCheck, IconX, IconClock, IconBookOpen, IconArrowLeft, IconTrophy, IconAlertTriangle, IconInfoCircle } from '@/components/Common/Icons';
+import {
+  IconCheck,
+  IconX,
+  IconClock,
+  IconBookOpen,
+  IconArrowLeft,
+  IconTrophy,
+  IconAlertTriangle,
+  IconInfoCircle,
+} from '@/components/Common/Icons';
 import Button from '@/components/Common/Button';
 
 interface QuestionResult {
@@ -41,7 +56,8 @@ export const QuizResultsPage: React.FC = () => {
       setError(null);
 
       // Cargar assessment y preguntas
-      const { assessment: assessmentData, questions } = await quizService.getAssessmentWithQuestions(quizId!);
+      const { assessment: assessmentData, questions } =
+        await quizService.getAssessmentWithQuestions(quizId!);
       setAssessment(assessmentData);
 
       // Cargar resultados del intento
@@ -50,7 +66,9 @@ export const QuizResultsPage: React.FC = () => {
 
       // Combinar preguntas con respuestas
       const questionResults: QuestionResult[] = questions.map((question) => {
-        const response = resultsData.responses.find((r: QuestionResponse) => r.question_id === question.id);
+        const response = resultsData.responses.find(
+          (r: QuestionResponse) => r.question_id === question.id
+        );
         const isCorrect = response?.is_correct ?? false;
         const pointsEarned = response?.points_earned ?? 0;
         const pointsTotal = question.points;
@@ -60,14 +78,13 @@ export const QuizResultsPage: React.FC = () => {
           response,
           isCorrect,
           pointsEarned,
-          pointsTotal
+          pointsTotal,
         };
       });
 
       // Ordenar por order_index
       questionResults.sort((a, b) => a.question.order_index - b.question.order_index);
       setResults(questionResults);
-
     } catch (err: any) {
       console.error('Error loading quiz results:', err);
       setError(err.message || 'Error cargando los resultados del quiz');
@@ -83,7 +100,8 @@ export const QuizResultsPage: React.FC = () => {
     const totalPointsFromQuestions = results.reduce((sum, r) => sum + r.pointsTotal, 0);
 
     // Usar el total calculado de las preguntas (más preciso)
-    const totalPoints = totalPointsFromQuestions > 0 ? totalPointsFromQuestions : assessment.total_points;
+    const totalPoints =
+      totalPointsFromQuestions > 0 ? totalPointsFromQuestions : assessment.total_points;
 
     // Calcular porcentaje basado en puntos reales (siempre recalcular, no usar el guardado)
     const score = attempt.score || 0;
@@ -133,7 +151,8 @@ export const QuizResultsPage: React.FC = () => {
   const scorePercentage = getScorePercentage();
   // Calcular puntos totales reales para la comparación
   const totalPointsFromQuestions = results.reduce((sum, r) => sum + r.pointsTotal, 0);
-  const totalPoints = totalPointsFromQuestions > 0 ? totalPointsFromQuestions : assessment.total_points;
+  const totalPoints =
+    totalPointsFromQuestions > 0 ? totalPointsFromQuestions : assessment.total_points;
   const passed = assessment.passing_score ? scorePercentage >= assessment.passing_score : false;
 
   console.log('📊 Cálculo de calificación:', {
@@ -142,7 +161,7 @@ export const QuizResultsPage: React.FC = () => {
     totalPointsFromQuestions,
     scorePercentage,
     passingScore: assessment.passing_score,
-    passed
+    passed,
   });
 
   return (
@@ -152,19 +171,22 @@ export const QuizResultsPage: React.FC = () => {
         items={[
           {
             label: 'Dashboard',
-            path: user?.role?.name === 'teacher' || user?.role?.name === 'admin'
-              ? '/teacher/dashboard'
-              : '/dashboard'
+            path:
+              user?.role?.name === 'teacher' || user?.role?.name === 'admin'
+                ? '/teacher/dashboard'
+                : '/dashboard',
           },
           {
-            label: user?.role?.name === 'teacher' || user?.role?.name === 'admin'
-              ? 'Calificaciones'
-              : 'Mis Cursos',
-            path: user?.role?.name === 'teacher' || user?.role?.name === 'admin'
-              ? '/teacher/grades'
-              : '/my/courses'
+            label:
+              user?.role?.name === 'teacher' || user?.role?.name === 'admin'
+                ? 'Calificaciones'
+                : 'Mis Cursos',
+            path:
+              user?.role?.name === 'teacher' || user?.role?.name === 'admin'
+                ? '/teacher/grades'
+                : '/my/courses',
           },
-          { label: assessment.title }
+          { label: assessment.title },
         ]}
       />
 
@@ -172,9 +194,7 @@ export const QuizResultsPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{assessment.title} - Resultados</h1>
-          {assessment.description && (
-            <p className="text-gray-600 mt-1">{assessment.description}</p>
-          )}
+          {assessment.description && <p className="text-gray-600 mt-1">{assessment.description}</p>}
         </div>
         {attempt.submitted_at && (
           <div className="text-sm text-gray-500">
@@ -199,9 +219,15 @@ export const QuizResultsPage: React.FC = () => {
               <div className="bg-white rounded-lg p-4">
                 <div className="text-sm text-gray-600 mb-1">Puntuación</div>
                 <div className={`text-3xl font-bold ${getScoreColor(scorePercentage)}`}>
-                  {attempt.score || 0} / {(() => {
-                    const totalPointsFromQuestions = results.reduce((sum, r) => sum + r.pointsTotal, 0);
-                    return totalPointsFromQuestions > 0 ? totalPointsFromQuestions : assessment.total_points;
+                  {attempt.score || 0} /{' '}
+                  {(() => {
+                    const totalPointsFromQuestions = results.reduce(
+                      (sum, r) => sum + r.pointsTotal,
+                      0
+                    );
+                    return totalPointsFromQuestions > 0
+                      ? totalPointsFromQuestions
+                      : assessment.total_points;
                   })()}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">puntos</div>
@@ -225,7 +251,8 @@ export const QuizResultsPage: React.FC = () => {
                 {attempt.time_spent_minutes && (
                   <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                     <IconClock className="w-3 h-3" />
-                    {Math.floor(attempt.time_spent_minutes / 60)}h {attempt.time_spent_minutes % 60}m
+                    {Math.floor(attempt.time_spent_minutes / 60)}h {attempt.time_spent_minutes % 60}
+                    m
                   </div>
                 )}
               </div>
@@ -239,7 +266,7 @@ export const QuizResultsPage: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-900">Resumen de Respuestas</h2>
           <div className="text-sm text-gray-600">
-            {results.filter(r => r.isCorrect).length} de {results.length} correctas
+            {results.filter((r) => r.isCorrect).length} de {results.length} correctas
           </div>
         </div>
 
@@ -247,10 +274,9 @@ export const QuizResultsPage: React.FC = () => {
           {results.map((result, index) => (
             <div
               key={result.question.id}
-              className={`border-2 rounded-lg p-4 ${result.isCorrect
-                ? 'border-green-200 bg-green-50'
-                : 'border-red-200 bg-red-50'
-                }`}
+              className={`border-2 rounded-lg p-4 ${
+                result.isCorrect ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+              }`}
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-start gap-3 flex-1">
@@ -261,11 +287,12 @@ export const QuizResultsPage: React.FC = () => {
                   )}
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="font-semibold text-gray-900">
-                        Pregunta {index + 1}
-                      </span>
-                      <span className={`text-sm font-medium ${result.isCorrect ? 'text-green-700' : 'text-red-700'
-                        }`}>
+                      <span className="font-semibold text-gray-900">Pregunta {index + 1}</span>
+                      <span
+                        className={`text-sm font-medium ${
+                          result.isCorrect ? 'text-green-700' : 'text-red-700'
+                        }`}
+                      >
                         {result.isCorrect ? '✓ Correcta' : '✗ Incorrecta'}
                       </span>
                       <span className="text-sm text-gray-600">
@@ -283,141 +310,191 @@ export const QuizResultsPage: React.FC = () => {
               <div className="ml-9 mb-3">
                 <div className="text-sm font-semibold text-gray-700 mb-1">Tu respuesta:</div>
                 <div className="bg-white rounded-lg p-3 border border-gray-200">
-                  {result.question.question_type === 'multiple_choice' && result.response?.response_data && (
-                    <div>
-                      {(() => {
-                        const answer = result.response.response_data;
-                        let optionsArray: Array<{ id: string, text: string }> = [];
+                  {result.question.question_type === 'multiple_choice' &&
+                    result.response?.response_data && (
+                      <div>
+                        {(() => {
+                          const answer = result.response.response_data;
+                          let optionsArray: Array<{ id: string; text: string }> = [];
 
-                        if (Array.isArray(result.question.options)) {
-                          optionsArray = result.question.options;
-                        } else if (typeof result.question.options === 'object' && result.question.options !== null) {
-                          optionsArray = Object.entries(result.question.options).map(([key, value]: [string, any]) => ({
-                            id: key,
-                            text: typeof value === 'string' ? value : (value?.text || value?.label || '')
-                          }));
-                        }
+                          if (Array.isArray(result.question.options)) {
+                            optionsArray = result.question.options;
+                          } else if (
+                            typeof result.question.options === 'object' &&
+                            result.question.options !== null
+                          ) {
+                            optionsArray = Object.entries(result.question.options).map(
+                              ([key, value]: [string, any]) => ({
+                                id: key,
+                                text:
+                                  typeof value === 'string'
+                                    ? value
+                                    : value?.text || value?.label || '',
+                              })
+                            );
+                          }
 
-                        const selectedOption = optionsArray.find(opt => opt.id === answer || opt.text === answer);
-                        return selectedOption ? (
-                          <div className="flex items-center gap-2">
-                            <span>{selectedOption.text}</span>
-                          </div>
-                        ) : (
-                          <span>{String(answer)}</span>
-                        );
-                      })()}
-                    </div>
-                  )}
-                  {result.question.question_type === 'true_false' && result.response?.response_data && (
-                    <div>
-                      <span className="font-semibold">
-                        {String(result.response.response_data).toLowerCase() === 'true' ? 'Verdadero' : 'Falso'}
-                      </span>
-                    </div>
-                  )}
-                  {(result.question.question_type === 'short_answer' || result.question.question_type === 'essay') && result.response?.response_data && (
-                    <div className="whitespace-pre-wrap">
-                      {String(result.response.response_data)}
-                    </div>
-                  )}
+                          const selectedOption = optionsArray.find(
+                            (opt) => opt.id === answer || opt.text === answer
+                          );
+                          return selectedOption ? (
+                            <div className="flex items-center gap-2">
+                              <span>{selectedOption.text}</span>
+                            </div>
+                          ) : (
+                            <span>{String(answer)}</span>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  {result.question.question_type === 'true_false' &&
+                    result.response?.response_data && (
+                      <div>
+                        <span className="font-semibold">
+                          {String(result.response.response_data).toLowerCase() === 'true'
+                            ? 'Verdadero'
+                            : 'Falso'}
+                        </span>
+                      </div>
+                    )}
+                  {(result.question.question_type === 'short_answer' ||
+                    result.question.question_type === 'essay') &&
+                    result.response?.response_data && (
+                      <div className="whitespace-pre-wrap">
+                        {String(result.response.response_data)}
+                      </div>
+                    )}
                 </div>
               </div>
 
               {/* Respuesta correcta (si está incorrecta) */}
               {!result.isCorrect && (
                 <div className="ml-9 mb-3">
-                  <div className="text-sm font-semibold text-green-700 mb-1">Respuesta correcta:</div>
+                  <div className="text-sm font-semibold text-green-700 mb-1">
+                    Respuesta correcta:
+                  </div>
                   <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                    {result.question.question_type === 'multiple_choice' && result.question.options && result.question.correct_answer && (
-                      <div>
-                        {(() => {
-                          // Obtener el ID de la respuesta correcta
-                          let correctAnswerId = result.question.correct_answer;
+                    {result.question.question_type === 'multiple_choice' &&
+                      result.question.options &&
+                      result.question.correct_answer && (
+                        <div>
+                          {(() => {
+                            // Obtener el ID de la respuesta correcta
+                            let correctAnswerId = result.question.correct_answer;
 
-                          // Si correct_answer es un string JSON, extraer el valor
-                          if (typeof correctAnswerId === 'string' && correctAnswerId.startsWith('"') && correctAnswerId.endsWith('"')) {
-                            correctAnswerId = correctAnswerId.slice(1, -1);
-                          } else if (typeof correctAnswerId === 'object' && correctAnswerId !== null) {
-                            correctAnswerId = String(correctAnswerId);
-                          }
+                            // Si correct_answer es un string JSON, extraer el valor
+                            if (
+                              typeof correctAnswerId === 'string' &&
+                              correctAnswerId.startsWith('"') &&
+                              correctAnswerId.endsWith('"')
+                            ) {
+                              correctAnswerId = correctAnswerId.slice(1, -1);
+                            } else if (
+                              typeof correctAnswerId === 'object' &&
+                              correctAnswerId !== null
+                            ) {
+                              correctAnswerId = String(correctAnswerId);
+                            }
 
-                          // Buscar la opción con ese ID en options
-                          if (typeof result.question.options === 'object' && result.question.options !== null) {
-                            const optionsObj = result.question.options;
-                            const correctOptionText = optionsObj[String(correctAnswerId)];
+                            // Buscar la opción con ese ID en options
+                            if (
+                              typeof result.question.options === 'object' &&
+                              result.question.options !== null
+                            ) {
+                              const optionsObj = result.question.options;
+                              const correctOptionText = optionsObj[String(correctAnswerId)];
 
-                            if (correctOptionText) {
-                              return (
-                                <div className="flex items-center gap-2">
-                                  <span>{typeof correctOptionText === 'string' ? correctOptionText : String(correctOptionText)}</span>
+                              if (correctOptionText) {
+                                return (
+                                  <div className="flex items-center gap-2">
+                                    <span>
+                                      {typeof correctOptionText === 'string'
+                                        ? correctOptionText
+                                        : String(correctOptionText)}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                            }
+
+                            return (
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-green-700">
+                                  {String(correctAnswerId)}
+                                </span>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+                    {result.question.question_type === 'true_false' &&
+                      result.question.correct_answer && (
+                        <div>
+                          {(() => {
+                            let correctAnswer = result.question.correct_answer;
+                            if (
+                              typeof correctAnswer === 'string' &&
+                              correctAnswer.startsWith('"') &&
+                              correctAnswer.endsWith('"')
+                            ) {
+                              correctAnswer = correctAnswer.slice(1, -1);
+                            }
+                            try {
+                              const parsed = JSON.parse(String(correctAnswer));
+                              if (typeof parsed === 'string' || typeof parsed === 'boolean') {
+                                correctAnswer = parsed;
+                              }
+                            } catch (e) {
+                              // Si falla el parse, usar el valor original
+                            }
+                            return (
+                              <span className="font-semibold text-green-700">
+                                {String(correctAnswer).toLowerCase() === 'true' ||
+                                correctAnswer === true
+                                  ? 'Verdadero'
+                                  : 'Falso'}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      )}
+                    {(result.question.question_type === 'short_answer' ||
+                      result.question.question_type === 'essay') &&
+                      result.question.correct_answer && (
+                        <div>
+                          {(() => {
+                            let acceptableAnswers: string[] = [];
+                            try {
+                              let correctAnswerParsed = result.question.correct_answer;
+                              if (typeof correctAnswerParsed === 'string') {
+                                correctAnswerParsed = JSON.parse(correctAnswerParsed);
+                              }
+                              if (Array.isArray(correctAnswerParsed)) {
+                                acceptableAnswers = correctAnswerParsed.map((a) => String(a));
+                              } else {
+                                acceptableAnswers = [String(correctAnswerParsed)];
+                              }
+                            } catch (e) {
+                              acceptableAnswers = [String(result.question.correct_answer)];
+                            }
+
+                            return (
+                              <div>
+                                <div className="text-sm text-green-700 mb-1">
+                                  Respuestas aceptables:
                                 </div>
-                              );
-                            }
-                          }
-
-                          return (
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-green-700">{String(correctAnswerId)}</span>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    )}
-                    {result.question.question_type === 'true_false' && result.question.correct_answer && (
-                      <div>
-                        {(() => {
-                          let correctAnswer = result.question.correct_answer;
-                          if (typeof correctAnswer === 'string' && correctAnswer.startsWith('"') && correctAnswer.endsWith('"')) {
-                            correctAnswer = correctAnswer.slice(1, -1);
-                          }
-                          try {
-                            const parsed = JSON.parse(String(correctAnswer));
-                            if (typeof parsed === 'string' || typeof parsed === 'boolean') {
-                              correctAnswer = parsed;
-                            }
-                          } catch (e) {
-                            // Si falla el parse, usar el valor original
-                          }
-                          return (
-                            <span className="font-semibold text-green-700">
-                              {String(correctAnswer).toLowerCase() === 'true' || String(correctAnswer) === true ? 'Verdadero' : 'Falso'}
-                            </span>
-                          );
-                        })()}
-                      </div>
-                    )}
-                    {(result.question.question_type === 'short_answer' || result.question.question_type === 'essay') && result.question.correct_answer && (
-                      <div>
-                        {(() => {
-                          let acceptableAnswers: string[] = [];
-                          try {
-                            let correctAnswerParsed = result.question.correct_answer;
-                            if (typeof correctAnswerParsed === 'string') {
-                              correctAnswerParsed = JSON.parse(correctAnswerParsed);
-                            }
-                            if (Array.isArray(correctAnswerParsed)) {
-                              acceptableAnswers = correctAnswerParsed.map(a => String(a));
-                            } else {
-                              acceptableAnswers = [String(correctAnswerParsed)];
-                            }
-                          } catch (e) {
-                            acceptableAnswers = [String(result.question.correct_answer)];
-                          }
-
-                          return (
-                            <div>
-                              <div className="text-sm text-green-700 mb-1">Respuestas aceptables:</div>
-                              <ul className="list-disc list-inside space-y-1">
-                                {acceptableAnswers.map((ans, idx) => (
-                                  <li key={idx} className="text-green-800">{ans}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    )}
+                                <ul className="list-disc list-inside space-y-1">
+                                  {acceptableAnswers.map((ans, idx) => (
+                                    <li key={idx} className="text-green-800">
+                                      {ans}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
                   </div>
                 </div>
               )}
@@ -441,7 +518,9 @@ export const QuizResultsPage: React.FC = () => {
               {result.response?.teacher_feedback && (
                 <div className="ml-9 mt-3">
                   <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                    <div className="text-sm font-semibold text-purple-900 mb-1">Feedback del profesor:</div>
+                    <div className="text-sm font-semibold text-purple-900 mb-1">
+                      Feedback del profesor:
+                    </div>
                     <div className="text-sm text-purple-800 whitespace-pre-wrap">
                       {result.response.teacher_feedback}
                     </div>
@@ -471,9 +550,7 @@ export const QuizResultsPage: React.FC = () => {
                 : `/courses/${assessment.course_id}`
             }
           >
-            <Button variant="primary">
-              Ver Curso
-            </Button>
+            <Button variant="primary">Ver Curso</Button>
           </Link>
         )}
       </div>
@@ -482,4 +559,3 @@ export const QuizResultsPage: React.FC = () => {
 };
 
 export default QuizResultsPage;
-

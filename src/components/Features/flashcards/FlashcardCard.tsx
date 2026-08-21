@@ -49,16 +49,19 @@ const FlashcardCard: React.FC<FlashcardCardProps> = ({
     };
   }, []);
 
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!touchStartRef.current || studyMode) return;
-    const deltaX = e.changedTouches[0].clientX - touchStartRef.current.x;
-    const deltaY = e.changedTouches[0].clientY - touchStartRef.current.y;
-    // Only flip on horizontal swipe (not scroll)
-    if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
-      handleFlip();
-    }
-    touchStartRef.current = null;
-  }, [studyMode, handleFlip]);
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      if (!touchStartRef.current || studyMode) return;
+      const deltaX = e.changedTouches[0].clientX - touchStartRef.current.x;
+      const deltaY = e.changedTouches[0].clientY - touchStartRef.current.y;
+      // Only flip on horizontal swipe (not scroll)
+      if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+        handleFlip();
+      }
+      touchStartRef.current = null;
+    },
+    [studyMode, handleFlip]
+  );
 
   const handleSelectOption = (optionIndex: number) => {
     if (showFeedback || !flashcard.is_multiple_choice || !flashcard.answer_options) return;
@@ -113,10 +116,7 @@ const FlashcardCard: React.FC<FlashcardCardProps> = ({
       {/* Indicador de dominio */}
       {progress && (
         <div className="fc-mastery-badge" title={`Nivel: ${currentMastery.label}`}>
-          <span
-            className="fc-mastery-dot"
-            style={{ backgroundColor: currentMastery.bg }}
-          />
+          <span className="fc-mastery-dot" style={{ backgroundColor: currentMastery.bg }} />
           <span className="fc-mastery-label">{currentMastery.label}</span>
         </div>
       )}
@@ -131,7 +131,9 @@ const FlashcardCard: React.FC<FlashcardCardProps> = ({
         <div className={`fc-inner ${isFlipped ? 'fc-flipped' : ''}`}>
           {/* ═══ FRENTE ═══ */}
           <div className={`fc-face fc-front ${isFlipped ? 'fc-hidden' : ''}`}>
-            <div className={`fc-content ${flashcard.is_multiple_choice ? 'fc-content-mc' : 'fc-content-centered'}`}>
+            <div
+              className={`fc-content ${flashcard.is_multiple_choice ? 'fc-content-mc' : 'fc-content-centered'}`}
+            >
               {/* Imagen */}
               {flashcard.front_image_url && (
                 <div className="fc-image-wrap">
@@ -145,91 +147,99 @@ const FlashcardCard: React.FC<FlashcardCardProps> = ({
               )}
 
               {/* Pregunta */}
-              {flashcard.front_text && (
-                <h2 className="fc-question">{flashcard.front_text}</h2>
-              )}
+              {flashcard.front_text && <h2 className="fc-question">{flashcard.front_text}</h2>}
               {!flashcard.front_text && !flashcard.front_image_url && (
                 <p className="fc-empty">Sin contenido en el frente</p>
               )}
             </div>
 
             {/* Opciones múltiples */}
-            {studyMode && flashcard.is_multiple_choice && flashcard.answer_options && !isFlipped && (
-              <div className="fc-options">
-                {flashcard.answer_options.map((option, index) => {
-                  const isCorrectOption = index === flashcard.correct_answer_index;
-                  const isSelected = selectedOptionIndex === index;
+            {studyMode &&
+              flashcard.is_multiple_choice &&
+              flashcard.answer_options &&
+              !isFlipped && (
+                <div className="fc-options">
+                  {flashcard.answer_options.map((option, index) => {
+                    const isCorrectOption = index === flashcard.correct_answer_index;
+                    const isSelected = selectedOptionIndex === index;
 
-                  let optionClass = 'fc-option';
-                  if (showFeedback) {
-                    if (isCorrectOption) optionClass += ' fc-option-correct';
-                    else if (isSelected) optionClass += ' fc-option-wrong';
-                    else optionClass += ' fc-option-dimmed';
-                  } else if (isSelected) {
-                    optionClass += ' fc-option-selected';
-                  }
+                    let optionClass = 'fc-option';
+                    if (showFeedback) {
+                      if (isCorrectOption) optionClass += ' fc-option-correct';
+                      else if (isSelected) optionClass += ' fc-option-wrong';
+                      else optionClass += ' fc-option-dimmed';
+                    } else if (isSelected) {
+                      optionClass += ' fc-option-selected';
+                    }
 
-                  return (
-                    <button
-                      key={index}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSelectOption(index);
-                      }}
-                      disabled={showFeedback}
-                      className={optionClass}
-                    >
-                      <span className={`fc-option-label ${showFeedback && isCorrectOption ? 'fc-label-correct' : showFeedback && isSelected ? 'fc-label-wrong' : ''}`}>
-                        {option.label}
-                      </span>
-                      <div className="fc-option-content">
-                        {option.image_url && (
-                          <img
-                            src={option.image_url}
-                            alt={`Opción ${option.label}`}
-                            className="fc-option-image"
-                            loading="lazy"
-                          />
+                    return (
+                      <button
+                        key={index}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectOption(index);
+                        }}
+                        disabled={showFeedback}
+                        className={optionClass}
+                      >
+                        <span
+                          className={`fc-option-label ${showFeedback && isCorrectOption ? 'fc-label-correct' : showFeedback && isSelected ? 'fc-label-wrong' : ''}`}
+                        >
+                          {option.label}
+                        </span>
+                        <div className="fc-option-content">
+                          {option.image_url && (
+                            <img
+                              src={option.image_url}
+                              alt={`Opción ${option.label}`}
+                              className="fc-option-image"
+                              loading="lazy"
+                            />
+                          )}
+                          <span className="fc-option-text">{option.text}</span>
+                        </div>
+                        {showFeedback && isCorrectOption && (
+                          <span className="fc-feedback-icon fc-feedback-correct">
+                            <IconCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+                          </span>
                         )}
-                        <span className="fc-option-text">{option.text}</span>
-                      </div>
-                      {showFeedback && isCorrectOption && (
-                        <span className="fc-feedback-icon fc-feedback-correct">
-                          <IconCheck className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </span>
-                      )}
-                      {showFeedback && isSelected && !isCorrect && (
-                        <span className="fc-feedback-icon fc-feedback-wrong">
-                          <IconX className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+                        {showFeedback && isSelected && !isCorrect && (
+                          <span className="fc-feedback-icon fc-feedback-wrong">
+                            <IconX className="w-4 h-4 sm:w-5 sm:h-5" />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
 
-                {/* Mensaje de feedback */}
-                {showFeedback && (
-                  <div ref={feedbackRef} className={`fc-feedback-msg ${isCorrect ? 'fc-feedback-success' : 'fc-feedback-error'}`}>
-                    {isCorrect ? (
-                      <div className="fc-feedback-inner">
-                        <span className="fc-feedback-emoji">🎉</span>
-                        <p className="fc-feedback-title">¡Correcto!</p>
-                        <p className="fc-feedback-sub">Excelente trabajo</p>
-                      </div>
-                    ) : (
-                      <div className="fc-feedback-inner">
-                        <p className="fc-feedback-title">Incorrecto</p>
-                        <p className="fc-feedback-sub">
-                          Respuesta correcta: <strong>
-                            {flashcard.answer_options[flashcard.correct_answer_index!]?.label} - {flashcard.answer_options[flashcard.correct_answer_index!]?.text}
-                          </strong>
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+                  {/* Mensaje de feedback */}
+                  {showFeedback && (
+                    <div
+                      ref={feedbackRef}
+                      className={`fc-feedback-msg ${isCorrect ? 'fc-feedback-success' : 'fc-feedback-error'}`}
+                    >
+                      {isCorrect ? (
+                        <div className="fc-feedback-inner">
+                          <span className="fc-feedback-emoji">🎉</span>
+                          <p className="fc-feedback-title">¡Correcto!</p>
+                          <p className="fc-feedback-sub">Excelente trabajo</p>
+                        </div>
+                      ) : (
+                        <div className="fc-feedback-inner">
+                          <p className="fc-feedback-title">Incorrecto</p>
+                          <p className="fc-feedback-sub">
+                            Respuesta correcta:{' '}
+                            <strong>
+                              {flashcard.answer_options[flashcard.correct_answer_index!]?.label} -{' '}
+                              {flashcard.answer_options[flashcard.correct_answer_index!]?.text}
+                            </strong>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
             {/* Botón "Ver Respuesta" - flashcards tradicionales */}
             {studyMode && !isFlipped && !flashcard.is_multiple_choice && (
@@ -275,23 +285,14 @@ const FlashcardCard: React.FC<FlashcardCardProps> = ({
               {/* Botones de calificación */}
               {studyMode && onAnswer && (
                 <div className="fc-rating-buttons">
-                  <button
-                    onClick={() => handleAnswer(0)}
-                    className="fc-rate-btn fc-rate-hard"
-                  >
+                  <button onClick={() => handleAnswer(0)} className="fc-rate-btn fc-rate-hard">
                     <IconX className="w-4 h-4 sm:w-5 sm:h-5" />
                     <span>Difícil</span>
                   </button>
-                  <button
-                    onClick={() => handleAnswer(2)}
-                    className="fc-rate-btn fc-rate-medium"
-                  >
+                  <button onClick={() => handleAnswer(2)} className="fc-rate-btn fc-rate-medium">
                     <span>Regular</span>
                   </button>
-                  <button
-                    onClick={() => handleAnswer(5)}
-                    className="fc-rate-btn fc-rate-easy"
-                  >
+                  <button onClick={() => handleAnswer(5)} className="fc-rate-btn fc-rate-easy">
                     <IconCheck className="w-4 h-4 sm:w-5 sm:h-5" />
                     <span>Fácil</span>
                   </button>

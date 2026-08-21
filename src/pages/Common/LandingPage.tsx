@@ -9,7 +9,7 @@ import {
   IconGlobe,
   IconTrendingUp,
   IconBuilding,
-  IconBookOpen
+  IconBookOpen,
 } from '@/components/Common/Icons';
 import { institutionService, Institution } from '@/services/institutionService';
 
@@ -48,10 +48,16 @@ const LandingPage: React.FC = () => {
               </span>
             </Link>
             <div className="flex items-center space-x-4">
-              <Link to="/login" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+              <Link
+                to="/login"
+                className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
                 Iniciar Sesión
               </Link>
-              <Link to="/login" className="bg-blue-600 text-white px-6 py-2.5 rounded-full text-sm font-medium hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 shadow-md shadow-blue-600/20">
+              <Link
+                to="/login"
+                className="bg-blue-600 text-white px-6 py-2.5 rounded-full text-sm font-medium hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 shadow-md shadow-blue-600/20"
+              >
                 Comenzar
               </Link>
             </div>
@@ -73,12 +79,14 @@ const LandingPage: React.FC = () => {
             </span>
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-10 max-w-3xl mx-auto leading-relaxed">
-            Nuestra misión es cerrar la brecha en la educación tradicional ofreciendo
-            rutas de aprendizaje personalizadas impulsadas por neurociencia e
-            Inteligencia Artificial.
+            Nuestra misión es cerrar la brecha en la educación tradicional ofreciendo rutas de
+            aprendizaje personalizadas impulsadas por neurociencia e Inteligencia Artificial.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link to="/login" className="bg-blue-600 text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/30 flex items-center hover:-translate-y-1">
+            <Link
+              to="/login"
+              className="bg-blue-600 text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/30 flex items-center hover:-translate-y-1"
+            >
               Probar Gratis
               <IconArrowRight className="w-5 h-5 ml-2" />
             </Link>
@@ -102,8 +110,8 @@ const LandingPage: React.FC = () => {
           <div className="text-center mb-20">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">El Problema</h2>
             <p className="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">
-              Educación uniforme y alta carga administrativa para docentes en Paraguay. Un
-              sistema desactualizado que no se adapta a las necesidades individuales.
+              Educación uniforme y alta carga administrativa para docentes en Paraguay. Un sistema
+              desactualizado que no se adapta a las necesidades individuales.
             </p>
           </div>
 
@@ -113,7 +121,9 @@ const LandingPage: React.FC = () => {
               <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/30 rounded-3xl flex items-center justify-center mb-6 text-blue-600 dark:text-blue-400 group-hover:scale-110 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-all duration-300 shadow-sm">
                 <IconUsers className="w-10 h-10" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Educación uniforme</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                Educación uniforme
+              </h3>
               <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                 Educación uniforme con la misma carga para maestros y docentes en Paraguay.
               </p>
@@ -123,7 +133,9 @@ const LandingPage: React.FC = () => {
               <div className="w-20 h-20 bg-purple-50 dark:bg-purple-900/30 rounded-3xl flex items-center justify-center mb-6 text-purple-600 dark:text-purple-400 group-hover:scale-110 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/50 transition-all duration-300 shadow-sm">
                 <IconChartBar className="w-10 h-10" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Analítica Predictiva</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                Analítica Predictiva
+              </h3>
               <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                 Identificación temprana de riesgos y adaptación a necesidades constantes.
               </p>
@@ -133,7 +145,9 @@ const LandingPage: React.FC = () => {
               <div className="w-20 h-20 bg-cyan-50 dark:bg-cyan-900/30 rounded-3xl flex items-center justify-center mb-6 text-cyan-600 dark:text-cyan-400 group-hover:scale-110 group-hover:bg-cyan-100 dark:group-hover:bg-cyan-900/50 transition-all duration-300 shadow-sm">
                 <IconSparkles className="w-10 h-10" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Adaptabilidad</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                Adaptabilidad
+              </h3>
               <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                 Evolución del perfil cognitivo interactiva con tutor virtual inteligente.
               </p>
@@ -149,7 +163,8 @@ const LandingPage: React.FC = () => {
             <div className="lg:w-1/2 space-y-8">
               <div>
                 <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 dark:text-white leading-tight block">
-                  La Solución:<br />
+                  La Solución:
+                  <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
                     La Magia de EduSpark
                   </span>
@@ -157,7 +172,9 @@ const LandingPage: React.FC = () => {
               </div>
 
               <p className="text-gray-600 dark:text-gray-300 text-lg leading-relaxed">
-                Una plataforma diseñada con estándares de alta calidad, enfocada en ofrecer una solución integral para el aprendizaje personalizado mediante tecnología de vanguardia.
+                Una plataforma diseñada con estándares de alta calidad, enfocada en ofrecer una
+                solución integral para el aprendizaje personalizado mediante tecnología de
+                vanguardia.
               </p>
 
               <div className="space-y-6">
@@ -166,9 +183,12 @@ const LandingPage: React.FC = () => {
                     <IconBrain className="w-7 h-7" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Aprendizaje personalizado</h3>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                      Aprendizaje personalizado
+                    </h3>
                     <p className="text-gray-600 dark:text-gray-400">
-                      Rutas de aprendizaje adaptativas asistidas por IA basadas en perfiles neurológicos para las necesidades individuales.
+                      Rutas de aprendizaje adaptativas asistidas por IA basadas en perfiles
+                      neurológicos para las necesidades individuales.
                     </p>
                   </div>
                 </div>
@@ -177,7 +197,9 @@ const LandingPage: React.FC = () => {
                     <IconGlobe className="w-7 h-7" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Contenido bilingüe</h3>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                      Contenido bilingüe
+                    </h3>
                     <p className="text-gray-600 dark:text-gray-400">
                       Contenido bilingüe integral accesible tanto en español como en inglés.
                     </p>
@@ -225,7 +247,9 @@ const LandingPage: React.FC = () => {
 
                         <div className="absolute bottom-0 left-0 p-3 bg-gray-800/90 backdrop-blur rounded-lg border border-gray-600 shadow-xl animate-float animation-delay-2000">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-green-500/20 border border-green-500/50 flex items-center justify-center text-[10px] text-green-400">✓</div>
+                            <div className="w-6 h-6 rounded-full bg-green-500/20 border border-green-500/50 flex items-center justify-center text-[10px] text-green-400">
+                              ✓
+                            </div>
                             <div className="w-16 h-2 bg-gray-500 rounded"></div>
                           </div>
                         </div>
@@ -267,7 +291,8 @@ const LandingPage: React.FC = () => {
                 </div>
                 <h3 className="text-2xl font-bold mb-4 text-white">IA Generativa</h3>
                 <p className="text-gray-300 leading-relaxed">
-                  Creación automática de recursos y personalización dinámica para nuestra plataforma.
+                  Creación automática de recursos y personalización dinámica para nuestra
+                  plataforma.
                 </p>
               </div>
             </div>
@@ -281,7 +306,8 @@ const LandingPage: React.FC = () => {
                 </div>
                 <h3 className="text-2xl font-bold mb-4 text-white">Analítica Predictiva</h3>
                 <p className="text-gray-300 leading-relaxed">
-                  Identificación temprana de riesgos y acompañamiento a través de recomendaciones predictivas.
+                  Identificación temprana de riesgos y acompañamiento a través de recomendaciones
+                  predictivas.
                 </p>
               </div>
             </div>
@@ -295,7 +321,8 @@ const LandingPage: React.FC = () => {
                 </div>
                 <h3 className="text-2xl font-bold mb-4 text-white">Adaptabilidad</h3>
                 <p className="text-gray-300 leading-relaxed">
-                  Evolución del perfil cognitivo y adaptación de temas con un tutor tecnológico avanzado.
+                  Evolución del perfil cognitivo y adaptación de temas con un tutor tecnológico
+                  avanzado.
                 </p>
               </div>
             </div>
@@ -307,7 +334,9 @@ const LandingPage: React.FC = () => {
       <section className="py-24 bg-white dark:bg-gray-950 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Modelo de Negocio</h2>
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              Modelo de Negocio
+            </h2>
             <div className="h-1 w-20 bg-blue-600 mx-auto rounded-full"></div>
           </div>
 
@@ -317,7 +346,9 @@ const LandingPage: React.FC = () => {
               <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/40 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                 <IconBuilding className="w-7 h-7" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">B2B (Escuelas)</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                B2B (Escuelas)
+              </h3>
               <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                 Venta de licencias de software anuales de suscripción para instituciones educativas.
               </p>
@@ -327,9 +358,12 @@ const LandingPage: React.FC = () => {
               <div className="w-14 h-14 bg-purple-50 dark:bg-purple-900/40 rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400 mb-6 group-hover:bg-purple-600 group-hover:text-white transition-colors">
                 <IconGlobe className="w-7 h-7" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">B2G (Sector Público)</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                B2G (Sector Público)
+              </h3>
               <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                Grandes licencias institucionales para entidades gubernamentales y educación pública.
+                Grandes licencias institucionales para entidades gubernamentales y educación
+                pública.
               </p>
             </div>
             {/* B2C */}
@@ -339,7 +373,8 @@ const LandingPage: React.FC = () => {
               </div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">B2C (Padres)</h3>
               <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                Venta directa a representantes para el refuerzo escolar y autogestión del aprendizaje.
+                Venta directa a representantes para el refuerzo escolar y autogestión del
+                aprendizaje.
               </p>
             </div>
           </div>
@@ -350,7 +385,9 @@ const LandingPage: React.FC = () => {
       <section className="py-24 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Impacto Social</h2>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              Impacto Social
+            </h2>
             <p className="text-lg text-gray-600 dark:text-gray-400 font-light">
               El impacto esperado en el ecosistema educativo de Paraguay.
             </p>
@@ -362,8 +399,12 @@ const LandingPage: React.FC = () => {
                 <IconBookOpen className="w-8 h-8" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Alfabetización</h3>
-                <p className="text-gray-600 dark:text-gray-400">Mejora promovida del 50% en habilidades visuales y de lectura.</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                  Alfabetización
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Mejora promovida del 50% en habilidades visuales y de lectura.
+                </p>
               </div>
             </div>
             <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl flex items-center gap-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
@@ -371,8 +412,12 @@ const LandingPage: React.FC = () => {
                 <IconTrendingUp className="w-8 h-8" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Mejora Lógica</h3>
-                <p className="text-gray-600 dark:text-gray-400">Incremento del 20% en lógica matemática y habilidades remediables.</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                  Mejora Lógica
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Incremento del 20% en lógica matemática y habilidades remediables.
+                </p>
               </div>
             </div>
           </div>
@@ -391,7 +436,9 @@ const LandingPage: React.FC = () => {
                 <span className="text-2xl font-bold tracking-tight">EduSpark-AI</span>
               </Link>
               <p className="text-gray-400 text-sm leading-relaxed mb-6 max-w-sm">
-                Plataforma Elearning con Inteligencia Artificial pensada en instituciones, docentes y estudiantes que necesitan una retroalimentación dinámica para alcanzar con mayor eficiencia las metas académicas.
+                Plataforma Elearning con Inteligencia Artificial pensada en instituciones, docentes
+                y estudiantes que necesitan una retroalimentación dinámica para alcanzar con mayor
+                eficiencia las metas académicas.
               </p>
               <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-900/30 border border-blue-800 text-blue-300 text-xs font-medium">
                 <span className="w-2 h-2 rounded-full bg-blue-400 mr-2 animate-pulse"></span>
@@ -402,10 +449,38 @@ const LandingPage: React.FC = () => {
             <div>
               <h3 className="text-lg font-bold mb-6 text-white tracking-wide">Enlaces</h3>
               <ul className="space-y-3 text-sm">
-                <li><Link to="/login" className="text-gray-400 hover:text-white hover:translate-x-1 transition-all inline-block">Iniciar Sesión</Link></li>
-                <li><Link to="/register" className="text-gray-400 hover:text-white hover:translate-x-1 transition-all inline-block">Regístrate</Link></li>
-                <li><Link to="/privacy" className="text-gray-400 hover:text-white hover:translate-x-1 transition-all inline-block">Política de Privacidad</Link></li>
-                <li><Link to="/terms" className="text-gray-400 hover:text-white hover:translate-x-1 transition-all inline-block">Términos y Condiciones</Link></li>
+                <li>
+                  <Link
+                    to="/login"
+                    className="text-gray-400 hover:text-white hover:translate-x-1 transition-all inline-block"
+                  >
+                    Iniciar Sesión
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/register"
+                    className="text-gray-400 hover:text-white hover:translate-x-1 transition-all inline-block"
+                  >
+                    Regístrate
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/privacy"
+                    className="text-gray-400 hover:text-white hover:translate-x-1 transition-all inline-block"
+                  >
+                    Política de Privacidad
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/terms"
+                    className="text-gray-400 hover:text-white hover:translate-x-1 transition-all inline-block"
+                  >
+                    Términos y Condiciones
+                  </Link>
+                </li>
               </ul>
             </div>
 
@@ -416,13 +491,20 @@ const LandingPage: React.FC = () => {
                   <span className="w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center mr-3 text-gray-500">
                     @
                   </span>
-                  <a href="mailto:albertovillalba@gmail.com" className="hover:text-white transition-colors">albertovillalba@gmail.com</a>
+                  <a
+                    href="mailto:albertovillalba@gmail.com"
+                    className="hover:text-white transition-colors"
+                  >
+                    albertovillalba@gmail.com
+                  </a>
                 </li>
                 <li className="flex items-center">
                   <span className="w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center mr-3 text-gray-500">
                     #
                   </span>
-                  <a href="tel:+595981226970" className="hover:text-white transition-colors">+595 981 226970</a>
+                  <a href="tel:+595981226970" className="hover:text-white transition-colors">
+                    +595 981 226970
+                  </a>
                 </li>
                 <li className="flex items-center">
                   <span className="w-6 h-6 rounded-full bg-green-900/30 flex items-center justify-center mr-3 text-green-500">

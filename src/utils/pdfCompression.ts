@@ -17,10 +17,7 @@ export interface CompressionResult {
  * @param maxSizeMB Tamaño máximo deseado en MB (por defecto 10MB)
  * @returns Archivo PDF comprimido
  */
-export async function compressPDF(
-  file: File,
-  maxSizeMB: number = 10
-): Promise<CompressionResult> {
+export async function compressPDF(file: File, maxSizeMB: number = 10): Promise<CompressionResult> {
   const originalSize = file.size;
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
 
@@ -63,11 +60,7 @@ export async function compressPDF(
     });
 
     // Crear nuevo File con el PDF optimizado
-    const compressedFile = new File(
-      [pdfBytes],
-      file.name,
-      { type: 'application/pdf' }
-    );
+    const compressedFile = new File([pdfBytes], file.name, { type: 'application/pdf' });
 
     const compressedSize = compressedFile.size;
     const compressionRatio = compressedSize / originalSize;
@@ -119,4 +112,3 @@ export function shouldCompressPDF(file: File, thresholdMB: number = 5): boolean 
   const sizeMB = file.size / 1024 / 1024;
   return sizeMB > thresholdMB;
 }
-

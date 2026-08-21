@@ -4,7 +4,19 @@ import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
 import Breadcrumbs from '@/components/Common/Breadcrumbs';
 import FilterBar from '@/components/Features/FilterBar';
-import { IconClipboardList, IconPlusCircle, IconX, IconUpload, IconFileText, IconCheckCircle, IconClock, IconArrowLeft, IconBookOpen, IconCalendar, IconDownload } from '@/components/Common/Icons';
+import {
+  IconClipboardList,
+  IconPlusCircle,
+  IconX,
+  IconUpload,
+  IconFileText,
+  IconCheckCircle,
+  IconClock,
+  IconArrowLeft,
+  IconBookOpen,
+  IconCalendar,
+  IconDownload,
+} from '@/components/Common/Icons';
 import { useAuth } from '@/hooks/useAuth';
 import { assignmentService, Assignment, AssignmentSubmission } from '@/services/assignments';
 import { submissionService } from '@/services/assignments';
@@ -25,7 +37,6 @@ interface AssignmentWithSubmission extends Assignment {
 }
 
 import { RichTextDisplay } from '@/components/Common/RichTextDisplay';
-
 
 // Función para generar y descargar documento Word
 const downloadAssignmentAsWord = (assignment: AssignmentWithSubmission) => {
@@ -118,14 +129,21 @@ const downloadAssignmentAsWord = (assignment: AssignmentWithSubmission) => {
         <p><span class="info-label">Puntaje Máximo:</span> ${assignment.max_points} puntos</p>
       </div>
       
-      ${assignment.description ? `
+      ${
+        assignment.description
+          ? `
         <h2>Descripción de la Tarea</h2>
         <div>
           ${assignment.description
-        .replace(/\$([^$]+)\$/g, '<span class="math">$1</span>')
-        .replace(/\$\$([^$]+)\$\$/g, '<div class="math" style="display: block; margin: 6pt 0; padding: 4pt;">$1</div>')}
+            .replace(/\$([^$]+)\$/g, '<span class="math">$1</span>')
+            .replace(
+              /\$\$([^$]+)\$\$/g,
+              '<div class="math" style="display: block; margin: 6pt 0; padding: 4pt;">$1</div>'
+            )}
         </div>
-      ` : ''}
+      `
+          : ''
+      }
       
       <div style="margin-top: 24pt; page-break-before: always;">
         <h2>Espacio para Respuestas</h2>
@@ -144,7 +162,7 @@ const downloadAssignmentAsWord = (assignment: AssignmentWithSubmission) => {
 
   // Crear blob y descargar
   const blob = new Blob(['\ufeff', htmlContent], {
-    type: 'application/msword'
+    type: 'application/msword',
   });
 
   const url = URL.createObjectURL(blob);
@@ -158,9 +176,9 @@ const downloadAssignmentAsWord = (assignment: AssignmentWithSubmission) => {
 };
 
 const AssignmentDetailModal: React.FC<{
-  assignment: AssignmentWithSubmission,
-  onClose: () => void,
-  onSubmit: (assignmentId: string, url?: string, text?: string) => Promise<void>
+  assignment: AssignmentWithSubmission;
+  onClose: () => void;
+  onSubmit: (assignmentId: string, url?: string, text?: string) => Promise<void>;
 }> = ({ assignment, onClose, onSubmit }) => {
   const { user } = useAuth();
   const [submissionUrl, setSubmissionUrl] = useState(assignment.submission?.url || '');
@@ -168,7 +186,9 @@ const AssignmentDetailModal: React.FC<{
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasDriveConnected, setHasDriveConnected] = useState(false);
   const [checkingDrive, setCheckingDrive] = useState(true);
-  const [uploadedFiles, setUploadedFiles] = useState<Array<{ name: string; url: string; size?: number }>>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<
+    Array<{ name: string; url: string; size?: number }>
+  >([]);
   const [uploadingFile, setUploadingFile] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -229,16 +249,16 @@ const AssignmentDetailModal: React.FC<{
     try {
       const file = files[0];
       const result = await uploadCourseDocument(assignment.course_id.toString(), file, {
-        folder: 'submissions'
+        folder: 'submissions',
       });
 
       if (result.success && result.url) {
         const newFile = {
           name: file.name,
           url: result.url,
-          size: file.size
+          size: file.size,
         };
-        setUploadedFiles(prev => [...prev, newFile]);
+        setUploadedFiles((prev) => [...prev, newFile]);
         // Si no hay URL de entrega, usar la primera URL de archivo subido
         if (!submissionUrl) {
           setSubmissionUrl(result.url);
@@ -260,24 +280,44 @@ const AssignmentDetailModal: React.FC<{
 
   const handleRemoveFile = (index: number) => {
     const removedFile = uploadedFiles[index];
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
     // Si la URL de entrega es la del archivo eliminado, limpiarla
     if (submissionUrl === removedFile.url) {
-      setSubmissionUrl(uploadedFiles.length > 1 ? uploadedFiles.find((_, i) => i !== index)?.url || '' : '');
+      setSubmissionUrl(
+        uploadedFiles.length > 1 ? uploadedFiles.find((_, i) => i !== index)?.url || '' : ''
+      );
     }
   };
 
   const getStatusChip = (status?: 'pending' | 'submitted' | 'graded' | 'late') => {
     switch (status) {
       case 'graded':
-        return <span className="flex items-center text-xs font-medium bg-green-100 text-green-700 px-2 py-0.5 rounded-full"><IconCheckCircle className="w-3 h-3 mr-1" /> Calificado</span>;
+        return (
+          <span className="flex items-center text-xs font-medium bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+            <IconCheckCircle className="w-3 h-3 mr-1" /> Calificado
+          </span>
+        );
       case 'submitted':
-        return <span className="flex items-center text-xs font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full"><IconCheckCircle className="w-3 h-3 mr-1" /> Entregado</span>;
+        return (
+          <span className="flex items-center text-xs font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+            <IconCheckCircle className="w-3 h-3 mr-1" /> Entregado
+          </span>
+        );
       case 'pending':
       case 'late':
-        return <span className={`flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${status === 'late' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}><IconClock className="w-3 h-3 mr-1" /> {status === 'late' ? 'Tarde' : 'Pendiente'}</span>;
+        return (
+          <span
+            className={`flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${status === 'late' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}
+          >
+            <IconClock className="w-3 h-3 mr-1" /> {status === 'late' ? 'Tarde' : 'Pendiente'}
+          </span>
+        );
       default:
-        return <span className="flex items-center text-xs font-medium bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">Sin entregar</span>;
+        return (
+          <span className="flex items-center text-xs font-medium bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
+            Sin entregar
+          </span>
+        );
     }
   };
 
@@ -301,11 +341,19 @@ const AssignmentDetailModal: React.FC<{
     }
   };
 
-  const dueDate = assignment.due_at ? new Date(assignment.due_at).toLocaleDateString('es-ES', { dateStyle: 'long' }) : 'Sin fecha límite';
-  const statusText = assignment.submissionStatus === 'graded' ? 'Calificado' :
-    assignment.submissionStatus === 'submitted' ? 'Entregado' :
-      assignment.submissionStatus === 'late' ? 'Vencida' :
-        assignment.submissionStatus === 'pending' ? 'Pendiente' : 'Sin entregar';
+  const dueDate = assignment.due_at
+    ? new Date(assignment.due_at).toLocaleDateString('es-ES', { dateStyle: 'long' })
+    : 'Sin fecha límite';
+  const statusText =
+    assignment.submissionStatus === 'graded'
+      ? 'Calificado'
+      : assignment.submissionStatus === 'submitted'
+        ? 'Entregado'
+        : assignment.submissionStatus === 'late'
+          ? 'Vencida'
+          : assignment.submissionStatus === 'pending'
+            ? 'Pendiente'
+            : 'Sin entregar';
 
   return (
     <div
@@ -321,21 +369,17 @@ const AssignmentDetailModal: React.FC<{
       >
         <header className="p-4 border-b border-border flex justify-between items-center">
           <div className="flex-1">
-            <h2 id="assignment-title" className="text-xl font-bold text-text-dark">{assignment.title}</h2>
+            <h2 id="assignment-title" className="text-xl font-bold text-text-dark">
+              {assignment.title}
+            </h2>
             {assignment.course && (
-              <p className="text-sm text-text-light mt-1">
-                Curso: {assignment.course.title}
-              </p>
+              <p className="text-sm text-text-light mt-1">Curso: {assignment.course.title}</p>
             )}
             {assignment.unit && (
-              <p className="text-sm text-text-light">
-                Módulo: {assignment.unit.title}
-              </p>
+              <p className="text-sm text-text-light">Módulo: {assignment.unit.title}</p>
             )}
             {assignment.session && (
-              <p className="text-sm text-text-light">
-                Sesión: {assignment.session.title}
-              </p>
+              <p className="text-sm text-text-light">Sesión: {assignment.session.title}</p>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -348,7 +392,13 @@ const AssignmentDetailModal: React.FC<{
             >
               Descargar
             </Button>
-            <Button variant="ghost" size="sm" className="!p-2 text-text-light" onClick={onClose} aria-label="Cerrar modal">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="!p-2 text-text-light"
+              onClick={onClose}
+              aria-label="Cerrar modal"
+            >
               <IconX className="w-5 h-5" />
             </Button>
           </div>
@@ -362,11 +412,12 @@ const AssignmentDetailModal: React.FC<{
             </div>
             <div className="text-right">
               {getStatusChip(assignment.submissionStatus)}
-              {assignment.submission?.grade !== null && assignment.submission?.grade !== undefined && (
-                <p className="text-sm font-semibold text-text-dark mt-1">
-                  Calificación: {assignment.submission.grade} / {assignment.max_points}
-                </p>
-              )}
+              {assignment.submission?.grade !== null &&
+                assignment.submission?.grade !== undefined && (
+                  <p className="text-sm font-semibold text-text-dark mt-1">
+                    Calificación: {assignment.submission.grade} / {assignment.max_points}
+                  </p>
+                )}
             </div>
           </div>
 
@@ -387,7 +438,8 @@ const AssignmentDetailModal: React.FC<{
                   [&_a]:text-primary [&_a]:underline [&_a]:hover:text-primary-dark
                   [&_blockquote]:border-l-4 [&_blockquote]:border-border [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-3
                   [&_code]:bg-background [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono [&_code]:border [&_code]:border-border
-                  [&_pre]:bg-background [&_pre]:p-3 [&_pre]:rounded [&_pre]:overflow-x-auto [&_pre]:my-3 [&_pre]:border [&_pre]:border-border">
+                  [&_pre]:bg-background [&_pre]:p-3 [&_pre]:rounded [&_pre]:overflow-x-auto [&_pre]:my-3 [&_pre]:border [&_pre]:border-border"
+              >
                 <RichTextDisplay content={assignment.description} />
               </div>
             </div>
@@ -415,18 +467,24 @@ const AssignmentDetailModal: React.FC<{
                     />
                     <label
                       htmlFor="file-upload-submission"
-                      className={`flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${uploadingFile
-                        ? 'border-border bg-background cursor-not-allowed'
-                        : 'border-border hover:border-primary hover:bg-primary/5'
-                        }`}
+                      className={`flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                        uploadingFile
+                          ? 'border-border bg-background cursor-not-allowed'
+                          : 'border-border hover:border-primary hover:bg-primary/5'
+                      }`}
                     >
-                      <IconUpload className={`w-5 h-5 ${uploadingFile ? 'text-text-light' : 'text-text-light'}`} />
-                      <span className={`text-sm font-medium ${uploadingFile ? 'text-text-light' : 'text-text-dark'}`}>
+                      <IconUpload
+                        className={`w-5 h-5 ${uploadingFile ? 'text-text-light' : 'text-text-light'}`}
+                      />
+                      <span
+                        className={`text-sm font-medium ${uploadingFile ? 'text-text-light' : 'text-text-dark'}`}
+                      >
                         {uploadingFile ? 'Subiendo archivo...' : 'Seleccionar archivo para subir'}
                       </span>
                     </label>
                     <p className="mt-1 text-xs text-text-light">
-                      Formatos permitidos: PDF, Word, Excel, PowerPoint, texto, archivos comprimidos. Tamaño máximo: 35MB
+                      Formatos permitidos: PDF, Word, Excel, PowerPoint, texto, archivos
+                      comprimidos. Tamaño máximo: 35MB
                     </p>
                   </div>
 
@@ -441,7 +499,9 @@ const AssignmentDetailModal: React.FC<{
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <IconFileText className="w-5 h-5 text-text-light flex-shrink-0" />
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-text-dark truncate">{file.name}</p>
+                              <p className="text-sm font-medium text-text-dark truncate">
+                                {file.name}
+                              </p>
                               {file.size && (
                                 <p className="text-xs text-text-light">
                                   {(file.size / 1024).toFixed(2)} KB
@@ -475,7 +535,10 @@ const AssignmentDetailModal: React.FC<{
 
                 {/* URL alternativa */}
                 <div>
-                  <label htmlFor="submission-url" className="block text-sm font-medium text-text-dark mb-1">
+                  <label
+                    htmlFor="submission-url"
+                    className="block text-sm font-medium text-text-dark mb-1"
+                  >
                     URL (Google Drive, Dropbox, etc.) - Opcional
                   </label>
                   <div className="flex gap-2">
@@ -505,15 +568,18 @@ const AssignmentDetailModal: React.FC<{
                     <p className="mt-1 text-xs text-gray-500">
                       <Link to="/profile" className="text-primary hover:underline">
                         Conecta Google Drive
-                      </Link>
-                      {' '}para seleccionar archivos directamente
+                      </Link>{' '}
+                      para seleccionar archivos directamente
                     </p>
                   )}
                 </div>
 
                 {/* Texto de entrega */}
                 <div>
-                  <label htmlFor="submission-text" className="block text-sm font-medium text-text-dark mb-1">
+                  <label
+                    htmlFor="submission-text"
+                    className="block text-sm font-medium text-text-dark mb-1"
+                  >
                     Texto de la entrega (Opcional)
                   </label>
                   <textarea
@@ -548,14 +614,18 @@ const AssignmentDetailModal: React.FC<{
                           >
                             Ver entrega
                           </a>
-                          <p className="text-xs text-text-light">Entregado: {formatDate(assignment.submission.submitted_at)}</p>
+                          <p className="text-xs text-text-light">
+                            Entregado: {formatDate(assignment.submission.submitted_at)}
+                          </p>
                         </div>
                       </>
                     )}
                     {assignment.submission.text && !assignment.submission.url && (
                       <div>
                         <p className="text-sm font-medium text-text-dark">Entrega de texto</p>
-                        <p className="text-xs text-text-light">Entregado: {formatDate(assignment.submission.submitted_at)}</p>
+                        <p className="text-xs text-text-light">
+                          Entregado: {formatDate(assignment.submission.submitted_at)}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -563,13 +633,17 @@ const AssignmentDetailModal: React.FC<{
                 </div>
                 {assignment.submission.text && (
                   <div className="mt-3 p-3 bg-surface rounded border border-border">
-                    <p className="text-sm text-text-dark whitespace-pre-wrap">{assignment.submission.text}</p>
+                    <p className="text-sm text-text-dark whitespace-pre-wrap">
+                      {assignment.submission.text}
+                    </p>
                   </div>
                 )}
                 {assignment.submission.feedback && (
                   <div className="mt-3 pl-3 border-l-2 border-primary/20">
                     <p className="text-xs font-semibold text-text-dark">Feedback del Profesor:</p>
-                    <blockquote className="text-xs text-text-light italic mt-1">"{assignment.submission.feedback}"</blockquote>
+                    <blockquote className="text-xs text-text-light italic mt-1">
+                      "{assignment.submission.feedback}"
+                    </blockquote>
                   </div>
                 )}
               </div>
@@ -578,7 +652,9 @@ const AssignmentDetailModal: React.FC<{
         </main>
 
         <footer className="p-4 border-t border-border flex justify-end items-center gap-3 bg-background/50 rounded-b-lg">
-          <Button variant="secondary" onClick={onClose}>Cerrar</Button>
+          <Button variant="secondary" onClick={onClose}>
+            Cerrar
+          </Button>
           {user?.role?.name === 'student' && (
             <Button
               variant="primary"
@@ -586,7 +662,11 @@ const AssignmentDetailModal: React.FC<{
               onClick={handleSubmit}
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Guardando...' : assignment.submission ? 'Actualizar Entrega' : 'Entregar Tarea'}
+              {isSubmitting
+                ? 'Guardando...'
+                : assignment.submission
+                  ? 'Actualizar Entrega'
+                  : 'Entregar Tarea'}
             </Button>
           )}
         </footer>
@@ -594,7 +674,6 @@ const AssignmentDetailModal: React.FC<{
     </div>
   );
 };
-
 
 const AssignmentsPage: React.FC = () => {
   const { user } = useAuth();
@@ -607,7 +686,9 @@ const AssignmentsPage: React.FC = () => {
   const [units, setUnits] = useState<CourseUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedAssignment, setSelectedAssignment] = useState<AssignmentWithSubmission | null>(null);
+  const [selectedAssignment, setSelectedAssignment] = useState<AssignmentWithSubmission | null>(
+    null
+  );
 
   // Estados de filtros
   const [searchQuery, setSearchQuery] = useState('');
@@ -635,7 +716,7 @@ const AssignmentsPage: React.FC = () => {
         try {
           const [courseData, unitsData] = await Promise.all([
             courseService.getCourse(courseId),
-            unitService.getCourseUnits(courseId).catch(() => [])
+            unitService.getCourseUnits(courseId).catch(() => []),
           ]);
           setCourse(courseData);
           setUnits(unitsData);
@@ -645,7 +726,12 @@ const AssignmentsPage: React.FC = () => {
       }
 
       // Cargar assignments
-      console.log('🔵 AssignmentsPage - Cargando assignments para estudiante:', user.id, 'curso:', courseId);
+      console.log(
+        '🔵 AssignmentsPage - Cargando assignments para estudiante:',
+        user.id,
+        'curso:',
+        courseId
+      );
       const assignmentsData = await assignmentService.getStudentAssignments(user.id, courseId);
       console.log('🔵 AssignmentsPage - Assignments obtenidos:', assignmentsData.length);
 
@@ -654,7 +740,7 @@ const AssignmentsPage: React.FC = () => {
         assignmentsData.map(async (assignment) => {
           const [courseData, submissionData] = await Promise.all([
             courseService.getCourse(assignment.course_id).catch(() => null),
-            submissionService.getStudentSubmission(assignment.id, user.id).catch(() => null)
+            submissionService.getStudentSubmission(assignment.id, user.id).catch(() => null),
           ]);
 
           let unitData: CourseUnit | undefined;
@@ -664,7 +750,7 @@ const AssignmentsPage: React.FC = () => {
             try {
               // Obtener todas las unidades del curso y buscar la específica
               const units = await unitService.getCourseUnits(courseData.id);
-              unitData = units.find(u => u.id === assignment.unit_id);
+              unitData = units.find((u) => u.id === assignment.unit_id);
             } catch (err) {
               console.error('Error loading unit:', err);
             }
@@ -704,7 +790,7 @@ const AssignmentsPage: React.FC = () => {
             submissionStatus,
             course: courseData || undefined,
             unit: unitData,
-            session: sessionData
+            session: sessionData,
           };
         })
       );
@@ -725,7 +811,7 @@ const AssignmentsPage: React.FC = () => {
           if (!enrollments || enrollments.length === 0) {
             setError('No estás inscrito en ningún curso. Contacta a tu profesor para inscribirte.');
           } else {
-            const activeEnrollments = enrollments.filter(e => e.status === 'active');
+            const activeEnrollments = enrollments.filter((e) => e.status === 'active');
             if (activeEnrollments.length === 0) {
               setError('No tienes inscripciones activas en ningún curso.');
             } else {
@@ -738,7 +824,9 @@ const AssignmentsPage: React.FC = () => {
       }
     } catch (err: any) {
       console.error('🔴 AssignmentsPage - Error loading assignments:', err);
-      setError(err.message || 'Error al cargar las tareas. Verifica tu conexión y vuelve a intentar.');
+      setError(
+        err.message || 'Error al cargar las tareas. Verifica tu conexión y vuelve a intentar.'
+      );
     } finally {
       setLoading(false);
     }
@@ -749,14 +837,17 @@ const AssignmentsPage: React.FC = () => {
 
     try {
       // Verificar si ya existe una entrega
-      const existingSubmission = await submissionService.getStudentSubmission(assignmentId, user.id);
+      const existingSubmission = await submissionService.getStudentSubmission(
+        assignmentId,
+        user.id
+      );
 
       if (existingSubmission) {
         // Actualizar entrega existente
         await submissionService.updateSubmission(existingSubmission.id, {
           url,
           text,
-          submitted_at: new Date().toISOString()
+          submitted_at: new Date().toISOString(),
         });
       } else {
         // Crear nueva entrega
@@ -764,7 +855,7 @@ const AssignmentsPage: React.FC = () => {
           assignment_id: assignmentId,
           student_id: user.id,
           url,
-          text
+          text,
         });
       }
 
@@ -807,9 +898,7 @@ const AssignmentsPage: React.FC = () => {
         <div className="text-center py-8">
           <h2 className="text-xl font-semibold text-red-600 mb-4">Error</h2>
           <p className="text-gray-600 mb-4">{error}</p>
-          <Button onClick={loadAssignments}>
-            Reintentar
-          </Button>
+          <Button onClick={loadAssignments}>Reintentar</Button>
         </div>
       </div>
     );
@@ -824,16 +913,11 @@ const AssignmentsPage: React.FC = () => {
             { label: 'Dashboard', path: '/dashboard' },
             { label: 'Mis Cursos', path: '/my/courses' },
             { label: course.title, path: `/courses/${course.id}` },
-            { label: 'Tareas' }
+            { label: 'Tareas' },
           ]}
         />
       ) : (
-        <Breadcrumbs
-          items={[
-            { label: 'Dashboard', path: '/dashboard' },
-            { label: 'Tareas' }
-          ]}
-        />
+        <Breadcrumbs items={[{ label: 'Dashboard', path: '/dashboard' }, { label: 'Tareas' }]} />
       )}
 
       {/* Header con información del curso */}
@@ -849,7 +933,10 @@ const AssignmentsPage: React.FC = () => {
           </Button>
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-text-dark">{course.title}</h1>
-            <p className="text-text-light">Tareas del curso • {assignments.length} {assignments.length === 1 ? 'tarea' : 'tareas'}</p>
+            <p className="text-text-light">
+              Tareas del curso • {assignments.length}{' '}
+              {assignments.length === 1 ? 'tarea' : 'tareas'}
+            </p>
           </div>
         </div>
       )}
@@ -884,21 +971,28 @@ const AssignmentsPage: React.FC = () => {
               { value: 'pending', label: 'Pendientes' },
               { value: 'submitted', label: 'Entregadas' },
               { value: 'graded', label: 'Calificadas' },
-              { value: 'late', label: 'Vencidas' }
+              { value: 'late', label: 'Vencidas' },
             ],
             value: statusFilter,
-            onChange: setStatusFilter
+            onChange: setStatusFilter,
           },
-          ...(course && units.length > 0 ? [{
-            key: 'module',
-            label: 'Módulo',
-            options: [
-              { value: '', label: 'Todos' },
-              ...units.map(unit => ({ value: unit.id, label: `Módulo ${unit.number}: ${unit.title}` }))
-            ],
-            value: moduleFilter,
-            onChange: setModuleFilter
-          }] : []),
+          ...(course && units.length > 0
+            ? [
+                {
+                  key: 'module',
+                  label: 'Módulo',
+                  options: [
+                    { value: '', label: 'Todos' },
+                    ...units.map((unit) => ({
+                      value: unit.id,
+                      label: `Módulo ${unit.number}: ${unit.title}`,
+                    })),
+                  ],
+                  value: moduleFilter,
+                  onChange: setModuleFilter,
+                },
+              ]
+            : []),
           {
             key: 'date',
             label: 'Fecha',
@@ -908,11 +1002,11 @@ const AssignmentsPage: React.FC = () => {
               { value: 'week', label: 'Esta semana' },
               { value: 'month', label: 'Este mes' },
               { value: 'overdue', label: 'Vencidas' },
-              { value: 'upcoming', label: 'Próximas' }
+              { value: 'upcoming', label: 'Próximas' },
             ],
             value: dateFilter,
-            onChange: setDateFilter
-          }
+            onChange: setDateFilter,
+          },
         ]}
         onClearFilters={() => {
           setSearchQuery('');
@@ -930,21 +1024,22 @@ const AssignmentsPage: React.FC = () => {
         // Filtro de búsqueda
         if (searchQuery.trim()) {
           const query = searchQuery.toLowerCase();
-          filtered = filtered.filter(a =>
-            a.title.toLowerCase().includes(query) ||
-            a.description?.toLowerCase().includes(query) ||
-            a.course?.title.toLowerCase().includes(query)
+          filtered = filtered.filter(
+            (a) =>
+              a.title.toLowerCase().includes(query) ||
+              a.description?.toLowerCase().includes(query) ||
+              a.course?.title.toLowerCase().includes(query)
           );
         }
 
         // Filtro por estado
         if (statusFilter) {
-          filtered = filtered.filter(a => a.submissionStatus === statusFilter);
+          filtered = filtered.filter((a) => a.submissionStatus === statusFilter);
         }
 
         // Filtro por módulo
         if (moduleFilter) {
-          filtered = filtered.filter(a => a.unit?.id === moduleFilter);
+          filtered = filtered.filter((a) => a.unit?.id === moduleFilter);
         }
 
         // Filtro por fecha
@@ -954,10 +1049,14 @@ const AssignmentsPage: React.FC = () => {
           const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
           const monthFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-          filtered = filtered.filter(a => {
+          filtered = filtered.filter((a) => {
             if (!a.due_at) return dateFilter === 'upcoming'; // Sin fecha = próximas
             const dueDate = new Date(a.due_at);
-            const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+            const dueDateOnly = new Date(
+              dueDate.getFullYear(),
+              dueDate.getMonth(),
+              dueDate.getDate()
+            );
 
             switch (dateFilter) {
               case 'today':
@@ -1002,7 +1101,7 @@ const AssignmentsPage: React.FC = () => {
               </div>
             )}
             <div className="grid md:grid-cols-2 gap-6">
-              {filtered.map(assignment => (
+              {filtered.map((assignment) => (
                 <Card
                   key={assignment.id}
                   className="hover:shadow-md transition-shadow cursor-pointer"
@@ -1017,7 +1116,9 @@ const AssignmentsPage: React.FC = () => {
                           <p className="text-sm text-text-light mt-1">{assignment.course.title}</p>
                         )}
                         {assignment.unit && (
-                          <p className="text-xs text-text-light/70 mt-1">Módulo: {assignment.unit.title}</p>
+                          <p className="text-xs text-text-light/70 mt-1">
+                            Módulo: {assignment.unit.title}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -1041,17 +1142,18 @@ const AssignmentsPage: React.FC = () => {
                           __html: assignment.description
                             .replace(/<[^>]*>/g, '') // Remover tags HTML para preview
                             .replace(/\$[^$]*\$/g, '') // Remover expresiones LaTeX para preview
-                            .substring(0, 150) // Limitar longitud
+                            .substring(0, 150), // Limitar longitud
                         }}
                       />
                     )}
 
                     <div className="flex items-center justify-between mt-3">
-                      {assignment.submissionStatus === 'graded' && assignment.submission?.grade !== null && (
-                        <span className="text-sm font-semibold text-green-600">
-                          Calificación: {assignment.submission.grade} / {assignment.max_points}
-                        </span>
-                      )}
+                      {assignment.submissionStatus === 'graded' &&
+                        assignment.submission?.grade !== null && (
+                          <span className="text-sm font-semibold text-green-600">
+                            Calificación: {assignment.submission.grade} / {assignment.max_points}
+                          </span>
+                        )}
                       {assignment.submissionStatus === 'submitted' && (
                         <span className="flex items-center text-sm text-blue-600">
                           <IconCheckCircle className="w-4 h-4 mr-1" />
@@ -1070,9 +1172,7 @@ const AssignmentsPage: React.FC = () => {
                           Pendiente
                         </span>
                       )}
-                      <span className="text-primary font-medium text-sm">
-                        Ver Detalles →
-                      </span>
+                      <span className="text-primary font-medium text-sm">Ver Detalles →</span>
                     </div>
                   </div>
                 </Card>

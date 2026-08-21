@@ -59,7 +59,7 @@ const CareersPage: React.FC = () => {
 
       // Si es admin-campus, filtrar por institución
       if (isAdminCampus && institution) {
-        data = data.filter(career => (career as any).institution_id === institution.id);
+        data = data.filter((career) => (career as any).institution_id === institution.id);
       }
 
       setCareers(data);
@@ -78,10 +78,10 @@ const CareersPage: React.FC = () => {
       // Cargar materias de la carrera
       const allSubjects = await subjectService.getAllSubjects();
       // Filtrar por carrera (idealmente el servicio debería tener getByCareer, pero filtramos aquí por ahora)
-      const filtered = allSubjects.filter(s => s.career_id === career.id);
+      const filtered = allSubjects.filter((s) => s.career_id === career.id);
       setCurriculumSubjects(filtered);
     } catch (err) {
-      console.error("Error cargando malla:", err);
+      console.error('Error cargando malla:', err);
       // Fallback
       setCurriculumSubjects([]);
     } finally {
@@ -126,7 +126,12 @@ const CareersPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Carreras</h1>
           <p className="text-gray-600 dark:text-gray-400">Administra los programas académicos</p>
         </div>
-        <Button onClick={() => { setEditingCareer(null); setShowForm(true); }}>
+        <Button
+          onClick={() => {
+            setEditingCareer(null);
+            setShowForm(true);
+          }}
+        >
           <span className="mr-2">+</span>
           Nueva Carrera
         </Button>
@@ -145,8 +150,15 @@ const CareersPage: React.FC = () => {
       {showForm && (
         <CareerForm
           career={editingCareer}
-          onClose={() => { setShowForm(false); setEditingCareer(null); }}
-          onSuccess={() => { setShowForm(false); setEditingCareer(null); loadCareers(); }}
+          onClose={() => {
+            setShowForm(false);
+            setEditingCareer(null);
+          }}
+          onSuccess={() => {
+            setShowForm(false);
+            setEditingCareer(null);
+            loadCareers();
+          }}
         />
       )}
 
@@ -156,15 +168,24 @@ const CareersPage: React.FC = () => {
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col border border-border/50">
             <div className="p-6 border-b dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50 rounded-t-xl">
               <div>
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Malla Curricular</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">{showCurriculum.name} ({showCurriculum.code})</p>
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                  Malla Curricular
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                  {showCurriculum.name} ({showCurriculum.code})
+                </p>
               </div>
               <button
                 onClick={() => setShowCurriculum(null)}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -175,10 +196,7 @@ const CareersPage: React.FC = () => {
                   <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
                 </div>
               ) : (
-                <CurriculumGrid
-                  subjects={curriculumSubjects}
-                  readOnly={true}
-                />
+                <CurriculumGrid subjects={curriculumSubjects} readOnly={true} />
               )}
             </div>
 
@@ -194,8 +212,18 @@ const CareersPage: React.FC = () => {
       {careers.length === 0 ? (
         <Card>
           <div className="text-center py-8">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            <svg
+              className="mx-auto h-12 w-12 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+              />
             </svg>
             <h3 className="mt-2 text-sm font-medium text-gray-900">No hay carreras</h3>
             <p className="mt-1 text-sm text-gray-500">Comienza creando la primera carrera.</p>
@@ -209,25 +237,41 @@ const CareersPage: React.FC = () => {
                 <div className="flex flex-col h-full">
                   <div className="flex justify-between items-start mb-4">
                     <div className="min-w-0 pr-2">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate" title={career.name}>{career.name}</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Código: {career.code}</p>
+                      <h3
+                        className="text-lg font-semibold text-gray-900 dark:text-white truncate"
+                        title={career.name}
+                      >
+                        {career.name}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        Código: {career.code}
+                      </p>
                     </div>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${career.is_active
-                      ? 'text-green-600 bg-green-100 dark:text-green-300 dark:bg-green-900/40'
-                      : 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-800'
-                      }`}>
+                    <span
+                      className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${
+                        career.is_active
+                          ? 'text-green-600 bg-green-100 dark:text-green-300 dark:bg-green-900/40'
+                          : 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-800'
+                      }`}
+                    >
                       {career.is_active ? 'Activa' : 'Inactiva'}
                     </span>
                   </div>
 
                   {career.description && (
-                    <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">{career.description}</p>
+                    <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">
+                      {career.description}
+                    </p>
                   )}
 
                   <div className="text-xs text-gray-500 dark:text-gray-400 mb-4 space-y-1 flex-grow">
                     <div>Duración: {career.duration_months} meses</div>
                     <div>Créditos: {career.total_credits}</div>
-                    <div>Tipo: {DEGREE_TYPES.find(d => d.value === career.degree_type)?.label || career.degree_type}</div>
+                    <div>
+                      Tipo:{' '}
+                      {DEGREE_TYPES.find((d) => d.value === career.degree_type)?.label ||
+                        career.degree_type}
+                    </div>
                   </div>
 
                   <div className="mt-4 mb-4">
@@ -243,7 +287,10 @@ const CareersPage: React.FC = () => {
 
                   <div className="flex space-x-2 mt-auto">
                     <Button
-                      onClick={() => { setEditingCareer(career); setShowForm(true); }}
+                      onClick={() => {
+                        setEditingCareer(career);
+                        setShowForm(true);
+                      }}
                       className="flex-1"
                       size="sm"
                     >
@@ -251,10 +298,11 @@ const CareersPage: React.FC = () => {
                     </Button>
                     <Button
                       onClick={() => handleToggleActive(career)}
-                      className={`flex-1 ${career.is_active
-                        ? '' // Default primary looks fine, maybe warn color?
-                        : ''
-                        }`}
+                      className={`flex-1 ${
+                        career.is_active
+                          ? '' // Default primary looks fine, maybe warn color?
+                          : ''
+                      }`}
                       variant={career.is_active ? 'danger' : 'primary'} // Danger if active (to deactivate)
                       size="sm"
                     >
@@ -305,7 +353,7 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
         setInstitutions(data);
         // Si el usuario no es admin y tiene institución, pre-seleccionarla
         if (!career && user?.role?.name !== 'admin' && institution) {
-          setFormData(prev => ({ ...prev, institution_id: institution.id }));
+          setFormData((prev) => ({ ...prev, institution_id: institution.id }));
         }
       } catch (err) {
         console.error('Error cargando instituciones:', err);
@@ -349,7 +397,12 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -373,15 +426,17 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
                   const value = e.target.value;
                   setFormData({
                     ...formData,
-                    institution_id: value ? parseInt(value, 10) : undefined
+                    institution_id: value ? parseInt(value, 10) : undefined,
                   });
                 }}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={loadingInstitutions}
               >
                 <option value="">Seleccionar institución</option>
-                {institutions.map(inst => (
-                  <option key={inst.id} value={inst.id}>{inst.name}</option>
+                {institutions.map((inst) => (
+                  <option key={inst.id} value={inst.id}>
+                    {inst.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -483,8 +538,10 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
               onChange={(e) => setFormData({ ...formData, degree_type: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {DEGREE_TYPES.map(dt => (
-                <option key={dt.value} value={dt.value}>{dt.label}</option>
+              {DEGREE_TYPES.map((dt) => (
+                <option key={dt.value} value={dt.value}>
+                  {dt.label}
+                </option>
               ))}
             </select>
           </div>
@@ -497,7 +554,10 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
               onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
             />
-            <label htmlFor="is_active" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="is_active"
+              className="ml-2 block text-sm text-gray-700 dark:text-gray-300"
+            >
               Carrera activa
             </label>
           </div>
@@ -517,4 +577,3 @@ const CareerForm: React.FC<CareerFormProps> = ({ career, onClose, onSuccess }) =
 };
 
 export default CareersPage;
-

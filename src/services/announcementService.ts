@@ -85,7 +85,8 @@ class AnnouncementService {
     try {
       let query = supabase
         .from('announcements')
-        .select(`
+        .select(
+          `
           *,
           author:users!announcements_author_id_fkey (
             id,
@@ -105,7 +106,8 @@ class AnnouncementService {
             id,
             name
           )
-        `)
+        `
+        )
         .eq('is_active', true)
         .or('published_at.is.null,published_at.lte.' + new Date().toISOString())
         .or('expires_at.is.null,expires_at.gte.' + new Date().toISOString())
@@ -192,30 +194,36 @@ class AnnouncementService {
    */
   async getUnreadAnnouncements(userId: string): Promise<Announcement[]> {
     try {
-      const { data, error } = await supabase
-        .rpc('get_unread_announcements', { user_uuid: userId });
+      const { data, error } = await supabase.rpc('get_unread_announcements', { user_uuid: userId });
 
       if (error) {
         // Si la función no existe (404) o hay otro error, usar consulta manual
-        if (error.code === 'P0001' || error.message?.includes('does not exist') || error.code === '42883') {
+        if (
+          error.code === 'P0001' ||
+          error.message?.includes('does not exist') ||
+          error.code === '42883'
+        ) {
           // Función no existe, usar método alternativo
           const allAnnouncements = await this.getVisibleAnnouncements(userId);
           const unreadIds = await this.getUnreadAnnouncementIds(userId);
-          return allAnnouncements.filter(a => unreadIds.includes(a.id));
+          return allAnnouncements.filter((a) => unreadIds.includes(a.id));
         }
         // Otro error, intentar método alternativo también
         const allAnnouncements = await this.getVisibleAnnouncements(userId);
         const unreadIds = await this.getUnreadAnnouncementIds(userId);
-        return allAnnouncements.filter(a => unreadIds.includes(a.id));
+        return allAnnouncements.filter((a) => unreadIds.includes(a.id));
       }
 
       return data || [];
     } catch (error: any) {
       // Si hay un error (como función no encontrada), usar método alternativo
-      console.warn('Función get_unread_announcements no disponible, usando método alternativo:', error?.message);
+      console.warn(
+        'Función get_unread_announcements no disponible, usando método alternativo:',
+        error?.message
+      );
       const allAnnouncements = await this.getVisibleAnnouncements(userId);
       const unreadIds = await this.getUnreadAnnouncementIds(userId);
-      return allAnnouncements.filter(a => unreadIds.includes(a.id));
+      return allAnnouncements.filter((a) => unreadIds.includes(a.id));
     }
   }
 
@@ -234,7 +242,7 @@ class AnnouncementService {
       return [];
     }
 
-    return (data || []).map(r => r.announcement_id);
+    return (data || []).map((r) => r.announcement_id);
   }
 
   /**
@@ -250,7 +258,8 @@ class AnnouncementService {
           author_id: authorId,
           published_at: data.published_at || new Date().toISOString(),
         })
-        .select(`
+        .select(
+          `
           *,
           author:users!announcements_author_id_fkey (
             id,
@@ -258,16 +267,16 @@ class AnnouncementService {
             last_name,
             email
           )
-        `)
+        `
+        )
         .single();
 
       if (createError) throw createError;
 
       // Crear destinatarios automáticamente
-      const { error: recipientsError } = await supabase.rpc(
-        'create_announcement_recipients',
-        { announcement_uuid: announcement.id }
-      );
+      const { error: recipientsError } = await supabase.rpc('create_announcement_recipients', {
+        announcement_uuid: announcement.id,
+      });
 
       if (recipientsError) {
         console.error('Error creating recipients:', recipientsError);
@@ -346,7 +355,8 @@ class AnnouncementService {
     try {
       const { data, error } = await supabase
         .from('announcements')
-        .select(`
+        .select(
+          `
           *,
           author:users!announcements_author_id_fkey (
             id,
@@ -366,7 +376,8 @@ class AnnouncementService {
             id,
             name
           )
-        `)
+        `
+        )
         .eq('author_id', authorId)
         .order('created_at', { ascending: false });
 
@@ -393,7 +404,8 @@ class AnnouncementService {
         .update(data)
         .eq('id', announcementId)
         .eq('author_id', authorId) // Solo el autor puede actualizar
-        .select(`
+        .select(
+          `
           *,
           author:users!announcements_author_id_fkey (
             id,
@@ -401,7 +413,8 @@ class AnnouncementService {
             last_name,
             email
           )
-        `)
+        `
+        )
         .single();
 
       if (error) throw error;
@@ -440,7 +453,8 @@ class AnnouncementService {
     try {
       const { data, error } = await supabase
         .from('announcement_recipients')
-        .select(`
+        .select(
+          `
           *,
           user:users!announcement_recipients_recipient_id_fkey (
             id,
@@ -448,7 +462,8 @@ class AnnouncementService {
             last_name,
             email
           )
-        `)
+        `
+        )
         .eq('announcement_id', announcementId)
         .order('sent_at', { ascending: false });
 
@@ -463,4 +478,3 @@ class AnnouncementService {
 }
 
 export const announcementService = new AnnouncementService();
-

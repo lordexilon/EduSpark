@@ -8,13 +8,13 @@ import {
   getPedagogicalSettings,
   getGradingScale,
   getCourseImages,
-  savePedagogicalSettings
-} from "../services/supabaseService";
+  savePedagogicalSettings,
+} from '../services/supabaseService';
 import type {
   PedagogicalSettings,
   GradingScale,
   CourseImage,
-  CourseContext
+  CourseContext,
 } from '../types/pedagogical';
 import { supabase } from '@/lib/supabase';
 
@@ -80,16 +80,15 @@ export const useCourseContext = (courseId: string) => {
         description: courseData?.description || 'Descripción del curso',
         teacherId: courseData?.teacher_id || pedagogicalResponse.data?.teacherId || 'unknown',
         teacherName: 'Profesor', // Idealmente buscar nombre del profesor
-        coverImageUrl: imagesResponse.data?.find(img => img.imageType === 'cover')?.imageUrl,
-        bannerImageUrl: imagesResponse.data?.find(img => img.imageType === 'banner')?.imageUrl,
+        coverImageUrl: imagesResponse.data?.find((img) => img.imageType === 'cover')?.imageUrl,
+        bannerImageUrl: imagesResponse.data?.find((img) => img.imageType === 'banner')?.imageUrl,
         pedagogicalSettings: pedagogicalResponse.data || getDefaultPedagogicalSettings(),
         gradingScale: gradingResponse.data || getDefaultGradingScale(),
         materials: [],
-        images: imagesResponse.data || []
+        images: imagesResponse.data || [],
       };
 
       setCourseContext(context);
-
     } catch (error) {
       console.error('Error loading course context:', error);
       setError(error instanceof Error ? error.message : 'Error al cargar el contexto del curso');
@@ -102,104 +101,120 @@ export const useCourseContext = (courseId: string) => {
   // Gestión de Configuración Pedagógica
   // =====================================================
 
-  const updatePedagogicalSettings = useCallback(async (
-    newSettings: Partial<PedagogicalSettings>
-  ): Promise<boolean> => {
-    if (!pedagogicalSettings || !courseId) return false;
+  const updatePedagogicalSettings = useCallback(
+    async (newSettings: Partial<PedagogicalSettings>): Promise<boolean> => {
+      if (!pedagogicalSettings || !courseId) return false;
 
-    try {
-      setIsLoading(true);
-      setError(null);
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      const updatedSettings = {
-        ...pedagogicalSettings,
-        ...newSettings,
-        courseId,
-        teacherId: pedagogicalSettings.teacherId,
-        updatedAt: new Date()
-      };
+        const updatedSettings = {
+          ...pedagogicalSettings,
+          ...newSettings,
+          courseId,
+          teacherId: pedagogicalSettings.teacherId,
+          updatedAt: new Date(),
+        };
 
-      const response = await savePedagogicalSettings(updatedSettings);
+        const response = await savePedagogicalSettings(updatedSettings);
 
-      if (response.success && response.data) {
-        setPedagogicalSettings(response.data);
+        if (response.success && response.data) {
+          setPedagogicalSettings(response.data);
 
-        // Actualizar contexto del curso
-        setCourseContext(prev => prev ? {
-          ...prev,
-          pedagogicalSettings: response.data!
-        } : null);
+          // Actualizar contexto del curso
+          setCourseContext((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  pedagogicalSettings: response.data!,
+                }
+              : null
+          );
 
-        return true;
-      } else {
-        setError(response.error || 'Error al actualizar configuración');
+          return true;
+        } else {
+          setError(response.error || 'Error al actualizar configuración');
+          return false;
+        }
+      } catch (error) {
+        console.error('Error updating pedagogical settings:', error);
+        setError(error instanceof Error ? error.message : 'Error al actualizar configuración');
         return false;
+      } finally {
+        setIsLoading(false);
       }
-
-    } catch (error) {
-      console.error('Error updating pedagogical settings:', error);
-      setError(error instanceof Error ? error.message : 'Error al actualizar configuración');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [pedagogicalSettings, courseId]);
+    },
+    [pedagogicalSettings, courseId]
+  );
 
   // =====================================================
   // Gestión de Imágenes
   // =====================================================
 
-  const addCourseImage = useCallback(async (
-    imageUrl: string,
-    imageType: 'cover' | 'banner' | 'material' | 'content',
-    fileSizeBytes: number,
-    mimeType: string,
-    altText?: string
-  ): Promise<boolean> => {
-    if (!courseId) return false;
+  const addCourseImage = useCallback(
+    async (
+      imageUrl: string,
+      imageType: 'cover' | 'banner' | 'material' | 'content',
+      fileSizeBytes: number,
+      mimeType: string,
+      altText?: string
+    ): Promise<boolean> => {
+      if (!courseId) return false;
 
-    try {
-      setIsLoading(true);
-      setError(null);
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      // Aquí se implementaría la lógica para subir la imagen
-      // y guardarla en la base de datos
-      console.log('Adding course image:', { imageUrl, imageType, fileSizeBytes, mimeType, altText });
+        // Aquí se implementaría la lógica para subir la imagen
+        // y guardarla en la base de datos
+        console.log('Adding course image:', {
+          imageUrl,
+          imageType,
+          fileSizeBytes,
+          mimeType,
+          altText,
+        });
 
-      // Simular éxito por ahora
-      const newImage: CourseImage = {
-        id: Date.now().toString(),
-        courseId,
-        uploadedBy: 'current-user', // Se obtendría del contexto de autenticación
-        imageUrl,
-        imageType,
-        fileSizeBytes,
-        mimeType,
-        altText,
-        metadata: {},
-        createdAt: new Date()
-      };
+        // Simular éxito por ahora
+        const newImage: CourseImage = {
+          id: Date.now().toString(),
+          courseId,
+          uploadedBy: 'current-user', // Se obtendría del contexto de autenticación
+          imageUrl,
+          imageType,
+          fileSizeBytes,
+          mimeType,
+          altText,
+          metadata: {},
+          createdAt: new Date(),
+        };
 
-      setImages(prev => [...prev, newImage]);
+        setImages((prev) => [...prev, newImage]);
 
-      // Actualizar contexto del curso
-      setCourseContext(prev => prev ? {
-        ...prev,
-        images: [...prev.images, newImage],
-        coverImageUrl: imageType === 'cover' ? imageUrl : prev.coverImageUrl,
-        bannerImageUrl: imageType === 'banner' ? imageUrl : prev.bannerImageUrl
-      } : null);
+        // Actualizar contexto del curso
+        setCourseContext((prev) =>
+          prev
+            ? {
+                ...prev,
+                images: [...prev.images, newImage],
+                coverImageUrl: imageType === 'cover' ? imageUrl : prev.coverImageUrl,
+                bannerImageUrl: imageType === 'banner' ? imageUrl : prev.bannerImageUrl,
+              }
+            : null
+        );
 
-      return true;
-
-    } catch (error) {
-      console.error('Error adding course image:', error);
-      setError(error instanceof Error ? error.message : 'Error al agregar imagen');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [courseId]);
+        return true;
+      } catch (error) {
+        console.error('Error adding course image:', error);
+        setError(error instanceof Error ? error.message : 'Error al agregar imagen');
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [courseId]
+  );
 
   const removeCourseImage = useCallback(async (imageId: string): Promise<boolean> => {
     try {
@@ -209,16 +224,19 @@ export const useCourseContext = (courseId: string) => {
       // Aquí se implementaría la lógica para eliminar la imagen
       console.log('Removing course image:', imageId);
 
-      setImages(prev => prev.filter(img => img.id !== imageId));
+      setImages((prev) => prev.filter((img) => img.id !== imageId));
 
       // Actualizar contexto del curso
-      setCourseContext(prev => prev ? {
-        ...prev,
-        images: prev.images.filter(img => img.id !== imageId)
-      } : null);
+      setCourseContext((prev) =>
+        prev
+          ? {
+              ...prev,
+              images: prev.images.filter((img) => img.id !== imageId),
+            }
+          : null
+      );
 
       return true;
-
     } catch (error) {
       console.error('Error removing course image:', error);
       setError(error instanceof Error ? error.message : 'Error al eliminar imagen');
@@ -232,13 +250,19 @@ export const useCourseContext = (courseId: string) => {
   // Utilidades
   // =====================================================
 
-  const getImageByType = useCallback((imageType: 'cover' | 'banner' | 'material' | 'content') => {
-    return images.find(img => img.imageType === imageType);
-  }, [images]);
+  const getImageByType = useCallback(
+    (imageType: 'cover' | 'banner' | 'material' | 'content') => {
+      return images.find((img) => img.imageType === imageType);
+    },
+    [images]
+  );
 
-  const getImagesByType = useCallback((imageType: 'cover' | 'banner' | 'material' | 'content') => {
-    return images.filter(img => img.imageType === imageType);
-  }, [images]);
+  const getImagesByType = useCallback(
+    (imageType: 'cover' | 'banner' | 'material' | 'content') => {
+      return images.filter((img) => img.imageType === imageType);
+    },
+    [images]
+  );
 
   const hasImages = useCallback(() => {
     return images.length > 0;
@@ -283,7 +307,7 @@ export const useCourseContext = (courseId: string) => {
 
     // Estados de error
     hasError: !!error,
-    clearError: () => setError(null)
+    clearError: () => setError(null),
   };
 };
 
@@ -302,8 +326,9 @@ const getDefaultPedagogicalSettings = (): PedagogicalSettings => ({
   encourageQuestions: true,
   voiceName: 'Kore',
   voiceSpeed: 1.0,
+  enableAudioResponse: true,
   createdAt: new Date(),
-  updatedAt: new Date()
+  updatedAt: new Date(),
 });
 
 const getDefaultGradingScale = (): GradingScale => ({
@@ -319,10 +344,10 @@ const getDefaultGradingScale = (): GradingScale => ({
     { min: 80, max: 89, grade: 'B', label: 'Bueno', color: '#3B82F6' },
     { min: 70, max: 79, grade: 'C', label: 'Satisfactorio', color: '#F59E0B' },
     { min: 60, max: 69, grade: 'D', label: 'Aprobado', color: '#EF4444' },
-    { min: 0, max: 59, grade: 'F', label: 'Reprobado', color: '#6B7280' }
+    { min: 0, max: 59, grade: 'F', label: 'Reprobado', color: '#6B7280' },
   ],
   roundingRule: 'nearest',
   showPercentage: true,
   createdAt: new Date(),
-  updatedAt: new Date()
+  updatedAt: new Date(),
 });

@@ -7,20 +7,23 @@
 // =====================================================
 
 // Usar la instancia principal de Supabase para evitar múltiples instancias
-export { supabase } from "../../lib/supabase-shared";
+import { supabase } from '../lib/supabase-shared';
+export { supabase };
 
 // Configuración de testing
 export const TEST_CONFIG = {
   supabase: {
     url: process.env.VITE_SUPABASE_URL || 'https://mckfscukxcqwntpjagar.supabase.co',
-    anonKey: process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZzY3VreGNxd250cGphZ2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3NDU0MzQsImV4cCI6MjA3NjMyMTQzNH0.4j8Pf2_xZRitw-MkrNKC0MqrzTHRYtnQmrSquTO5zu8',
+    anonKey:
+      process.env.VITE_SUPABASE_ANON_KEY ||
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZzY3VreGNxd250cGphZ2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3NDU0MzQsImV4cCI6MjA3NjMyMTQzNH0.4j8Pf2_xZRitw-MkrNKC0MqrzTHRYtnQmrSquTO5zu8',
   },
   n8n: {
     webhookUrl: process.env.VITE_N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/test',
   },
   gemini: {
     apiKey: process.env.GEMINI_API_KEY || 'test-api-key',
-  }
+  },
 };
 
 // Datos de prueba
@@ -49,9 +52,9 @@ export const TEST_DATA = {
       learningStyle: 'kinesthetic',
       topicsStruggled: ['teoría abstracta'],
       topicsMastered: ['laboratorio', 'experimentos'],
-    }
+    },
   ],
-  
+
   teachers: [
     {
       id: 'teacher-socratic-001',
@@ -76,9 +79,9 @@ export const TEST_DATA = {
       teachingStyle: 'constructivista',
       tonePreference: 'motivador',
       detailLevel: 'basico',
-    }
+    },
   ],
-  
+
   courses: [
     {
       id: 'course-biology-001',
@@ -97,9 +100,9 @@ export const TEST_DATA = {
       name: 'Física Experimental',
       description: 'Laboratorio de física',
       teacherId: 'teacher-constructivist-003',
-    }
+    },
   ],
-  
+
   pedagogicalSettings: [
     {
       courseId: 'course-biology-001',
@@ -133,9 +136,9 @@ export const TEST_DATA = {
       encourageQuestions: true,
       voiceName: 'Aoede',
       voiceSpeed: 1.2,
-    }
+    },
   ],
-  
+
   gradingScales: [
     {
       courseId: 'course-biology-001',
@@ -146,8 +149,8 @@ export const TEST_DATA = {
         { grade: 'B+', minScore: 85, maxScore: 89, description: 'Bueno' },
         { grade: 'B', minScore: 80, maxScore: 84, description: 'Satisfactorio' },
         { grade: 'C', minScore: 70, maxScore: 79, description: 'Aceptable' },
-        { grade: 'F', minScore: 0, maxScore: 69, description: 'Reprobado' }
-      ]
+        { grade: 'F', minScore: 0, maxScore: 69, description: 'Reprobado' },
+      ],
     },
     {
       courseId: 'course-chemistry-002',
@@ -156,11 +159,11 @@ export const TEST_DATA = {
         { grade: 'Excelente', minScore: 90, maxScore: 100, description: 'Dominio total' },
         { grade: 'Bueno', minScore: 80, maxScore: 89, description: 'Dominio satisfactorio' },
         { grade: 'Regular', minScore: 70, maxScore: 79, description: 'Dominio básico' },
-        { grade: 'Deficiente', minScore: 0, maxScore: 69, description: 'Sin dominio' }
-      ]
-    }
+        { grade: 'Deficiente', minScore: 0, maxScore: 69, description: 'Sin dominio' },
+      ],
+    },
   ],
-  
+
   testQueries: [
     {
       query: '¿Qué es la fotosíntesis?',
@@ -185,22 +188,22 @@ export const TEST_DATA = {
       expectedDetail: 'basico',
       courseId: 'course-physics-003',
       studentId: 'student-kinesthetic-003',
-    }
-  ]
+    },
+  ],
 };
 
 // Utilidades de testing
 export class TestUtils {
   static async setupTestData() {
     console.log('🧪 Configurando datos de prueba...');
-    
+
     try {
       // Limpiar datos existentes
       await this.cleanupTestData();
-      
+
       // Insertar datos de prueba
       await this.insertTestData();
-      
+
       console.log('✅ Datos de prueba configurados correctamente');
       return true;
     } catch (error) {
@@ -208,10 +211,10 @@ export class TestUtils {
       return false;
     }
   }
-  
+
   static async cleanupTestData() {
     console.log('🧹 Limpiando datos de prueba...');
-    
+
     // Limpiar en orden inverso para evitar problemas de FK
     await supabase.from('tutor_messages').delete().like('conversation_id', 'test-%');
     await supabase.from('tutor_conversations').delete().like('id', 'test-%');
@@ -219,37 +222,37 @@ export class TestUtils {
     await supabase.from('course_pedagogical_settings').delete().like('course_id', 'course-%');
     await supabase.from('student_learning_profiles').delete().like('student_id', 'student-%');
   }
-  
+
   static async insertTestData() {
     // Insertar perfiles de estudiantes
-    const { error: studentError } = await supabase
-      .from('student_learning_profiles')
-      .insert(TEST_DATA.students.map(student => ({
+    const { error: studentError } = await supabase.from('student_learning_profiles').insert(
+      TEST_DATA.students.map((student) => ({
         student_id: student.id,
         course_id: 'course-biology-001', // Asignar a un curso por defecto
         preferred_learning_style: student.learningStyle,
         topics_struggled: student.topicsStruggled,
         topics_mastered: student.topicsMastered,
         created_at: new Date().toISOString(),
-      })));
-    
+      }))
+    );
+
     if (studentError) throw studentError;
-    
+
     // Insertar configuración pedagógica
     const { error: pedError } = await supabase
       .from('course_pedagogical_settings')
       .insert(TEST_DATA.pedagogicalSettings);
-    
+
     if (pedError) throw pedError;
-    
+
     // Insertar escalas de calificación
     const { error: gradeError } = await supabase
       .from('course_grading_scales')
       .insert(TEST_DATA.gradingScales);
-    
+
     if (gradeError) throw gradeError;
   }
-  
+
   static async createTestConversation(studentId: string, courseId: string) {
     const { data, error } = await supabase
       .from('tutor_conversations')
@@ -259,15 +262,15 @@ export class TestUtils {
         course_id: courseId,
         started_at: new Date().toISOString(),
         last_activity_at: new Date().toISOString(),
-        metadata: { test: true }
+        metadata: { test: true },
       })
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   }
-  
+
   static async addTestMessage(conversationId: string, role: 'user' | 'assistant', content: string) {
     const { data, error } = await supabase
       .from('tutor_messages')
@@ -276,37 +279,37 @@ export class TestUtils {
         role,
         content,
         created_at: new Date().toISOString(),
-        metadata: { test: true }
+        metadata: { test: true },
       })
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   }
-  
+
   static async getConversationMessages(conversationId: string) {
     const { data, error } = await supabase
       .from('tutor_messages')
       .select('*')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
-    
+
     if (error) throw error;
     return data;
   }
-  
+
   static async getPedagogicalSettings(courseId: string) {
     const { data, error } = await supabase
       .from('course_pedagogical_settings')
       .select('*')
       .eq('course_id', courseId)
       .single();
-    
+
     if (error) throw error;
     return data;
   }
-  
+
   static async getStudentProfile(studentId: string, courseId: string) {
     const { data, error } = await supabase
       .from('student_learning_profiles')
@@ -314,7 +317,7 @@ export class TestUtils {
       .eq('student_id', studentId)
       .eq('course_id', courseId)
       .single();
-    
+
     if (error) throw error;
     return data;
   }
@@ -324,42 +327,38 @@ export class TestUtils {
 export class MockServices {
   static mockGeminiResponse = {
     text: 'Esta es una respuesta de prueba personalizada',
-    sources: [
-      { title: 'Test Source', url: 'https://test.com', relevance: 0.95 }
-    ]
+    sources: [{ title: 'Test Source', url: 'https://test.com', relevance: 0.95 }],
   };
-  
+
   static mockN8nResponse = {
     response: 'Respuesta RAG personalizada',
-    sources: [
-      { title: 'RAG Source', url: 'https://rag.com', relevance: 0.90 }
-    ],
+    sources: [{ title: 'RAG Source', url: 'https://rag.com', relevance: 0.9 }],
     personalization: {
       appliedStyle: 'socratico',
       examplesIncluded: true,
-      questionsEncouraged: true
-    }
+      questionsEncouraged: true,
+    },
   };
-  
+
   static async mockGeminiCall(prompt: string, context: any) {
     // Simular latencia
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
     return {
       ...this.mockGeminiResponse,
       personalization: context.pedagogicalSettings || {},
-      studentContext: context.studentProfile || {}
+      studentContext: context.studentProfile || {},
     };
   }
-  
+
   static async mockN8nCall(query: string, context: any) {
     // Simular latencia
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
     return {
       ...this.mockN8nResponse,
       query,
-      context
+      context,
     };
   }
 }
@@ -369,5 +368,5 @@ export default {
   TEST_DATA,
   TestUtils,
   MockServices,
-  supabase
+  supabase,
 };

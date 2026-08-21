@@ -1,10 +1,22 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '@/components/Common/Card';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserInstitution } from '@/hooks/useUserInstitution';
-import { IconUserCircle, IconMail, IconBriefcase, IconUpload, IconX, IconEdit, IconSave, IconXCircle, IconSun, IconMoon, IconPalette, IconCheck } from '@/components/Common/Icons';
+import {
+  IconUserCircle,
+  IconMail,
+  IconBriefcase,
+  IconUpload,
+  IconX,
+  IconEdit,
+  IconSave,
+  IconXCircle,
+  IconSun,
+  IconMoon,
+  IconPalette,
+  IconCheck,
+} from '@/components/Common/Icons';
 import Button from '@/components/Common/Button';
 import { useTheme, Theme } from '@/context/ThemeContext';
 import { careerEnrollmentService } from '@/services/academicService';
@@ -27,7 +39,11 @@ const ProfilePage: React.FC = () => {
   const [hasGoogleCalendarConnected, setHasGoogleCalendarConnected] = useState(false);
   const [hasGoogleDriveConnected, setHasGoogleDriveConnected] = useState(false);
   const [checkingGoogle, setCheckingGoogle] = useState(true);
-  const [driveFolderInfo, setDriveFolderInfo] = useState<{ id: string; name: string; url: string } | null>(null);
+  const [driveFolderInfo, setDriveFolderInfo] = useState<{
+    id: string;
+    name: string;
+    url: string;
+  } | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +53,7 @@ const ProfilePage: React.FC = () => {
     first_name: '',
     last_name: '',
     identity_document: '',
-    identity_document_type: null as 'DNI' | 'CEDULA' | 'PASAPORTE' | 'LICENCIA' | 'OTRO' | null
+    identity_document_type: null as 'DNI' | 'CEDULA' | 'PASAPORTE' | 'LICENCIA' | 'OTRO' | null,
   });
   const [saving, setSaving] = useState(false);
 
@@ -88,7 +104,7 @@ const ProfilePage: React.FC = () => {
         setLoadingCareer(true);
         // Obtener inscripciones activas en carreras
         const enrollments = await careerEnrollmentService.getStudentEnrollments(user.id);
-        const activeEnrollment = enrollments.find(e => e.status === 'active');
+        const activeEnrollment = enrollments.find((e) => e.status === 'active');
 
         if (activeEnrollment) {
           const career = await careerService.getCareer(activeEnrollment.career_id);
@@ -113,7 +129,7 @@ const ProfilePage: React.FC = () => {
         first_name: user.first_name || '',
         last_name: user.last_name || '',
         identity_document: user.identity_document || '',
-        identity_document_type: (user as any).identity_document_type || null
+        identity_document_type: (user as any).identity_document_type || null,
       });
     }
   }, [isEditing, user]);
@@ -130,7 +146,7 @@ const ProfilePage: React.FC = () => {
     if (roleName === 'teacher') return 'Profesor';
     if (roleName === 'admin') return 'Administrador';
     return roleName;
-  }
+  };
 
   const isTeacher = user?.role?.name === 'teacher' || user?.role?.name === 'admin';
 
@@ -142,7 +158,7 @@ const ProfilePage: React.FC = () => {
 
     const state = JSON.stringify({
       path: '/profile',
-      service: 'calendar'
+      service: 'calendar',
     });
 
     window.location.href = googleOAuthService.getAuthorizationUrl(state, ['calendar']);
@@ -156,7 +172,7 @@ const ProfilePage: React.FC = () => {
 
     const state = JSON.stringify({
       path: '/profile',
-      service: 'drive'
+      service: 'drive',
     });
 
     window.location.href = googleOAuthService.getAuthorizationUrl(state, ['drive']);
@@ -170,7 +186,7 @@ const ProfilePage: React.FC = () => {
 
     const state = JSON.stringify({
       path: '/profile',
-      service: 'both'
+      service: 'both',
     });
 
     window.location.href = googleOAuthService.getAuthorizationUrl(state, ['calendar', 'drive']);
@@ -196,7 +212,11 @@ const ProfilePage: React.FC = () => {
   const handleDisconnectGoogleDrive = async () => {
     if (!user?.id) return;
 
-    if (!confirm('¿Estás seguro de que deseas desconectar tu cuenta de Google Drive? Esto eliminará la vinculación de tu carpeta.')) {
+    if (
+      !confirm(
+        '¿Estás seguro de que deseas desconectar tu cuenta de Google Drive? Esto eliminará la vinculación de tu carpeta.'
+      )
+    ) {
       return;
     }
 
@@ -308,7 +328,7 @@ const ProfilePage: React.FC = () => {
       first_name: '',
       last_name: '',
       identity_document: '',
-      identity_document_type: null
+      identity_document_type: null,
     });
     setError(null);
   };
@@ -348,7 +368,7 @@ const ProfilePage: React.FC = () => {
       // Preparar los datos a enviar
       const updateData: any = {
         first_name: editingProfile.first_name.trim(),
-        last_name: editingProfile.last_name.trim()
+        last_name: editingProfile.last_name.trim(),
       };
 
       // Manejar identity_document: si está vacío o solo espacios, enviar null, sino enviar el valor trimmeado
@@ -372,7 +392,9 @@ const ProfilePage: React.FC = () => {
         updateUser(result.data);
         // También refrescar para asegurar que todo esté sincronizado
         setTimeout(() => {
-          refreshUser().catch(err => console.error('Error al refrescar después de actualizar:', err));
+          refreshUser().catch((err) =>
+            console.error('Error al refrescar después de actualizar:', err)
+          );
         }, 500);
         setIsEditing(false);
         alert('Perfil actualizado exitosamente');
@@ -390,7 +412,11 @@ const ProfilePage: React.FC = () => {
   const handleDeleteAccountRequest = async () => {
     if (!user?.id) return;
 
-    if (!confirm('ADVERTENCIA: ¿Estás seguro de que deseas solicitar la eliminación de tu cuenta?\n\nEsta acción es irreversible después del periodo de gracia de 30 días. Perderás permanentemente acceso a todos tus cursos, certificados y progreso.')) {
+    if (
+      !confirm(
+        'ADVERTENCIA: ¿Estás seguro de que deseas solicitar la eliminación de tu cuenta?\n\nEsta acción es irreversible después del periodo de gracia de 30 días. Perderás permanentemente acceso a todos tus cursos, certificados y progreso.'
+      )
+    ) {
       return;
     }
 
@@ -404,9 +430,13 @@ const ProfilePage: React.FC = () => {
       if (error) throw error;
 
       // Log audit
-      await auditService.logAction(user.id, 'DELETE_REQUEST', 'user', user.id, { reason: 'user_requested' });
+      await auditService.logAction(user.id, 'DELETE_REQUEST', 'user', user.id, {
+        reason: 'user_requested',
+      });
 
-      alert('Solicitud de eliminación enviada exitosamente.\n\nTu cuenta ha sido programada para eliminación en 30 días. Durante este periodo, puedes cancelar la solicitud contactando a soporte.');
+      alert(
+        'Solicitud de eliminación enviada exitosamente.\n\nTu cuenta ha sido programada para eliminación en 30 días. Durante este periodo, puedes cancelar la solicitud contactando a soporte.'
+      );
     } catch (err: any) {
       console.error('Error solicitando eliminación:', err);
       alert(`Error al procesar la solicitud: ${err.message || 'Error desconocido'}`);
@@ -507,7 +537,9 @@ const ProfilePage: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <IconBriefcase className="w-5 h-5 text-text-light" />
                     <span className="text-text-dark">
-                      {(user as any).identity_document_type ? `${(user as any).identity_document_type}: ` : ''}
+                      {(user as any).identity_document_type
+                        ? `${(user as any).identity_document_type}: `
+                        : ''}
                       {user.identity_document}
                     </span>
                   </div>
@@ -524,13 +556,13 @@ const ProfilePage: React.FC = () => {
           ) : (
             <div className="w-full space-y-4 mt-6">
               <div>
-                <label className="block text-sm font-medium text-text-dark mb-1">
-                  Nombre *
-                </label>
+                <label className="block text-sm font-medium text-text-dark mb-1">Nombre *</label>
                 <input
                   type="text"
                   value={editingProfile.first_name}
-                  onChange={(e) => setEditingProfile({ ...editingProfile, first_name: e.target.value })}
+                  onChange={(e) =>
+                    setEditingProfile({ ...editingProfile, first_name: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-border bg-background text-text-dark rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="Nombre"
                   disabled={saving}
@@ -538,13 +570,13 @@ const ProfilePage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-text-dark mb-1">
-                  Apellido *
-                </label>
+                <label className="block text-sm font-medium text-text-dark mb-1">Apellido *</label>
                 <input
                   type="text"
                   value={editingProfile.last_name}
-                  onChange={(e) => setEditingProfile({ ...editingProfile, last_name: e.target.value })}
+                  onChange={(e) =>
+                    setEditingProfile({ ...editingProfile, last_name: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-border bg-background text-text-dark rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="Apellido"
                   disabled={saving}
@@ -557,10 +589,12 @@ const ProfilePage: React.FC = () => {
                 </label>
                 <select
                   value={editingProfile.identity_document_type || ''}
-                  onChange={(e) => setEditingProfile({
-                    ...editingProfile,
-                    identity_document_type: e.target.value || null as any
-                  })}
+                  onChange={(e) =>
+                    setEditingProfile({
+                      ...editingProfile,
+                      identity_document_type: e.target.value || (null as any),
+                    })
+                  }
                   className="w-full px-4 py-2 border border-border bg-background text-text-dark rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   disabled={saving}
                 >
@@ -580,7 +614,9 @@ const ProfilePage: React.FC = () => {
                 <input
                   type="text"
                   value={editingProfile.identity_document}
-                  onChange={(e) => setEditingProfile({ ...editingProfile, identity_document: e.target.value })}
+                  onChange={(e) =>
+                    setEditingProfile({ ...editingProfile, identity_document: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-border bg-background text-text-dark rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="Número de documento"
                   disabled={saving}
@@ -647,10 +683,11 @@ const ProfilePage: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => setTheme('blue')}
-                className={`flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${theme !== 'dark'
-                  ? 'border-primary bg-primary/5 text-primary'
-                  : 'border-border bg-background text-text-light hover:border-gray-300'
-                  }`}
+                className={`flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                  theme !== 'dark'
+                    ? 'border-primary bg-primary/5 text-primary'
+                    : 'border-border bg-background text-text-light hover:border-gray-300'
+                }`}
               >
                 <IconSun className="w-5 h-5" />
                 <span className="font-semibold">Modo Claro</span>
@@ -658,10 +695,11 @@ const ProfilePage: React.FC = () => {
 
               <button
                 onClick={() => setTheme('dark')}
-                className={`flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${theme === 'dark'
-                  ? 'border-primary bg-primary/5 text-primary'
-                  : 'border-border bg-background text-text-light hover:border-gray-300'
-                  }`}
+                className={`flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                  theme === 'dark'
+                    ? 'border-primary bg-primary/5 text-primary'
+                    : 'border-border bg-background text-text-light hover:border-gray-300'
+                }`}
               >
                 <IconMoon className="w-5 h-5" />
                 <span className="font-semibold">Modo Oscuro</span>
@@ -682,10 +720,11 @@ const ProfilePage: React.FC = () => {
                 <button
                   key={t.id}
                   onClick={() => setTheme(t.id as Theme)}
-                  className={`relative flex flex-col items-center p-3 rounded-lg border transition-all ${theme === t.id
-                    ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
-                    : 'border-border bg-background hover:bg-gray-50'
-                    }`}
+                  className={`relative flex flex-col items-center p-3 rounded-lg border transition-all ${
+                    theme === t.id
+                      ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
+                      : 'border-border bg-background hover:bg-gray-50'
+                  }`}
                 >
                   <div className={`w-8 h-8 rounded-full ${t.color} mb-2 shadow-sm`}></div>
                   <span className="text-xs font-medium text-text-dark">{t.label}</span>
@@ -728,28 +767,24 @@ const ProfilePage: React.FC = () => {
               <div className="bg-green-50/10 border border-green-500/30 rounded-lg p-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                   <span className="text-sm font-medium text-green-600 dark:text-green-400">
                     Cuenta de Google Calendar conectada
                   </span>
                 </div>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleDisconnectGoogleCalendar}
-                >
+                <Button variant="secondary" size="sm" onClick={handleDisconnectGoogleCalendar}>
                   Desconectar
                 </Button>
               </div>
             </div>
           ) : (
             <div className="mt-3">
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleConnectGoogleCalendar}
-              >
+              <Button variant="primary" size="sm" onClick={handleConnectGoogleCalendar}>
                 Conectar con Google Calendar
               </Button>
             </div>
@@ -762,7 +797,8 @@ const ProfilePage: React.FC = () => {
             <div>
               <h4 className="font-semibold text-text-dark">Google Drive</h4>
               <p className="text-sm text-text-light">
-                Conecta tu cuenta para crear una carpeta personal donde se guardarán tus archivos y documentos
+                Conecta tu cuenta para crear una carpeta personal donde se guardarán tus archivos y
+                documentos
               </p>
             </div>
           </div>
@@ -778,17 +814,17 @@ const ProfilePage: React.FC = () => {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     <span className="text-sm font-medium text-green-600 dark:text-green-400">
                       Cuenta de Google Drive conectada
                     </span>
                   </div>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleDisconnectGoogleDrive}
-                  >
+                  <Button variant="secondary" size="sm" onClick={handleDisconnectGoogleDrive}>
                     Desconectar
                   </Button>
                 </div>
@@ -802,8 +838,18 @@ const ProfilePage: React.FC = () => {
                       className="text-sm text-primary hover:text-primary-hover underline flex items-center gap-1"
                     >
                       {driveFolderInfo.name}
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      <svg
+                        className="w-3 h-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                        />
                       </svg>
                     </a>
                   </div>
@@ -812,11 +858,7 @@ const ProfilePage: React.FC = () => {
             </div>
           ) : (
             <div className="mt-3">
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleConnectGoogleDrive}
-              >
+              <Button variant="primary" size="sm" onClick={handleConnectGoogleDrive}>
                 Conectar con Google Drive
               </Button>
             </div>
@@ -826,12 +868,7 @@ const ProfilePage: React.FC = () => {
         {/* Opción para conectar ambos */}
         {(!hasGoogleCalendarConnected || !hasGoogleDriveConnected) && (
           <div className="mt-4 pt-4 border-t border-border">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleConnectBoth}
-              className="w-full"
-            >
+            <Button variant="secondary" size="sm" onClick={handleConnectBoth} className="w-full">
               Conectar Calendar y Drive juntos
             </Button>
           </div>
@@ -849,14 +886,16 @@ const ProfilePage: React.FC = () => {
           <div className="bg-background p-4 rounded-lg border border-red-500/10">
             <h4 className="font-semibold text-text-dark mb-2">Derecho al Olvido</h4>
             <p className="text-sm text-text-light mb-4">
-              De acuerdo con la Ley No. 7593/2025 de Protección de Datos Personales, tienes derecho a solicitar la eliminación completa de tus datos personales de nuestros sistemas.
+              De acuerdo con la Ley No. 7593/2025 de Protección de Datos Personales, tienes derecho
+              a solicitar la eliminación completa de tus datos personales de nuestros sistemas.
             </p>
 
             <div className="flex items-start gap-3 p-3 bg-red-500/10 rounded text-sm text-red-700 dark:text-red-300 mb-4">
               <IconAlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <div>
-                <span className="font-bold">Advertencia:</span> Esta acción es irreversible después del periodo de gracia de 30 días.
-                Perderás acceso a todos tus cursos, certificados y progreso.
+                <span className="font-bold">Advertencia:</span> Esta acción es irreversible después
+                del periodo de gracia de 30 días. Perderás acceso a todos tus cursos, certificados y
+                progreso.
               </div>
             </div>
 
@@ -891,6 +930,5 @@ const ProfilePage: React.FC = () => {
     </div>
   );
 };
-
 
 export default ProfilePage;

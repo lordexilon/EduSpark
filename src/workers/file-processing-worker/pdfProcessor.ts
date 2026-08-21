@@ -101,26 +101,27 @@ export async function extractTextFromPages(
           if (pageText.length > 0) {
             pages.push({
               text: pageText,
-              pageNumber: pageNum
+              pageNumber: pageNum,
             });
           }
 
           // Log de progreso cada 10 páginas
           if (pageNum % 10 === 0) {
-            console.log(`  ✓ Procesadas ${pageNum - actualStart + 1}/${actualEnd - actualStart + 1} páginas`);
+            console.log(
+              `  ✓ Procesadas ${pageNum - actualStart + 1}/${actualEnd - actualStart + 1} páginas`
+            );
           }
         } catch (pageError) {
           console.error(`⚠️ Error en página ${pageNum}:`, pageError);
           pages.push({
             text: `[Error en página ${pageNum}]`,
-            pageNumber: pageNum
+            pageNumber: pageNum,
           });
         }
       }
 
       console.log(`✅ Extracción completada: ${pages.length} páginas con texto`);
       return pages;
-
     } catch (error) {
       console.error('Error extrayendo texto nativo:', error);
       throw error;
@@ -129,10 +130,12 @@ export async function extractTextFromPages(
     // Para escaneados (OCR) por ahora devolvemos como una sola "página" del rango
     // ya que ocrService devuelve un string. Idealmente OCR también debería ser por página.
     const text = await extractTextFromPdfPages(pdfBuffer, pageStart, pageEnd);
-    return [{
-      text,
-      pageNumber: pageStart // Aproximado para OCR por ahora
-    }];
+    return [
+      {
+        text,
+        pageNumber: pageStart, // Aproximado para OCR por ahora
+      },
+    ];
   } else {
     throw new Error('Tipo de PDF desconocido');
   }

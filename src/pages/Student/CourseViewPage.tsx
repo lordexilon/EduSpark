@@ -13,7 +13,20 @@ import Button from '@/components/Common/Button';
 import Breadcrumbs from '@/components/Common/Breadcrumbs';
 import ProgressIndicator from '@/components/Common/ProgressIndicator';
 import GamificationScore from '@/components/Features/GamificationScore';
-import { IconBookOpen, IconChevronRight, IconCalendar, IconEye, IconRobot, IconClipboardList, IconClipboardCheck, IconClock, IconCards, IconCheck, IconChevronDown, IconChevronUp } from '@/components/Common/Icons';
+import {
+  IconBookOpen,
+  IconChevronRight,
+  IconCalendar,
+  IconEye,
+  IconRobot,
+  IconClipboardList,
+  IconClipboardCheck,
+  IconClock,
+  IconCards,
+  IconCheck,
+  IconChevronDown,
+  IconChevronUp,
+} from '@/components/Common/Icons';
 import { Search, Filter, ArrowUpDown, X, Hash } from 'lucide-react';
 import { MaterialDisplay } from '@/components/Features/MaterialDisplay';
 import { useAuth } from '@/hooks/useAuth';
@@ -62,12 +75,14 @@ export const CourseViewPage: React.FC = () => {
   const tutorial = useTutorial({
     tutorialId: 'course-view',
     autoStart: true, // Iniciar automáticamente si no está completado y no marcó "no volver a mostrar"
-    showOnFirstVisit: true
+    showOnFirstVisit: true,
   });
 
   // Estados para búsqueda, ordenamiento y filtros de materiales
   const [materialSearchQuery, setMaterialSearchQuery] = useState<string>('');
-  const [materialSortBy, setMaterialSortBy] = useState<'name-asc' | 'name-desc' | 'date-asc' | 'date-desc'>('name-asc');
+  const [materialSortBy, setMaterialSortBy] = useState<
+    'name-asc' | 'name-desc' | 'date-asc' | 'date-desc'
+  >('name-asc');
   const [materialTypeFilter, setMaterialTypeFilter] = useState<string>('all'); // 'all', 'pdf', 'video', 'link', 'other'
   const [materialCategoryFilter, setMaterialCategoryFilter] = useState<string>('all'); // 'all' o categoría específica
   const [materialHashtagFilter, setMaterialHashtagFilter] = useState<string>('all'); // 'all' o hashtag específico
@@ -81,96 +96,105 @@ export const CourseViewPage: React.FC = () => {
     return new Date(d.getFullYear(), d.getMonth(), d.getDate());
   };
 
-  const isUnitAvailable = useCallback((unit: CourseUnit): boolean => {
-    if (user?.role?.name !== 'student') return true;
-    const now = new Date();
+  const isUnitAvailable = useCallback(
+    (unit: CourseUnit): boolean => {
+      if (user?.role?.name !== 'student') return true;
+      const now = new Date();
 
-    // 1. Fechas específicas de disponibilidad (prioridad)
-    if (unit.available_from && unit.available_until) {
-      const start = new Date(unit.available_from);
-      const end = new Date(unit.available_until);
-      return now >= start && now <= end;
-    }
-    if (unit.available_from) return now >= new Date(unit.available_from);
-    if (unit.available_until) return now <= new Date(unit.available_until);
+      // 1. Fechas específicas de disponibilidad (prioridad)
+      if (unit.available_from && unit.available_until) {
+        const start = new Date(unit.available_from);
+        const end = new Date(unit.available_until);
+        return now >= start && now <= end;
+      }
+      if (unit.available_from) return now >= new Date(unit.available_from);
+      if (unit.available_until) return now <= new Date(unit.available_until);
 
-    // 2. Fechas del curso (fallback)
-    if (course?.start_date && course?.end_date) {
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const courseStart = normalizeDate(course.start_date);
-      const courseEnd = normalizeDate(course.end_date);
-      return today >= courseStart && today <= courseEnd;
-    }
+      // 2. Fechas del curso (fallback)
+      if (course?.start_date && course?.end_date) {
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const courseStart = normalizeDate(course.start_date);
+        const courseEnd = normalizeDate(course.end_date);
+        return today >= courseStart && today <= courseEnd;
+      }
 
-    return true;
-  }, [user, course]);
+      return true;
+    },
+    [user, course]
+  );
 
-  const isSessionAvailable = useCallback((session: Session): boolean => {
-    if (user?.role?.name !== 'student') return true;
-    const now = new Date();
+  const isSessionAvailable = useCallback(
+    (session: Session): boolean => {
+      if (user?.role?.name !== 'student') return true;
+      const now = new Date();
 
-    // 1. Validar Unidad Padre
-    if (session.unit_id) {
-      const parentUnit = units.find(u => u.id === session.unit_id);
-      if (parentUnit && !isUnitAvailable(parentUnit)) return false;
-    }
+      // 1. Validar Unidad Padre
+      if (session.unit_id) {
+        const parentUnit = units.find((u) => u.id === session.unit_id);
+        if (parentUnit && !isUnitAvailable(parentUnit)) return false;
+      }
 
-    // 2. Fechas específicas de disponibilidad
-    if (session.available_from && session.available_until) {
-      const start = new Date(session.available_from);
-      const end = new Date(session.available_until);
-      return now >= start && now <= end;
-    }
-    if (session.available_from) return now >= new Date(session.available_from);
-    if (session.available_until) return now <= new Date(session.available_until);
+      // 2. Fechas específicas de disponibilidad
+      if (session.available_from && session.available_until) {
+        const start = new Date(session.available_from);
+        const end = new Date(session.available_until);
+        return now >= start && now <= end;
+      }
+      if (session.available_from) return now >= new Date(session.available_from);
+      if (session.available_until) return now <= new Date(session.available_until);
 
-    // 3. Fechas de "cursada" (compatibilidad)
-    if (session.starts_at && session.ends_at) {
-      const start = new Date(session.starts_at);
-      const end = new Date(session.ends_at);
-      return now >= start && now <= end;
-    }
+      // 3. Fechas de "cursada" (compatibilidad)
+      if (session.starts_at && session.ends_at) {
+        const start = new Date(session.starts_at);
+        const end = new Date(session.ends_at);
+        return now >= start && now <= end;
+      }
 
-    // 4. Fechas del curso
-    if (course?.start_date && course?.end_date) {
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const courseStart = normalizeDate(course.start_date);
-      const courseEnd = normalizeDate(course.end_date);
-      return today >= courseStart && today <= courseEnd;
-    }
+      // 4. Fechas del curso
+      if (course?.start_date && course?.end_date) {
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const courseStart = normalizeDate(course.start_date);
+        const courseEnd = normalizeDate(course.end_date);
+        return today >= courseStart && today <= courseEnd;
+      }
 
-    return true;
-  }, [user, course, units, isUnitAvailable]);
+      return true;
+    },
+    [user, course, units, isUnitAvailable]
+  );
 
-  const isQuizAvailable = useCallback((quiz: Assessment): boolean => {
-    if (user?.role?.name !== 'student') return true;
-    const now = new Date();
+  const isQuizAvailable = useCallback(
+    (quiz: Assessment): boolean => {
+      if (user?.role?.name !== 'student') return true;
+      const now = new Date();
 
-    // 1. Validar Sesión Padre
-    if (quiz.session_id) {
-      // Buscar sesión en todas las sesiones cargadas
-      const allSessions = Object.values(sessionsByUnit).flat();
-      const parentSession = allSessions.find(s => s.id === quiz.session_id);
-      if (parentSession && !isSessionAvailable(parentSession)) return false;
-    }
+      // 1. Validar Sesión Padre
+      if (quiz.session_id) {
+        // Buscar sesión en todas las sesiones cargadas
+        const allSessions = Object.values(sessionsByUnit).flat();
+        const parentSession = allSessions.find((s) => s.id === quiz.session_id);
+        if (parentSession && !isSessionAvailable(parentSession)) return false;
+      }
 
-    // 2. Validar Unidad Padre
-    if (quiz.unit_id) {
-      const parentUnit = units.find(u => u.id === quiz.unit_id);
-      if (parentUnit && !isUnitAvailable(parentUnit)) return false;
-    }
+      // 2. Validar Unidad Padre
+      if (quiz.unit_id) {
+        const parentUnit = units.find((u) => u.id === quiz.unit_id);
+        if (parentUnit && !isUnitAvailable(parentUnit)) return false;
+      }
 
-    // 3. Fechas específicas
-    if (quiz.available_from && quiz.available_until) {
-      const start = new Date(quiz.available_from);
-      const end = new Date(quiz.available_until);
-      return now >= start && now <= end;
-    }
-    if (quiz.available_from) return now >= new Date(quiz.available_from);
-    if (quiz.available_until) return now <= new Date(quiz.available_until);
+      // 3. Fechas específicas
+      if (quiz.available_from && quiz.available_until) {
+        const start = new Date(quiz.available_from);
+        const end = new Date(quiz.available_until);
+        return now >= start && now <= end;
+      }
+      if (quiz.available_from) return now >= new Date(quiz.available_from);
+      if (quiz.available_until) return now <= new Date(quiz.available_until);
 
-    return true;
-  }, [user, units, sessionsByUnit, isSessionAvailable, isUnitAvailable]);
+      return true;
+    },
+    [user, units, sessionsByUnit, isSessionAvailable, isUnitAvailable]
+  );
 
   // ==========================================
   // Variables Filtradas para Renderizado
@@ -179,7 +203,7 @@ export const CourseViewPage: React.FC = () => {
 
   const visibleSessionsByUnit = useMemo(() => {
     const filtered: Record<string, Session[]> = {};
-    Object.keys(sessionsByUnit).forEach(unitId => {
+    Object.keys(sessionsByUnit).forEach((unitId) => {
       filtered[unitId] = sessionsByUnit[unitId].filter(isSessionAvailable);
     });
     return filtered;
@@ -187,14 +211,20 @@ export const CourseViewPage: React.FC = () => {
 
   const visibleQuizzesByUnit = useMemo(() => {
     const filtered: Record<string, Assessment[]> = {};
-    Object.keys(quizzesByUnit).forEach(unitId => {
+    Object.keys(quizzesByUnit).forEach((unitId) => {
       filtered[unitId] = quizzesByUnit[unitId].filter(isQuizAvailable);
     });
     return filtered;
   }, [quizzesByUnit, isQuizAvailable]);
 
-  const visibleGeneralQuizzes = useMemo(() => generalQuizzes.filter(isQuizAvailable), [generalQuizzes, isQuizAvailable]);
-  const visibleFinalExam = useMemo(() => finalExam && isQuizAvailable(finalExam) ? finalExam : null, [finalExam, isQuizAvailable]);
+  const visibleGeneralQuizzes = useMemo(
+    () => generalQuizzes.filter(isQuizAvailable),
+    [generalQuizzes, isQuizAvailable]
+  );
+  const visibleFinalExam = useMemo(
+    () => (finalExam && isQuizAvailable(finalExam) ? finalExam : null),
+    [finalExam, isQuizAvailable]
+  );
 
   // Calcular métricas para el ScoreCard
   const scoreMetrics = useMemo(() => {
@@ -211,7 +241,7 @@ export const CourseViewPage: React.FC = () => {
     const allQuizzes = [
       ...Object.values(visibleQuizzesByUnit).flat(),
       ...visibleGeneralQuizzes,
-      ...(visibleFinalExam ? [visibleFinalExam] : [])
+      ...(visibleFinalExam ? [visibleFinalExam] : []),
     ];
     const totalQuizzes = allQuizzes.length;
     const completedQuizzesCount = completedQuizzes.size;
@@ -220,9 +250,20 @@ export const CourseViewPage: React.FC = () => {
       units: { total: totalUnits, completed: completedUnitsCount },
       sessions: { total: totalSessions, completed: completedSessionsCount },
       quizzes: { total: totalQuizzes, completed: completedQuizzesCount },
-      flashcards: { total: totalFlashcards, completed: completedFlashcards }
+      flashcards: { total: totalFlashcards, completed: completedFlashcards },
     };
-  }, [visibleUnits, completedUnits, visibleSessionsByUnit, completedSessions, visibleQuizzesByUnit, visibleGeneralQuizzes, visibleFinalExam, completedQuizzes, totalFlashcards, completedFlashcards]);
+  }, [
+    visibleUnits,
+    completedUnits,
+    visibleSessionsByUnit,
+    completedSessions,
+    visibleQuizzesByUnit,
+    visibleGeneralQuizzes,
+    visibleFinalExam,
+    completedQuizzes,
+    totalFlashcards,
+    completedFlashcards,
+  ]);
 
   // Función auxiliar para detectar si un material es un video
   const isVideoMaterial = useCallback((material: Material): boolean => {
@@ -239,19 +280,18 @@ export const CourseViewPage: React.FC = () => {
 
   // Obtener materiales generales del curso (sin unidad y sin sesión)
   const generalCourseMaterials = useMemo(() => {
-    return materials.filter((material) =>
-      !material.unit_id &&
-      !material.session_id &&
-      material.purpose !== 'rag'
+    return materials.filter(
+      (material) => !material.unit_id && !material.session_id && material.purpose !== 'rag'
     );
   }, [materials]);
 
   // Obtener categorías únicas de los materiales (desde category o metadata)
   const availableCategories = useMemo(() => {
     const categories = new Set<string>();
-    generalCourseMaterials.forEach(material => {
+    generalCourseMaterials.forEach((material) => {
       // Priorizar category del material, luego metadata.display_category, luego metadata.category
-      const category = material.category ||
+      const category =
+        material.category ||
         material.metadata?.display_category ||
         material.metadata?.category ||
         'Sin categoría';
@@ -263,10 +303,10 @@ export const CourseViewPage: React.FC = () => {
   // Obtener hashtags únicos de los materiales (desde metadata.hashtags)
   const availableHashtags = useMemo(() => {
     const hashtags = new Set<string>();
-    generalCourseMaterials.forEach(material => {
+    generalCourseMaterials.forEach((material) => {
       const materialHashtags = material.metadata?.hashtags;
       if (Array.isArray(materialHashtags)) {
-        materialHashtags.forEach(tag => {
+        materialHashtags.forEach((tag) => {
           if (typeof tag === 'string' && tag.trim()) {
             hashtags.add(tag.trim());
           }
@@ -283,7 +323,9 @@ export const CourseViewPage: React.FC = () => {
   const getMaterialHashtags = useCallback((material: Material): string[] => {
     const hashtags = material.metadata?.hashtags;
     if (Array.isArray(hashtags)) {
-      return hashtags.filter(tag => typeof tag === 'string' && tag.trim()).map(tag => tag.trim());
+      return hashtags
+        .filter((tag) => typeof tag === 'string' && tag.trim())
+        .map((tag) => tag.trim());
     } else if (typeof hashtags === 'string' && hashtags.trim()) {
       return [hashtags.trim()];
     }
@@ -297,10 +339,11 @@ export const CourseViewPage: React.FC = () => {
     // 1. Filtro por búsqueda (nombre)
     if (materialSearchQuery.trim()) {
       const query = materialSearchQuery.toLowerCase().trim();
-      filtered = filtered.filter(material =>
-        material.title.toLowerCase().includes(query) ||
-        material.metadata?.description?.toLowerCase().includes(query) ||
-        material.metadata?.category?.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        (material) =>
+          material.title.toLowerCase().includes(query) ||
+          material.metadata?.description?.toLowerCase().includes(query) ||
+          material.metadata?.category?.toLowerCase().includes(query)
       );
     }
 
@@ -309,10 +352,11 @@ export const CourseViewPage: React.FC = () => {
       if (materialTypeFilter === 'video') {
         filtered = filtered.filter(isVideoMaterial);
       } else {
-        filtered = filtered.filter(material => {
+        filtered = filtered.filter((material) => {
           if (materialTypeFilter === 'pdf') return material.kind === 'pdf';
           if (materialTypeFilter === 'link') return material.kind === 'link';
-          if (materialTypeFilter === 'other') return material.kind === 'other' || material.kind === 'markdown';
+          if (materialTypeFilter === 'other')
+            return material.kind === 'other' || material.kind === 'markdown';
           return true;
         });
       }
@@ -320,8 +364,9 @@ export const CourseViewPage: React.FC = () => {
 
     // 3. Filtro por categoría
     if (materialCategoryFilter !== 'all') {
-      filtered = filtered.filter(material => {
-        const category = material.category ||
+      filtered = filtered.filter((material) => {
+        const category =
+          material.category ||
           material.metadata?.display_category ||
           material.metadata?.category ||
           'Sin categoría';
@@ -331,7 +376,7 @@ export const CourseViewPage: React.FC = () => {
 
     // 4. Filtro por hashtag
     if (materialHashtagFilter !== 'all') {
-      filtered = filtered.filter(material => {
+      filtered = filtered.filter((material) => {
         const materialHashtags = getMaterialHashtags(material);
         return materialHashtags.includes(materialHashtagFilter);
       });
@@ -354,22 +399,31 @@ export const CourseViewPage: React.FC = () => {
     });
 
     return filtered;
-  }, [generalCourseMaterials, materialSearchQuery, materialTypeFilter, materialCategoryFilter, materialHashtagFilter, materialSortBy, isVideoMaterial, getMaterialHashtags]);
+  }, [
+    generalCourseMaterials,
+    materialSearchQuery,
+    materialTypeFilter,
+    materialCategoryFilter,
+    materialHashtagFilter,
+    materialSortBy,
+    isVideoMaterial,
+    getMaterialHashtags,
+  ]);
 
   // Separar materiales en videos y otros
-  const videoMaterials = useMemo(() =>
-    filteredAndSortedMaterials.filter(isVideoMaterial),
+  const videoMaterials = useMemo(
+    () => filteredAndSortedMaterials.filter(isVideoMaterial),
     [filteredAndSortedMaterials, isVideoMaterial]
   );
 
-  const otherMaterials = useMemo(() =>
-    filteredAndSortedMaterials.filter(m => !isVideoMaterial(m)),
+  const otherMaterials = useMemo(
+    () => filteredAndSortedMaterials.filter((m) => !isVideoMaterial(m)),
     [filteredAndSortedMaterials, isVideoMaterial]
   );
 
   const recommendedUnitId = useMemo(() => {
     if (visibleUnits.length === 0) return null;
-    const nextPending = visibleUnits.find(unit => !completedUnits.has(unit.id));
+    const nextPending = visibleUnits.find((unit) => !completedUnits.has(unit.id));
     return (nextPending || visibleUnits[0]).id;
   }, [visibleUnits, completedUnits]);
 
@@ -386,9 +440,11 @@ export const CourseViewPage: React.FC = () => {
 
       try {
         const allQuizIds = [
-          ...Object.values(quizzesByUnit).flat().map(q => q.id),
-          ...generalQuizzes.map(q => q.id),
-          ...(finalExam ? [finalExam.id] : [])
+          ...Object.values(quizzesByUnit)
+            .flat()
+            .map((q) => q.id),
+          ...generalQuizzes.map((q) => q.id),
+          ...(finalExam ? [finalExam.id] : []),
         ].filter(Boolean);
 
         if (allQuizIds.length > 0) {
@@ -400,7 +456,9 @@ export const CourseViewPage: React.FC = () => {
             .in('status', ['submitted', 'graded']);
 
           if (quizAttemptsData) {
-            const completedQuizIds = new Set(quizAttemptsData.map(qa => qa.assessment_id).filter(Boolean));
+            const completedQuizIds = new Set(
+              quizAttemptsData.map((qa) => qa.assessment_id).filter(Boolean)
+            );
             setCompletedQuizzes(completedQuizIds);
           }
         }
@@ -421,7 +479,7 @@ export const CourseViewPage: React.FC = () => {
         courseService.getCourse(courseId),
         unitService.getCourseUnits(courseId),
         sessionService.getCourseSessions(courseId),
-        materialService.getCourseMaterials(courseId)
+        materialService.getCourseMaterials(courseId),
       ]);
 
       setCourse(courseData);
@@ -438,7 +496,7 @@ export const CourseViewPage: React.FC = () => {
           if (allFlashcards.length > 0) {
             const flashcardsWithProgress = await getFlashcardsWithProgress(courseId, user.id);
             const masteredCount = flashcardsWithProgress.filter(
-              f => f.progress && f.progress.mastery_level >= 4
+              (f) => f.progress && f.progress.mastery_level >= 4
             ).length;
             setCompletedFlashcards(masteredCount);
           }
@@ -449,7 +507,7 @@ export const CourseViewPage: React.FC = () => {
 
       // Agrupar sesiones por unidad
       const groupedSessions: Record<string, Session[]> = {};
-      sessionsData.forEach(session => {
+      sessionsData.forEach((session) => {
         const unitId = session.unit_id || 'sin-unidad';
         if (!groupedSessions[unitId]) {
           groupedSessions[unitId] = [];
@@ -476,7 +534,7 @@ export const CourseViewPage: React.FC = () => {
       if (user?.id) {
         try {
           const enrollments = await courseEnrollmentService.getStudentEnrollments(user.id);
-          const courseEnrollment = enrollments.find(e => e.course_id === courseId);
+          const courseEnrollment = enrollments.find((e) => e.course_id === courseId);
           if (courseEnrollment) {
             setEnrollment(courseEnrollment);
           }
@@ -487,7 +545,11 @@ export const CourseViewPage: React.FC = () => {
 
       // Cargar quizzes publicados del curso
       try {
-        const courseQuizzes = await quizService.getCourseAssessments(courseId, ['quiz', 'trivia', 'exam']);
+        const courseQuizzes = await quizService.getCourseAssessments(courseId, [
+          'quiz',
+          'trivia',
+          'exam',
+        ]);
         setRawQuizzesCount(courseQuizzes.length);
 
         // Separar quizzes por unidad, generales (sin unidad) y examen final
@@ -495,7 +557,7 @@ export const CourseViewPage: React.FC = () => {
         const general: Assessment[] = [];
         let finalExam: Assessment | null = null;
 
-        courseQuizzes.forEach(quiz => {
+        courseQuizzes.forEach((quiz) => {
           // Si es examen final, guardarlo por separado
           if (quiz.is_final_exam && quiz.assessment_type === 'exam') {
             finalExam = quiz;
@@ -508,7 +570,7 @@ export const CourseViewPage: React.FC = () => {
             // ⭐ MEJORA: Buscar el unit_id de la sesión para agruparlo correctamente
             let foundUnitId: string | undefined;
             for (const unitId in groupedSessions) {
-              if (groupedSessions[unitId].some(s => s.id === quiz.session_id)) {
+              if (groupedSessions[unitId].some((s) => s.id === quiz.session_id)) {
                 foundUnitId = unitId;
                 break;
               }
@@ -547,7 +609,7 @@ export const CourseViewPage: React.FC = () => {
             .eq('is_completed', true);
 
           if (unitProgressData) {
-            const completedUnitIds = new Set(unitProgressData.map(up => up.unit_id));
+            const completedUnitIds = new Set(unitProgressData.map((up) => up.unit_id));
             setCompletedUnits(completedUnitIds);
           }
 
@@ -560,7 +622,9 @@ export const CourseViewPage: React.FC = () => {
             .eq('is_completed', true);
 
           if (sessionProgressData) {
-            const completedSessionIds = new Set(sessionProgressData.map(sp => sp.session_id).filter(Boolean));
+            const completedSessionIds = new Set(
+              sessionProgressData.map((sp) => sp.session_id).filter(Boolean)
+            );
             setCompletedSessions(completedSessionIds);
           }
 
@@ -578,7 +642,7 @@ export const CourseViewPage: React.FC = () => {
   };
 
   const toggleUnit = (unitId: string) => {
-    setExpandedUnits(prev => {
+    setExpandedUnits((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(unitId)) {
         newSet.delete(unitId);
@@ -590,7 +654,7 @@ export const CourseViewPage: React.FC = () => {
   };
 
   const toggleMaterialsGroup = (groupId: string) => {
-    setExpandedMaterialsGroups(prev => {
+    setExpandedMaterialsGroups((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(groupId)) {
         newSet.delete(groupId);
@@ -600,16 +664,6 @@ export const CourseViewPage: React.FC = () => {
       return newSet;
     });
   };
-
-
-
-
-
-
-
-
-
-
 
   if (loading) {
     return (
@@ -630,7 +684,6 @@ export const CourseViewPage: React.FC = () => {
     );
   }
 
-
   // ==========================================
   // Variables Filtradas para Renderizado (MOVIDAS AL INICIO)
   // ==========================================
@@ -642,7 +695,7 @@ export const CourseViewPage: React.FC = () => {
         items={[
           { label: 'Dashboard', path: '/dashboard' },
           { label: 'Mis Cursos', path: '/my/courses' },
-          { label: course.title }
+          { label: course.title },
         ]}
       />
 
@@ -656,7 +709,8 @@ export const CourseViewPage: React.FC = () => {
               </span>
             )}
             <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-purple-500/10 text-purple-600 border border-purple-500/20 uppercase tracking-wide flex items-center gap-1">
-              <span className="material-symbols-outlined text-[14px]">auto_awesome</span> IA Mejorada
+              <span className="material-symbols-outlined text-[14px]">auto_awesome</span> IA
+              Mejorada
             </span>
             {course.code && (
               <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-gray-100 text-gray-600 border border-gray-200 uppercase tracking-wide">
@@ -702,7 +756,7 @@ export const CourseViewPage: React.FC = () => {
           units: scoreMetrics.units,
           sessions: scoreMetrics.sessions,
           quizzes: scoreMetrics.quizzes,
-          flashcards: scoreMetrics.flashcards
+          flashcards: scoreMetrics.flashcards,
         }}
       />
 
@@ -711,7 +765,6 @@ export const CourseViewPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Columna Izquierda: Contenido Principal */}
           <div className="lg:col-span-8 flex flex-col gap-6">
-
             {/* Perspectiva IA - Banner Inteligente Funcional */}
             <AIInsightsBanner
               courseId={parseInt(id!)}
@@ -731,32 +784,47 @@ export const CourseViewPage: React.FC = () => {
               <div className="flex gap-4 min-w-max p-1">
                 <button
                   onClick={() => setActiveTab('modules')}
-                  className={`group flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 font-bold text-sm transition-all duration-200 ${activeTab === 'modules'
-                    ? 'border-brand-primary bg-brand-primary/5 text-brand-primary shadow-sm'
-                    : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200'
-                    }`}
+                  className={`group flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 font-bold text-sm transition-all duration-200 ${
+                    activeTab === 'modules'
+                      ? 'border-brand-primary bg-brand-primary/5 text-brand-primary shadow-sm'
+                      : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200'
+                  }`}
                 >
-                  <span className={`material-symbols-outlined text-[20px] ${activeTab === 'modules' ? 'icon-filled' : ''}`}>view_module</span>
+                  <span
+                    className={`material-symbols-outlined text-[20px] ${activeTab === 'modules' ? 'icon-filled' : ''}`}
+                  >
+                    view_module
+                  </span>
                   Módulos de Aprendizaje
                 </button>
                 <button
                   onClick={() => setActiveTab('materials')}
-                  className={`group flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 font-bold text-sm transition-all duration-200 ${activeTab === 'materials'
-                    ? 'border-orange-500 bg-orange-50 text-orange-600 shadow-sm'
-                    : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200'
-                    }`}
+                  className={`group flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 font-bold text-sm transition-all duration-200 ${
+                    activeTab === 'materials'
+                      ? 'border-orange-500 bg-orange-50 text-orange-600 shadow-sm'
+                      : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200'
+                  }`}
                 >
-                  <span className={`material-symbols-outlined text-[20px] ${activeTab === 'materials' ? 'icon-filled' : ''}`}>folder_open</span>
+                  <span
+                    className={`material-symbols-outlined text-[20px] ${activeTab === 'materials' ? 'icon-filled' : ''}`}
+                  >
+                    folder_open
+                  </span>
                   Materiales de Estudio
                 </button>
                 <button
                   onClick={() => setActiveTab('exercises')}
-                  className={`group flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 font-bold text-sm transition-all duration-200 ${activeTab === 'exercises'
-                    ? 'border-purple-500 bg-purple-50 text-purple-600 shadow-sm'
-                    : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200'
-                    }`}
+                  className={`group flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 font-bold text-sm transition-all duration-200 ${
+                    activeTab === 'exercises'
+                      ? 'border-purple-500 bg-purple-50 text-purple-600 shadow-sm'
+                      : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200'
+                  }`}
                 >
-                  <span className={`material-symbols-outlined text-[20px] ${activeTab === 'exercises' ? 'icon-filled' : ''}`}>quiz</span>
+                  <span
+                    className={`material-symbols-outlined text-[20px] ${activeTab === 'exercises' ? 'icon-filled' : ''}`}
+                  >
+                    quiz
+                  </span>
                   Ejercicios Interactivos
                 </button>
               </div>
@@ -770,17 +838,22 @@ export const CourseViewPage: React.FC = () => {
                 {visibleUnits.length === 0 ? (
                   <Card>
                     <div className="text-center py-8">
-                      <span className="material-symbols-outlined text-4xl text-gray-400 mb-2">auto_stories</span>
-                      <p className="text-gray-600">Este curso aún no tiene módulos definidos o disponibles actualmente.</p>
+                      <span className="material-symbols-outlined text-4xl text-gray-400 mb-2">
+                        auto_stories
+                      </span>
+                      <p className="text-gray-600">
+                        Este curso aún no tiene módulos definidos o disponibles actualmente.
+                      </p>
                     </div>
                   </Card>
                 ) : (
                   visibleUnits.map((unit, unitIndex) => {
                     const unitSessions = visibleSessionsByUnit[unit.id] || [];
-                    const unitMaterials = materials.filter((material) =>
-                      material.unit_id === unit.id &&
-                      !material.session_id &&
-                      material.purpose !== 'rag'
+                    const unitMaterials = materials.filter(
+                      (material) =>
+                        material.unit_id === unit.id &&
+                        !material.session_id &&
+                        material.purpose !== 'rag'
                     );
                     const isExpanded = expandedUnits.has(unit.id);
                     const isRecommended = unit.id === recommendedUnitId;
@@ -788,26 +861,63 @@ export const CourseViewPage: React.FC = () => {
 
                     // Definir temas de colores para rotación
                     const UNIT_THEMES = [
-                      { activeBorder: 'border-blue-500', border: 'border-l-4 border-l-blue-500', text: 'text-blue-600', bgIcon: 'bg-blue-100 text-blue-600', ring: 'ring-blue-500/20' },
-                      { activeBorder: 'border-purple-500', border: 'border-l-4 border-l-purple-500', text: 'text-purple-600', bgIcon: 'bg-purple-100 text-purple-600', ring: 'ring-purple-500/10' },
-                      { activeBorder: 'border-emerald-500', border: 'border-l-4 border-l-emerald-500', text: 'text-emerald-600', bgIcon: 'bg-emerald-100 text-emerald-600', ring: 'ring-emerald-500/20' },
-                      { activeBorder: 'border-amber-500', border: 'border-l-4 border-l-amber-500', text: 'text-amber-600', bgIcon: 'bg-amber-100 text-amber-600', ring: 'ring-amber-500/20' },
-                      { activeBorder: 'border-rose-500', border: 'border-l-4 border-l-rose-500', text: 'text-rose-600', bgIcon: 'bg-rose-100 text-rose-600', ring: 'ring-rose-500/20' },
+                      {
+                        activeBorder: 'border-blue-500',
+                        border: 'border-l-4 border-l-blue-500',
+                        text: 'text-blue-600',
+                        bgIcon: 'bg-blue-100 text-blue-600',
+                        ring: 'ring-blue-500/20',
+                      },
+                      {
+                        activeBorder: 'border-purple-500',
+                        border: 'border-l-4 border-l-purple-500',
+                        text: 'text-purple-600',
+                        bgIcon: 'bg-purple-100 text-purple-600',
+                        ring: 'ring-purple-500/10',
+                      },
+                      {
+                        activeBorder: 'border-emerald-500',
+                        border: 'border-l-4 border-l-emerald-500',
+                        text: 'text-emerald-600',
+                        bgIcon: 'bg-emerald-100 text-emerald-600',
+                        ring: 'ring-emerald-500/20',
+                      },
+                      {
+                        activeBorder: 'border-amber-500',
+                        border: 'border-l-4 border-l-amber-500',
+                        text: 'text-amber-600',
+                        bgIcon: 'bg-amber-100 text-amber-600',
+                        ring: 'ring-amber-500/20',
+                      },
+                      {
+                        activeBorder: 'border-rose-500',
+                        border: 'border-l-4 border-l-rose-500',
+                        text: 'text-rose-600',
+                        bgIcon: 'bg-rose-100 text-rose-600',
+                        ring: 'ring-rose-500/20',
+                      },
                     ];
                     const theme = UNIT_THEMES[unitIndex % UNIT_THEMES.length];
 
                     return (
-                      <div key={unit.id} className={`bg-white dark:bg-brand-dark rounded-xl transition-all duration-200 overflow-hidden ${isExpanded ? `border-2 ${theme.activeBorder} shadow-md` : `border border-border dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 ${theme.border}`}`}>
+                      <div
+                        key={unit.id}
+                        className={`bg-white dark:bg-brand-dark rounded-xl transition-all duration-200 overflow-hidden ${isExpanded ? `border-2 ${theme.activeBorder} shadow-md` : `border border-border dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 ${theme.border}`}`}
+                      >
                         <div
                           className="cursor-pointer p-5 flex items-center justify-between group"
                           onClick={() => toggleUnit(unit.id)}
                         >
                           <div className="flex items-center gap-4">
-                            <div className={`size-10 rounded-full flex items-center justify-center shrink-0 border transition-colors ${isCompleted
-                              ? 'bg-green-100 text-green-600 border-green-200 dark:bg-green-900/30 dark:text-green-400'
-                              : isRecommended
-                                ? 'bg-brand-primary text-white border-brand-primary shadow-lg shadow-brand-primary/30'
-                                : `${theme.bgIcon} border-transparent`}`}>
+                            <div
+                              className={`size-10 rounded-full flex items-center justify-center shrink-0 border transition-colors ${
+                                isCompleted
+                                  ? 'bg-green-100 text-green-600 border-green-200 dark:bg-green-900/30 dark:text-green-400'
+                                  : isRecommended
+                                    ? 'bg-brand-primary text-white border-brand-primary shadow-lg shadow-brand-primary/30'
+                                    : `${theme.bgIcon} border-transparent`
+                              }`}
+                            >
                               {isCompleted ? (
                                 <span className="material-symbols-outlined text-[20px]">check</span>
                               ) : (
@@ -817,7 +927,9 @@ export const CourseViewPage: React.FC = () => {
 
                             <div>
                               <div className="flex items-center gap-2 mb-1">
-                                <h3 className={`text-base font-bold transition-colors ${isExpanded ? theme.text : 'text-text-dark dark:text-white'} group-hover:${theme.text}`}>
+                                <h3
+                                  className={`text-base font-bold transition-colors ${isExpanded ? theme.text : 'text-text-dark dark:text-white'} group-hover:${theme.text}`}
+                                >
                                   {unit.title}
                                 </h3>
                                 {isRecommended && !isCompleted && (
@@ -827,14 +939,30 @@ export const CourseViewPage: React.FC = () => {
                                 )}
                               </div>
                               <p className="text-xs text-text-light dark:text-gray-400 flex items-center gap-3">
-                                <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">videocam</span> {unitSessions.length} Sesiones</span>
-                                <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">description</span> {unitMaterials.length} Recursos</span>
+                                <span className="flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-[14px]">
+                                    videocam
+                                  </span>{' '}
+                                  {unitSessions.length} Sesiones
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-[14px]">
+                                    description
+                                  </span>{' '}
+                                  {unitMaterials.length} Recursos
+                                </span>
                               </p>
                             </div>
                           </div>
 
-                          <button className={`size-8 rounded-full flex items-center justify-center transition-colors ${isExpanded ? `${theme.bgIcon}` : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
-                            <span className={`material-symbols-outlined transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>
+                          <button
+                            className={`size-8 rounded-full flex items-center justify-center transition-colors ${isExpanded ? `${theme.bgIcon}` : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                          >
+                            <span
+                              className={`material-symbols-outlined transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+                            >
+                              expand_more
+                            </span>
                           </button>
                         </div>
 
@@ -852,7 +980,9 @@ export const CourseViewPage: React.FC = () => {
                                   {unit.content_markdown}
                                 </div>
                               ) : unit.description ? (
-                                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{unit.description}</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                                  {unit.description}
+                                </p>
                               ) : null}
                             </div>
 
@@ -860,13 +990,20 @@ export const CourseViewPage: React.FC = () => {
                             {unit.learning_objectives && unit.learning_objectives.length > 0 && (
                               <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
                                 <h4 className="text-sm font-bold text-blue-900 dark:text-blue-300 mb-2 flex items-center gap-2">
-                                  <span className="material-symbols-outlined text-[18px]">target</span>
+                                  <span className="material-symbols-outlined text-[18px]">
+                                    target
+                                  </span>
                                   Objetivos de Aprendizaje
                                 </h4>
                                 <ul className="space-y-1">
                                   {unit.learning_objectives.map((objective, idx) => (
-                                    <li key={idx} className="text-sm text-blue-800 dark:text-blue-200 flex items-start gap-2">
-                                      <span className="text-blue-400 mt-1.5 text-[6px] transform rotate-45">■</span>
+                                    <li
+                                      key={idx}
+                                      className="text-sm text-blue-800 dark:text-blue-200 flex items-start gap-2"
+                                    >
+                                      <span className="text-blue-400 mt-1.5 text-[6px] transform rotate-45">
+                                        ■
+                                      </span>
                                       {objective}
                                     </li>
                                   ))}
@@ -885,14 +1022,24 @@ export const CourseViewPage: React.FC = () => {
                                   >
                                     <div className="flex items-center gap-3">
                                       <div className="size-8 rounded bg-gray-50 dark:bg-gray-800 text-brand-primary flex items-center justify-center shrink-0 group-hover:bg-brand-primary group-hover:text-white transition-colors">
-                                        <span className="material-symbols-outlined text-[18px]">play_arrow</span>
+                                        <span className="material-symbols-outlined text-[18px]">
+                                          play_arrow
+                                        </span>
                                       </div>
                                       <div>
-                                        <p className="text-sm font-bold text-text-dark dark:text-white group-hover:text-brand-primary transition-colors">{session.title}</p>
-                                        <p className="text-xs text-text-light dark:text-gray-400">{session.duration_minutes ? `${session.duration_minutes} min` : 'Video Clase'}</p>
+                                        <p className="text-sm font-bold text-text-dark dark:text-white group-hover:text-brand-primary transition-colors">
+                                          {session.title}
+                                        </p>
+                                        <p className="text-xs text-text-light dark:text-gray-400">
+                                          {session.duration_minutes
+                                            ? `${session.duration_minutes} min`
+                                            : 'Video Clase'}
+                                        </p>
                                       </div>
                                     </div>
-                                    <span className="material-symbols-outlined text-gray-300 group-hover:text-brand-primary transform group-hover:translate-x-1 transition-all">chevron_right</span>
+                                    <span className="material-symbols-outlined text-gray-300 group-hover:text-brand-primary transform group-hover:translate-x-1 transition-all">
+                                      chevron_right
+                                    </span>
                                   </Link>
                                 ))}
                               </div>
@@ -900,13 +1047,17 @@ export const CourseViewPage: React.FC = () => {
 
                             {/* Evaluaciones (Quizzes) */}
                             {(() => {
-                              const foundQuizzes = visibleQuizzesByUnit ? (visibleQuizzesByUnit[unit.id] || []) : [];
+                              const foundQuizzes = visibleQuizzesByUnit
+                                ? visibleQuizzesByUnit[unit.id] || []
+                                : [];
                               if (foundQuizzes.length === 0) return null;
 
                               return (
                                 <div className="mb-6">
                                   <h4 className="text-sm font-bold text-text-dark dark:text-white mb-2 flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-[18px] text-purple-500">assignment</span>
+                                    <span className="material-symbols-outlined text-[18px] text-purple-500">
+                                      assignment
+                                    </span>
                                     Evaluaciones ({foundQuizzes.length})
                                   </h4>
                                   <div className="space-y-2">
@@ -917,22 +1068,37 @@ export const CourseViewPage: React.FC = () => {
                                       >
                                         <div className="flex items-center gap-3">
                                           <div className="size-8 rounded flex items-center justify-center shrink-0 bg-white dark:bg-purple-900/30 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                                            <span className="material-symbols-outlined text-[18px]">quiz</span>
+                                            <span className="material-symbols-outlined text-[18px]">
+                                              quiz
+                                            </span>
                                           </div>
                                           <div>
-                                            <p className="text-sm font-bold text-text-dark dark:text-white group-hover:text-purple-600 transition-colors">{quiz.title}</p>
+                                            <p className="text-sm font-bold text-text-dark dark:text-white group-hover:text-purple-600 transition-colors">
+                                              {quiz.title}
+                                            </p>
                                             <div className="flex items-center gap-2 text-xs text-text-light dark:text-gray-400">
-                                              <span>{quiz.assessment_type === 'exam' ? 'Examen' : 'Cuestionario'}</span>
-                                              {quiz.time_limit && <span>• {quiz.time_limit} min</span>}
+                                              <span>
+                                                {quiz.assessment_type === 'exam'
+                                                  ? 'Examen'
+                                                  : 'Cuestionario'}
+                                              </span>
+                                              {quiz.time_limit && (
+                                                <span>• {quiz.time_limit} min</span>
+                                              )}
                                             </div>
                                           </div>
                                         </div>
 
                                         <div className="flex items-center gap-2">
                                           {/* Botón Práctica */}
-                                          <Link to={`/quiz/${quiz.id}?mode=practice`} title="Modo Práctica (Sin calificación)">
+                                          <Link
+                                            to={`/quiz/${quiz.id}?mode=practice`}
+                                            title="Modo Práctica (Sin calificación)"
+                                          >
                                             <button className="text-xs font-bold text-purple-600 bg-white dark:bg-transparent border border-purple-200 dark:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/30 py-1.5 px-3 rounded transition-colors flex items-center gap-1">
-                                              <span className="material-symbols-outlined text-[14px]">fitness_center</span>
+                                              <span className="material-symbols-outlined text-[14px]">
+                                                fitness_center
+                                              </span>
                                               <span className="hidden sm:inline">Practicar</span>
                                             </button>
                                           </Link>
@@ -941,7 +1107,9 @@ export const CourseViewPage: React.FC = () => {
                                           <Link to={`/quiz/${quiz.id}`}>
                                             <button className="text-xs font-bold text-white py-1.5 px-3 bg-purple-600 rounded hover:bg-purple-700 transition-colors shadow-sm flex items-center gap-1">
                                               <span>Iniciar</span>
-                                              <span className="material-symbols-outlined text-[14px]">play_arrow</span>
+                                              <span className="material-symbols-outlined text-[14px]">
+                                                play_arrow
+                                              </span>
                                             </button>
                                           </Link>
                                         </div>
@@ -956,7 +1124,9 @@ export const CourseViewPage: React.FC = () => {
                             {unitMaterials.length > 0 && (
                               <div className="mb-6">
                                 <h4 className="text-sm font-bold text-text-dark dark:text-white mb-2 flex items-center gap-2">
-                                  <span className="material-symbols-outlined text-[18px] text-orange-500">folder_open</span>
+                                  <span className="material-symbols-outlined text-[18px] text-orange-500">
+                                    folder_open
+                                  </span>
                                   Recursos Adicionales
                                 </h4>
                                 <div className="space-y-2 pl-2 border-l-2 border-dashed border-gray-200 dark:border-gray-700">
@@ -978,9 +1148,12 @@ export const CourseViewPage: React.FC = () => {
                                     if (!user?.id || isCompleted) return;
                                     // Lógica simplificada de marcado (similar a la original)
                                     setMarkingUnit(unit.id);
-                                    progressService.completeSession(user.id, unit.id, parseInt(id!), unit.id, { timeSpentMinutes: 15 })
+                                    progressService
+                                      .completeSession(user.id, unit.id, parseInt(id!), unit.id, {
+                                        timeSpentMinutes: 15,
+                                      })
                                       .then(() => {
-                                        setCompletedUnits(prev => new Set(prev).add(unit.id));
+                                        setCompletedUnits((prev) => new Set(prev).add(unit.id));
                                         setMarkingUnit(null);
                                       })
                                       .catch(() => setMarkingUnit(null));
@@ -988,8 +1161,12 @@ export const CourseViewPage: React.FC = () => {
                                   disabled={markingUnit === unit.id}
                                   className="text-xs font-bold text-brand-primary hover:bg-brand-primary/10 px-3 py-1.5 rounded transition-colors flex items-center gap-1"
                                 >
-                                  {markingUnit === unit.id ? 'Procesando...' : 'Marcar como completado'}
-                                  <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                                  {markingUnit === unit.id
+                                    ? 'Procesando...'
+                                    : 'Marcar como completado'}
+                                  <span className="material-symbols-outlined text-[16px]">
+                                    check_circle
+                                  </span>
                                 </button>
                               </div>
                             )}
@@ -1006,7 +1183,10 @@ export const CourseViewPage: React.FC = () => {
             {activeTab === 'materials' && (
               <div className="space-y-6 animate-fade-in">
                 {/* Controles de búsqueda, filtros y ordenamiento */}
-                <div className="bg-white dark:bg-brand-dark rounded-xl border border-border dark:border-gray-700 p-4 space-y-4 shadow-sm" data-tutorial="material-filters">
+                <div
+                  className="bg-white dark:bg-brand-dark rounded-xl border border-border dark:border-gray-700 p-4 space-y-4 shadow-sm"
+                  data-tutorial="material-filters"
+                >
                   {/* Barra de búsqueda */}
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -1052,8 +1232,10 @@ export const CourseViewPage: React.FC = () => {
                           className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-sm dark:text-white"
                         >
                           <option value="all">Todas las categorías</option>
-                          {availableCategories.map(category => (
-                            <option key={category} value={category}>{category}</option>
+                          {availableCategories.map((category) => (
+                            <option key={category} value={category}>
+                              {category}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -1068,8 +1250,10 @@ export const CourseViewPage: React.FC = () => {
                           className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-sm dark:text-white"
                         >
                           <option value="all">Todos los hashtags</option>
-                          {availableHashtags.map(hashtag => (
-                            <option key={hashtag} value={hashtag}>#{hashtag}</option>
+                          {availableHashtags.map((hashtag) => (
+                            <option key={hashtag} value={hashtag}>
+                              #{hashtag}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -1097,7 +1281,8 @@ export const CourseViewPage: React.FC = () => {
                     <Card className="p-8 text-center bg-white dark:bg-brand-dark border-border dark:border-gray-700">
                       <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-600 dark:text-gray-400">
-                        No se encontraron materiales generales en este curso que coincidan con tus filtros.
+                        No se encontraron materiales generales en este curso que coincidan con tus
+                        filtros.
                       </p>
                       <button
                         onClick={() => {
@@ -1122,11 +1307,11 @@ export const CourseViewPage: React.FC = () => {
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {videoMaterials.map((material) => (
-                              <div key={material.id} className="bg-white dark:bg-brand-dark rounded-xl border border-border dark:border-gray-700 p-1 shadow-sm overflow-hidden">
-                                <MaterialDisplay
-                                  material={material}
-                                  showFullPlayer={true}
-                                />
+                              <div
+                                key={material.id}
+                                className="bg-white dark:bg-brand-dark rounded-xl border border-border dark:border-gray-700 p-1 shadow-sm overflow-hidden"
+                              >
+                                <MaterialDisplay material={material} showFullPlayer={true} />
                               </div>
                             ))}
                           </div>
@@ -1137,7 +1322,9 @@ export const CourseViewPage: React.FC = () => {
                       {otherMaterials.length > 0 && (
                         <div className="space-y-3">
                           <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2 pt-4">
-                            <span className="material-symbols-outlined text-[18px]">description</span>
+                            <span className="material-symbols-outlined text-[18px]">
+                              description
+                            </span>
                             Recursos y Documentos ({otherMaterials.length})
                           </h3>
                           <div className="grid grid-cols-1 gap-2">
@@ -1165,12 +1352,17 @@ export const CourseViewPage: React.FC = () => {
                   <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-0.5 rounded bg-white/20 text-[10px] font-bold uppercase tracking-wider backdrop-blur-sm">Gamificación Activa</span>
-                        <span className="material-symbols-outlined text-yellow-300 animate-pulse text-sm icon-filled">stars</span>
+                        <span className="px-2 py-0.5 rounded bg-white/20 text-[10px] font-bold uppercase tracking-wider backdrop-blur-sm">
+                          Gamificación Activa
+                        </span>
+                        <span className="material-symbols-outlined text-yellow-300 animate-pulse text-sm icon-filled">
+                          stars
+                        </span>
                       </div>
                       <h3 className="text-2xl font-black font-display mb-2">Mazo de Flashcards</h3>
                       <p className="text-indigo-100 text-sm max-w-md mb-4">
-                        Practica con el sistema de repetición espaciada para memorizar los conceptos clave de todo el curso.
+                        Practica con el sistema de repetición espaciada para memorizar los conceptos
+                        clave de todo el curso.
                       </p>
 
                       {/* Progreso de Flashcards */}
@@ -1178,10 +1370,14 @@ export const CourseViewPage: React.FC = () => {
                         <div className="flex-1 h-2 bg-white/20 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-yellow-400 rounded-full transition-all duration-1000"
-                            style={{ width: `${totalFlashcards > 0 ? (completedFlashcards / totalFlashcards) * 100 : 0}%` }}
+                            style={{
+                              width: `${totalFlashcards > 0 ? (completedFlashcards / totalFlashcards) * 100 : 0}%`,
+                            }}
                           ></div>
                         </div>
-                        <span className="text-xs font-bold whitespace-nowrap">{completedFlashcards} / {totalFlashcards} dominadas</span>
+                        <span className="text-xs font-bold whitespace-nowrap">
+                          {completedFlashcards} / {totalFlashcards} dominadas
+                        </span>
                       </div>
                     </div>
 
@@ -1192,7 +1388,9 @@ export const CourseViewPage: React.FC = () => {
                       </button>
                     </Link>
                   </div>
-                  <span className="absolute -bottom-10 -right-10 text-[180px] text-white/10 select-none pointer-events-none material-symbols-outlined rotate-12">cards</span>
+                  <span className="absolute -bottom-10 -right-10 text-[180px] text-white/10 select-none pointer-events-none material-symbols-outlined rotate-12">
+                    cards
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1200,29 +1398,41 @@ export const CourseViewPage: React.FC = () => {
                   {visibleFinalExam && (
                     <div className="bg-white dark:bg-brand-dark border-2 border-brand-primary/20 rounded-xl p-5 shadow-sm">
                       <h4 className="text-sm font-bold text-brand-primary uppercase tracking-wider mb-4 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[20px]">workspace_premium</span>
+                        <span className="material-symbols-outlined text-[20px]">
+                          workspace_premium
+                        </span>
                         Examen Final del Curso
                       </h4>
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <p className="text-lg font-bold text-text-dark dark:text-white mb-1">{visibleFinalExam.title}</p>
+                          <p className="text-lg font-bold text-text-dark dark:text-white mb-1">
+                            {visibleFinalExam.title}
+                          </p>
                           <p className="text-xs text-text-light dark:text-gray-400 mb-4 leading-relaxed">
-                            Esta es la evaluación final. Asegúrate de haber repasado todos los módulos antes de comenzar.
+                            Esta es la evaluación final. Asegúrate de haber repasado todos los
+                            módulos antes de comenzar.
                           </p>
                           <div className="flex flex-wrap gap-3 mb-4">
                             <span className="text-[10px] font-bold px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                              <span className="material-symbols-outlined text-xs">timer</span> {visibleFinalExam.time_limit} min
+                              <span className="material-symbols-outlined text-xs">timer</span>{' '}
+                              {visibleFinalExam.time_limit} min
                             </span>
                             <span className="text-[10px] font-bold px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                              <span className="material-symbols-outlined text-xs">grade</span> {visibleFinalExam.total_points} pts
+                              <span className="material-symbols-outlined text-xs">grade</span>{' '}
+                              {visibleFinalExam.total_points} pts
                             </span>
                           </div>
                         </div>
                         <div className="flex flex-col gap-2 shrink-0">
                           {/* Botón Practicar */}
-                          <Link to={`/quiz/${visibleFinalExam.id}?mode=practice`} title="Modo Práctica (Sin calificación)">
+                          <Link
+                            to={`/quiz/${visibleFinalExam.id}?mode=practice`}
+                            title="Modo Práctica (Sin calificación)"
+                          >
                             <button className="w-full bg-white text-brand-primary border border-brand-primary/30 hover:bg-blue-50 px-4 py-2 rounded-lg font-bold text-xs transition-colors shadow-sm flex items-center justify-center gap-1">
-                              <span className="material-symbols-outlined text-[16px]">fitness_center</span>
+                              <span className="material-symbols-outlined text-[16px]">
+                                fitness_center
+                              </span>
                               Practicar
                             </button>
                           </Link>
@@ -1245,11 +1455,8 @@ export const CourseViewPage: React.FC = () => {
                       Todas las Evaluaciones
                     </h4>
                     <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                      {[
-                        ...visibleGeneralQuizzes,
-                        ...Object.values(visibleQuizzesByUnit).flat()
-                      ]
-                        .filter(q => q.id !== visibleFinalExam?.id)
+                      {[...visibleGeneralQuizzes, ...Object.values(visibleQuizzesByUnit).flat()]
+                        .filter((q) => q.id !== visibleFinalExam?.id)
                         .map((quiz) => (
                           <div
                             key={quiz.id}
@@ -1257,51 +1464,75 @@ export const CourseViewPage: React.FC = () => {
                           >
                             <div className="flex items-center gap-3">
                               <div className="size-8 rounded bg-white dark:bg-gray-800 text-purple-500 flex items-center justify-center border border-purple-100 dark:border-purple-900/30 group-hover:bg-purple-500 group-hover:text-white transition-colors">
-                                <span className="material-symbols-outlined text-[18px]">{quiz.assessment_type === 'exam' ? 'assignment' : 'quiz'}</span>
+                                <span className="material-symbols-outlined text-[18px]">
+                                  {quiz.assessment_type === 'exam' ? 'assignment' : 'quiz'}
+                                </span>
                               </div>
                               <div>
-                                <Link to={`/quiz/${quiz.id}`} className="hover:underline decoration-purple-500 underline-offset-2">
-                                  <p className="text-sm font-bold text-text-dark dark:text-white group-hover:text-purple-600 transition-colors">{quiz.title}</p>
+                                <Link
+                                  to={`/quiz/${quiz.id}`}
+                                  className="hover:underline decoration-purple-500 underline-offset-2"
+                                >
+                                  <p className="text-sm font-bold text-text-dark dark:text-white group-hover:text-purple-600 transition-colors">
+                                    {quiz.title}
+                                  </p>
                                 </Link>
                                 <p className="text-[10px] text-text-light dark:text-gray-400">
-                                  {quiz.questions_count || 0} preguntas • {quiz.assessment_type === 'trivia' ? 'Trivia' : 'Cuestionario'}
+                                  {(quiz as Assessment & { questions_count?: number })
+                                    .questions_count || 0}{' '}
+                                  preguntas •{' '}
+                                  {quiz.assessment_type === 'trivia' ? 'Trivia' : 'Cuestionario'}
                                 </p>
                               </div>
                             </div>
 
                             <div className="flex items-center gap-3">
                               {/* Botón Practicar */}
-                              <Link to={`/quiz/${quiz.id}?mode=practice`} title="Modo Práctica (Sin calificación)">
+                              <Link
+                                to={`/quiz/${quiz.id}?mode=practice`}
+                                title="Modo Práctica (Sin calificación)"
+                              >
                                 <button className="p-2 rounded-full text-gray-400 hover:text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors">
-                                  <span className="material-symbols-outlined text-[20px]">fitness_center</span>
+                                  <span className="material-symbols-outlined text-[20px]">
+                                    fitness_center
+                                  </span>
                                 </button>
                               </Link>
 
                               {/* Botón Iniciar */}
                               <Link to={`/quiz/${quiz.id}`} title="Iniciar Evaluación">
                                 <button className="p-2 rounded-full text-gray-300 group-hover:text-purple-500 hover:bg-purple-50 transition-colors">
-                                  <span className="material-symbols-outlined text-[24px]">play_circle</span>
+                                  <span className="material-symbols-outlined text-[24px]">
+                                    play_circle
+                                  </span>
                                 </button>
                               </Link>
                             </div>
                           </div>
                         ))}
 
-                      {visibleGeneralQuizzes.length === 0 && Object.values(visibleQuizzesByUnit).flat().length === 0 && (
-                        <div className="text-center py-6">
-                          {rawQuizzesCount > 0 ? (
-                            <div className="flex flex-col items-center gap-2">
-                              <span className="material-symbols-outlined text-amber-500">event_busy</span>
-                              <p className="text-xs text-amber-600 font-medium">Hay evaluaciones programadas, pero aún no están disponibles para realizar.</p>
-                            </div>
-                          ) : (
-                            <p className="text-xs text-gray-500 italic">
-                              No hay cuestionarios adicionales disponibles.
-                              {user?.role?.name !== 'student' && " (Tip para Docente: verifica que estén publicados y marcados como activos)"}
-                            </p>
-                          )}
-                        </div>
-                      )}
+                      {visibleGeneralQuizzes.length === 0 &&
+                        Object.values(visibleQuizzesByUnit).flat().length === 0 && (
+                          <div className="text-center py-6">
+                            {rawQuizzesCount > 0 ? (
+                              <div className="flex flex-col items-center gap-2">
+                                <span className="material-symbols-outlined text-amber-500">
+                                  event_busy
+                                </span>
+                                <p className="text-xs text-amber-600 font-medium">
+                                  Hay evaluaciones programadas, pero aún no están disponibles para
+                                  realizar.
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-gray-500 italic">
+                                No hay cuestionarios adicionales disponibles.
+                                {user?.role?.name !== 'student' &&
+                                  ' (Tip para Docente: verifica que estén publicados y marcados como activos)'}
+                              </p>
+                            )}
+                          </div>
+                        )}
                     </div>
                   </div>
                 </div>
@@ -1311,7 +1542,6 @@ export const CourseViewPage: React.FC = () => {
 
           {/* Columna Derecha: Sidebar (Tutor y Extras) */}
           <div className="lg:col-span-4 flex flex-col gap-6">
-
             {/* Tutor IA Widget */}
             <div className="flex flex-col rounded-xl overflow-hidden shadow-card border border-border dark:border-gray-700 bg-white dark:bg-brand-dark ring-1 ring-brand-primary/5">
               <div className="bg-gradient-to-r from-brand-primary to-blue-600 p-4 flex justify-between items-center">
@@ -1322,7 +1552,8 @@ export const CourseViewPage: React.FC = () => {
                   <div>
                     <h3 className="text-white font-bold text-sm">Tutor IA Sparky</h3>
                     <p className="text-blue-100 text-xs flex items-center gap-1">
-                      <span className="size-1.5 bg-green-400 rounded-full animate-pulse"></span> En línea
+                      <span className="size-1.5 bg-green-400 rounded-full animate-pulse"></span> En
+                      línea
                     </p>
                   </div>
                 </div>
@@ -1338,7 +1569,11 @@ export const CourseViewPage: React.FC = () => {
                     <span className="material-symbols-outlined text-[14px]">smart_toy</span>
                   </div>
                   <div className="bg-white dark:bg-brand-dark border border-border dark:border-gray-700 p-3 rounded-2xl rounded-tl-none text-sm text-text-dark dark:text-white shadow-sm">
-                    <p>¡Hola {user?.user_metadata?.full_name?.split(' ')[0] || 'Estudiante'}! Estoy aquí para ayudarte a entender los temas de este curso. ¿Tienes alguna duda sobre la última clase?</p>
+                    <p>
+                      ¡Hola {user?.first_name?.split(' ')[0] || 'Estudiante'}! Estoy aquí para
+                      ayudarte a entender los temas de este curso. ¿Tienes alguna duda sobre la
+                      última clase?
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1357,14 +1592,21 @@ export const CourseViewPage: React.FC = () => {
             {visibleFinalExam && (
               <div className="bg-white dark:bg-brand-dark rounded-xl border border-border dark:border-gray-700 p-5 shadow-sm">
                 <div className="flex justify-between items-start mb-3">
-                  <span className="text-xs font-bold text-orange-600 bg-orange-100 dark:bg-orange-900/20 px-2 py-0.5 rounded">Importante</span>
+                  <span className="text-xs font-bold text-orange-600 bg-orange-100 dark:bg-orange-900/20 px-2 py-0.5 rounded">
+                    Importante
+                  </span>
                   <span className="material-symbols-outlined text-gray-400">event_note</span>
                 </div>
-                <h4 className="text-text-dark dark:text-white font-bold text-lg mb-1">{visibleFinalExam.title}</h4>
-                <p className="text-text-light dark:text-gray-400 text-sm mb-4">Evaluación Final • {visibleFinalExam.total_points} Puntos</p>
+                <h4 className="text-text-dark dark:text-white font-bold text-lg mb-1">
+                  {visibleFinalExam.title}
+                </h4>
+                <p className="text-text-light dark:text-gray-400 text-sm mb-4">
+                  Evaluación Final • {visibleFinalExam.total_points} Puntos
+                </p>
                 <Link to={`/quiz/${visibleFinalExam.id}`}>
                   <button className="w-full flex items-center justify-center gap-2 bg-white dark:bg-transparent border border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white py-2.5 rounded-lg text-sm font-bold transition-all group">
-                    <span className="material-symbols-outlined text-[18px]">play_arrow</span> Comenzar
+                    <span className="material-symbols-outlined text-[18px]">play_arrow</span>{' '}
+                    Comenzar
                   </button>
                 </Link>
               </div>
@@ -1374,18 +1616,19 @@ export const CourseViewPage: React.FC = () => {
             <div className="bg-gradient-to-br from-purple-600 to-indigo-700 rounded-xl p-5 text-white shadow-lg relative overflow-hidden">
               <div className="relative z-10">
                 <h4 className="font-bold text-lg mb-1">Aprende donde sea</h4>
-                <p className="text-white/80 text-sm mb-3">Descarga nuestra app y lleva tus clases offline.</p>
+                <p className="text-white/80 text-sm mb-3">
+                  Descarga nuestra app y lleva tus clases offline.
+                </p>
                 <button className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-lg backdrop-blur-sm transition-colors cursor-not-allowed opacity-80">
                   Próximamente
                 </button>
               </div>
-              <span className="material-symbols-outlined absolute -bottom-4 -right-4 text-9xl text-white/10 rotate-12">smartphone</span>
+              <span className="material-symbols-outlined absolute -bottom-4 -right-4 text-9xl text-white/10 rotate-12">
+                smartphone
+              </span>
             </div>
-
           </div>
         </div>
-
-
 
         {/* Tutorial Interactivo */}
         <InteractiveTutorial

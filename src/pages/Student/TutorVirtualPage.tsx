@@ -6,23 +6,42 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useAgentSystem } from "@/modules/tutor/hooks/useAgentSystem";
-import { useCourseContext } from "@/modules/tutor/hooks/useCourseContext";
-import { useAudioCapabilities } from "@/modules/tutor/hooks/useAudioCapabilities";
-import { isGeminiApiConfigured } from "@/modules/tutor/utils/env";
-import { CourseSelector } from "@/modules/tutor/components/CourseSelector";
-import { PedagogicalSettings } from "@/modules/tutor/components/PedagogicalSettings";
-import { TokenUsageDashboard } from "@/modules/tutor/components/TokenUsageDashboard";
-import { CourseContentPanel } from "@/modules/tutor/components/CourseContentPanel";
-import { tokenMonitoring } from "@/modules/tutor/services/tokenMonitoringService";
-import { trackTutorInteraction, updateTutorInteractionRating } from '@/services/tutorTrackingService';
+import { useAgentSystem } from '@/modules/tutor/hooks/useAgentSystem';
+import { useCourseContext } from '@/modules/tutor/hooks/useCourseContext';
+import { useAudioCapabilities } from '@/modules/tutor/hooks/useAudioCapabilities';
+import { isGeminiApiConfigured } from '@/modules/tutor/utils/env';
+import { CourseSelector } from '@/modules/tutor/components/CourseSelector';
+import { PedagogicalSettings } from '@/modules/tutor/components/PedagogicalSettings';
+import { TokenUsageDashboard } from '@/modules/tutor/components/TokenUsageDashboard';
+import { CourseContentPanel } from '@/modules/tutor/components/CourseContentPanel';
+import { tokenMonitoring } from '@/modules/tutor/services/tokenMonitoringService';
+import {
+  trackTutorInteraction,
+  updateTutorInteractionRating,
+} from '@/services/tutorTrackingService';
 import { autoRateTutorResponse, scoreToRating } from '@/services/tutorAutoRatingService';
-import { checkTutorCostLimit, trackTutorInteractionCost, getUserCostStats } from '@/services/tutorCostService';
-import { IconArrowLeft, IconSettings, IconTrash2, IconDownload, IconRefreshCw, IconDollarSign, IconBookOpen } from '@/components/Common/Icons';
+import {
+  checkTutorCostLimit,
+  trackTutorInteractionCost,
+  getUserCostStats,
+} from '@/services/tutorCostService';
+import {
+  IconArrowLeft,
+  IconSettings,
+  IconTrash2,
+  IconDownload,
+  IconRefreshCw,
+  IconDollarSign,
+  IconBookOpen,
+} from '@/components/Common/Icons';
 import { rateMessage, getMessageRating, removeRating } from '@/services/tutorRatingService';
 import { MarkdownText } from '@/components/Common/MarkdownText';
 import { AudioEnableModal } from '@/components/Features/AudioEnableModal';
-import { checkAiEligibility, tutorLimitsService, type TutorLimits } from '@/services/tutorLimitsService';
+import {
+  checkAiEligibility,
+  tutorLimitsService,
+  type TutorLimits,
+} from '@/services/tutorLimitsService';
 import { ThumbsUp, ThumbsDown, HelpCircle } from 'lucide-react';
 import { InteractiveTutorial } from '@/components/Features/InteractiveTutorial';
 import { useTutorial } from '@/hooks/useTutorial';
@@ -73,13 +92,17 @@ const TutorVirtualPage: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isProcessingFile, setIsProcessingFile] = useState(false);
-  const [documentPreview, setDocumentPreview] = useState<{ content: string, id: string } | null>(null);
+  const [documentPreview, setDocumentPreview] = useState<{ content: string; id: string } | null>(
+    null
+  );
   const [todayCost, setTodayCost] = useState(0);
   const [isMicrophoneMuted, setIsMicrophoneMuted] = useState(false);
   const [isAudioMuted, setIsAudioMuted] = useState(true); // Audio desactivado por defecto
   const [showSourcesFor, setShowSourcesFor] = useState<string | null>(null);
   const [highlightMaterialId, setHighlightMaterialId] = useState<string | undefined>(undefined);
-  const [highlightType, setHighlightType] = useState<'material' | 'unit' | 'session' | undefined>(undefined);
+  const [highlightType, setHighlightType] = useState<'material' | 'unit' | 'session' | undefined>(
+    undefined
+  );
   const [initializedFromQuery, setInitializedFromQuery] = useState(false);
   const [selectedModuleId, setSelectedModuleId] = useState<string>('');
   const [useVoiceInput, setUseVoiceInput] = useState(false); // Audio desactivado por defecto
@@ -93,7 +116,9 @@ const TutorVirtualPage: React.FC = () => {
 
   // Estados para calificación automática
   const [evaluatingMessages, setEvaluatingMessages] = useState<Set<string>>(new Set());
-  const [autoRatings, setAutoRatings] = useState<Map<string, { score: number; quality: string }>>(new Map());
+  const [autoRatings, setAutoRatings] = useState<Map<string, { score: number; quality: string }>>(
+    new Map()
+  );
 
   // Estados para límites de tiempo
   const [tutorLimits, setTutorLimits] = useState<TutorLimits | null>(null);
@@ -126,7 +151,7 @@ const TutorVirtualPage: React.FC = () => {
   const tutorial = useTutorial({
     tutorialId: 'tutor-ai',
     autoStart: true, // Iniciar automáticamente si no está completado y no marcó "no volver a mostrar"
-    showOnFirstVisit: true
+    showOnFirstVisit: true,
   });
 
   // Inicializar sistema de agentes cuando se selecciona un curso o cambia el módulo
@@ -139,13 +164,15 @@ const TutorVirtualPage: React.FC = () => {
       isProcessing: agentSystem.isProcessing,
       selectedModuleId,
       lastInitKey: lastInitKeyRef.current,
-      lastSyncedModuleId: lastSyncedModuleIdRef.current
+      lastSyncedModuleId: lastSyncedModuleIdRef.current,
     };
     console.log('🔄 useEffect inicialización:', debugInfo);
 
     if (!selectedCourseId) {
       if (import.meta.env.DEV) {
-        console.debug('Tutor: sin curso aún; se muestra el selector (esperado en /tutor sin ?courseId=).');
+        console.debug(
+          'Tutor: sin curso aún; se muestra el selector (esperado en /tutor sin ?courseId=).'
+        );
       }
       return;
     }
@@ -162,7 +189,7 @@ const TutorVirtualPage: React.FC = () => {
       isProcessing: agentSystem.isProcessing,
       moduleChanged,
       lastSyncedModuleId: lastSyncedModuleIdRef.current,
-      currentModuleId: selectedModuleId
+      currentModuleId: selectedModuleId,
     });
 
     // Si ya está inicializado pero cambió el módulo, reinicializar
@@ -190,7 +217,7 @@ const TutorVirtualPage: React.FC = () => {
         initKey,
         lastInitKey,
         isInitialized: agentSystem.isInitialized,
-        isProcessing: agentSystem.isProcessing
+        isProcessing: agentSystem.isProcessing,
       });
 
       if (shouldInitialize) {
@@ -198,7 +225,7 @@ const TutorVirtualPage: React.FC = () => {
           courseId: selectedCourseId,
           moduleId: selectedModuleId,
           userId: user.id,
-          initKey
+          initKey,
         });
 
         const initTimeout = setTimeout(() => {
@@ -223,7 +250,7 @@ const TutorVirtualPage: React.FC = () => {
                   extraContext.comprehensiveData = report;
                   console.log('✅ Contexto del estudiante cargado para el tutor:', {
                     progress: report.academicProgress.completionPercentage,
-                    risk: report.insights.riskLevel
+                    risk: report.insights.riskLevel,
                   });
                 }
               } catch (e) {
@@ -265,12 +292,15 @@ const TutorVirtualPage: React.FC = () => {
           clearTimeout(initTimeout);
         };
       } else {
-        console.log('⏭️ Ya inicializado para esta combinación curso/módulo, saltando:', { initKey, lastInitKey });
+        console.log('⏭️ Ya inicializado para esta combinación curso/módulo, saltando:', {
+          initKey,
+          lastInitKey,
+        });
       }
     } else {
       console.log('⏸️ Sistema ya inicializado o procesando, no se inicializa:', {
         isInitialized: agentSystem.isInitialized,
-        isProcessing: agentSystem.isProcessing
+        isProcessing: agentSystem.isProcessing,
       });
     }
     // No incluir el objeto `agentSystem` entero: useAgentSystem devuelve un objeto nuevo cada render
@@ -281,7 +311,7 @@ const TutorVirtualPage: React.FC = () => {
     user,
     agentSystem.isInitialized,
     agentSystem.isProcessing,
-    agentSystem.initializeAgentSystem
+    agentSystem.initializeAgentSystem,
   ]);
 
   // Usar useSearchParams para leer parámetros de query
@@ -306,7 +336,7 @@ const TutorVirtualPage: React.FC = () => {
       moduleId,
       searchParams: searchParams.toString(),
       currentSelectedCourseId: selectedCourseId,
-      initializedFromQuery
+      initializedFromQuery,
     });
 
     // Si hay un courseId diferente al actual, actualizarlo
@@ -354,7 +384,7 @@ const TutorVirtualPage: React.FC = () => {
           console.log('📜 Auto-scroll ejecutado:', {
             scrollTop: chatContainerRef.current.scrollTop,
             scrollHeight: chatContainerRef.current.scrollHeight,
-            messagesCount: agentSystem.messages.length
+            messagesCount: agentSystem.messages.length,
           });
         }
       }, 100);
@@ -418,7 +448,7 @@ const TutorVirtualPage: React.FC = () => {
       // Calcular costo
       const pricing = {
         input: 0.075,
-        output: 0.30,
+        output: 0.3,
       };
       estimatedTokens.cost =
         (estimatedTokens.inputTokens / 1000000) * pricing.input +
@@ -484,12 +514,16 @@ const TutorVirtualPage: React.FC = () => {
         // Detectar si es una respuesta muy completa pero sin referencias al material
         // Esto indica que es conocimiento general de Gemini
         const isLongCompleteAnswer = answerText.length > 500; // Respuesta larga y completa
-        const hasNoMaterialReferences = !hasPageReferences && !answerLower.includes('material del curso') && !answerLower.includes('este curso');
+        const hasNoMaterialReferences =
+          !hasPageReferences &&
+          !answerLower.includes('material del curso') &&
+          !answerLower.includes('este curso');
 
         // Es conocimiento general si:
         // 1. Tiene frases explícitas de "no encontrar" O
         // 2. Es una respuesta completa pero sin referencias a páginas/fuentes del material
-        const isGeneralKnowledge = hasExplicitNoFind || (isLongCompleteAnswer && hasNoMaterialReferences);
+        const isGeneralKnowledge =
+          hasExplicitNoFind || (isLongCompleteAnswer && hasNoMaterialReferences);
 
         const ragConfidence = isGeneralKnowledge ? 0.3 : 0.8;
         const responseSource: 'RAG' | 'GENERAL' | 'HYBRID' = isGeneralKnowledge ? 'GENERAL' : 'RAG';
@@ -611,7 +645,13 @@ const TutorVirtualPage: React.FC = () => {
     // Esperar un poco para asegurar que el mensaje se haya procesado completamente
     const timeoutId = setTimeout(trackInteraction, 1500);
     return () => clearTimeout(timeoutId);
-  }, [agentSystem.messages, user?.id, selectedCourseId, agentSystem.isProcessing, agentSystem.conversation]);
+  }, [
+    agentSystem.messages,
+    user?.id,
+    selectedCourseId,
+    agentSystem.isProcessing,
+    agentSystem.conversation,
+  ]);
 
   // Actualizar costo del día
   useEffect(() => {
@@ -649,7 +689,7 @@ const TutorVirtualPage: React.FC = () => {
           ttsEnabled: limits.ttsEnabled,
           dailyLimit: limits.dailyTimeLimitMinutes,
           remaining: limits.remainingTimeToday,
-          planType: limits.planType
+          planType: limits.planType,
         });
       } catch (err) {
         console.error('Error cargando límites del tutor:', err);
@@ -742,101 +782,108 @@ const TutorVirtualPage: React.FC = () => {
   }, []);
 
   // Manejar envío de mensaje
-  const handleSubmit = useCallback(async (e: React.FormEvent, directInput?: string) => {
-    e.preventDefault();
-    const userInput = directInput || inputValue;
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent, directInput?: string) => {
+      e.preventDefault();
+      const userInput = directInput || inputValue;
 
-    console.log('📤 handleSubmit llamado:', {
-      userInput: userInput?.trim(),
-      isProcessing: agentSystem.isProcessing,
-      isInitialized: agentSystem.isInitialized,
-      useVoiceInput,
-      hasError: agentSystem.hasError,
-      courseId: selectedCourseId,
-      error: agentSystem.error
-    });
+      console.log('📤 handleSubmit llamado:', {
+        userInput: userInput?.trim(),
+        isProcessing: agentSystem.isProcessing,
+        isInitialized: agentSystem.isInitialized,
+        useVoiceInput,
+        hasError: agentSystem.hasError,
+        courseId: selectedCourseId,
+        error: agentSystem.error,
+      });
 
-    if (!userInput.trim()) {
-      console.warn('⚠️ handleSubmit: Input vacío');
-      return;
-    }
-
-    // Si está procesando, cancelar primero
-    if (agentSystem.isProcessing) {
-      console.log('⚠️ handleSubmit: Cancelando respuesta anterior...');
-      agentSystem.cancelCurrentResponse();
-      await new Promise(resolve => setTimeout(resolve, 300));
-    }
-
-    if (!agentSystem.isInitialized) {
-      console.error('❌ handleSubmit: Sistema no inicializado');
-      alert('El Tutor Virtual no está inicializado. Por favor, selecciona un curso primero.');
-      return;
-    }
-
-    const messageText = userInput.trim();
-    setInputValue('');
-    console.log('📨 Enviando mensaje al sistema de agentes...', {
-      messageText,
-      useVoiceInput,
-      hasMicrophone: capabilities?.hasMicrophone,
-      isMicrophoneMuted
-    });
-
-    try {
-      // Verificar límite de costo antes de enviar mensaje
-      if (user?.id) {
-        const estimatedCost = 0.0003; // Estimación conservadora: ~$0.0003 por interacción
-        // Usar el nuevo sistema de límites centralizado (RPC)
-        const eligibility = await checkAiEligibility(user.id, undefined, estimatedCost);
-
-        if (!eligibility.allowed) {
-          setCostLimitReached(true);
-          alert(`⚠️ Límite de IA alcanzado: ${eligibility.reason}\n\nPor favor, contacta a tu administrador.`);
-          return;
-        }
-
-        // Actualizar estadísticas de costo (visual legacy, el RPC ya controla el límite duro)
-        const stats = await getUserCostStats(user.id);
-        if (stats) {
-          setCostStats({
-            monthlyCost: stats.monthlyCost,
-            monthlyLimit: stats.monthlyLimit,
-            remainingBudget: stats.remainingBudget,
-            monthlyProjection: stats.monthlyProjection,
-          });
-        }
-      }
-
-      // Si hay texto en el input, siempre usar ese texto (incluso si useVoiceInput está activado)
-      // useVoiceInput solo se usa cuando NO hay texto (solo voz)
-      if (messageText && messageText.trim()) {
-        console.log('📝 Enviando mensaje de texto:', messageText.substring(0, 50));
-        await agentSystem.sendMessage(messageText);
-      } else if (useVoiceInput && capabilities?.hasMicrophone && !isMicrophoneMuted) {
-        // Solo usar voz si NO hay texto en el input
-        console.log('🎤 Usando entrada de voz (sin texto en input)...');
-        setIsListening(true);
-        try {
-          await agentSystem.sendVoiceMessage();
-        } catch (voiceError) {
-          console.error('❌ Error en reconocimiento de voz:', voiceError);
-          // Si falla el reconocimiento de voz, mostrar error pero no bloquear
-          alert('Error en el reconocimiento de voz. Por favor, escribe tu mensaje en el campo de texto.');
-        } finally {
-          setIsListening(false);
-        }
-      } else {
-        // Si no hay texto ni voz disponible, no hacer nada
-        console.warn('⚠️ No hay texto ni voz disponible para enviar');
+      if (!userInput.trim()) {
+        console.warn('⚠️ handleSubmit: Input vacío');
         return;
       }
-      console.log('✅ Mensaje enviado exitosamente');
-    } catch (error) {
-      console.error('❌ Error al enviar mensaje:', error);
-      alert('Error al enviar el mensaje. Por favor, inténtalo de nuevo.');
-    }
-  }, [inputValue, agentSystem, selectedCourseId, useVoiceInput, capabilities, isMicrophoneMuted]);
+
+      // Si está procesando, cancelar primero
+      if (agentSystem.isProcessing) {
+        console.log('⚠️ handleSubmit: Cancelando respuesta anterior...');
+        agentSystem.cancelCurrentResponse();
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+
+      if (!agentSystem.isInitialized) {
+        console.error('❌ handleSubmit: Sistema no inicializado');
+        alert('El Tutor Virtual no está inicializado. Por favor, selecciona un curso primero.');
+        return;
+      }
+
+      const messageText = userInput.trim();
+      setInputValue('');
+      console.log('📨 Enviando mensaje al sistema de agentes...', {
+        messageText,
+        useVoiceInput,
+        hasMicrophone: capabilities?.hasMicrophone,
+        isMicrophoneMuted,
+      });
+
+      try {
+        // Verificar límite de costo antes de enviar mensaje
+        if (user?.id) {
+          const estimatedCost = 0.0003; // Estimación conservadora: ~$0.0003 por interacción
+          // Usar el nuevo sistema de límites centralizado (RPC)
+          const eligibility = await checkAiEligibility(user.id, undefined, estimatedCost);
+
+          if (!eligibility.allowed) {
+            setCostLimitReached(true);
+            alert(
+              `⚠️ Límite de IA alcanzado: ${eligibility.reason}\n\nPor favor, contacta a tu administrador.`
+            );
+            return;
+          }
+
+          // Actualizar estadísticas de costo (visual legacy, el RPC ya controla el límite duro)
+          const stats = await getUserCostStats(user.id);
+          if (stats) {
+            setCostStats({
+              monthlyCost: stats.monthlyCost,
+              monthlyLimit: stats.monthlyLimit,
+              remainingBudget: stats.remainingBudget,
+              monthlyProjection: stats.monthlyProjection,
+            });
+          }
+        }
+
+        // Si hay texto en el input, siempre usar ese texto (incluso si useVoiceInput está activado)
+        // useVoiceInput solo se usa cuando NO hay texto (solo voz)
+        if (messageText && messageText.trim()) {
+          console.log('📝 Enviando mensaje de texto:', messageText.substring(0, 50));
+          await agentSystem.sendMessage(messageText);
+        } else if (useVoiceInput && capabilities?.hasMicrophone && !isMicrophoneMuted) {
+          // Solo usar voz si NO hay texto en el input
+          console.log('🎤 Usando entrada de voz (sin texto en input)...');
+          setIsListening(true);
+          try {
+            await agentSystem.sendVoiceMessage();
+          } catch (voiceError) {
+            console.error('❌ Error en reconocimiento de voz:', voiceError);
+            // Si falla el reconocimiento de voz, mostrar error pero no bloquear
+            alert(
+              'Error en el reconocimiento de voz. Por favor, escribe tu mensaje en el campo de texto.'
+            );
+          } finally {
+            setIsListening(false);
+          }
+        } else {
+          // Si no hay texto ni voz disponible, no hacer nada
+          console.warn('⚠️ No hay texto ni voz disponible para enviar');
+          return;
+        }
+        console.log('✅ Mensaje enviado exitosamente');
+      } catch (error) {
+        console.error('❌ Error al enviar mensaje:', error);
+        alert('Error al enviar el mensaje. Por favor, inténtalo de nuevo.');
+      }
+    },
+    [inputValue, agentSystem, selectedCourseId, useVoiceInput, capabilities, isMicrophoneMuted]
+  );
 
   // Manejar mensaje de voz
   const handleVoiceMessage = useCallback(async () => {
@@ -844,7 +891,7 @@ const TutorVirtualPage: React.FC = () => {
     if (agentSystem.isProcessing) {
       agentSystem.cancelCurrentResponse();
       // Esperar un momento antes de iniciar escucha
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
 
     try {
@@ -859,7 +906,7 @@ const TutorVirtualPage: React.FC = () => {
 
   // Toggle microfono mute
   const toggleMicrophoneMute = useCallback(() => {
-    setIsMicrophoneMuted(prev => !prev);
+    setIsMicrophoneMuted((prev) => !prev);
     if (isListening) {
       setIsListening(false);
     }
@@ -867,7 +914,7 @@ const TutorVirtualPage: React.FC = () => {
 
   // Toggle audio mute
   const toggleAudioMute = useCallback(() => {
-    setIsAudioMuted(prev => {
+    setIsAudioMuted((prev) => {
       const newMuted = !prev;
       // Actualizar el coordinador para que no genere audio
       agentSystem.setAudioMuted(newMuted);
@@ -888,7 +935,7 @@ const TutorVirtualPage: React.FC = () => {
 
     const MAX_FILE_SIZE = 35 * 1024 * 1024; // 35MB
     if (file.size > MAX_FILE_SIZE) {
-      alert("El archivo es demasiado grande. El tamaño máximo es de 35 MB.");
+      alert('El archivo es demasiado grande. El tamaño máximo es de 35 MB.');
       return;
     }
 
@@ -901,9 +948,12 @@ const TutorVirtualPage: React.FC = () => {
   };
 
   // Manejar configuración pedagógica
-  const handlePedagogicalSettingsSave = useCallback(async (settings: any) => {
-    return await courseContext.updatePedagogicalSettings(settings);
-  }, [courseContext.updatePedagogicalSettings]);
+  const handlePedagogicalSettingsSave = useCallback(
+    async (settings: any) => {
+      return await courseContext.updatePedagogicalSettings(settings);
+    },
+    [courseContext.updatePedagogicalSettings]
+  );
 
   // Cargar ratings existentes cuando cambian los mensajes
   useEffect(() => {
@@ -972,7 +1022,10 @@ const TutorVirtualPage: React.FC = () => {
         } else {
           // Guardar rating (o actualizar si ya existe)
           await rateMessage(messageId, user.id, rating);
-          console.log('✅ Rating guardado:', { messageId, rating: rating ? 'thumbs up' : 'thumbs down' });
+          console.log('✅ Rating guardado:', {
+            messageId,
+            rating: rating ? 'thumbs up' : 'thumbs down',
+          });
         }
       } catch (error) {
         console.error('Error guardando/eliminando rating:', error);
@@ -1010,9 +1063,7 @@ const TutorVirtualPage: React.FC = () => {
                 </button>
                 <h1 className="text-3xl font-bold text-text-dark">Tutor Virtual IA</h1>
               </div>
-              <div className="text-text-light opacity-70">
-                Selecciona un curso para comenzar
-              </div>
+              <div className="text-text-light opacity-70">Selecciona un curso para comenzar</div>
             </div>
 
             <div className="flex items-center justify-between mb-4">
@@ -1052,8 +1103,22 @@ const TutorVirtualPage: React.FC = () => {
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
               <h3 className="font-semibold text-yellow-800 mb-2">Configuración requerida:</h3>
               <p className="text-sm text-yellow-700">
-                1. Obtén tu API key de <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="underline">Google AI Studio</a><br />
-                2. Agrega <code className="bg-yellow-100 px-2 py-1 rounded">VITE_GEMINI_API_KEY=tu_api_key</code> (o <code className="bg-yellow-100 px-2 py-1 rounded">GEMINI_API_KEY</code>) a tu archivo .env
+                1. Obtén tu API key de{' '}
+                <a
+                  href="https://aistudio.google.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  Google AI Studio
+                </a>
+                <br />
+                2. Agrega{' '}
+                <code className="bg-yellow-100 px-2 py-1 rounded">
+                  VITE_GEMINI_API_KEY=tu_api_key
+                </code>{' '}
+                (o <code className="bg-yellow-100 px-2 py-1 rounded">GEMINI_API_KEY</code>) a tu
+                archivo .env
               </p>
             </div>
             <div className="space-y-3">
@@ -1100,10 +1165,13 @@ const TutorVirtualPage: React.FC = () => {
                   <IconArrowLeft className="w-5 h-5" />
                 </button>
                 <div className="min-w-0 flex-1">
-                  <h1 className="text-lg sm:text-xl md:text-2xl font-bold truncate">Tutor Virtual IA</h1>
+                  <h1 className="text-lg sm:text-xl md:text-2xl font-bold truncate">
+                    Tutor Virtual IA
+                  </h1>
                   {selectedCourseId && (
                     <p className="text-blue-100 text-xs sm:text-sm truncate">
-                      {courseContext.courseContext?.title || (selectedCourseId ? 'Cargando curso...' : 'Cargando...')}
+                      {courseContext.courseContext?.title ||
+                        (selectedCourseId ? 'Cargando curso...' : 'Cargando...')}
                     </p>
                   )}
                   {user?.role?.name !== 'student' && (
@@ -1118,13 +1186,17 @@ const TutorVirtualPage: React.FC = () => {
                   {tutorLimits && (
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-blue-100 text-xs">⏱️</span>
-                      <span className={`text-xs font-medium ${tutorLimits.remainingTimeToday <= 10
-                        ? 'text-red-300'
-                        : tutorLimits.remainingTimeToday <= 30
-                          ? 'text-yellow-200'
-                          : 'text-green-200'
-                        }`}>
-                        Disponible: {tutorLimits.dailyTimeLimitMinutes}min | Restante: {Math.round(tutorLimits.remainingTimeToday)}min
+                      <span
+                        className={`text-xs font-medium ${
+                          tutorLimits.remainingTimeToday <= 10
+                            ? 'text-red-300'
+                            : tutorLimits.remainingTimeToday <= 30
+                              ? 'text-yellow-200'
+                              : 'text-green-200'
+                        }`}
+                      >
+                        Disponible: {tutorLimits.dailyTimeLimitMinutes}min | Restante:{' '}
+                        {Math.round(tutorLimits.remainingTimeToday)}min
                       </span>
                       {!tutorLimits.ttsEnabled && (
                         <span className="text-blue-200 text-xs">(Solo texto)</span>
@@ -1135,13 +1207,18 @@ const TutorVirtualPage: React.FC = () => {
                   {costStats && (
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-blue-100 text-xs">💰</span>
-                      <span className={`text-xs font-medium ${costStats.remainingBudget <= costStats.monthlyLimit * 0.1
-                        ? 'text-red-300'
-                        : costStats.remainingBudget <= costStats.monthlyLimit * 0.3
-                          ? 'text-yellow-200'
-                          : 'text-green-200'
-                        }`}>
-                        Presupuesto: ${costStats.monthlyCost.toFixed(4)} / ${costStats.monthlyLimit.toFixed(2)} (Restante: ${costStats.remainingBudget.toFixed(2)})
+                      <span
+                        className={`text-xs font-medium ${
+                          costStats.remainingBudget <= costStats.monthlyLimit * 0.1
+                            ? 'text-red-300'
+                            : costStats.remainingBudget <= costStats.monthlyLimit * 0.3
+                              ? 'text-yellow-200'
+                              : 'text-green-200'
+                        }`}
+                      >
+                        Presupuesto: ${costStats.monthlyCost.toFixed(4)} / $
+                        {costStats.monthlyLimit.toFixed(2)} (Restante: $
+                        {costStats.remainingBudget.toFixed(2)})
                       </span>
                     </div>
                   )}
@@ -1169,10 +1246,11 @@ const TutorVirtualPage: React.FC = () => {
                         toggleAudioMute();
                       }
                     }}
-                    className={`p-2 rounded-lg transition-colors ${isAudioMuted
-                      ? 'bg-orange-500 text-white hover:bg-orange-600'
-                      : 'hover:bg-white/20'
-                      }`}
+                    className={`p-2 rounded-lg transition-colors ${
+                      isAudioMuted
+                        ? 'bg-orange-500 text-white hover:bg-orange-600'
+                        : 'hover:bg-white/20'
+                    }`}
                     title={isAudioMuted ? 'Activar audio' : 'Silenciar audio'}
                   >
                     <span className="text-sm sm:text-base">{isAudioMuted ? '🔇' : '🔊'}</span>
@@ -1260,13 +1338,22 @@ const TutorVirtualPage: React.FC = () => {
           )}
 
           {/* Chat Container - Área principal flexible */}
-          <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 min-h-0" ref={chatContainerRef} data-tutorial="response-area">
+          <div
+            className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 min-h-0"
+            ref={chatContainerRef}
+            data-tutorial="response-area"
+          >
             {/* Mensaje de advertencia si no hay curso seleccionado */}
             {!selectedCourseId && (
               <div className="flex justify-center px-2">
                 <div className="max-w-xl w-full p-3 sm:p-4 rounded-2xl bg-yellow-50 border border-yellow-200">
-                  <p className="text-yellow-800 font-medium text-sm sm:text-base">⚠️ Por favor, selecciona un curso para comenzar</p>
-                  <p className="text-yellow-600 text-xs sm:text-sm mt-1">Usa el botón de contenido del curso (📖) en la parte superior para seleccionar un curso.</p>
+                  <p className="text-yellow-800 font-medium text-sm sm:text-base">
+                    ⚠️ Por favor, selecciona un curso para comenzar
+                  </p>
+                  <p className="text-yellow-600 text-xs sm:text-sm mt-1">
+                    Usa el botón de contenido del curso (📖) en la parte superior para seleccionar
+                    un curso.
+                  </p>
                 </div>
               </div>
             )}
@@ -1277,9 +1364,13 @@ const TutorVirtualPage: React.FC = () => {
                 <div className="max-w-xl w-full p-4 sm:p-5 rounded-2xl bg-blue-50 border border-blue-200">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-xl">⏳</span>
-                    <p className="text-blue-800 font-semibold text-sm sm:text-base">Inicializando Tutor Virtual...</p>
+                    <p className="text-blue-800 font-semibold text-sm sm:text-base">
+                      Inicializando Tutor Virtual...
+                    </p>
                   </div>
-                  <p className="text-blue-600 text-xs sm:text-sm mb-4">Por favor espera mientras se carga el sistema. Esto puede tomar unos segundos.</p>
+                  <p className="text-blue-600 text-xs sm:text-sm mb-4">
+                    Por favor espera mientras se carga el sistema. Esto puede tomar unos segundos.
+                  </p>
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => {
@@ -1316,7 +1407,10 @@ const TutorVirtualPage: React.FC = () => {
             {agentSystem.messages.map((message) => {
               // Debug: verificar que los mensajes se están renderizando
               if (message.role === 'user') {
-                console.log('👤 Renderizando mensaje del usuario:', { id: message.id, text: message.text.substring(0, 50) });
+                console.log('👤 Renderizando mensaje del usuario:', {
+                  id: message.id,
+                  text: message.text.substring(0, 50),
+                });
               }
 
               return (
@@ -1326,14 +1420,15 @@ const TutorVirtualPage: React.FC = () => {
                   style={{ minHeight: 'auto' }} // Asegurar que el mensaje tenga altura
                 >
                   <div
-                    className={`max-w-[85%] sm:max-w-xl p-3 sm:p-4 rounded-2xl ${message.role === 'user'
-                      ? 'bg-primary text-white rounded-br-none shadow-lg shadow-primary/20'
-                      : 'bg-surface text-text-dark rounded-bl-none border border-border shadow-sm'
-                      }`}
+                    className={`max-w-[85%] sm:max-w-xl p-3 sm:p-4 rounded-2xl ${
+                      message.role === 'user'
+                        ? 'bg-primary text-white rounded-br-none shadow-lg shadow-primary/20'
+                        : 'bg-surface text-text-dark rounded-bl-none border border-border shadow-sm'
+                    }`}
                     style={{
                       display: 'block', // Asegurar que sea visible
                       visibility: 'visible', // Asegurar visibilidad
-                      opacity: 1 // Asegurar opacidad completa
+                      opacity: 1, // Asegurar opacidad completa
                     }}
                   >
                     {message.role === 'user' ? (
@@ -1341,7 +1436,7 @@ const TutorVirtualPage: React.FC = () => {
                         className="whitespace-pre-wrap text-sm sm:text-base break-words"
                         style={{
                           color: 'white', // Asegurar color blanco para mensajes del usuario
-                          fontWeight: 'normal'
+                          fontWeight: 'normal',
                         }}
                       >
                         {message.text || '(mensaje vacío)'}
@@ -1353,7 +1448,9 @@ const TutorVirtualPage: React.FC = () => {
                           className="prose prose-sm sm:prose-base max-w-none text-sm sm:text-base leading-relaxed"
                         />
                         {(() => {
-                          const meta = message.metadata?.sourceMetadata as TutorSourceMeta[] | undefined;
+                          const meta = message.metadata?.sourceMetadata as
+                            | TutorSourceMeta[]
+                            | undefined;
                           const srcStrings = message.metadata?.sources;
                           const structured =
                             Array.isArray(meta) &&
@@ -1402,7 +1499,10 @@ const TutorVirtualPage: React.FC = () => {
                     )}
                     {/* Timestamp para debug - solo en desarrollo y con menor opacidad */}
                     {process.env.NODE_ENV === 'development' && message.timestamp && (
-                      <div className={`text-xs mt-1 ${message.role === 'user' ? 'text-blue-100' : 'text-gray-500'}`} style={{ opacity: 0.6 }}>
+                      <div
+                        className={`text-xs mt-1 ${message.role === 'user' ? 'text-blue-100' : 'text-gray-500'}`}
+                        style={{ opacity: 0.6 }}
+                      >
                         {new Date(message.timestamp).toLocaleTimeString()}
                       </div>
                     )}
@@ -1424,108 +1524,131 @@ const TutorVirtualPage: React.FC = () => {
                       </div>
                     )}
                     {/* Fuentes */}
-                    {message.role === 'assistant' && Array.isArray(message.metadata?.sources) && message.metadata.sources.length > 0 && (
-                      <div className="mt-2">
-                        <button
-                          className="text-xs px-2 py-1 bg-muted hover:bg-muted/80 rounded transition-colors text-text-light"
-                          onClick={() => setShowSourcesFor(showSourcesFor === message.id ? null : message.id)}
-                          data-tutorial="sources-button"
-                        >
-                          Fuentes ({message.metadata.sources.length})
-                        </button>
-                        {showSourcesFor === message.id && (
-                          <div className="mt-2 bg-surface rounded border border-border p-2 text-xs text-text-light">
-                            <ul className="space-y-2">
-                              {message.metadata.sources.map((s: any, srcIdx: number) => {
-                                if (typeof s === 'string') {
+                    {message.role === 'assistant' &&
+                      Array.isArray(message.metadata?.sources) &&
+                      message.metadata.sources.length > 0 && (
+                        <div className="mt-2">
+                          <button
+                            className="text-xs px-2 py-1 bg-muted hover:bg-muted/80 rounded transition-colors text-text-light"
+                            onClick={() =>
+                              setShowSourcesFor(showSourcesFor === message.id ? null : message.id)
+                            }
+                            data-tutorial="sources-button"
+                          >
+                            Fuentes ({message.metadata.sources.length})
+                          </button>
+                          {showSourcesFor === message.id && (
+                            <div className="mt-2 bg-surface rounded border border-border p-2 text-xs text-text-light">
+                              <ul className="space-y-2">
+                                {message.metadata.sources.map((s: any, srcIdx: number) => {
+                                  if (typeof s === 'string') {
+                                    return (
+                                      <li
+                                        key={`src-str-${message.id}-${srcIdx}`}
+                                        className="p-2 bg-gray-50 rounded text-text-dark text-xs sm:text-sm"
+                                      >
+                                        {s}
+                                      </li>
+                                    );
+                                  }
+                                  const getTypeLabel = (type: string) => {
+                                    switch (type) {
+                                      case 'unit':
+                                        return '📚 Unidad';
+                                      case 'session':
+                                        return '📹 Sesión';
+                                      case 'material':
+                                        return '📄 Material';
+                                      case 'course':
+                                        return '🎓 Curso';
+                                      default:
+                                        return '📋 Recurso';
+                                    }
+                                  };
+
                                   return (
                                     <li
-                                      key={`src-str-${message.id}-${srcIdx}`}
-                                      className="p-2 bg-gray-50 rounded text-text-dark text-xs sm:text-sm"
+                                      key={s.id ?? `obj-${srcIdx}`}
+                                      className="flex items-start justify-between gap-2 p-2 bg-gray-50 rounded"
                                     >
-                                      {s}
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1 mb-1">
+                                          <span className="text-text-light opacity-60 font-medium">
+                                            {getTypeLabel(s.type || 'material')}
+                                          </span>
+                                        </div>
+                                        <span className="font-bold text-text-dark block truncate">
+                                          {s.title || `Recurso #${s.id}`}
+                                        </span>
+                                        <div className="flex flex-wrap gap-2 mt-1">
+                                          {s.unitId && (
+                                            <a
+                                              href={`/courses/${selectedCourseId}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-xs text-blue-600 hover:text-blue-800 hover:underline px-2 py-0.5 bg-blue-50 rounded"
+                                              title="Abrir unidad en nueva pestaña"
+                                            >
+                                              📚 Ver Unidad
+                                            </a>
+                                          )}
+                                          {s.sessionId && (
+                                            <a
+                                              href={`/session/${s.sessionId}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-xs text-blue-600 hover:text-blue-800 hover:underline px-2 py-0.5 bg-blue-50 rounded"
+                                              title="Abrir sesión en nueva pestaña"
+                                            >
+                                              📹 Ver Sesión
+                                            </a>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-1 flex-shrink-0">
+                                        {s.url ? (
+                                          <a
+                                            href={s.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:underline px-2 py-1 rounded hover:bg-blue-50"
+                                            title="Abrir enlace externo"
+                                          >
+                                            Abrir
+                                          </a>
+                                        ) : (
+                                          <button
+                                            className="text-blue-600 hover:underline px-2 py-1 rounded hover:bg-blue-50"
+                                            onClick={() => {
+                                              setShowCourseContent(true);
+                                              // Extraer el ID original si está en formato "type-id"
+                                              const contentId = s.id?.includes('-')
+                                                ? s.id.split('-')[1]
+                                                : s.id;
+                                              setHighlightMaterialId(contentId);
+                                              // Establecer el tipo de contenido
+                                              const contentType =
+                                                s.type === 'unit'
+                                                  ? 'unit'
+                                                  : s.type === 'session'
+                                                    ? 'session'
+                                                    : 'material';
+                                              setHighlightType(contentType);
+                                            }}
+                                            title="Ver en panel de contenido"
+                                          >
+                                            Ver
+                                          </button>
+                                        )}
+                                      </div>
                                     </li>
                                   );
-                                }
-                                const getTypeLabel = (type: string) => {
-                                  switch (type) {
-                                    case 'unit': return '📚 Unidad';
-                                    case 'session': return '📹 Sesión';
-                                    case 'material': return '📄 Material';
-                                    case 'course': return '🎓 Curso';
-                                    default: return '📋 Recurso';
-                                  }
-                                };
-
-                                return (
-                                  <li key={s.id ?? `obj-${srcIdx}`} className="flex items-start justify-between gap-2 p-2 bg-gray-50 rounded">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-1 mb-1">
-                                        <span className="text-text-light opacity-60 font-medium">{getTypeLabel(s.type || 'material')}</span>
-                                      </div>
-                                      <span className="font-bold text-text-dark block truncate">{s.title || `Recurso #${s.id}`}</span>
-                                      <div className="flex flex-wrap gap-2 mt-1">
-                                        {s.unitId && (
-                                          <a
-                                            href={`/courses/${selectedCourseId}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-xs text-blue-600 hover:text-blue-800 hover:underline px-2 py-0.5 bg-blue-50 rounded"
-                                            title="Abrir unidad en nueva pestaña"
-                                          >
-                                            📚 Ver Unidad
-                                          </a>
-                                        )}
-                                        {s.sessionId && (
-                                          <a
-                                            href={`/session/${s.sessionId}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-xs text-blue-600 hover:text-blue-800 hover:underline px-2 py-0.5 bg-blue-50 rounded"
-                                            title="Abrir sesión en nueva pestaña"
-                                          >
-                                            📹 Ver Sesión
-                                          </a>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-1 flex-shrink-0">
-                                      {s.url ? (
-                                        <a
-                                          href={s.url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-blue-600 hover:underline px-2 py-1 rounded hover:bg-blue-50"
-                                          title="Abrir enlace externo"
-                                        >
-                                          Abrir
-                                        </a>
-                                      ) : (
-                                        <button
-                                          className="text-blue-600 hover:underline px-2 py-1 rounded hover:bg-blue-50"
-                                          onClick={() => {
-                                            setShowCourseContent(true);
-                                            // Extraer el ID original si está en formato "type-id"
-                                            const contentId = s.id?.includes('-') ? s.id.split('-')[1] : s.id;
-                                            setHighlightMaterialId(contentId);
-                                            // Establecer el tipo de contenido
-                                            const contentType = s.type === 'unit' ? 'unit' : s.type === 'session' ? 'session' : 'material';
-                                            setHighlightType(contentType);
-                                          }}
-                                          title="Ver en panel de contenido"
-                                        >
-                                          Ver
-                                        </button>
-                                      )}
-                                    </div>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                                })}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                     {/* Metadatos de confianza */}
                     {message.metadata?.confidence && (
@@ -1547,25 +1670,32 @@ const TutorVirtualPage: React.FC = () => {
                         >
                           Continuar
                         </button>
-                        <span className="text-xs text-text-light opacity-60">La respuesta se cortó por límite de tokens</span>
+                        <span className="text-xs text-text-light opacity-60">
+                          La respuesta se cortó por límite de tokens
+                        </span>
                       </div>
                     )}
 
                     {/* Mensaje de advertencia para calificar - Siempre visible hasta que se califique */}
-                    {message.role === 'assistant' && messageRatings.get(message.id) === undefined && (
-                      <div className="mt-3 pt-2 border-t border-yellow-500/20">
-                        <div className="flex items-center gap-2 px-3 py-2.5 bg-yellow-500/5 border border-yellow-500/30 rounded-lg mb-2 shadow-sm">
-                          <HelpCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 animate-pulse" />
-                          <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">
-                            ⚠️ Por favor, evalúa esta respuesta (positiva o negativa) para ayudarnos a mejorar el tutor:
-                          </span>
+                    {message.role === 'assistant' &&
+                      messageRatings.get(message.id) === undefined && (
+                        <div className="mt-3 pt-2 border-t border-yellow-500/20">
+                          <div className="flex items-center gap-2 px-3 py-2.5 bg-yellow-500/5 border border-yellow-500/30 rounded-lg mb-2 shadow-sm">
+                            <HelpCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 animate-pulse" />
+                            <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">
+                              ⚠️ Por favor, evalúa esta respuesta (positiva o negativa) para
+                              ayudarnos a mejorar el tutor:
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     {/* Botones de calificación (pulgares arriba/abajo) - Mejorados */}
                     {message.role === 'assistant' && (
-                      <div className={`${messageRatings.get(message.id) === undefined ? 'mt-0' : 'mt-3'} pt-2 border-t border-border flex items-center justify-end gap-2`} data-tutorial="rating-buttons">
+                      <div
+                        className={`${messageRatings.get(message.id) === undefined ? 'mt-0' : 'mt-3'} pt-2 border-t border-border flex items-center justify-end gap-2`}
+                        data-tutorial="rating-buttons"
+                      >
                         <button
                           onClick={(e) => {
                             e.preventDefault();
@@ -1573,14 +1703,18 @@ const TutorVirtualPage: React.FC = () => {
                             handleRateMessage(message.id, true);
                           }}
                           disabled={loadingRatings.has(message.id)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all ${messageRatings.get(message.id) === true
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 border-green-300 dark:border-green-800'
-                            : 'text-text-light hover:text-green-600 hover:bg-background border border-border'
-                            } ${loadingRatings.has(message.id) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all ${
+                            messageRatings.get(message.id) === true
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 border-green-300 dark:border-green-800'
+                              : 'text-text-light hover:text-green-600 hover:bg-background border border-border'
+                          } ${loadingRatings.has(message.id) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                           title="Útil - La respuesta fue útil"
                           aria-label="Calificar como útil"
                         >
-                          <ThumbsUp className={`w-4 h-4 ${messageRatings.get(message.id) === true ? 'text-green-700' : 'text-text-light'}`} strokeWidth={2.5} />
+                          <ThumbsUp
+                            className={`w-4 h-4 ${messageRatings.get(message.id) === true ? 'text-green-700' : 'text-text-light'}`}
+                            strokeWidth={2.5}
+                          />
                           <span className="text-xs font-medium">Útil</span>
                         </button>
                         <button
@@ -1590,14 +1724,18 @@ const TutorVirtualPage: React.FC = () => {
                             handleRateMessage(message.id, false);
                           }}
                           disabled={loadingRatings.has(message.id)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all ${messageRatings.get(message.id) === false
-                            ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border-red-300 dark:border-red-800'
-                            : 'text-text-light hover:text-red-600 hover:bg-background border border-border'
-                            } ${loadingRatings.has(message.id) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all ${
+                            messageRatings.get(message.id) === false
+                              ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border-red-300 dark:border-red-800'
+                              : 'text-text-light hover:text-red-600 hover:bg-background border border-border'
+                          } ${loadingRatings.has(message.id) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                           title="No útil - La respuesta no fue útil"
                           aria-label="Calificar como no útil"
                         >
-                          <ThumbsDown className={`w-4 h-4 ${messageRatings.get(message.id) === false ? 'text-red-700' : 'text-text-light'}`} strokeWidth={2.5} />
+                          <ThumbsDown
+                            className={`w-4 h-4 ${messageRatings.get(message.id) === false ? 'text-red-700' : 'text-text-light'}`}
+                            strokeWidth={2.5}
+                          />
                           <span className="text-xs font-medium">No útil</span>
                         </button>
                       </div>
@@ -1612,9 +1750,17 @@ const TutorVirtualPage: React.FC = () => {
               <div className="text-xs text-text-light opacity-50 p-2 border-t border-border mt-4 bg-background/50 rounded">
                 <p className="font-semibold">Debug Info:</p>
                 <p>Total mensajes: {agentSystem.messages.length}</p>
-                <p>Mensajes usuario: {agentSystem.messages.filter(m => m.role === 'user').length}</p>
-                <p>Mensajes asistente: {agentSystem.messages.filter(m => m.role === 'assistant').length}</p>
-                <p>Último mensaje: {agentSystem.messages[agentSystem.messages.length - 1]?.role || 'N/A'}</p>
+                <p>
+                  Mensajes usuario: {agentSystem.messages.filter((m) => m.role === 'user').length}
+                </p>
+                <p>
+                  Mensajes asistente:{' '}
+                  {agentSystem.messages.filter((m) => m.role === 'assistant').length}
+                </p>
+                <p>
+                  Último mensaje:{' '}
+                  {agentSystem.messages[agentSystem.messages.length - 1]?.role || 'N/A'}
+                </p>
               </div>
             )}
 
@@ -1624,8 +1770,12 @@ const TutorVirtualPage: React.FC = () => {
                 <div className="max-w-xl w-full p-4 sm:p-6 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex flex-col sm:flex-row items-center gap-3">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 flex-shrink-0"></div>
                   <div className="flex-1 text-center sm:text-left">
-                    <p className="text-blue-700 dark:text-blue-400 font-semibold text-sm sm:text-base">Inicializando Tutor Virtual...</p>
-                    <p className="text-blue-600 dark:text-blue-500 text-xs sm:text-sm">Cargando agentes y conectando con el curso</p>
+                    <p className="text-blue-700 dark:text-blue-400 font-semibold text-sm sm:text-base">
+                      Inicializando Tutor Virtual...
+                    </p>
+                    <p className="text-blue-600 dark:text-blue-500 text-xs sm:text-sm">
+                      Cargando agentes y conectando con el curso
+                    </p>
                   </div>
                   <button
                     onClick={() => {
@@ -1646,8 +1796,12 @@ const TutorVirtualPage: React.FC = () => {
                 <div className="max-w-xl w-full p-4 sm:p-6 rounded-2xl bg-red-500/10 border border-red-500/30 flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   <div className="text-red-500 text-2xl flex-shrink-0">⚠️</div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-red-700 dark:text-red-400 font-semibold text-sm sm:text-base">Error de inicialización</p>
-                    <p className="text-red-600 dark:text-red-500 text-xs sm:text-sm break-words">{agentSystem.error}</p>
+                    <p className="text-red-700 dark:text-red-400 font-semibold text-sm sm:text-base">
+                      Error de inicialización
+                    </p>
+                    <p className="text-red-600 dark:text-red-500 text-xs sm:text-sm break-words">
+                      {agentSystem.error}
+                    </p>
                     <div className="flex flex-col sm:flex-row gap-2 mt-2">
                       <button
                         onClick={() => {
@@ -1747,9 +1901,12 @@ const TutorVirtualPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-red-500 text-xl">⏰</span>
                   <div>
-                    <p className="text-red-700 dark:text-red-400 font-medium text-sm">Límite de tiempo alcanzado</p>
+                    <p className="text-red-700 dark:text-red-400 font-medium text-sm">
+                      Límite de tiempo alcanzado
+                    </p>
                     <p className="text-red-600 dark:text-red-500 text-xs">
-                      Has usado todo tu tiempo disponible de hoy. Vuelve mañana o contacta a tu institución.
+                      Has usado todo tu tiempo disponible de hoy. Vuelve mañana o contacta a tu
+                      institución.
                     </p>
                   </div>
                 </div>
@@ -1775,26 +1932,29 @@ const TutorVirtualPage: React.FC = () => {
             )}
 
             {/* Opción para iniciar con voz - solo si TTS está habilitado */}
-            {capabilities?.hasMicrophone && agentSystem.isInitialized && !agentSystem.isProcessing && tutorLimits?.ttsEnabled && (
-              <div className="mb-2 flex items-center gap-2">
-                <label className="flex items-center gap-1.5 text-xs sm:text-sm text-text-light cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={useVoiceInput}
-                    onChange={(e) => {
-                      // Si el usuario intenta activar el audio y no lo ha habilitado antes, mostrar modal
-                      if (e.target.checked && !audioEnabledOnce) {
-                        setShowAudioEnableModal(true);
-                      } else {
-                        setUseVoiceInput(e.target.checked);
-                      }
-                    }}
-                    className="w-4 h-4 text-blue-600 border-border rounded focus:ring-blue-500"
-                  />
-                  <span>🎤 Iniciar con voz (respuestas más rápidas)</span>
-                </label>
-              </div>
-            )}
+            {capabilities?.hasMicrophone &&
+              agentSystem.isInitialized &&
+              !agentSystem.isProcessing &&
+              tutorLimits?.ttsEnabled && (
+                <div className="mb-2 flex items-center gap-2">
+                  <label className="flex items-center gap-1.5 text-xs sm:text-sm text-text-light cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useVoiceInput}
+                      onChange={(e) => {
+                        // Si el usuario intenta activar el audio y no lo ha habilitado antes, mostrar modal
+                        if (e.target.checked && !audioEnabledOnce) {
+                          setShowAudioEnableModal(true);
+                        } else {
+                          setUseVoiceInput(e.target.checked);
+                        }
+                      }}
+                      className="w-4 h-4 text-blue-600 border-border rounded focus:ring-blue-500"
+                    />
+                    <span>🎤 Iniciar con voz (respuestas más rápidas)</span>
+                  </label>
+                </div>
+              )}
 
             <form onSubmit={handleSubmit} className="flex items-end gap-2 sm:gap-3">
               <div className="flex-1 min-w-0">
@@ -1818,8 +1978,18 @@ const TutorVirtualPage: React.FC = () => {
                           : 'Escribe tu pregunta...'
                   }
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base bg-background text-text-dark border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                  disabled={agentSystem.isProcessing || isListening || isProcessingFile || !agentSystem.isInitialized || timeLimitReached}
-                  title={!agentSystem.isInitialized ? 'El sistema no está inicializado. Por favor, selecciona un curso primero.' : undefined}
+                  disabled={
+                    agentSystem.isProcessing ||
+                    isListening ||
+                    isProcessingFile ||
+                    !agentSystem.isInitialized ||
+                    timeLimitReached
+                  }
+                  title={
+                    !agentSystem.isInitialized
+                      ? 'El sistema no está inicializado. Por favor, selecciona un curso primero.'
+                      : undefined
+                  }
                   data-tutorial="tutor-input"
                 />
               </div>
@@ -1849,14 +2019,21 @@ const TutorVirtualPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleVoiceMessage}
-                    className={`p-2 sm:p-3 rounded-lg transition-colors flex-shrink-0 ${isListening
-                      ? 'bg-red-500 text-white animate-pulse'
-                      : isMicrophoneMuted
-                        ? 'bg-muted opacity-50'
-                        : 'bg-background hover:bg-muted text-text-light border border-border'
-                      }`}
+                    className={`p-2 sm:p-3 rounded-lg transition-colors flex-shrink-0 ${
+                      isListening
+                        ? 'bg-red-500 text-white animate-pulse'
+                        : isMicrophoneMuted
+                          ? 'bg-muted opacity-50'
+                          : 'bg-background hover:bg-muted text-text-light border border-border'
+                    }`}
                     disabled={agentSystem.isProcessing || isMicrophoneMuted}
-                    title={isMicrophoneMuted ? 'Micrófono silenciado' : isListening ? 'Dejar de escuchar' : 'Empezar a escuchar'}
+                    title={
+                      isMicrophoneMuted
+                        ? 'Micrófono silenciado'
+                        : isListening
+                          ? 'Dejar de escuchar'
+                          : 'Empezar a escuchar'
+                    }
                     data-tutorial="voice-button"
                   >
                     <span className="text-sm sm:text-base">🎤</span>
@@ -1865,10 +2042,11 @@ const TutorVirtualPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={toggleMicrophoneMute}
-                    className={`hidden sm:block p-2 rounded-lg transition-colors border border-border ${isMicrophoneMuted
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-background hover:bg-muted text-text-light'
-                      }`}
+                    className={`hidden sm:block p-2 rounded-lg transition-colors border border-border ${
+                      isMicrophoneMuted
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-background hover:bg-muted text-text-light'
+                    }`}
                     disabled={agentSystem.isProcessing}
                     title={isMicrophoneMuted ? 'Activar micrófono' : 'Silenciar micrófono'}
                   >
@@ -1947,4 +2125,3 @@ const TutorVirtualPage: React.FC = () => {
 };
 
 export default TutorVirtualPage;
-

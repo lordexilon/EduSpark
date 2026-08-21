@@ -4,8 +4,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Session, CourseUnit } from '@/services/teacherCourses';
 import { RichTextEditor } from '@/components/RichTextEditor';
-import Card from "@/components/Common/Card";
-import Button from "@/components/Common/Button";
+import Card from '@/components/Common/Card';
+import Button from '@/components/Common/Button';
 import { googleCalendarService, CreateMeetingParams } from '@/services/googleCalendarService';
 import { googleOAuthService } from '@/services/googleOAuthService';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,7 +27,7 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
   courseId,
   units,
   onClose,
-  onSave
+  onSave,
 }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -36,7 +36,9 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
   const [contentMarkdown, setContentMarkdown] = useState('');
   const [learningObjectives, setLearningObjectives] = useState<string[]>([]);
   const [durationMinutes, setDurationMinutes] = useState<number | undefined>();
-  const [sessionType, setSessionType] = useState<'lecture' | 'practice' | 'lab' | 'exam' | 'discussion' | 'workshop' | 'other'>('lecture');
+  const [sessionType, setSessionType] = useState<
+    'lecture' | 'practice' | 'lab' | 'exam' | 'discussion' | 'workshop' | 'other'
+  >('lecture');
   const [startsAt, setStartsAt] = useState('');
   const [endsAt, setEndsAt] = useState('');
   const [orderIndex, setOrderIndex] = useState<number | undefined>();
@@ -85,14 +87,14 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
       // Para esto, creamos el ISO string directamente usando UTC pero con la hora ingresada
       const [datePart, timePart] = localDatetimeString.split('T');
       if (!datePart || !timePart) return undefined;
-      
+
       const [year, month, day] = datePart.split('-').map(Number);
       const [hours, minutes] = timePart.split(':').map(Number);
-      
+
       // Crear ISO string directamente con la hora ingresada (interpretándola como UTC)
       // Esto preserva la hora exacta que el usuario ingresó
       const isoString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00.000Z`;
-      
+
       return isoString;
     } catch (e) {
       console.error('Error convirtiendo fecha local a ISO:', e);
@@ -116,7 +118,7 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
       setAutoCreateMeet(session.auto_create_meet || false);
       setGoogleMeetLink(session.google_meet_link || '');
       setGoogleCalendarEventId(session.google_calendar_event_id);
-      
+
       // Cargar materiales de la sesión
       loadSessionMaterials();
     } else {
@@ -126,16 +128,16 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
 
   const loadSessionMaterials = async () => {
     if (!session?.id) return;
-    
+
     try {
       setLoadingMaterials(true);
       const allMaterials = await materialService.getCourseMaterials(courseId);
-      const sessionMats = allMaterials.filter(m => m.session_id === session.id);
+      const sessionMats = allMaterials.filter((m) => m.session_id === session.id);
       setSessionMaterials(sessionMats);
-      
+
       // Inicializar estados de transcripción
       const statuses: Record<string, string> = {};
-      sessionMats.forEach(m => {
+      sessionMats.forEach((m) => {
         if (m.kind === 'video' && m.transcription_status) {
           statuses[m.id] = m.transcription_status;
         }
@@ -153,7 +155,7 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
       alert('Por favor ingresa un título y URL válidos');
       return;
     }
-    
+
     if (!session?.id) {
       alert('Por favor guarda la sesión primero antes de agregar videos');
       return;
@@ -161,7 +163,7 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
 
     const transcriptService = new VideoTranscriptService();
     const platform = transcriptService.detectPlatform(newVideoUrl);
-    
+
     if (!platform) {
       alert('URL de video no válida. Solo se soportan YouTube y Vimeo.');
       return;
@@ -169,7 +171,7 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
 
     try {
       setAddingVideo(true);
-      
+
       // Crear el material de video
       const newMaterial = await materialService.createMaterial({
         course_id: courseId,
@@ -198,7 +200,7 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
         } else {
           setTranscriptionStatuses({ ...transcriptionStatuses, [newMaterial.id]: 'failed' });
         }
-        
+
         // Recargar materiales para obtener datos actualizados
         await loadSessionMaterials();
       } catch (error: any) {
@@ -218,7 +220,7 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
 
     try {
       await materialService.deleteMaterial(materialId);
-      setSessionMaterials(sessionMaterials.filter(m => m.id !== materialId));
+      setSessionMaterials(sessionMaterials.filter((m) => m.id !== materialId));
       const newStatuses = { ...transcriptionStatuses };
       delete newStatuses[materialId];
       setTranscriptionStatuses(newStatuses);
@@ -280,7 +282,9 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
 
   const handleCreateMeet = async () => {
     if (!startsAt || !endsAt) {
-      alert('Por favor, establece la fecha y hora de inicio y fin de la sesión antes de crear la videollamada.');
+      alert(
+        'Por favor, establece la fecha y hora de inicio y fin de la sesión antes de crear la videollamada.'
+      );
       return;
     }
 
@@ -304,9 +308,11 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
     try {
       // Obtener el token de acceso de Google Calendar del usuario
       const accessToken = await googleOAuthService.getAccessToken(user.id);
-      
+
       if (!accessToken) {
-        alert('No se pudo obtener el token de acceso. Por favor, reconecta tu cuenta de Google Calendar.');
+        alert(
+          'No se pudo obtener el token de acceso. Por favor, reconecta tu cuenta de Google Calendar.'
+        );
         setHasConnectedGoogle(false);
         return;
       }
@@ -319,13 +325,17 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Lima',
         teacherEmail: user.email,
         // TODO: Obtener emails de estudiantes inscritos en el curso
-        attendees: []
+        attendees: [],
       };
 
       let result;
       if (googleCalendarEventId) {
         // Actualizar evento existente
-        result = await googleCalendarService.updateMeeting(accessToken, googleCalendarEventId, params);
+        result = await googleCalendarService.updateMeeting(
+          accessToken,
+          googleCalendarEventId,
+          params
+        );
       } else {
         // Crear nuevo evento
         result = await googleCalendarService.createMeeting(accessToken, params);
@@ -337,7 +347,7 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
     } catch (error: any) {
       console.error('Error creando videollamada:', error);
       alert(`Error al crear la videollamada: ${error.message || 'Error desconocido'}`);
-      
+
       // Si el error es de autenticación, marcar como desconectado
       if (error.message?.includes('401') || error.message?.includes('token')) {
         setHasConnectedGoogle(false);
@@ -385,24 +395,26 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
         throw error;
       }
     },
-    [courseId],
+    [courseId]
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!title.trim()) {
       alert('Por favor ingresa un título');
       return;
     }
-    
+
     // Validar tamaño del contenido HTML
     const maxHtmlLength = 1000000; // 1MB
     if (contentHtml && contentHtml.length > maxHtmlLength) {
-      alert(`El contenido HTML es demasiado grande (${(contentHtml.length / 1024).toFixed(0)}KB). Máximo permitido: ${(maxHtmlLength / 1024).toFixed(0)}KB`);
+      alert(
+        `El contenido HTML es demasiado grande (${(contentHtml.length / 1024).toFixed(0)}KB). Máximo permitido: ${(maxHtmlLength / 1024).toFixed(0)}KB`
+      );
       return;
     }
-    
+
     setLoading(true);
 
     try {
@@ -421,20 +433,23 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
         order_index: orderIndex || undefined,
         google_meet_link: googleMeetLink || undefined,
         google_calendar_event_id: googleCalendarEventId || undefined,
-        auto_create_meet: autoCreateMeet || undefined
+        auto_create_meet: autoCreateMeet || undefined,
       };
-      
+
       console.log('Guardando sesión:', {
         ...sessionData,
-        content_html_length: sessionData.content_html?.length || 0
+        content_html_length: sessionData.content_html?.length || 0,
       });
-      
+
       // Timeout de 30 segundos
       const savePromise = onSave(sessionData);
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout: La operación tomó demasiado tiempo (30s)')), 30000)
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error('Timeout: La operación tomó demasiado tiempo (30s)')),
+          30000
+        )
       );
-      
+
       await Promise.race([savePromise, timeoutPromise]);
       console.log('Sesión guardada exitosamente');
       // El modal se cierra desde handleSaveSession después de actualizar el estado
@@ -445,9 +460,9 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
       console.error('Error message:', error?.message);
       console.error('Error code:', error?.code);
       console.error('Error stack:', error?.stack);
-      
+
       let errorMessage = 'Error desconocido al guardar';
-      
+
       if (error?.message) {
         errorMessage = error.message;
       } else if (typeof error === 'string') {
@@ -457,7 +472,7 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
       } else if (error?.supabaseError) {
         errorMessage = error.supabaseError.message || 'Error de Supabase';
       }
-      
+
       alert(`Error al guardar la sesión: ${errorMessage}`);
     } finally {
       setLoading(false);
@@ -469,13 +484,8 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
       <Card className="w-full max-w-6xl max-h-[95vh] overflow-y-auto">
         <div className="p-8">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">
-              {session ? 'Editar Sesión' : 'Nueva Sesión'}
-            </h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl"
-            >
+            <h2 className="text-2xl font-bold">{session ? 'Editar Sesión' : 'Nueva Sesión'}</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">
               ×
             </button>
           </div>
@@ -508,7 +518,7 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Sin unidad</option>
-                  {units.map(unit => (
+                  {units.map((unit) => (
                     <option key={unit.id} value={unit.id}>
                       Unidad {unit.number}: {unit.title}
                     </option>
@@ -585,7 +595,10 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
               <p className="text-xs text-gray-500 mb-2">
                 Puedes agregar imágenes, videos, formato, listas, etc.
               </p>
-              <div className="border border-gray-300 rounded-md overflow-hidden" style={{ minHeight: '500px' }}>
+              <div
+                className="border border-gray-300 rounded-md overflow-hidden"
+                style={{ minHeight: '500px' }}
+              >
                 <RichTextEditor
                   value={contentHtml}
                   onChange={setContentHtml}
@@ -594,9 +607,7 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
                 />
               </div>
               {contentUploadMessage && (
-                <p className="text-xs text-gray-500 mt-1">
-                  {contentUploadMessage}
-                </p>
+                <p className="text-xs text-gray-500 mt-1">{contentUploadMessage}</p>
               )}
             </div>
 
@@ -624,7 +635,9 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
                   type="text"
                   value={newObjective}
                   onChange={(e) => setNewObjective(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddObjective())}
+                  onKeyPress={(e) =>
+                    e.key === 'Enter' && (e.preventDefault(), handleAddObjective())
+                  }
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Agregar objetivo..."
                 />
@@ -644,20 +657,22 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
                   type="number"
                   min="0"
                   value={durationMinutes || ''}
-                  onChange={(e) => setDurationMinutes(e.target.value ? parseInt(e.target.value) : undefined)}
+                  onChange={(e) =>
+                    setDurationMinutes(e.target.value ? parseInt(e.target.value) : undefined)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Orden
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Orden</label>
                 <input
                   type="number"
                   min="1"
                   value={orderIndex || ''}
-                  onChange={(e) => setOrderIndex(e.target.value ? parseInt(e.target.value) : undefined)}
+                  onChange={(e) =>
+                    setOrderIndex(e.target.value ? parseInt(e.target.value) : undefined)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -665,10 +680,8 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
 
             {/* Videos de la Sesión */}
             <div className="border-t pt-4">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Videos de la Sesión
-              </h3>
-              
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Videos de la Sesión</h3>
+
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <h4 className="text-sm font-semibold text-blue-800 mb-3">
                   📺 Agregar Video a la Sesión
@@ -698,14 +711,17 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Soporta videos de YouTube y Vimeo. La transcripción se extraerá automáticamente.
+                      Soporta videos de YouTube y Vimeo. La transcripción se extraerá
+                      automáticamente.
                     </p>
                   </div>
                   <Button
                     type="button"
                     variant="primary"
                     onClick={handleAddVideo}
-                    disabled={addingVideo || !newVideoUrl.trim() || !newVideoTitle.trim() || !session}
+                    disabled={
+                      addingVideo || !newVideoUrl.trim() || !newVideoTitle.trim() || !session
+                    }
                     size="sm"
                   >
                     {addingVideo ? 'Agregando...' : '📺 Agregar Video'}
@@ -715,81 +731,99 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
 
               {/* Lista de videos existentes */}
               {loadingMaterials ? (
-                <div className="text-center py-4 text-sm text-gray-500">
-                  Cargando videos...
-                </div>
-              ) : sessionMaterials.filter(m => m.kind === 'video').length === 0 ? (
+                <div className="text-center py-4 text-sm text-gray-500">Cargando videos...</div>
+              ) : sessionMaterials.filter((m) => m.kind === 'video').length === 0 ? (
                 <div className="text-center py-4 text-sm text-gray-500 bg-gray-50 rounded-lg">
                   No hay videos agregados a esta sesión
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {sessionMaterials.filter(m => m.kind === 'video').map((material) => {
-                    const transcriptService = new VideoTranscriptService();
-                    const platform = material.video_platform || transcriptService.detectPlatform(material.url || '')?.name || 'other';
-                    const videoId = material.video_id || transcriptService.detectPlatform(material.url || '')?.extractId(material.url || '') || undefined;
-                    const status = transcriptionStatuses[material.id] || material.transcription_status || 'pending';
+                  {sessionMaterials
+                    .filter((m) => m.kind === 'video')
+                    .map((material) => {
+                      const transcriptService = new VideoTranscriptService();
+                      const platform =
+                        material.video_platform ||
+                        transcriptService.detectPlatform(material.url || '')?.name ||
+                        'other';
+                      const videoId =
+                        material.video_id ||
+                        transcriptService
+                          .detectPlatform(material.url || '')
+                          ?.extractId(material.url || '') ||
+                        undefined;
+                      const status =
+                        transcriptionStatuses[material.id] ||
+                        material.transcription_status ||
+                        'pending';
 
-                    return (
-                      <div key={material.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-800">{material.title}</h4>
-                            {material.url && (
-                              <p className="text-xs text-blue-600 mt-1 break-all">{material.url}</p>
-                            )}
-                            <div className="mt-2">
-                              {status === 'completed' && (
-                                <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">
-                                  ✓ Transcripción disponible
-                                </span>
+                      return (
+                        <div
+                          key={material.id}
+                          className="bg-gray-50 border border-gray-200 rounded-lg p-4"
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-800">{material.title}</h4>
+                              {material.url && (
+                                <p className="text-xs text-blue-600 mt-1 break-all">
+                                  {material.url}
+                                </p>
                               )}
-                              {status === 'processing' && (
-                                <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
-                                  ⏳ Extrayendo transcripción...
-                                </span>
-                              )}
-                              {status === 'failed' && (
-                                <span className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded">
-                                  ✗ Transcripción no disponible
-                                </span>
-                              )}
-                              {status === 'pending' && (
-                                <span className="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded">
-                                  ⏸ Sin transcripción
-                                </span>
-                              )}
+                              <div className="mt-2">
+                                {status === 'completed' && (
+                                  <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">
+                                    ✓ Transcripción disponible
+                                  </span>
+                                )}
+                                {status === 'processing' && (
+                                  <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
+                                    ⏳ Extrayendo transcripción...
+                                  </span>
+                                )}
+                                {status === 'failed' && (
+                                  <span className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded">
+                                    ✗ Transcripción no disponible
+                                  </span>
+                                )}
+                                {status === 'pending' && (
+                                  <span className="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded">
+                                    ⏸ Sin transcripción
+                                  </span>
+                                )}
+                              </div>
                             </div>
+                            <Button
+                              type="button"
+                              variant="danger"
+                              size="sm"
+                              onClick={() => handleDeleteVideo(material.id)}
+                            >
+                              Eliminar
+                            </Button>
                           </div>
-                          <Button
-                            type="button"
-                            variant="danger"
-                            size="sm"
-                            onClick={() => handleDeleteVideo(material.id)}
-                          >
-                            Eliminar
-                          </Button>
+
+                          {/* Preview del video */}
+                          {material.url && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                              <h5 className="text-xs font-semibold text-gray-700 mb-2">
+                                Vista Previa:
+                              </h5>
+                              <VideoPlayer
+                                materialId={material.id}
+                                url={material.url}
+                                platform={platform as 'youtube' | 'vimeo' | 'other'}
+                                videoId={videoId}
+                                title={material.title}
+                                showProgress={false}
+                                transcription={material.transcription}
+                                transcriptionStatus={material.transcription_status}
+                              />
+                            </div>
+                          )}
                         </div>
-                        
-                        {/* Preview del video */}
-                        {material.url && (
-                          <div className="mt-3 pt-3 border-t border-gray-200">
-                            <h5 className="text-xs font-semibold text-gray-700 mb-2">Vista Previa:</h5>
-                            <VideoPlayer
-                              materialId={material.id}
-                              url={material.url}
-                              platform={platform as 'youtube' | 'vimeo' | 'other'}
-                              videoId={videoId}
-                              title={material.title}
-                              showProgress={false}
-                              transcription={material.transcription}
-                              transcriptionStatus={material.transcription_status}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
               )}
             </div>
@@ -799,7 +833,7 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
                 Videollamada Sincrónica (Google Meet)
               </h3>
-              
+
               <div className="space-y-4">
                 {/* Estado de conexión de Google */}
                 {checkingConnection ? (
@@ -813,13 +847,10 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
                       ⚠️ Cuenta de Google Calendar no conectada
                     </p>
                     <p className="text-xs text-yellow-700 mb-3">
-                      Necesitas conectar tu cuenta de Google Calendar para crear videollamadas automáticamente.
+                      Necesitas conectar tu cuenta de Google Calendar para crear videollamadas
+                      automáticamente.
                     </p>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={handleConnectGoogle}
-                    >
+                    <Button type="button" variant="secondary" onClick={handleConnectGoogle}>
                       Conectar con Google Calendar
                     </Button>
                   </div>
@@ -827,8 +858,16 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        <svg
+                          className="w-5 h-5 text-green-600"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clipRule="evenodd"
+                          />
                         </svg>
                         <span className="text-sm font-medium text-green-800">
                           Cuenta de Google Calendar conectada
@@ -867,7 +906,8 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
                     <label htmlFor="autoCreateMeet" className="ml-2 block text-sm text-gray-700">
-                      Crear videollamada automáticamente al guardar (requiere fecha/hora configuradas)
+                      Crear videollamada automáticamente al guardar (requiere fecha/hora
+                      configuradas)
                     </label>
                   </div>
                 )}
@@ -908,7 +948,11 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
                     onClick={handleCreateMeet}
                     disabled={creatingMeet || !startsAt || !endsAt}
                   >
-                    {creatingMeet ? 'Creando...' : googleCalendarEventId ? 'Actualizar Videollamada' : 'Crear Videollamada'}
+                    {creatingMeet
+                      ? 'Creando...'
+                      : googleCalendarEventId
+                        ? 'Actualizar Videollamada'
+                        : 'Crear Videollamada'}
                   </Button>
                   {googleMeetLink && (
                     <Button
@@ -926,7 +970,8 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
 
                 {(!startsAt || !endsAt) && (
                   <p className="text-xs text-gray-500">
-                    ⚠️ Para crear una videollamada, necesitas configurar la fecha y hora de inicio y fin de la sesión.
+                    ⚠️ Para crear una videollamada, necesitas configurar la fecha y hora de inicio y
+                    fin de la sesión.
                   </p>
                 )}
               </div>
@@ -947,4 +992,3 @@ export const SessionEditorModal: React.FC<SessionEditorModalProps> = ({
     </div>
   );
 };
-

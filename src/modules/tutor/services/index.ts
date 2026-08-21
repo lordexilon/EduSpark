@@ -8,6 +8,30 @@
 // =====================================================
 
 // Supabase Service
+import {
+  saveConversation,
+  loadConversation,
+  updateConversationActivity,
+  saveMessage,
+  getConversationHistory,
+  getPedagogicalSettings,
+  savePedagogicalSettings,
+  getStudentProfile,
+  updateStudentProfile,
+  getGradingScale,
+  saveGradingScale,
+  uploadCourseImage,
+  getCourseImages,
+  getCourseMaterials,
+  saveCourseMaterial,
+  saveUsageMetric,
+  getUsageMetrics,
+  getAgentConfiguration,
+  saveAgentConfiguration,
+  getCourseContext,
+  healthCheck as supabaseHealthCheck,
+} from './supabaseService';
+
 export {
   saveConversation,
   loadConversation,
@@ -29,37 +53,30 @@ export {
   getAgentConfiguration,
   saveAgentConfiguration,
   getCourseContext,
-  healthCheck as supabaseHealthCheck
-} from './supabaseService';
+  supabaseHealthCheck,
+};
 
 // RAG Service (A2A)
-export {
-  RAGService,
-  ragService,
-  createRAGContext,
-  isValidRAGResponse
-} from './ragService';
+import { RAGService, ragService, createRAGContext, isValidRAGResponse } from './ragService';
 
+export { RAGService, ragService, createRAGContext, isValidRAGResponse };
 
 // Memory Service
-export {
-  MemoryService,
-  memoryService
-} from './memoryService';
+import { MemoryService, memoryService } from './memoryService';
+
+export { MemoryService, memoryService };
 
 // Gemini Service
-export {
-  getTutorResponse,
-  synthesizeSpeech,
-  processDocument
-} from './geminiService';
+import { getTutorResponse, synthesizeSpeech, processDocument } from './geminiService';
+
+export { getTutorResponse, synthesizeSpeech, processDocument };
 
 // =====================================================
 // Servicios de Utilidad
 // =====================================================
 
 // Agent Utils
-export {
+import {
   agentUtils,
   createConversationContext as createContext,
   enrichContext,
@@ -71,10 +88,39 @@ export {
   analyzeResponseQuality,
   extractConversationMetrics,
   generateDebugInfo,
-  validateSystemConfiguration
+  validateSystemConfiguration,
 } from './agentUtils';
 
+export {
+  agentUtils,
+  createContext,
+  enrichContext,
+  extractContextForAgent,
+  generatePersonalizedPrompt,
+  validateAgentResponse,
+  enhanceAgentResponse,
+  combineAgentResponses,
+  analyzeResponseQuality,
+  extractConversationMetrics,
+  generateDebugInfo,
+  validateSystemConfiguration,
+};
+
 // Config Service
+import {
+  ConfigService,
+  configService,
+  getConfig,
+  getConfigSection,
+  updateConfigSection,
+  validateConfig,
+  resetConfig,
+  isAgentEnabled,
+  setAgentEnabled,
+  getEnvironmentConfig,
+  type SystemConfig,
+} from './configService';
+
 export {
   ConfigService,
   configService,
@@ -86,32 +132,19 @@ export {
   isAgentEnabled,
   setAgentEnabled,
   getEnvironmentConfig,
-  type SystemConfig
-} from './configService';
+  type SystemConfig,
+};
 
 // =====================================================
 // Servicios de Supabase (Cliente)
 // =====================================================
 
-export {
-  supabase,
-  getCurrentUser,
-  getCurrentSession,
-  isAuthenticated,
-  getCurrentUserId,
-  signOut,
-  signInWithPassword,
-  signUp,
-  onAuthStateChange,
-  healthCheck as supabaseClientHealthCheck,
-  getDatabaseInfo,
-  subscribeToConversations,
-  subscribeToMessages,
-  unsubscribe,
-  uploadFile,
-  getPublicUrl,
-  deleteFile
-} from "../../lib/supabase-shared";
+import { supabase } from '../lib/supabase-shared';
+import type { User, AuthUser, Role } from '../lib/supabase-shared';
+
+export { supabase };
+
+export type { User, AuthUser, Role };
 
 // =====================================================
 // Funciones de Utilidad Combinadas
@@ -151,13 +184,13 @@ export const initializeServices = async (): Promise<{
     return {
       success: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   } catch (error) {
     return {
       success: false,
       errors: [error instanceof Error ? error.message : 'Error desconocido'],
-      warnings
+      warnings,
     };
   }
 };
@@ -169,33 +202,33 @@ export const getServicesStatus = async () => {
   const [supabaseStatus, ragStatus, configStatus] = await Promise.all([
     supabaseHealthCheck(),
     ragService.healthCheck(),
-    Promise.resolve(validateConfig())
+    Promise.resolve(validateConfig()),
   ]);
 
   return {
     supabase: {
       available: supabaseStatus,
-      status: supabaseStatus ? 'healthy' : 'unhealthy'
+      status: supabaseStatus ? 'healthy' : 'unhealthy',
     },
     rag: {
       available: ragStatus,
-      status: ragStatus ? 'healthy' : 'unhealthy'
+      status: ragStatus ? 'healthy' : 'unhealthy',
     },
     config: {
       valid: configStatus.valid,
       errors: configStatus.errors,
-      warnings: configStatus.warnings
+      warnings: configStatus.warnings,
     },
     memory: {
       available: true,
-      status: 'healthy'
+      status: 'healthy',
     },
     agents: {
       voice: isAgentEnabled('voice'),
       rag: isAgentEnabled('rag'),
       context: isAgentEnabled('context'),
-      coordinator: isAgentEnabled('coordinator')
-    }
+      coordinator: isAgentEnabled('coordinator'),
+    },
   };
 };
 
@@ -209,7 +242,6 @@ export const resetAllServices = async (): Promise<void> => {
 
     // Limpiar memoria
     memoryService.clearMemory();
-
 
     console.log('Todos los servicios han sido reseteados');
   } catch (error) {
@@ -226,7 +258,7 @@ export const exportSystemConfig = () => {
     config: configService.exportConfig(),
     memory: memoryService.exportMemory(),
     timestamp: new Date().toISOString(),
-    version: '2.0.0'
+    version: '2.0.0',
   };
 };
 
@@ -261,7 +293,10 @@ export type {
   AgentResponse,
   ConversationContext,
   ContextWindow,
-  StudentProgress
+  StudentProgress,
+  Conversation,
+  ChatMessage,
+  SupabaseResponse,
 } from '../types/agents';
 
 export type {
@@ -270,5 +305,4 @@ export type {
   GradingScale,
   CourseImage,
   CourseContext,
-  SupabaseResponse
 } from '../types/pedagogical';

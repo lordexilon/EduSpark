@@ -57,10 +57,13 @@ const GradingInboxPage: React.FC = () => {
     try {
       // 1. Cursos del docente
       const courses = await courseService.getMyCourses(user.id);
-      if (courses.length === 0) { setSubmissions([]); return; }
+      if (courses.length === 0) {
+        setSubmissions([]);
+        return;
+      }
 
-      const courseIds = courses.map(c => c.id);
-      const courseMap = new Map<number, string>(courses.map(c => [c.id, c.title]));
+      const courseIds = courses.map((c) => c.id);
+      const courseMap = new Map<number, string>(courses.map((c) => [c.id, c.title]));
 
       // 2. Assignments del docente (batch)
       const { data: assignments, error: aErr } = await supabase
@@ -69,18 +72,23 @@ const GradingInboxPage: React.FC = () => {
         .in('course_id', courseIds);
 
       if (aErr) throw aErr;
-      if (!assignments || assignments.length === 0) { setSubmissions([]); return; }
+      if (!assignments || assignments.length === 0) {
+        setSubmissions([]);
+        return;
+      }
 
-      const assignmentIds = assignments.map(a => a.id);
-      const assignmentMap = new Map(assignments.map(a => [a.id, a]));
+      const assignmentIds = assignments.map((a) => a.id);
+      const assignmentMap = new Map(assignments.map((a) => [a.id, a]));
 
       // 3. Submissions (batch) + datos de usuario
       const { data: subs, error: sErr } = await supabase
         .from('assignment_submissions')
-        .select(`
+        .select(
+          `
           *,
           users:student_id (id, first_name, last_name, email)
-        `)
+        `
+        )
         .in('assignment_id', assignmentIds)
         .order('submitted_at', { ascending: false });
 
@@ -91,7 +99,9 @@ const GradingInboxPage: React.FC = () => {
         const u = s.users;
         return {
           ...s,
-          student_name: u ? `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email : 'Estudiante',
+          student_name: u
+            ? `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email
+            : 'Estudiante',
           student_email: u?.email ?? '',
           assignment_title: assignment?.title ?? '—',
           assignment_max_points: assignment?.max_points ?? 100,
@@ -108,17 +118,19 @@ const GradingInboxPage: React.FC = () => {
     }
   }, [user?.id]);
 
-  useEffect(() => { loadInbox(); }, [loadInbox]);
+  useEffect(() => {
+    loadInbox();
+  }, [loadInbox]);
 
   // ─── Filtrado ──────────────────────────────────────────────────────────────
 
-  const filteredSubmissions = submissions.filter(s => {
+  const filteredSubmissions = submissions.filter((s) => {
     if (filter === 'pending') return s.grade === null || s.grade === undefined;
-    if (filter === 'graded')  return s.grade !== null && s.grade !== undefined;
+    if (filter === 'graded') return s.grade !== null && s.grade !== undefined;
     return true;
   });
 
-  const pendingCount = submissions.filter(s => s.grade === null || s.grade === undefined).length;
+  const pendingCount = submissions.filter((s) => s.grade === null || s.grade === undefined).length;
 
   // ─── Seleccionar entrega para corregir ─────────────────────────────────────
 
@@ -145,10 +157,12 @@ const GradingInboxPage: React.FC = () => {
       await submissionService.gradeSubmission(activeSubmission.id, grade, feedbackInput);
       setSaveMsg('✅ Calificación guardada');
       // Actualizar localmente para no recargar todo
-      setSubmissions(prev => prev.map(s =>
-        s.id === activeSubmission.id ? { ...s, grade, feedback: feedbackInput } : s
-      ));
-      setActiveSubmission(prev => prev ? { ...prev, grade, feedback: feedbackInput } : null);
+      setSubmissions((prev) =>
+        prev.map((s) =>
+          s.id === activeSubmission.id ? { ...s, grade, feedback: feedbackInput } : s
+        )
+      );
+      setActiveSubmission((prev) => (prev ? { ...prev, grade, feedback: feedbackInput } : null));
     } catch (e: any) {
       setSaveMsg(`Error: ${e.message}`);
     } finally {
@@ -168,7 +182,8 @@ const GradingInboxPage: React.FC = () => {
     setSaveMsg(null);
     try {
       // Calcular puntaje escalado
-      const scaledScore = Math.round((scorePercentage / 100) * activeSubmission.assignment_max_points * 10) / 10;
+      const scaledScore =
+        Math.round((scorePercentage / 100) * activeSubmission.assignment_max_points * 10) / 10;
 
       // Aplicar rúbrica en BD
       await rubricService.applyRubric({
@@ -184,12 +199,16 @@ const GradingInboxPage: React.FC = () => {
       await submissionService.gradeSubmission(activeSubmission.id, scaledScore, feedbackInput);
 
       setGradeInput(scaledScore.toString());
-      setSubmissions(prev => prev.map(s =>
-        s.id === activeSubmission.id ? { ...s, grade: scaledScore, feedback: feedbackInput } : s
-      ));
-      setActiveSubmission(prev => prev ? { ...prev, grade: scaledScore } : null);
+      setSubmissions((prev) =>
+        prev.map((s) =>
+          s.id === activeSubmission.id ? { ...s, grade: scaledScore, feedback: feedbackInput } : s
+        )
+      );
+      setActiveSubmission((prev) => (prev ? { ...prev, grade: scaledScore } : null));
       setShowRubric(false);
-      setSaveMsg(`✅ Rúbrica aplicada — ${scaledScore} / ${activeSubmission.assignment_max_points} pts`);
+      setSaveMsg(
+        `✅ Rúbrica aplicada — ${scaledScore} / ${activeSubmission.assignment_max_points} pts`
+      );
     } catch (e: any) {
       setSaveMsg(`Error al aplicar rúbrica: ${e.message}`);
     } finally {
@@ -200,10 +219,22 @@ const GradingInboxPage: React.FC = () => {
   // ─── Helpers UI ────────────────────────────────────────────────────────────
 
   const getInitials = (name: string) =>
-    name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
 
   const getAvatarColor = (name: string) => {
-    const colors = ['bg-indigo-500','bg-purple-500','bg-pink-500','bg-cyan-500','bg-emerald-500','bg-amber-500'];
+    const colors = [
+      'bg-indigo-500',
+      'bg-purple-500',
+      'bg-pink-500',
+      'bg-cyan-500',
+      'bg-emerald-500',
+      'bg-amber-500',
+    ];
     return colors[name.charCodeAt(0) % colors.length];
   };
 
@@ -219,14 +250,19 @@ const GradingInboxPage: React.FC = () => {
             Bandeja de corrección
           </h1>
           <p className="text-sm text-text-light mt-1">
-            {pendingCount > 0
-              ? <><span className="font-bold text-orange-600">{pendingCount}</span> entregas pendientes de corrección</>
-              : '¡Todas las entregas están calificadas! ✅'}
+            {pendingCount > 0 ? (
+              <>
+                <span className="font-bold text-orange-600">{pendingCount}</span> entregas
+                pendientes de corrección
+              </>
+            ) : (
+              '¡Todas las entregas están calificadas! ✅'
+            )}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          {(['pending','graded','all'] as InboxFilter[]).map(f => (
+          {(['pending', 'graded', 'all'] as InboxFilter[]).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -243,11 +279,12 @@ const GradingInboxPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{error}</div>
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+          {error}
+        </div>
       )}
 
       <div className={`flex gap-6 items-start ${activeSubmission ? 'flex-col lg:flex-row' : ''}`}>
-
         {/* ── Lista de entregas ── */}
         <div className={`${activeSubmission ? 'lg:w-5/12 xl:w-4/12' : 'w-full'} space-y-3`}>
           {loading ? (
@@ -264,7 +301,7 @@ const GradingInboxPage: React.FC = () => {
               </p>
             </div>
           ) : (
-            filteredSubmissions.map(sub => {
+            filteredSubmissions.map((sub) => {
               const isPending = sub.grade === null || sub.grade === undefined;
               const isActive = activeSubmission?.id === sub.id;
 
@@ -280,20 +317,31 @@ const GradingInboxPage: React.FC = () => {
                 >
                   <div className="flex items-start gap-3">
                     {/* Avatar */}
-                    <div className={`size-9 rounded-full flex items-center justify-center text-white text-xs font-black shrink-0 ${getAvatarColor(sub.student_name)}`}>
+                    <div
+                      className={`size-9 rounded-full flex items-center justify-center text-white text-xs font-black shrink-0 ${getAvatarColor(sub.student_name)}`}
+                    >
                       {getInitials(sub.student_name)}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-bold text-text-dark truncate">{sub.student_name}</p>
-                        {isPending
-                          ? <span className="text-[10px] font-bold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full shrink-0">Pendiente</span>
-                          : <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full shrink-0">{sub.grade} / {sub.assignment_max_points}</span>
-                        }
+                        <p className="text-sm font-bold text-text-dark truncate">
+                          {sub.student_name}
+                        </p>
+                        {isPending ? (
+                          <span className="text-[10px] font-bold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full shrink-0">
+                            Pendiente
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full shrink-0">
+                            {sub.grade} / {sub.assignment_max_points}
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-text-light truncate">{sub.assignment_title}</p>
-                      <p className="text-[10px] text-text-light opacity-60 mt-0.5">{sub.course_title} · {formatDateTime(sub.submitted_at)}</p>
+                      <p className="text-[10px] text-text-light opacity-60 mt-0.5">
+                        {sub.course_title} · {formatDateTime(sub.submitted_at)}
+                      </p>
                     </div>
                   </div>
                 </button>
@@ -305,16 +353,21 @@ const GradingInboxPage: React.FC = () => {
         {/* ── Panel de corrección ── */}
         {activeSubmission && (
           <div className="flex-1 bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
-
             {/* Header del panel */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <div className="flex items-center gap-3">
-                <div className={`size-9 rounded-full flex items-center justify-center text-white text-xs font-black ${getAvatarColor(activeSubmission.student_name)}`}>
+                <div
+                  className={`size-9 rounded-full flex items-center justify-center text-white text-xs font-black ${getAvatarColor(activeSubmission.student_name)}`}
+                >
                   {getInitials(activeSubmission.student_name)}
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-text-dark">{activeSubmission.student_name}</p>
-                  <p className="text-xs text-text-light">{activeSubmission.assignment_title} · {activeSubmission.course_title}</p>
+                  <p className="text-sm font-bold text-text-dark">
+                    {activeSubmission.student_name}
+                  </p>
+                  <p className="text-xs text-text-light">
+                    {activeSubmission.assignment_title} · {activeSubmission.course_title}
+                  </p>
                 </div>
               </div>
               <button
@@ -326,7 +379,6 @@ const GradingInboxPage: React.FC = () => {
             </div>
 
             <div className="p-5 space-y-5 max-h-[calc(100vh-14rem)] overflow-y-auto">
-
               {/* Entregado en */}
               <p className="text-xs text-text-light flex items-center gap-1">
                 <span className="material-symbols-outlined text-[14px]">schedule</span>
@@ -336,7 +388,9 @@ const GradingInboxPage: React.FC = () => {
               {/* Contenido de la entrega */}
               {activeSubmission.text && (
                 <div className="rounded-xl border border-border bg-background/50 p-4">
-                  <p className="text-xs font-bold text-text-light uppercase tracking-wider mb-2">Respuesta del estudiante</p>
+                  <p className="text-xs font-bold text-text-light uppercase tracking-wider mb-2">
+                    Respuesta del estudiante
+                  </p>
                   <div className="prose prose-sm dark:prose-invert max-w-none text-text-dark">
                     <RichTextDisplay content={activeSubmission.text} />
                   </div>
@@ -350,15 +404,21 @@ const GradingInboxPage: React.FC = () => {
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 px-4 py-3 rounded-xl border border-border hover:border-brand-primary/40 hover:bg-brand-primary/5 transition-colors text-sm font-semibold text-text-dark"
                 >
-                  <span className="material-symbols-outlined text-brand-primary text-[20px]">attach_file</span>
+                  <span className="material-symbols-outlined text-brand-primary text-[20px]">
+                    attach_file
+                  </span>
                   Ver archivo adjunto
-                  <span className="material-symbols-outlined text-text-light text-[16px] ml-auto">open_in_new</span>
+                  <span className="material-symbols-outlined text-text-light text-[16px] ml-auto">
+                    open_in_new
+                  </span>
                 </a>
               )}
 
               {!activeSubmission.text && !activeSubmission.url && (
                 <div className="text-center py-6 text-text-light text-sm">
-                  <span className="material-symbols-outlined text-3xl opacity-30 block mb-1">description</span>
+                  <span className="material-symbols-outlined text-3xl opacity-30 block mb-1">
+                    description
+                  </span>
                   Sin contenido visible en esta entrega
                 </div>
               )}
@@ -368,7 +428,7 @@ const GradingInboxPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-bold text-text-dark">Calificación</p>
                   <button
-                    onClick={() => setShowRubric(v => !v)}
+                    onClick={() => setShowRubric((v) => !v)}
                     className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-lg transition-colors ${
                       showRubric
                         ? 'bg-brand-primary text-white'
@@ -401,7 +461,7 @@ const GradingInboxPage: React.FC = () => {
                         max={activeSubmission.assignment_max_points}
                         step="0.5"
                         value={gradeInput}
-                        onChange={e => setGradeInput(e.target.value)}
+                        onChange={(e) => setGradeInput(e.target.value)}
                         placeholder="0"
                         className="w-full rounded-xl border border-border px-4 py-2.5 pr-20 text-sm bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
                       />
@@ -412,7 +472,10 @@ const GradingInboxPage: React.FC = () => {
                     {/* Barra de porcentaje */}
                     {gradeInput && !isNaN(parseFloat(gradeInput)) && (
                       <div className="text-sm font-bold text-brand-primary w-12 text-right">
-                        {Math.round((parseFloat(gradeInput) / activeSubmission.assignment_max_points) * 100)}%
+                        {Math.round(
+                          (parseFloat(gradeInput) / activeSubmission.assignment_max_points) * 100
+                        )}
+                        %
                       </div>
                     )}
                   </div>
@@ -421,7 +484,7 @@ const GradingInboxPage: React.FC = () => {
                 {/* Feedback */}
                 <textarea
                   value={feedbackInput}
-                  onChange={e => setFeedbackInput(e.target.value)}
+                  onChange={(e) => setFeedbackInput(e.target.value)}
                   rows={3}
                   placeholder="Escribe tu retroalimentación para el estudiante..."
                   className="w-full rounded-xl border border-border px-3 py-2.5 text-sm bg-white dark:bg-gray-900 resize-none focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
@@ -431,7 +494,9 @@ const GradingInboxPage: React.FC = () => {
                 {!showRubric && (
                   <div className="flex items-center justify-between gap-3">
                     {saveMsg && (
-                      <p className={`text-xs font-semibold ${saveMsg.startsWith('✅') ? 'text-green-600' : 'text-red-600'}`}>
+                      <p
+                        className={`text-xs font-semibold ${saveMsg.startsWith('✅') ? 'text-green-600' : 'text-red-600'}`}
+                      >
                         {saveMsg}
                       </p>
                     )}
@@ -440,16 +505,25 @@ const GradingInboxPage: React.FC = () => {
                       disabled={saving || !gradeInput}
                       className="ml-auto flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-brand-primary rounded-xl hover:bg-brand-primary/90 disabled:opacity-50 transition-all shadow-md shadow-brand-primary/30 active:scale-[0.97]"
                     >
-                      {saving
-                        ? <><div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Guardando...</>
-                        : <><span className="material-symbols-outlined text-[18px]">save</span>Guardar nota</>
-                      }
+                      {saving ? (
+                        <>
+                          <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-[18px]">save</span>Guardar
+                          nota
+                        </>
+                      )}
                     </button>
                   </div>
                 )}
 
                 {showRubric && saveMsg && (
-                  <p className={`text-xs font-semibold ${saveMsg.startsWith('✅') ? 'text-green-600' : 'text-red-600'}`}>
+                  <p
+                    className={`text-xs font-semibold ${saveMsg.startsWith('✅') ? 'text-green-600' : 'text-red-600'}`}
+                  >
                     {saveMsg}
                   </p>
                 )}

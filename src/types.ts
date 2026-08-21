@@ -44,7 +44,7 @@ export enum ActivityType {
   AI_REGULATION_DEBATE = 'ai_regulation_debate',
   EXAM_INSTRUCTIONS = 'exam_instructions',
   MODULE_CLOSURE = 'module_closure',
-  ACTIVITY = 'activity' // Generic activity
+  ACTIVITY = 'activity', // Generic activity
 }
 
 export interface Activity {

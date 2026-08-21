@@ -3,26 +3,17 @@
 // Gestión de memoria y personalización
 // =====================================================
 
-import { 
-  saveConversation, 
-  loadConversation, 
-  getPedagogicalSettings, 
-  getStudentProfile, 
+import {
+  saveConversation,
+  loadConversation,
+  getPedagogicalSettings,
+  getStudentProfile,
   updateStudentProfile,
-  updateConversationActivity
-} from "../services/supabaseService";
-import { memoryService } from "../services/memoryService";
-import type { 
-  Conversation, 
-  ChatMessage, 
-  ContextWindow, 
-  StudentProgress 
-} from '../types/agents';
-import type { 
-  PedagogicalSettings, 
-  StudentProfile, 
-  CourseContext 
-} from '../types/pedagogical';
+  updateConversationActivity,
+} from '../services/supabaseService';
+import { memoryService } from '../services/memoryService';
+import type { Conversation, ChatMessage, ContextWindow, StudentProgress } from '../types/agents';
+import type { PedagogicalSettings, StudentProfile, CourseContext } from '../types/pedagogical';
 
 // =====================================================
 // Clase ContextAgent
@@ -35,24 +26,21 @@ export class ContextAgent {
   /**
    * Inicializa una nueva conversación
    */
-  async initConversation(
-    studentId: string, 
-    courseId: string
-  ): Promise<Conversation> {
+  async initConversation(studentId: string, courseId: string): Promise<Conversation> {
     try {
       console.log('💬 ContextAgent.initConversation - Iniciando...', { studentId, courseId });
-      
+
       // Crear nueva conversación en Supabase con timeout
       const savePromise = saveConversation(studentId, courseId, {
         agentSystem: 'multi-agent-tutor',
-        version: '1.0'
+        version: '1.0',
       });
-      
-      const timeoutPromise = new Promise((_, reject) => 
+
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Timeout creando conversación')), 5000)
       );
-      
-      const response = await Promise.race([savePromise, timeoutPromise]) as any;
+
+      const response = (await Promise.race([savePromise, timeoutPromise])) as any;
 
       if (!response.success || !response.data) {
         console.warn('⚠️ No se pudo crear conversación, usando conversación temporal');
@@ -61,9 +49,9 @@ export class ContextAgent {
           id: `temp-${Date.now()}`,
           studentId,
           courseId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          metadata: { agentSystem: 'multi-agent-tutor', version: '1.0', temp: true }
+          startedAt: new Date(),
+          lastActivityAt: new Date(),
+          metadata: { agentSystem: 'multi-agent-tutor', version: '1.0', temp: true },
         };
         this.currentConversation = tempConversation;
         return tempConversation;
@@ -76,14 +64,13 @@ export class ContextAgent {
       try {
         await Promise.race([
           memoryService.initializeConversation(response.data.id),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000)),
         ]);
       } catch (memoryError) {
         console.warn('⚠️ Error inicializando memoria (continuando):', memoryError);
       }
 
       return response.data;
-
     } catch (error) {
       console.error('❌ Error initializing conversation:', error);
       // Crear conversación temporal para continuar
@@ -91,9 +78,14 @@ export class ContextAgent {
         id: `temp-${Date.now()}`,
         studentId,
         courseId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        metadata: { agentSystem: 'multi-agent-tutor', version: '1.0', temp: true, error: String(error) }
+        startedAt: new Date(),
+        lastActivityAt: new Date(),
+        metadata: {
+          agentSystem: 'multi-agent-tutor',
+          version: '1.0',
+          temp: true,
+          error: String(error),
+        },
       };
       this.currentConversation = tempConversation;
       return tempConversation;
@@ -117,7 +109,6 @@ export class ContextAgent {
       await memoryService.initializeConversation(conversationId);
 
       return response.data;
-
     } catch (error) {
       console.error('Error loading conversation:', error);
       throw error;
@@ -135,14 +126,13 @@ export class ContextAgent {
     try {
       // Guardar en memoria (local + Supabase)
       const success = await memoryService.saveToMemory(message, this.currentConversation.id);
-      
+
       if (!success) {
         console.warn('Failed to save message to memory');
       }
 
       // Actualizar actividad de la conversación
       await this.updateConversationActivity();
-
     } catch (error) {
       console.error('Error adding message:', error);
       throw error;
@@ -158,7 +148,6 @@ export class ContextAgent {
       const contextWindow = await memoryService.getRelevantContext(query);
 
       return contextWindow;
-
     } catch (error) {
       console.error('Error getting relevant context:', error);
       return {
@@ -169,8 +158,8 @@ export class ContextAgent {
           topicsMastered: [],
           topicsStruggled: [],
           interactionCount: 0,
-          avgSessionDuration: 0
-        }
+          avgSessionDuration: 0,
+        },
       };
     }
   }
@@ -188,7 +177,6 @@ export class ContextAgent {
       }
 
       return response.data;
-
     } catch (error) {
       console.error('Error getting pedagogical context:', error);
       return this.getDefaultPedagogicalSettings(courseId);
@@ -198,10 +186,7 @@ export class ContextAgent {
   /**
    * Obtiene el contexto del estudiante
    */
-  async getStudentContext(
-    studentId: string, 
-    courseId: string
-  ): Promise<StudentProfile> {
+  async getStudentContext(studentId: string, courseId: string): Promise<StudentProfile> {
     try {
       const response = await getStudentProfile(studentId, courseId);
 
@@ -211,7 +196,6 @@ export class ContextAgent {
       }
 
       return response.data;
-
     } catch (error) {
       console.error('Error getting student context:', error);
       return this.getDefaultStudentProfile(studentId, courseId);
@@ -232,7 +216,6 @@ export class ContextAgent {
       if (!response.success) {
         console.warn('Failed to update student profile:', response.error);
       }
-
     } catch (error) {
       console.error('Error updating student context:', error);
     }
@@ -247,7 +230,6 @@ export class ContextAgent {
       // información completa del curso desde Supabase
       // Por ahora retornamos null y se implementará en el futuro
       return null;
-
     } catch (error) {
       console.error('Error getting course context:', error);
       return null;
@@ -263,21 +245,20 @@ export class ContextAgent {
         topicsMastered: [],
         topicsStruggled: [],
         interactionCount: 0,
-        avgSessionDuration: 0
+        avgSessionDuration: 0,
       };
     }
 
     try {
       const contextWindow = await this.getRelevantContext('');
       return contextWindow.studentProgress;
-
     } catch (error) {
       console.error('Error analyzing student progress:', error);
       return {
         topicsMastered: [],
         topicsStruggled: [],
         interactionCount: 0,
-        avgSessionDuration: 0
+        avgSessionDuration: 0,
       };
     }
   }
@@ -293,7 +274,6 @@ export class ContextAgent {
     try {
       const response = await memoryService.getLongTermMemory(this.currentConversation.id);
       return response.slice(-limit);
-
     } catch (error) {
       console.error('Error getting conversation history:', error);
       return [];
@@ -343,8 +323,9 @@ export class ContextAgent {
       encourageQuestions: true,
       voiceName: 'Kore',
       voiceSpeed: 1.0,
+      enableAudioResponse: true,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
   }
 
@@ -361,7 +342,7 @@ export class ContextAgent {
       avgSessionDuration: 0,
       topicsStruggled: [],
       topicsMastered: [],
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
     };
   }
 
@@ -385,7 +366,7 @@ export class ContextAgent {
     return {
       conversation: this.currentConversation,
       courseContext: this.currentCourseContext,
-      memory: memoryService.exportMemory()
+      memory: memoryService.exportMemory(),
     };
   }
 }

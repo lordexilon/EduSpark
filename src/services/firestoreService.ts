@@ -12,7 +12,7 @@ function convertFromSupabase(row: any): FileProcessingJob {
   // bucket_path puede ser el ID de Google Drive o la ruta del bucket
   // También verificar metadata.sourceFileId que puede tener el ID original
   const sourceFileId = row.metadata?.sourceFileId || row.bucket_path;
-  
+
   const job = {
     id: row.id,
     status: row.status as JobStatus,
@@ -35,8 +35,8 @@ function convertFromSupabase(row: any): FileProcessingJob {
   } as FileProcessingJob;
 
   // Añadir chunksProcessed y chunksTotal como propiedades directas para facilitar acceso
-  (job as any).chunksProcessed = row.metadata?.chunksProcessed || 0;
-  (job as any).chunksTotal = row.metadata?.chunksTotal;
+  job.chunksProcessed = row.metadata?.chunksProcessed || 0;
+  job.chunksTotal = row.metadata?.chunksTotal;
 
   return job;
 }
@@ -44,7 +44,9 @@ function convertFromSupabase(row: any): FileProcessingJob {
 /**
  * Crea un nuevo trabajo de procesamiento
  */
-export async function createJob(job: Omit<FileProcessingJob, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+export async function createJob(
+  job: Omit<FileProcessingJob, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<string> {
   const { data, error } = await supabase
     .from('file_processing_jobs')
     .insert({
@@ -99,10 +101,7 @@ export async function updateJob(jobId: string, updates: Partial<FileProcessingJo
     if (updates.pdfType) updateData.metadata.pdfType = updates.pdfType;
   }
 
-  const { error } = await supabase
-    .from('file_processing_jobs')
-    .update(updateData)
-    .eq('id', jobId);
+  const { error } = await supabase.from('file_processing_jobs').update(updateData).eq('id', jobId);
 
   if (error) throw error;
 }
@@ -117,7 +116,7 @@ export async function cancelJob(jobId: string): Promise<void> {
     .update({
       status: 'cancelled',
       error_message: 'Cancelado por el usuario',
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
     .eq('id', jobId);
 
@@ -128,10 +127,7 @@ export async function cancelJob(jobId: string): Promise<void> {
  * Elimina un trabajo de procesamiento
  */
 export async function deleteJob(jobId: string): Promise<void> {
-  const { error } = await supabase
-    .from('file_processing_jobs')
-    .delete()
-    .eq('id', jobId);
+  const { error } = await supabase.from('file_processing_jobs').delete().eq('id', jobId);
 
   if (error) throw error;
 }
@@ -193,15 +189,18 @@ export async function getAllJobs(userId: string): Promise<FileProcessingJob[]> {
     console.error('[FirestoreService] Error obteniendo jobs:', error);
     return [];
   }
-  
+
   const jobs = (data || []).map(convertFromSupabase);
-  console.log(`[FirestoreService] Jobs encontrados: ${jobs.length}`, jobs.map(j => ({
-    id: j.id,
-    status: j.status,
-    sourceFileId: j.sourceFileId,
-    metadataSourceFileId: (j.metadata as any)?.sourceFileId,
-    fileName: j.sourceFileName
-  })));
+  console.log(
+    `[FirestoreService] Jobs encontrados: ${jobs.length}`,
+    jobs.map((j) => ({
+      id: j.id,
+      status: j.status,
+      sourceFileId: j.sourceFileId,
+      metadataSourceFileId: (j.metadata as any)?.sourceFileId,
+      fileName: j.sourceFileName,
+    }))
+  );
   return jobs;
 }
 
@@ -247,7 +246,7 @@ export function subscribeToAllJobs(
   callback: (jobs: FileProcessingJob[]) => void
 ): () => void {
   console.log(`[FirestoreService] Suscribiéndose a jobs para usuario: ${userId}`);
-  
+
   // Suscripción a cambios en la tabla filtrando por user_id
   const channel = supabase
     .channel(`user-jobs-${userId}`)
@@ -260,28 +259,34 @@ export function subscribeToAllJobs(
         filter: `user_id=eq.${userId}`,
       },
       async (payload) => {
-        const oldChunksProcessed = (payload.old?.metadata as any)?.chunksProcessed;
-        const newChunksProcessed = (payload.new?.metadata as any)?.chunksProcessed;
-        const oldChunksTotal = (payload.old?.metadata as any)?.chunksTotal;
-        const newChunksTotal = (payload.new?.metadata as any)?.chunksTotal;
-        
-        const progressChanged = oldChunksProcessed !== newChunksProcessed || oldChunksTotal !== newChunksTotal;
-        
+        const oldRecord = payload.old as any;
+        const newRecord = payload.new as any;
+
+        const oldChunksProcessed = oldRecord?.metadata?.chunksProcessed;
+        const newChunksProcessed = newRecord?.metadata?.chunksProcessed;
+        const oldChunksTotal = oldRecord?.metadata?.chunksTotal;
+        const newChunksTotal = newRecord?.metadata?.chunksTotal;
+
+        const progressChanged =
+          oldChunksProcessed !== newChunksProcessed || oldChunksTotal !== newChunksTotal;
+
         console.log(`[FirestoreService] Cambio detectado en jobs:`, {
           eventType: payload.eventType,
-          jobId: payload.new?.id || payload.old?.id,
-          status: payload.new?.status || payload.old?.status,
+          jobId: newRecord?.id || oldRecord?.id,
+          status: newRecord?.status || oldRecord?.status,
           progressChanged,
           oldChunks: { processed: oldChunksProcessed, total: oldChunksTotal },
-          newChunks: { processed: newChunksProcessed, total: newChunksTotal }
+          newChunks: { processed: newChunksProcessed, total: newChunksTotal },
         });
-        
+
         // Para eventos DELETE, usar un pequeño delay para asegurar que Supabase haya procesado
         const delay = payload.eventType === 'DELETE' ? 500 : 0;
-        
+
         setTimeout(async () => {
           const jobs = await getAllJobs(userId);
-          console.log(`[FirestoreService] Jobs recargados después de cambio (${payload.eventType}): ${jobs.length}`);
+          console.log(
+            `[FirestoreService] Jobs recargados después de cambio (${payload.eventType}): ${jobs.length}`
+          );
           callback(jobs);
         }, delay);
       }
@@ -301,5 +306,3 @@ export function subscribeToAllJobs(
     supabase.removeChannel(channel);
   };
 }
-
-

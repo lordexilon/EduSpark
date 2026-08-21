@@ -9,7 +9,7 @@ import {
   updateJob as supabaseUpdateJob,
   createChildJobs as supabaseCreateChildJobs,
   getJob as supabaseGetJob,
-  createJob as supabaseCreateJob
+  createJob as supabaseCreateJob,
 } from './supabaseService';
 
 /**
@@ -22,10 +22,7 @@ export async function getPendingJobs(): Promise<FileProcessingJob[]> {
 /**
  * Actualiza un trabajo (Redirige a Supabase)
  */
-export async function updateJob(
-  jobId: string,
-  updates: Partial<FileProcessingJob>
-): Promise<void> {
+export async function updateJob(jobId: string, updates: Partial<FileProcessingJob>): Promise<void> {
   return supabaseUpdateJob(jobId, updates);
 }
 

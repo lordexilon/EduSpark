@@ -8,7 +8,14 @@ import { courseService, Course } from '@/services/teacherCourses';
 import { useAuth } from '@/hooks/useAuth';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
-import { IconCards, IconPlusCircle, IconEdit, IconTrash, IconBookOpen, IconArrowRight } from '@/components/Common/Icons';
+import {
+  IconCards,
+  IconPlusCircle,
+  IconEdit,
+  IconTrash,
+  IconBookOpen,
+  IconArrowRight,
+} from '@/components/Common/Icons';
 
 export const TeacherFlashcardsPage: React.FC = () => {
   const { user } = useAuth();
@@ -36,11 +43,11 @@ export const TeacherFlashcardsPage: React.FC = () => {
       setLoading(true);
       const userRole = user?.role?.name;
       const isAdminOrCoordinator = userRole === 'admin' || userRole === 'coordinator';
-      
+
       const data = isAdminOrCoordinator
         ? await courseService.getAllCourses()
         : await courseService.getMyCourses(user!.id);
-      
+
       setCourses(data);
       if (data.length > 0) {
         setSelectedCourse(data[0].id);
@@ -231,4 +238,3 @@ export const TeacherFlashcardsPage: React.FC = () => {
     </div>
   );
 };
-

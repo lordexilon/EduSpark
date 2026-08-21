@@ -42,17 +42,19 @@ export const bulkSuspendReactivateService = {
       // Si se proporciona institutionId, filtrar usuarios por institución
       let usersToProcess = users;
       if (institutionId) {
-        const identityDocuments = users.map(u => u.identity_document).filter(Boolean);
+        const identityDocuments = users.map((u) => u.identity_document).filter(Boolean);
 
         if (identityDocuments.length > 0) {
           // Buscar usuarios por documento de identidad y filtrar por institución
           const { data: usersData, error: usersError } = await supabase
             .from('users')
-            .select(`
+            .select(
+              `
               id,
               identity_document,
               user_institutions!inner(institution_id)
-            `)
+            `
+            )
             .in('identity_document', identityDocuments)
             .eq('user_institutions.institution_id', institutionId);
 
@@ -64,26 +66,28 @@ export const bulkSuspendReactivateService = {
           const validDocuments = new Set((usersData || []).map((u: any) => u.identity_document));
 
           // Filtrar usuarios que no pertenecen a la institución
-          usersToProcess = users.filter(u =>
-            !u.identity_document || validDocuments.has(u.identity_document)
+          usersToProcess = users.filter(
+            (u) => !u.identity_document || validDocuments.has(u.identity_document)
           );
 
           // Si se filtraron usuarios, informar
           if (usersToProcess.length < users.length) {
             const filteredCount = users.length - usersToProcess.length;
-            console.warn(`⚠️ ${filteredCount} usuario(s) no pertenecen a la institución ${institutionId} y fueron excluidos`);
+            console.warn(
+              `⚠️ ${filteredCount} usuario(s) no pertenecen a la institución ${institutionId} y fueron excluidos`
+            );
           }
         }
       }
 
       // Convertir array de usuarios a JSONB
-      const usersJson = usersToProcess.map(user => ({
+      const usersJson = usersToProcess.map((user) => ({
         identity_document: user.identity_document,
-        is_active: user.is_active
+        is_active: user.is_active,
       }));
 
       const { data, error } = await supabase.rpc('bulk_suspend_reactivate_users', {
-        p_users: usersJson
+        p_users: usersJson,
       });
 
       if (error) throw error;
@@ -95,11 +99,11 @@ export const bulkSuspendReactivateService = {
         total: users.length,
         success_count: 0,
         failed_count: users.length,
-        results: users.map(u => ({
+        results: users.map((u) => ({
           success: false,
           identity_document: u.identity_document,
-          error: error.message || 'Error desconocido'
-        }))
+          error: error.message || 'Error desconocido',
+        })),
       };
     }
   },
@@ -108,16 +112,16 @@ export const bulkSuspendReactivateService = {
    * Parsear CSV a array de usuarios para suspender/reactivar
    */
   parseSuspendReactivateCSV(csvText: string): SuspendReactivateUserData[] {
-    const lines = csvText.split('\n').filter(line => line.trim());
+    const lines = csvText.split('\n').filter((line) => line.trim());
     if (lines.length < 2) {
       throw new Error('El CSV debe tener al menos una fila de encabezados y una fila de datos');
     }
 
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
     const users: SuspendReactivateUserData[] = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim());
+      const values = lines[i].split(',').map((v) => v.trim());
       if (values.length !== headers.length) continue;
 
       const user: any = {};
@@ -131,7 +135,7 @@ export const bulkSuspendReactivateService = {
       // Validar campos requeridos
       if (user.identity_document) {
         const userData: SuspendReactivateUserData = {
-          identity_document: user.identity_document
+          identity_document: user.identity_document,
         };
 
         // Si hay campo is_active, usarlo
@@ -203,18 +207,23 @@ export const bulkSuspendReactivateService = {
           const identityDoc = user.identity_document || user.documento || user.ci || user.dni;
 
           const userData: SuspendReactivateUserData = {
-            identity_document: identityDoc
+            identity_document: identityDoc,
           };
 
           // Buscar campo de pago (puede tener varios nombres)
-          const paidValue = user.paid || user.pagado || user.pago || user.payment || user.mensualidad;
+          const paidValue =
+            user.paid || user.pagado || user.pago || user.payment || user.mensualidad;
           if (paidValue !== undefined) {
             userData.paid = paidValue;
             userData.is_active = this.parsePaymentStatus(paidValue);
           }
 
           // Si hay campo is_active explícito, usarlo
-          if (user.is_active !== undefined || user.activo !== undefined || user.estado !== undefined) {
+          if (
+            user.is_active !== undefined ||
+            user.activo !== undefined ||
+            user.estado !== undefined
+          ) {
             const statusValue = user.is_active || user.activo || user.estado;
             userData.is_active = this.parseStatusValue(statusValue);
           }
@@ -245,15 +254,30 @@ export const bulkSuspendReactivateService = {
     const value = String(paidValue).toLowerCase().trim();
 
     // Valores que indican que pagó (reactivar)
-    if (value === 'true' || value === '1' || value === 'si' || value === 'yes' ||
-      value === 'pagado' || value === 'paid' || value === 'pago' || value === 'sí') {
+    if (
+      value === 'true' ||
+      value === '1' ||
+      value === 'si' ||
+      value === 'yes' ||
+      value === 'pagado' ||
+      value === 'paid' ||
+      value === 'pago' ||
+      value === 'sí'
+    ) {
       return true;
     }
 
     // Valores que indican que no pagó (suspender)
-    if (value === 'false' || value === '0' || value === 'no' ||
-      value === 'no pagado' || value === 'unpaid' || value === 'sin pago' ||
-      value === 'pendiente' || value === 'pending') {
+    if (
+      value === 'false' ||
+      value === '0' ||
+      value === 'no' ||
+      value === 'no pagado' ||
+      value === 'unpaid' ||
+      value === 'sin pago' ||
+      value === 'pendiente' ||
+      value === 'pending'
+    ) {
       return false;
     }
 
@@ -268,14 +292,26 @@ export const bulkSuspendReactivateService = {
     const value = String(statusValue).toLowerCase().trim();
 
     // Valores que indican activo
-    if (value === 'true' || value === '1' || value === 'activo' || value === 'active' ||
-      value === 'reactivar' || value === 'reactivate') {
+    if (
+      value === 'true' ||
+      value === '1' ||
+      value === 'activo' ||
+      value === 'active' ||
+      value === 'reactivar' ||
+      value === 'reactivate'
+    ) {
       return true;
     }
 
     // Valores que indican suspendido
-    if (value === 'false' || value === '0' || value === 'suspendido' || value === 'suspended' ||
-      value === 'suspender' || value === 'suspend') {
+    if (
+      value === 'false' ||
+      value === '0' ||
+      value === 'suspendido' ||
+      value === 'suspended' ||
+      value === 'suspender' ||
+      value === 'suspend'
+    ) {
       return false;
     }
 
@@ -285,9 +321,10 @@ export const bulkSuspendReactivateService = {
   /**
    * Validar datos de usuario antes de procesar
    */
-  validateSuspendReactivateData(
-    user: SuspendReactivateUserData
-  ): { valid: boolean; errors: string[] } {
+  validateSuspendReactivateData(user: SuspendReactivateUserData): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     if (!user.identity_document || user.identity_document.trim().length === 0) {
@@ -301,7 +338,7 @@ export const bulkSuspendReactivateService = {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   },
 
@@ -319,17 +356,19 @@ export const bulkSuspendReactivateService = {
       // Si se proporciona institutionId, filtrar usuarios por institución
       let usersToProcess = users;
       if (institutionId) {
-        const identityDocuments = users.map(u => u.identity_document).filter(Boolean);
+        const identityDocuments = users.map((u) => u.identity_document).filter(Boolean);
 
         if (identityDocuments.length > 0) {
           // Buscar usuarios por documento de identidad y filtrar por institución
           const { data: usersData, error: usersError } = await supabase
             .from('users')
-            .select(`
+            .select(
+              `
               id,
               identity_document,
               user_institutions!inner(institution_id)
-            `)
+            `
+            )
             .in('identity_document', identityDocuments)
             .eq('user_institutions.institution_id', institutionId);
 
@@ -341,20 +380,22 @@ export const bulkSuspendReactivateService = {
           const validDocuments = new Set((usersData || []).map((u: any) => u.identity_document));
 
           // Filtrar usuarios que no pertenecen a la institución
-          usersToProcess = users.filter(u =>
-            !u.identity_document || validDocuments.has(u.identity_document)
+          usersToProcess = users.filter(
+            (u) => !u.identity_document || validDocuments.has(u.identity_document)
           );
 
           // Si se filtraron usuarios, informar
           if (usersToProcess.length < users.length) {
             const filteredCount = users.length - usersToProcess.length;
-            console.warn(`⚠️ ${filteredCount} usuario(s) no pertenecen a la institución ${institutionId} y fueron excluidos`);
+            console.warn(
+              `⚠️ ${filteredCount} usuario(s) no pertenecen a la institución ${institutionId} y fueron excluidos`
+            );
           }
         }
       }
 
       // Convertir array de usuarios a JSONB con información de pago
-      const usersJson = usersToProcess.map(user => {
+      const usersJson = usersToProcess.map((user) => {
         // Determinar is_active basado en paid si no está definido
         let isActive = user.is_active;
         if (isActive === undefined && user.paid !== undefined) {
@@ -366,12 +407,12 @@ export const bulkSuspendReactivateService = {
           is_active: isActive,
           paid: user.paid,
           payment_date: user.payment_date,
-          amount: user.amount
+          amount: user.amount,
         };
       });
 
       const { data, error } = await supabase.rpc('process_payments_and_update_status', {
-        p_users: usersJson
+        p_users: usersJson,
       });
 
       if (error) throw error;
@@ -383,13 +424,12 @@ export const bulkSuspendReactivateService = {
         total: users.length,
         success_count: 0,
         failed_count: users.length,
-        results: users.map(u => ({
+        results: users.map((u) => ({
           success: false,
           identity_document: u.identity_document || '',
-          error: error.message || 'Error desconocido'
-        }))
+          error: error.message || 'Error desconocido',
+        })),
       };
     }
-  }
+  },
 };
-

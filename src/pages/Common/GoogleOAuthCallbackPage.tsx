@@ -26,18 +26,21 @@ const GoogleOAuthCallbackPage: React.FC = () => {
 
   const urlParams = getUrlParams();
 
-  console.log('🎯 GoogleOAuthCallbackPage: Componente montado', { 
-    authLoading, 
+  console.log('🎯 GoogleOAuthCallbackPage: Componente montado', {
+    authLoading,
     hasUser: !!user,
     userId: user?.id,
     windowSearch: window.location.search,
     urlParams: Object.fromEntries(urlParams.entries()),
-    searchParamsFromHook: Object.fromEntries(searchParams.entries())
+    searchParamsFromHook: Object.fromEntries(searchParams.entries()),
   });
 
   useEffect(() => {
-    console.log('🔄 GoogleOAuthCallbackPage: useEffect ejecutado', { authLoading, hasUser: !!user });
-    
+    console.log('🔄 GoogleOAuthCallbackPage: useEffect ejecutado', {
+      authLoading,
+      hasUser: !!user,
+    });
+
     // Esperar a que la autenticación termine de cargar
     if (authLoading) {
       console.log('⏳ OAuth Callback: Esperando que termine la carga de autenticación...');
@@ -50,7 +53,9 @@ const GoogleOAuthCallbackPage: React.FC = () => {
         if (!user?.id) {
           console.error('❌ OAuth Callback: Usuario no autenticado');
           setStatus('error');
-          setMessage('Debes estar autenticado para conectar tu cuenta de Google. Por favor, inicia sesión primero.');
+          setMessage(
+            'Debes estar autenticado para conectar tu cuenta de Google. Por favor, inicia sesión primero.'
+          );
           return;
         }
 
@@ -63,12 +68,12 @@ const GoogleOAuthCallbackPage: React.FC = () => {
         const error = currentParams.get('error');
         const state = currentParams.get('state');
 
-        console.log('📋 OAuth Callback: Parámetros de URL:', { 
-          code: !!code, 
+        console.log('📋 OAuth Callback: Parámetros de URL:', {
+          code: !!code,
           codeLength: code?.length,
-          error, 
+          error,
           state,
-          windowSearch: window.location.search
+          windowSearch: window.location.search,
         });
 
         if (error) {
@@ -86,19 +91,21 @@ const GoogleOAuthCallbackPage: React.FC = () => {
         }
 
         // Intercambiar código por tokens
-        console.log('🔗 OAuth Callback: Intercambiando código por tokens...', { codeLength: code.length });
+        console.log('🔗 OAuth Callback: Intercambiando código por tokens...', {
+          codeLength: code.length,
+        });
         const tokens = await googleOAuthService.exchangeCodeForTokens(code);
-        console.log('✅ OAuth Callback: Tokens obtenidos exitosamente', { 
+        console.log('✅ OAuth Callback: Tokens obtenidos exitosamente', {
           hasAccessToken: !!tokens.access_token,
           hasRefreshToken: !!tokens.refresh_token,
-          expiresIn: tokens.expires_in
+          expiresIn: tokens.expires_in,
         });
 
         // Determinar qué servicios se están autorizando
         const hasCalendar = tokens.scope.includes('calendar');
         const hasDrive = tokens.scope.includes('drive');
         let serviceType: 'calendar' | 'drive' | 'both' = 'calendar';
-        
+
         if (hasCalendar && hasDrive) {
           serviceType = 'both';
         } else if (hasDrive) {
@@ -106,12 +113,12 @@ const GoogleOAuthCallbackPage: React.FC = () => {
         }
 
         // Guardar tokens en la base de datos
-        console.log('💾 OAuth Callback: Guardando tokens en la base de datos...', { 
+        console.log('💾 OAuth Callback: Guardando tokens en la base de datos...', {
           serviceType,
           hasCalendar,
           hasDrive,
           scope: tokens.scope,
-          userId: user.id
+          userId: user.id,
         });
         const savedToken = await googleOAuthService.saveTokens(
           user.id,
@@ -123,7 +130,7 @@ const GoogleOAuthCallbackPage: React.FC = () => {
         );
         console.log('✅ OAuth Callback: Tokens guardados exitosamente', {
           tokenId: savedToken.id,
-          serviceType: savedToken.service_type,
+          serviceType,
           expiresAt: savedToken.expires_at,
         });
 
@@ -186,9 +193,7 @@ const GoogleOAuthCallbackPage: React.FC = () => {
               <h2 className="text-xl font-semibold text-gray-800 mb-2">
                 Conectando cuenta de Google...
               </h2>
-              <p className="text-gray-600">
-                Por favor espera mientras completamos la conexión.
-              </p>
+              <p className="text-gray-600">Por favor espera mientras completamos la conexión.</p>
             </>
           )}
 
@@ -209,13 +214,9 @@ const GoogleOAuthCallbackPage: React.FC = () => {
                   />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                ¡Cuenta conectada!
-              </h2>
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">¡Cuenta conectada!</h2>
               <p className="text-gray-600 mb-4">{message}</p>
-              <p className="text-sm text-gray-500 mb-4">
-                Serás redirigido automáticamente...
-              </p>
+              <p className="text-sm text-gray-500 mb-4">Serás redirigido automáticamente...</p>
               <Button
                 onClick={() => {
                   // Navegar según el rol del usuario
@@ -231,8 +232,8 @@ const GoogleOAuthCallbackPage: React.FC = () => {
                   }
                 }}
               >
-                {user?.role?.name === 'teacher' || user?.role?.name === 'admin' 
-                  ? 'Ir a Cursos' 
+                {user?.role?.name === 'teacher' || user?.role?.name === 'admin'
+                  ? 'Ir a Cursos'
                   : 'Ir al Dashboard'}
               </Button>
             </>
@@ -255,9 +256,7 @@ const GoogleOAuthCallbackPage: React.FC = () => {
                   />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                Error al conectar
-              </h2>
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">Error al conectar</h2>
               <p className="text-gray-600 mb-4">{message}</p>
               <div className="flex gap-3 justify-center">
                 <Button
@@ -276,8 +275,8 @@ const GoogleOAuthCallbackPage: React.FC = () => {
                   }}
                   variant="secondary"
                 >
-                  {user?.role?.name === 'teacher' || user?.role?.name === 'admin' 
-                    ? 'Volver a Cursos' 
+                  {user?.role?.name === 'teacher' || user?.role?.name === 'admin'
+                    ? 'Volver a Cursos'
                     : 'Volver al Dashboard'}
                 </Button>
                 <Button

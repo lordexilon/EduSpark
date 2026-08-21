@@ -3,13 +3,27 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { quizService, Assessment, AssessmentAttempt, QuestionResponse } from '@/services/quizService';
+import {
+  quizService,
+  Assessment,
+  AssessmentAttempt,
+  QuestionResponse,
+} from '@/services/quizService';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/Common/Button';
 import Card from '@/components/Common/Card';
 import Breadcrumbs from '@/components/Common/Breadcrumbs';
-import { IconArrowLeft, IconUsers, IconCheckCircle, IconX, IconTrendingUp, IconChartBar, IconClock, IconPencil } from '@/components/Common/Icons';
+import {
+  IconArrowLeft,
+  IconUsers,
+  IconCheckCircle,
+  IconX,
+  IconTrendingUp,
+  IconChartBar,
+  IconClock,
+  IconPencil,
+} from '@/components/Common/Icons';
 
 interface QuizStats {
   totalAttempts: number;
@@ -40,6 +54,72 @@ interface QuestionStats {
   accuracy: number;
 }
 
+interface OpenEndedGradeCardProps {
+  response: any;
+  question?: any;
+  student?: StudentResult;
+  onGrade: (points: number, feedback: string) => Promise<void>;
+}
+
+const OpenEndedGradeCard: React.FC<OpenEndedGradeCardProps> = ({
+  response,
+  question,
+  student,
+  onGrade,
+}) => {
+  const [points, setPoints] = useState<number>(0);
+  const [feedback, setFeedback] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleGrade = async () => {
+    setSaving(true);
+    try {
+      await onGrade(points, feedback);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const answerText =
+    typeof response.response_data === 'string'
+      ? response.response_data
+      : response.response_data?.text ||
+        response.response_data?.answer ||
+        JSON.stringify(response.response_data || '');
+
+  return (
+    <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-gray-900">
+          {student?.student_name || 'Estudiante'}
+        </p>
+        <p className="text-xs text-gray-500">{question?.question_text}</p>
+      </div>
+      <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700">{answerText}</div>
+      <div className="flex gap-3">
+        <input
+          type="number"
+          value={points}
+          onChange={(e) => setPoints(Number(e.target.value))}
+          min={0}
+          className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+          placeholder="Puntos"
+        />
+        <input
+          type="text"
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+          placeholder="Feedback (opcional)"
+        />
+        <Button variant="primary" size="sm" onClick={handleGrade} disabled={saving}>
+          {saving ? 'Guardando...' : 'Calificar'}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 export const QuizAnalyticsPage: React.FC = () => {
   const { quizId } = useParams<{ quizId: string }>();
   const navigate = useNavigate();
@@ -53,7 +133,7 @@ export const QuizAnalyticsPage: React.FC = () => {
     averageScore: 0,
     averagePercentage: 0,
     passRate: 0,
-    averageTimeMinutes: 0
+    averageTimeMinutes: 0,
   });
   const [studentResults, setStudentResults] = useState<StudentResult[]>([]);
   const [questionStats, setQuestionStats] = useState<QuestionStats[]>([]);
@@ -66,7 +146,8 @@ export const QuizAnalyticsPage: React.FC = () => {
       setLoading(true);
 
       // Cargar assessment y preguntas
-      const { assessment: loadedAssessment, questions: loadedQuestions } = await quizService.getAssessmentWithQuestions(quizId!);
+      const { assessment: loadedAssessment, questions: loadedQuestions } =
+        await quizService.getAssessmentWithQuestions(quizId!);
       setAssessment(loadedAssessment);
       setQuestions(loadedQuestions);
 
@@ -84,34 +165,37 @@ export const QuizAnalyticsPage: React.FC = () => {
       const { data: responses, error: responsesError } = await supabase
         .from('question_responses')
         .select('*, questions(question_text)')
-        .in('attempt_id', attempts?.map(a => a.id) || []);
+        .in('attempt_id', attempts?.map((a) => a.id) || []);
 
       if (responsesError) throw responsesError;
       setResponses(responses || []);
 
       // Calcular estadísticas
-      const completedAttempts = attempts?.filter(a => a.status === 'submitted' || a.status === 'graded') || [];
-      const scores = completedAttempts.map(a => a.score || 0).filter(s => s > 0);
-      const percentages = completedAttempts.map(a => a.percentage || 0).filter(p => p > 0);
-      const passedCount = completedAttempts.filter(a => a.is_passed).length;
+      const completedAttempts =
+        attempts?.filter((a) => a.status === 'submitted' || a.status === 'graded') || [];
+      const scores = completedAttempts.map((a) => a.score || 0).filter((s) => s > 0);
+      const percentages = completedAttempts.map((a) => a.percentage || 0).filter((p) => p > 0);
+      const passedCount = completedAttempts.filter((a) => a.is_passed).length;
       const timeSpent = completedAttempts
-        .map(a => a.time_spent_minutes || 0)
-        .filter(t => t > 0);
+        .map((a) => a.time_spent_minutes || 0)
+        .filter((t) => t > 0);
 
       const calculatedStats: QuizStats = {
         totalAttempts: attempts?.length || 0,
         completedAttempts: completedAttempts.length,
         averageScore: scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0,
-        averagePercentage: percentages.length > 0 ? percentages.reduce((a, b) => a + b, 0) / percentages.length : 0,
+        averagePercentage:
+          percentages.length > 0 ? percentages.reduce((a, b) => a + b, 0) / percentages.length : 0,
         passRate: completedAttempts.length > 0 ? (passedCount / completedAttempts.length) * 100 : 0,
-        averageTimeMinutes: timeSpent.length > 0 ? timeSpent.reduce((a, b) => a + b, 0) / timeSpent.length : 0
+        averageTimeMinutes:
+          timeSpent.length > 0 ? timeSpent.reduce((a, b) => a + b, 0) / timeSpent.length : 0,
       };
 
       setStats(calculatedStats);
 
       // Agrupar resultados por estudiante
       const studentMap = new Map<string, StudentResult>();
-      
+
       for (const attempt of completedAttempts) {
         if (!studentMap.has(attempt.student_id)) {
           // Obtener información del estudiante
@@ -123,7 +207,7 @@ export const QuizAnalyticsPage: React.FC = () => {
 
           studentMap.set(attempt.student_id, {
             student_id: attempt.student_id,
-            student_name: studentData 
+            student_name: studentData
               ? `${studentData.first_name} ${studentData.last_name}`
               : 'Estudiante desconocido',
             student_email: studentData?.email || '',
@@ -131,7 +215,7 @@ export const QuizAnalyticsPage: React.FC = () => {
             bestScore: 0,
             bestPercentage: 0,
             isPassed: false,
-            totalAttempts: 0
+            totalAttempts: 0,
           });
         }
 
@@ -145,7 +229,7 @@ export const QuizAnalyticsPage: React.FC = () => {
       }
 
       // Actualizar total de intentos por estudiante
-      studentMap.forEach(student => {
+      studentMap.forEach((student) => {
         student.totalAttempts = student.attempts.length;
       });
 
@@ -153,7 +237,7 @@ export const QuizAnalyticsPage: React.FC = () => {
 
       // Calcular estadísticas por pregunta
       const questionMap = new Map<string, QuestionStats>();
-      
+
       const questionResponses = responses || [];
       for (const response of questionResponses) {
         const qId = response.question_id;
@@ -164,7 +248,7 @@ export const QuizAnalyticsPage: React.FC = () => {
             correct_count: 0,
             incorrect_count: 0,
             total_responses: 0,
-            accuracy: 0
+            accuracy: 0,
           });
         }
 
@@ -178,10 +262,11 @@ export const QuizAnalyticsPage: React.FC = () => {
       }
 
       // Calcular precisión
-      questionMap.forEach(question => {
-        question.accuracy = question.total_responses > 0
-          ? (question.correct_count / question.total_responses) * 100
-          : 0;
+      questionMap.forEach((question) => {
+        question.accuracy =
+          question.total_responses > 0
+            ? (question.correct_count / question.total_responses) * 100
+            : 0;
       });
 
       setQuestionStats(Array.from(questionMap.values()).sort((a, b) => a.accuracy - b.accuracy));
@@ -221,12 +306,12 @@ export const QuizAnalyticsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
-      <Breadcrumbs 
+      <Breadcrumbs
         items={[
           { label: 'Dashboard', path: '/dashboard' },
           { label: 'Panel Docente', path: '/teacher' },
           { label: 'Mis Cursos', path: '/teacher/courses' },
-          { label: assessment.title }
+          { label: assessment.title },
         ]}
       />
 
@@ -237,10 +322,7 @@ export const QuizAnalyticsPage: React.FC = () => {
           <p className="text-gray-600 mt-1">{assessment.title}</p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            onClick={() => navigate(`/teacher/quizzes/edit/${quizId}`)}
-          >
+          <Button variant="secondary" onClick={() => navigate(`/teacher/quizzes/edit/${quizId}`)}>
             Editar Quiz
           </Button>
           <Button
@@ -297,12 +379,8 @@ export const QuizAnalyticsPage: React.FC = () => {
             <div className="ml-5 w-0 flex-1">
               <dl>
                 <dt className="text-sm font-medium text-gray-500 truncate">Tasa de Aprobación</dt>
-                <dd className="text-2xl font-bold text-gray-900">
-                  {stats.passRate.toFixed(1)}%
-                </dd>
-                <dd className="text-xs text-gray-500">
-                  {assessment.passing_score}% requerido
-                </dd>
+                <dd className="text-2xl font-bold text-gray-900">{stats.passRate.toFixed(1)}%</dd>
+                <dd className="text-xs text-gray-500">{assessment.passing_score}% requerido</dd>
               </dl>
             </div>
           </div>
@@ -362,7 +440,9 @@ export const QuizAnalyticsPage: React.FC = () => {
                   <tr key={student.student_id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{student.student_name}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {student.student_name}
+                        </div>
                         <div className="text-sm text-gray-500">{student.student_email}</div>
                       </div>
                     </td>
@@ -370,12 +450,17 @@ export const QuizAnalyticsPage: React.FC = () => {
                       {student.totalAttempts}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {student.bestScore.toFixed(1)} / {assessment.total_points} ({student.bestPercentage.toFixed(1)}%)
+                      {student.bestScore.toFixed(1)} / {assessment.total_points} (
+                      {student.bestPercentage.toFixed(1)}%)
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        student.isPassed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          student.isPassed
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
                         {student.isPassed ? 'Aprobado' : 'No Aprobado'}
                       </span>
                     </td>
@@ -397,21 +482,27 @@ export const QuizAnalyticsPage: React.FC = () => {
 
       {/* Preguntas que Requieren Calificación Manual */}
       <Card>
-        <h2 className="text-xl font-semibold mb-4">Preguntas Abiertas Pendientes de Calificación</h2>
+        <h2 className="text-xl font-semibold mb-4">
+          Preguntas Abiertas Pendientes de Calificación
+        </h2>
         {(() => {
           // Obtener todas las respuestas abiertas que necesitan calificación
           const openEndedResponses = (responses || []).filter((r: any) => {
             const question = questions?.find((q: any) => q.id === r.question_id);
-            return question && 
-                   (question.question_type === 'short_answer' || question.question_type === 'essay') &&
-                   (r.points_earned === 0 || r.points_earned === null);
+            return (
+              question &&
+              (question.question_type === 'short_answer' || question.question_type === 'essay') &&
+              (r.points_earned === 0 || r.points_earned === null)
+            );
           });
 
           if (openEndedResponses.length === 0) {
             return (
               <div className="text-center py-8">
                 <IconCheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                <p className="text-gray-500">No hay preguntas abiertas pendientes de calificación</p>
+                <p className="text-gray-500">
+                  No hay preguntas abiertas pendientes de calificación
+                </p>
               </div>
             );
           }
@@ -421,8 +512,8 @@ export const QuizAnalyticsPage: React.FC = () => {
               {openEndedResponses.map((response: any) => {
                 const question = questions?.find((q: any) => q.id === response.question_id);
                 const attempt = attempts?.find((a: any) => a.id === response.attempt_id);
-                const student = studentResults.find(s => s.student_id === attempt?.student_id);
-                
+                const student = studentResults.find((s) => s.student_id === attempt?.student_id);
+
                 return (
                   <OpenEndedGradeCard
                     key={response.id}
@@ -459,13 +550,15 @@ export const QuizAnalyticsPage: React.FC = () => {
                       <span className="text-sm font-semibold text-gray-900">
                         Pregunta {idx + 1}
                       </span>
-                      <span className={`text-xs font-medium px-2 py-1 rounded ${
-                        question.accuracy >= 70
-                          ? 'bg-green-100 text-green-700'
-                          : question.accuracy >= 50
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-red-100 text-red-700'
-                      }`}>
+                      <span
+                        className={`text-xs font-medium px-2 py-1 rounded ${
+                          question.accuracy >= 70
+                            ? 'bg-green-100 text-green-700'
+                            : question.accuracy >= 50
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-red-100 text-red-700'
+                        }`}
+                      >
                         {question.accuracy.toFixed(1)}% correcto
                       </span>
                     </div>
@@ -484,8 +577,8 @@ export const QuizAnalyticsPage: React.FC = () => {
                       question.accuracy >= 70
                         ? 'bg-green-500'
                         : question.accuracy >= 50
-                        ? 'bg-yellow-500'
-                        : 'bg-red-500'
+                          ? 'bg-yellow-500'
+                          : 'bg-red-500'
                     }`}
                     style={{ width: `${question.accuracy}%` }}
                   />
@@ -500,4 +593,3 @@ export const QuizAnalyticsPage: React.FC = () => {
 };
 
 export default QuizAnalyticsPage;
-

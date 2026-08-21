@@ -9,7 +9,7 @@ import {
   markTutorialCompleted,
   getTutorialProgress,
   shouldShowTutorial,
-  type TutorialId
+  type TutorialId,
 } from '@/services/tutorialService';
 
 interface UseTutorialOptions {
@@ -37,15 +37,15 @@ export function useTutorial(options: UseTutorialOptions) {
       try {
         const completed = await isTutorialCompleted(user.id, tutorialId);
         setIsCompleted(completed);
-        
+
         // Verificar si debe mostrarse (no está marcado como "no volver a mostrar")
         const shouldShow = await shouldShowTutorial(user.id, tutorialId);
-        
+
         if (!completed && shouldShow) {
           // Cargar progreso guardado
           const progress = getTutorialProgress(tutorialId);
           setStartStep(progress);
-          
+
           // Auto-iniciar si está configurado
           if (autoStart) {
             // Delay más largo para asegurar que el DOM esté completamente renderizado
@@ -73,17 +73,20 @@ export function useTutorial(options: UseTutorialOptions) {
     setIsOpen(false);
   }, []);
 
-  const completeTutorial = useCallback(async (dontShowAgain: boolean = false) => {
-    if (!user?.id) return;
+  const completeTutorial = useCallback(
+    async (dontShowAgain: boolean = false) => {
+      if (!user?.id) return;
 
-    try {
-      await markTutorialCompleted(user.id, tutorialId, dontShowAgain);
-      setIsCompleted(true);
-      setIsOpen(false);
-    } catch (error) {
-      console.error('Error completando tutorial:', error);
-    }
-  }, [user?.id, tutorialId]);
+      try {
+        await markTutorialCompleted(user.id, tutorialId, dontShowAgain);
+        setIsCompleted(true);
+        setIsOpen(false);
+      } catch (error) {
+        console.error('Error completando tutorial:', error);
+      }
+    },
+    [user?.id, tutorialId]
+  );
 
   const resetTutorial = useCallback(async () => {
     if (!user?.id) return;
@@ -106,7 +109,6 @@ export function useTutorial(options: UseTutorialOptions) {
     startTutorial,
     closeTutorial,
     completeTutorial,
-    resetTutorial
+    resetTutorial,
   };
 }
-

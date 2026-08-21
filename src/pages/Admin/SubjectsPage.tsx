@@ -66,15 +66,19 @@ const SubjectsPage: React.FC = () => {
       setError(null);
       let [subjectsData, careersData] = await Promise.all([
         subjectService.getAllSubjects(),
-        careerService.getActiveCareers()
+        careerService.getActiveCareers(),
       ]);
 
       // Si es admin-campus, filtrar por institución
       if (isAdminCampus && institution) {
-        careersData = careersData.filter(career => (career as any).institution_id === institution.id);
+        careersData = careersData.filter(
+          (career) => (career as any).institution_id === institution.id
+        );
         // Filtrar materias de las carreras de la institución
-        const careerIds = careersData.map(c => c.id);
-        subjectsData = subjectsData.filter(subject => careerIds.includes(subject.career_id) || !subject.career_id);
+        const careerIds = careersData.map((c) => c.id);
+        subjectsData = subjectsData.filter(
+          (subject) => careerIds.includes(subject.career_id) || !subject.career_id
+        );
       }
 
       setSubjects(subjectsData);
@@ -115,7 +119,7 @@ const SubjectsPage: React.FC = () => {
   };
 
   const filteredSubjects = selectedCareer
-    ? subjects.filter(s => s.career_id === selectedCareer)
+    ? subjects.filter((s) => s.career_id === selectedCareer)
     : subjects;
 
   if (loading) {
@@ -131,13 +135,20 @@ const SubjectsPage: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Materias</h1>
-          <p className="text-gray-600 dark:text-gray-400">Administra las materias/disciplinas académicas</p>
+          <p className="text-gray-600 dark:text-gray-400">
+            Administra las materias/disciplinas académicas
+          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => navigate('/teacher/courses')}>
             Ver Cursos
           </Button>
-          <Button onClick={() => { setEditingSubject(null); setShowForm(true); }}>
+          <Button
+            onClick={() => {
+              setEditingSubject(null);
+              setShowForm(true);
+            }}
+          >
             <span className="mr-2">+</span>
             Nueva Materia
           </Button>
@@ -146,15 +157,21 @@ const SubjectsPage: React.FC = () => {
 
       {/* Sección explicativa */}
       <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200 dark:from-indigo-950/30 dark:to-purple-950/30 dark:border-indigo-900/50">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">📖 ¿Cómo funciona?</h3>
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+          📖 ¿Cómo funciona?
+        </h3>
         <div className="text-xs text-gray-700 dark:text-gray-300 space-y-2">
           <p>
-            <strong>Materias</strong> son las disciplinas académicas (ej: "Base de Datos", "Programación I")
-            que pertenecen a una <strong>Carrera</strong> (ej: "Ingeniería en Sistemas").
+            <strong>Materias</strong> son las disciplinas académicas (ej: "Base de Datos",
+            "Programación I") que pertenecen a una <strong>Carrera</strong> (ej: "Ingeniería en
+            Sistemas").
           </p>
           <p>
             Desde aquí puedes <strong>crear materias</strong> y luego desde
-            <button onClick={() => navigate('/teacher/courses/new')} className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline mx-1">
+            <button
+              onClick={() => navigate('/teacher/courses/new')}
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline mx-1"
+            >
               Crear Curso
             </button>
             puedes asociar un curso a una materia. El <strong>curso</strong> contiene el contenido
@@ -163,9 +180,27 @@ const SubjectsPage: React.FC = () => {
           <div className="mt-2 p-2 bg-white/50 dark:bg-gray-900/50 rounded border border-indigo-200 dark:border-indigo-900/30">
             <p className="font-medium text-xs mb-1">Flujo recomendado:</p>
             <ol className="list-decimal list-inside space-y-1 text-xs text-gray-600 dark:text-gray-400">
-              <li>Crear/Gestionar Carreras (desde <button onClick={() => navigate('/admin/careers')} className="text-purple-600 dark:text-purple-400 hover:underline">Gestionar Carreras</button>)</li>
+              <li>
+                Crear/Gestionar Carreras (desde{' '}
+                <button
+                  onClick={() => navigate('/admin/careers')}
+                  className="text-purple-600 dark:text-purple-400 hover:underline"
+                >
+                  Gestionar Carreras
+                </button>
+                )
+              </li>
               <li>Crear Materias para cada carrera (esta página)</li>
-              <li>Crear Cursos asociados a materias (desde <button onClick={() => navigate('/teacher/courses/new')} className="text-blue-600 dark:text-blue-400 hover:underline">Crear Curso</button>)</li>
+              <li>
+                Crear Cursos asociados a materias (desde{' '}
+                <button
+                  onClick={() => navigate('/teacher/courses/new')}
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Crear Curso
+                </button>
+                )
+              </li>
               <li>Agregar contenido (unidades, sesiones, materiales) a cada curso</li>
             </ol>
           </div>
@@ -182,15 +217,19 @@ const SubjectsPage: React.FC = () => {
       )}
 
       <div className="flex gap-4 items-center">
-        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Filtrar por carrera:</label>
+        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          Filtrar por carrera:
+        </label>
         <select
           value={selectedCareer || ''}
           onChange={(e) => setSelectedCareer(e.target.value ? parseInt(e.target.value) : null)}
           className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">Todas las carreras</option>
-          {careers.map(career => (
-            <option key={career.id} value={career.id}>{career.name}</option>
+          {careers.map((career) => (
+            <option key={career.id} value={career.id}>
+              {career.name}
+            </option>
           ))}
         </select>
       </div>
@@ -201,8 +240,15 @@ const SubjectsPage: React.FC = () => {
             subject={editingSubject}
             careers={careers}
             subjects={subjects}
-            onClose={() => { setShowForm(false); setEditingSubject(null); }}
-            onSuccess={() => { setShowForm(false); setEditingSubject(null); loadData(); }}
+            onClose={() => {
+              setShowForm(false);
+              setEditingSubject(null);
+            }}
+            onSuccess={() => {
+              setShowForm(false);
+              setEditingSubject(null);
+              loadData();
+            }}
           />
         </React.Fragment>
       )}
@@ -212,41 +258,58 @@ const SubjectsPage: React.FC = () => {
           <div className="text-center py-8">
             <h3 className="text-sm font-medium text-gray-900">No hay materias</h3>
             <p className="mt-1 text-sm text-gray-500">
-              {selectedCareer ? 'No hay materias en esta carrera.' : 'Comienza creando la primera materia.'}
+              {selectedCareer
+                ? 'No hay materias en esta carrera.'
+                : 'Comienza creando la primera materia.'}
             </p>
           </div>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredSubjects.map((subject) => {
-            const career = careers.find(c => c.id === subject.career_id);
+            const career = careers.find((c) => c.id === subject.career_id);
             const coursesCountForSubject = coursesCount[subject.id] || 0;
             const isHighlighted = highlightedSubjectId === subject.id;
             return (
               <div id={`subject-${subject.id}`} key={subject.id}>
                 <Card
-                  className={`hover:shadow-lg transition-shadow h-full ${isHighlighted ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : ''
-                    }`}
+                  className={`hover:shadow-lg transition-shadow h-full ${
+                    isHighlighted ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : ''
+                  }`}
                 >
                   <div className="flex flex-col h-full">
                     <div className="flex justify-between items-start mb-4">
                       <div className="min-w-0 pr-2">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate" title={subject.name}>{subject.name}</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Código: {subject.code}</p>
+                        <h3
+                          className="text-lg font-semibold text-gray-900 dark:text-white truncate"
+                          title={subject.name}
+                        >
+                          {subject.name}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          Código: {subject.code}
+                        </p>
                         {career && (
-                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 truncate">{career.name}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 truncate">
+                            {career.name}
+                          </p>
                         )}
                       </div>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${subject.is_core
-                        ? 'text-blue-600 bg-blue-100 dark:text-blue-300 dark:bg-blue-900/40'
-                        : 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-800'
-                        }`}>
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${
+                          subject.is_core
+                            ? 'text-blue-600 bg-blue-100 dark:text-blue-300 dark:bg-blue-900/40'
+                            : 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-800'
+                        }`}
+                      >
                         {subject.is_core ? 'Troncal' : 'Electiva'}
                       </span>
                     </div>
 
                     {subject.description && (
-                      <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">{subject.description}</p>
+                      <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">
+                        {subject.description}
+                      </p>
                     )}
 
                     <div className="text-xs text-gray-500 dark:text-gray-400 mb-4 space-y-1 flex-grow">
@@ -256,7 +319,8 @@ const SubjectsPage: React.FC = () => {
 
                         {subject.semester && (
                           <div className="col-span-2 font-medium text-indigo-600 dark:text-indigo-400 mt-1">
-                            {subject.year ? `Año ${subject.year} - ` : ''}Semestre {subject.semester}
+                            {subject.year ? `Año ${subject.year} - ` : ''}Semestre{' '}
+                            {subject.semester}
                           </div>
                         )}
 
@@ -273,7 +337,10 @@ const SubjectsPage: React.FC = () => {
                     <div className="flex flex-col space-y-2 mt-auto">
                       <div className="flex space-x-2">
                         <Button
-                          onClick={() => { setEditingSubject(subject); setShowForm(true); }}
+                          onClick={() => {
+                            setEditingSubject(subject);
+                            setShowForm(true);
+                          }}
                           className="flex-1"
                           size="sm"
                         >
@@ -295,7 +362,8 @@ const SubjectsPage: React.FC = () => {
                           className="w-full text-sm"
                           size="sm"
                         >
-                          Ver {coursesCountForSubject} {coursesCountForSubject === 1 ? 'curso' : 'cursos'}
+                          Ver {coursesCountForSubject}{' '}
+                          {coursesCountForSubject === 1 ? 'curso' : 'cursos'}
                         </Button>
                       )}
                       <Button
@@ -327,7 +395,13 @@ interface SubjectFormProps {
   onSuccess: () => void;
 }
 
-const SubjectForm: React.FC<SubjectFormProps> = ({ subject, careers, subjects, onClose, onSuccess }) => {
+const SubjectForm: React.FC<SubjectFormProps> = ({
+  subject,
+  careers,
+  subjects,
+  onClose,
+  onSuccess,
+}) => {
   const { user } = useAuth();
   const { institution } = useUserInstitution();
   const [institutions, setInstitutions] = useState<Institution[]>([]);
@@ -360,7 +434,7 @@ const SubjectForm: React.FC<SubjectFormProps> = ({ subject, careers, subjects, o
         setInstitutions(data);
         // Si el usuario no es admin y tiene institución, pre-seleccionarla
         if (!subject && user?.role?.name !== 'admin' && institution) {
-          setFormData(prev => ({ ...prev, institution_id: institution.id }));
+          setFormData((prev) => ({ ...prev, institution_id: institution.id }));
         }
       } catch (err) {
         console.error('Error cargando instituciones:', err);
@@ -372,7 +446,7 @@ const SubjectForm: React.FC<SubjectFormProps> = ({ subject, careers, subjects, o
   }, [subject, user, institution]);
 
   const availablePrerequisites = formData.career_id
-    ? subjects.filter(s => s.career_id === formData.career_id && s.id !== subject?.id)
+    ? subjects.filter((s) => s.career_id === formData.career_id && s.id !== subject?.id)
     : [];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -413,7 +487,12 @@ const SubjectForm: React.FC<SubjectFormProps> = ({ subject, careers, subjects, o
           className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
@@ -437,15 +516,17 @@ const SubjectForm: React.FC<SubjectFormProps> = ({ subject, careers, subjects, o
                 const value = e.target.value;
                 setFormData({
                   ...formData,
-                  institution_id: value ? parseInt(value, 10) : undefined
+                  institution_id: value ? parseInt(value, 10) : undefined,
                 });
               }}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={loadingInstitutions}
             >
               <option value="">Seleccionar institución</option>
-              {institutions.map(inst => (
-                <option key={inst.id} value={inst.id}>{inst.name}</option>
+              {institutions.map((inst) => (
+                <option key={inst.id} value={inst.id}>
+                  {inst.name}
+                </option>
               ))}
             </select>
           </div>
@@ -472,12 +553,20 @@ const SubjectForm: React.FC<SubjectFormProps> = ({ subject, careers, subjects, o
           <select
             required
             value={formData.career_id || ''}
-            onChange={(e) => setFormData({ ...formData, career_id: parseInt(e.target.value), prerequisite_subject_id: null })}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                career_id: parseInt(e.target.value),
+                prerequisite_subject_id: null,
+              })
+            }
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Seleccionar carrera</option>
-            {careers.map(career => (
-              <option key={career.id} value={career.id}>{career.name}</option>
+            {careers.map((career) => (
+              <option key={career.id} value={career.id}>
+                {career.name}
+              </option>
             ))}
           </select>
         </div>
@@ -533,11 +622,11 @@ const SubjectForm: React.FC<SubjectFormProps> = ({ subject, careers, subjects, o
               value={formData.year || ''}
               onChange={(e) => {
                 const val = e.target.value ? parseInt(e.target.value) : null;
-                setFormData(prev => ({
+                setFormData((prev) => ({
                   ...prev,
                   year: val,
                   // Auto-sugerir semestre si está vacío
-                  semester: (!prev.semester && val) ? (val * 2) - 1 : prev.semester
+                  semester: !prev.semester && val ? val * 2 - 1 : prev.semester,
                 }));
               }}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -554,7 +643,12 @@ const SubjectForm: React.FC<SubjectFormProps> = ({ subject, careers, subjects, o
               max="12"
               placeholder="1-12"
               value={formData.semester || ''}
-              onChange={(e) => setFormData({ ...formData, semester: e.target.value ? parseInt(e.target.value) : null })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  semester: e.target.value ? parseInt(e.target.value) : null,
+                })
+              }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -599,12 +693,19 @@ const SubjectForm: React.FC<SubjectFormProps> = ({ subject, careers, subjects, o
             </label>
             <select
               value={formData.prerequisite_subject_id || ''}
-              onChange={(e) => setFormData({ ...formData, prerequisite_subject_id: e.target.value ? parseInt(e.target.value) : null })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  prerequisite_subject_id: e.target.value ? parseInt(e.target.value) : null,
+                })
+              }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Ninguna</option>
-              {availablePrerequisites.map(sub => (
-                <option key={sub.id} value={sub.id}>{sub.name} ({sub.code})</option>
+              {availablePrerequisites.map((sub) => (
+                <option key={sub.id} value={sub.id}>
+                  {sub.name} ({sub.code})
+                </option>
               ))}
             </select>
           </div>
@@ -634,7 +735,10 @@ const SubjectForm: React.FC<SubjectFormProps> = ({ subject, careers, subjects, o
               onChange={(e) => setFormData({ ...formData, is_core: e.target.checked })}
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
             />
-            <label htmlFor="is_core" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="is_core"
+              className="ml-2 block text-sm text-gray-700 dark:text-gray-300"
+            >
               Materia troncal
             </label>
           </div>

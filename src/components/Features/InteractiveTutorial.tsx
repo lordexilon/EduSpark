@@ -21,7 +21,7 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
   isOpen,
   onClose,
   onComplete,
-  startStep = 0
+  startStep = 0,
 }) => {
   const [currentStep, setCurrentStep] = useState(startStep);
   const [highlightedElement, setHighlightedElement] = useState<HTMLElement | null>(null);
@@ -42,30 +42,30 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
       // Intentar múltiples veces si el elemento no está disponible
       let attempts = 0;
       const maxAttempts = 5;
-      
+
       const findElement = () => {
         const element = document.querySelector(currentStepData.target) as HTMLElement;
-        
+
         if (element) {
           setHighlightedElement(element);
           const rect = element.getBoundingClientRect();
           setHighlightRect(rect);
-          
+
           // Scroll suave al elemento si está fuera de la vista
           setTimeout(() => {
             element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
           }, 100);
-          
+
           // Observar cambios de tamaño/posición
           if (observerRef.current) {
             observerRef.current.disconnect();
           }
-          
+
           observerRef.current = new ResizeObserver(() => {
             const newRect = element.getBoundingClientRect();
             setHighlightRect(newRect);
           });
-          
+
           observerRef.current.observe(element);
         } else if (attempts < maxAttempts) {
           attempts++;
@@ -77,7 +77,7 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
           setHighlightRect(null);
         }
       };
-      
+
       findElement();
     } catch (error) {
       console.error('Error buscando elemento:', error);
@@ -132,7 +132,7 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
 
     const executeAction = async () => {
       if (currentStepData.actionDelay) {
-        await new Promise(resolve => setTimeout(resolve, currentStepData.actionDelay));
+        await new Promise((resolve) => setTimeout(resolve, currentStepData.actionDelay));
       }
 
       switch (currentStepData.action) {
@@ -199,14 +199,14 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
   const getTooltipPosition = () => {
     // Si el target es 'body' o no hay highlightRect, centrar en pantalla
     if (!highlightRect || currentStepData.target === 'body') {
-      return { 
-        top: '50%', 
-        left: '50%', 
+      return {
+        top: '50%',
+        left: '50%',
         transform: 'translate(-50%, -50%)',
         position: 'fixed' as const,
         maxWidth: '90vw',
         maxHeight: '90vh',
-        overflow: 'auto'
+        overflow: 'auto',
       };
     }
 
@@ -224,27 +224,33 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
     switch (position) {
       case 'top':
         top = highlightRect.top - tooltipHeight - spacing;
-        left = highlightRect.left + (highlightRect.width / 2) - (tooltipWidth / 2);
+        left = highlightRect.left + highlightRect.width / 2 - tooltipWidth / 2;
         // Verificar si cabe
         if (top < margin) useFallback = true;
         break;
       case 'bottom':
         top = highlightRect.bottom + spacing;
-        left = highlightRect.left + (highlightRect.width / 2) - (tooltipWidth / 2);
+        left = highlightRect.left + highlightRect.width / 2 - tooltipWidth / 2;
         // Verificar si cabe
         if (top + tooltipHeight > window.innerHeight - margin) useFallback = true;
         break;
       case 'left':
-        top = highlightRect.top + (highlightRect.height / 2) - (tooltipHeight / 2);
+        top = highlightRect.top + highlightRect.height / 2 - tooltipHeight / 2;
         left = highlightRect.left - tooltipWidth - spacing;
         // Verificar si cabe
-        if (left < margin || top < margin || top + tooltipHeight > window.innerHeight - margin) useFallback = true;
+        if (left < margin || top < margin || top + tooltipHeight > window.innerHeight - margin)
+          useFallback = true;
         break;
       case 'right':
-        top = highlightRect.top + (highlightRect.height / 2) - (tooltipHeight / 2);
+        top = highlightRect.top + highlightRect.height / 2 - tooltipHeight / 2;
         left = highlightRect.right + spacing;
         // Verificar si cabe
-        if (left + tooltipWidth > window.innerWidth - margin || top < margin || top + tooltipHeight > window.innerHeight - margin) useFallback = true;
+        if (
+          left + tooltipWidth > window.innerWidth - margin ||
+          top < margin ||
+          top + tooltipHeight > window.innerHeight - margin
+        )
+          useFallback = true;
         break;
       case 'center':
         top = window.innerHeight / 2 - tooltipHeight / 2;
@@ -258,15 +264,33 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
       if (highlightRect.right + tooltipWidth + spacing < window.innerWidth) {
         // Cabe a la derecha
         left = highlightRect.right + spacing;
-        top = Math.max(margin, Math.min(highlightRect.top, window.innerHeight - tooltipHeight - margin));
+        top = Math.max(
+          margin,
+          Math.min(highlightRect.top, window.innerHeight - tooltipHeight - margin)
+        );
       } else if (highlightRect.left - tooltipWidth - spacing > margin) {
         // Cabe a la izquierda
         left = highlightRect.left - tooltipWidth - spacing;
-        top = Math.max(margin, Math.min(highlightRect.top, window.innerHeight - tooltipHeight - margin));
+        top = Math.max(
+          margin,
+          Math.min(highlightRect.top, window.innerHeight - tooltipHeight - margin)
+        );
       } else {
         // Si no cabe en ningún lado, centrar en pantalla (mejor que quede fuera)
-        top = Math.max(margin, Math.min((window.innerHeight - tooltipHeight) / 2, window.innerHeight - tooltipHeight - margin));
-        left = Math.max(margin, Math.min((window.innerWidth - tooltipWidth) / 2, window.innerWidth - tooltipWidth - margin));
+        top = Math.max(
+          margin,
+          Math.min(
+            (window.innerHeight - tooltipHeight) / 2,
+            window.innerHeight - tooltipHeight - margin
+          )
+        );
+        left = Math.max(
+          margin,
+          Math.min(
+            (window.innerWidth - tooltipWidth) / 2,
+            window.innerWidth - tooltipWidth - margin
+          )
+        );
       }
     }
 
@@ -280,7 +304,7 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
       position: 'fixed' as const,
       maxWidth: `${tooltipWidth}px`,
       maxHeight: '80vh',
-      overflowY: 'auto' as const
+      overflowY: 'auto' as const,
     };
   };
 
@@ -295,8 +319,9 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
         ref={overlayRef}
         className="fixed inset-0 bg-black/60 transition-opacity pointer-events-auto"
         style={{
-          clipPath: highlightRect && currentStepData.target !== 'body'
-            ? `polygon(
+          clipPath:
+            highlightRect && currentStepData.target !== 'body'
+              ? `polygon(
                 0% 0%, 
                 0% 100%, 
                 ${highlightRect.left}px 100%, 
@@ -308,7 +333,7 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
                 100% 100%, 
                 100% 0%
               )`
-            : undefined
+              : undefined,
         }}
         onClick={handleClose}
       />
@@ -322,7 +347,7 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
             left: `${highlightRect.left - 4}px`,
             width: `${highlightRect.width + 8}px`,
             height: `${highlightRect.height + 8}px`,
-            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 20px rgba(59, 130, 246, 0.5)'
+            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 20px rgba(59, 130, 246, 0.5)',
           }}
         />
       )}
@@ -345,7 +370,7 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
           bottom: 'auto',
           // Asegurar visibilidad
           visibility: 'visible',
-          opacity: 1
+          opacity: 1,
         }}
         onClick={(e) => e.stopPropagation()} // Prevenir que se cierre al hacer clic en el tooltip
         onMouseDown={(e) => e.stopPropagation()} // Prevenir que se cierre al hacer clic
@@ -353,29 +378,27 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
         <div className="p-6 flex-shrink-0">
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              {currentStepData.title}
-            </h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Paso {currentStep + 1} de {steps.length}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">{currentStepData.title}</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Paso {currentStep + 1} de {steps.length}
+              </p>
+            </div>
+            <button
+              onClick={handleClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+              aria-label="Cerrar tutorial"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Contenido - scrollable si es necesario, con espacio para los botones */}
+          <div className="mb-2 flex-1 overflow-y-auto min-h-0 pr-2 max-h-[calc(80vh-200px)]">
+            <p className="text-gray-700 leading-relaxed whitespace-pre-line text-sm">
+              {currentStepData.content}
             </p>
           </div>
-          <button
-            onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
-            aria-label="Cerrar tutorial"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Contenido - scrollable si es necesario, con espacio para los botones */}
-        <div className="mb-2 flex-1 overflow-y-auto min-h-0 pr-2 max-h-[calc(80vh-200px)]">
-          <p className="text-gray-700 leading-relaxed whitespace-pre-line text-sm">
-            {currentStepData.content}
-          </p>
-        </div>
         </div>
 
         {/* Footer con controles - siempre visible en la parte inferior, sticky */}
@@ -458,8 +481,8 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
                 index === currentStep
                   ? 'bg-blue-600'
                   : index < currentStep
-                  ? 'bg-blue-400'
-                  : 'bg-gray-200'
+                    ? 'bg-blue-400'
+                    : 'bg-gray-200'
               }`}
             />
           ))}
@@ -468,4 +491,3 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
     </div>
   );
 };
-

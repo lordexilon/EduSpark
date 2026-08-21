@@ -6,7 +6,12 @@ import { generateContent } from './geminiService';
 import type { StudentMetrics, CourseMetrics } from './tutorAnalyticsService';
 
 export interface AdvisorRecommendation {
-  type: 'student_attention' | 'course_improvement' | 'content_gap' | 'engagement' | 'cost_optimization';
+  type:
+    | 'student_attention'
+    | 'course_improvement'
+    | 'content_gap'
+    | 'engagement'
+    | 'cost_optimization';
   priority: 'high' | 'medium' | 'low';
   title: string;
   description: string;
@@ -39,15 +44,16 @@ export async function analyzeCoursePerformance(
         title: courseMetrics.courseTitle,
         totalStudents: courseMetrics.totalStudents,
         activeStudents: courseMetrics.activeStudents,
-        participationRate: courseMetrics.totalStudents > 0
-          ? (courseMetrics.activeStudents / courseMetrics.totalStudents) * 100
-          : 0,
+        participationRate:
+          courseMetrics.totalStudents > 0
+            ? (courseMetrics.activeStudents / courseMetrics.totalStudents) * 100
+            : 0,
         totalInteractions: courseMetrics.totalInteractions,
         averageInteractionsPerStudent: courseMetrics.averageInteractionsPerStudent,
         totalCost: courseMetrics.totalCost,
         topTopics: courseMetrics.topTopics.slice(0, 5),
       },
-      students: studentMetrics.slice(0, 50).map(s => ({
+      students: studentMetrics.slice(0, 50).map((s) => ({
         name: s.studentName,
         interactions: s.totalInteractions,
         tokens: s.totalTokens,
@@ -84,10 +90,7 @@ Responde SIEMPRE en español y en formato JSON válido.`;
     );
 
     // Combinar recomendaciones de IA y reglas
-    analysis.recommendations = [
-      ...analysis.recommendations,
-      ...ruleBasedRecommendations,
-    ];
+    analysis.recommendations = [...analysis.recommendations, ...ruleBasedRecommendations];
 
     // Ordenar recomendaciones por prioridad
     analysis.recommendations.sort((a, b) => {
@@ -109,14 +112,19 @@ Responde SIEMPRE en español y en formato JSON válido.`;
 }
 
 function createAnalysisPrompt(data: any): string {
-  const studentsText = data.students.length > 0
-    ? data.students.map((s: any) => `
+  const studentsText =
+    data.students.length > 0
+      ? data.students
+          .map(
+            (s: any) => `
 - ${s.name}: ${s.interactions} interacciones, ${s.tokens.toLocaleString()} tokens, $${s.cost.toFixed(4)}, 
   Última interacción: ${s.lastInteraction || 'Nunca'}, 
   Mejora de desempeño: ${s.performanceImprovement !== null ? s.performanceImprovement.toFixed(1) + '%' : 'N/A'},
   Necesita atención: ${s.needsAttention ? 'Sí' : 'No'}
-`).join('')
-    : 'No hay datos de estudiantes disponibles.';
+`
+          )
+          .join('')
+      : 'No hay datos de estudiantes disponibles.';
 
   return `Analiza los siguientes datos del curso "${data.course.title}" y genera un análisis completo con recomendaciones:
 
@@ -187,9 +195,7 @@ function parseAnalysisResponse(text: string): AdvisorAnalysis {
       console.warn('⚠️ Error de sintaxis en el JSON de la IA, intentando limpieza básica...');
 
       // Limpieza básica si falla (ej. comas extras al final de arrays)
-      jsonText = jsonText
-        .replace(/,\s*\]/g, ']')
-        .replace(/,\s*\}/g, '}');
+      jsonText = jsonText.replace(/,\s*\]/g, ']').replace(/,\s*\}/g, '}');
 
       const parsed = JSON.parse(jsonText);
       return {
@@ -204,7 +210,10 @@ function parseAnalysisResponse(text: string): AdvisorAnalysis {
       };
     }
   } catch (error) {
-    console.warn('⚠️ No se pudo parsear la respuesta de la IA (Advisor):', error instanceof Error ? error.message : 'Error desconocido');
+    console.warn(
+      '⚠️ No se pudo parsear la respuesta de la IA (Advisor):',
+      error instanceof Error ? error.message : 'Error desconocido'
+    );
     // Lanzamos error para que sea capturado por el bloque catch de analyzeCoursePerformance y use el fallback
     throw new Error('AI_PARSE_ERROR');
   }
@@ -241,8 +250,8 @@ function generateRuleBasedRecommendations(
   // Recomendación: Estudiantes que necesitan atención
   if (courseMetrics.studentsNeedingAttention.length > 0) {
     const studentNames = studentMetrics
-      .filter(s => courseMetrics.studentsNeedingAttention.includes(s.studentId))
-      .map(s => s.studentName)
+      .filter((s) => courseMetrics.studentsNeedingAttention.includes(s.studentId))
+      .map((s) => s.studentName)
       .slice(0, 5);
 
     recommendations.push({
@@ -311,13 +320,17 @@ function generateFallbackAnalysis(
     summary: `Análisis del curso "${courseMetrics.courseTitle}". 
     ${courseMetrics.activeStudents} de ${courseMetrics.totalStudents} estudiantes han usado el Tutor IA, 
     con un total de ${courseMetrics.totalInteractions} interacciones. 
-    ${courseMetrics.studentsNeedingAttention.length > 0
+    ${
+      courseMetrics.studentsNeedingAttention.length > 0
         ? `${courseMetrics.studentsNeedingAttention.length} estudiante(s) requieren atención especial.`
-        : 'Todos los estudiantes están participando activamente.'}`,
+        : 'Todos los estudiantes están participando activamente.'
+    }`,
     keyInsights: [
-      `Tasa de participación: ${courseMetrics.totalStudents > 0
-        ? ((courseMetrics.activeStudents / courseMetrics.totalStudents) * 100).toFixed(1)
-        : 0}%`,
+      `Tasa de participación: ${
+        courseMetrics.totalStudents > 0
+          ? ((courseMetrics.activeStudents / courseMetrics.totalStudents) * 100).toFixed(1)
+          : 0
+      }%`,
       `Promedio de ${courseMetrics.averageInteractionsPerStudent.toFixed(1)} interacciones por estudiante`,
       `Costo total: $${courseMetrics.totalCost.toFixed(2)}`,
     ],
@@ -397,4 +410,3 @@ export async function analyzeStudentPerformance(
 
   return recommendations;
 }
-

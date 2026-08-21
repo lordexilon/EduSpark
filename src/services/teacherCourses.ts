@@ -122,7 +122,9 @@ export const courseService = {
   async getMyCourses(teacherId: string): Promise<Course[]> {
     const { data, error } = await supabase
       .from('courses')
-      .select('id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at, thumbnail_url')
+      .select(
+        'id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at, thumbnail_url'
+      )
       .eq('teacher_id', teacherId)
       .order('created_at', { ascending: false });
 
@@ -134,7 +136,9 @@ export const courseService = {
   async getAllCourses(): Promise<Course[]> {
     const { data, error } = await supabase
       .from('courses')
-      .select('id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at, thumbnail_url')
+      .select(
+        'id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at, thumbnail_url'
+      )
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -155,11 +159,7 @@ export const courseService = {
 
   // Crear nuevo curso
   async createCourse(course: Omit<Course, 'id' | 'created_at' | 'updated_at'>): Promise<Course> {
-    const { data, error } = await supabase
-      .from('courses')
-      .insert([course])
-      .select()
-      .single();
+    const { data, error } = await supabase.from('courses').insert([course]).select().single();
 
     if (error) throw error;
     return data;
@@ -170,7 +170,7 @@ export const courseService = {
     // Preparar datos para actualizar, excluyendo campos que no deben actualizarse
     const updateData: any = {
       ...updates,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
 
     // Remover campos que no existen en la tabla o no deben actualizarse
@@ -195,14 +195,20 @@ export const courseService = {
 
     // Verificar que se actualizó al menos una fila
     if (!updateResult || updateResult.length === 0) {
-      console.warn('⚠️ updateCourse - No se actualizó ninguna fila. Puede ser un problema de permisos RLS o el curso no existe.');
-      throw new Error('No se pudo actualizar el curso. Verifica que tengas permisos y que el curso exista.');
+      console.warn(
+        '⚠️ updateCourse - No se actualizó ninguna fila. Puede ser un problema de permisos RLS o el curso no existe.'
+      );
+      throw new Error(
+        'No se pudo actualizar el curso. Verifica que tengas permisos y que el curso exista.'
+      );
     }
 
     // Luego obtener el curso actualizado con una consulta separada
     const { data, error: selectError } = await supabase
       .from('courses')
-      .select('id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at, thumbnail_url')
+      .select(
+        'id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at, thumbnail_url'
+      )
       .eq('id', id)
       .maybeSingle(); // Usar maybeSingle en lugar de single para evitar error si no hay resultados
 
@@ -215,7 +221,9 @@ export const courseService = {
 
     if (!data) {
       console.error('❌ updateCourse - Curso no encontrado después de la actualización');
-      throw new Error('El curso no se encontró después de la actualización. Puede ser un problema de permisos RLS.');
+      throw new Error(
+        'El curso no se encontró después de la actualización. Puede ser un problema de permisos RLS.'
+      );
     }
 
     return data;
@@ -223,10 +231,7 @@ export const courseService = {
 
   // Eliminar curso
   async deleteCourse(id: number): Promise<void> {
-    const { error } = await supabase
-      .from('courses')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('courses').delete().eq('id', id);
 
     if (error) throw error;
   },
@@ -236,7 +241,9 @@ export const courseService = {
     // Usar select específico en lugar de * para evitar problemas con campos JSONB o tipos complejos
     const { data, error } = await supabase
       .from('courses')
-      .select('id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at, thumbnail_url')
+      .select(
+        'id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at, thumbnail_url'
+      )
       .eq('id', id)
       .maybeSingle(); // Usar maybeSingle en lugar de single para evitar error 406 si no hay resultados
 
@@ -251,18 +258,14 @@ export const courseService = {
     }
 
     return data;
-  }
+  },
 };
 
 // Servicios de Unidades
 export const unitService = {
   // Obtener una unidad por ID
   async getUnit(id: string): Promise<CourseUnit> {
-    const { data, error } = await supabase
-      .from('course_units')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { data, error } = await supabase.from('course_units').select('*').eq('id', id).single();
 
     if (error) throw error;
     return data;
@@ -296,7 +299,7 @@ export const unitService = {
 
     // Limpiar campos undefined
     const cleanUnit: any = {};
-    Object.keys(unit).forEach(key => {
+    Object.keys(unit).forEach((key) => {
       const value = (unit as any)[key];
       if (value !== undefined && value !== null) {
         // Manejar arrays
@@ -307,7 +310,12 @@ export const unitService = {
             cleanUnit[key] = null;
           }
         } else if (typeof value === 'string' && value.trim() === '') {
-          if (key === 'description' || key === 'content_html' || key === 'content_markdown' || key === 'thumbnail_url') {
+          if (
+            key === 'description' ||
+            key === 'content_html' ||
+            key === 'content_markdown' ||
+            key === 'thumbnail_url'
+          ) {
             cleanUnit[key] = null;
           }
         } else {
@@ -318,7 +326,7 @@ export const unitService = {
 
     console.log('createUnit - Enviando nueva unidad:', {
       fields: Object.keys(cleanUnit),
-      content_html_length: cleanUnit.content_html?.length || 0
+      content_html_length: cleanUnit.content_html?.length || 0,
     });
 
     try {
@@ -334,7 +342,7 @@ export const unitService = {
           message: error.message,
           code: error.code,
           details: error.details,
-          hint: error.hint
+          hint: error.hint,
         });
         throw error;
       }
@@ -351,7 +359,7 @@ export const unitService = {
   async updateUnit(id: string, updates: Partial<CourseUnit>): Promise<CourseUnit> {
     // Limpiar campos undefined para evitar errores
     const cleanUpdates: any = {};
-    Object.keys(updates).forEach(key => {
+    Object.keys(updates).forEach((key) => {
       const value = (updates as any)[key];
       // Para campos de texto, permitir strings vacíos como null
       if (value !== undefined && value !== null) {
@@ -366,7 +374,12 @@ export const unitService = {
           }
         } else if (typeof value === 'string' && value.trim() === '') {
           // Strings vacíos los convertimos a null para campos opcionales
-          if (key === 'description' || key === 'content_html' || key === 'content_markdown' || key === 'thumbnail_url') {
+          if (
+            key === 'description' ||
+            key === 'content_html' ||
+            key === 'content_markdown' ||
+            key === 'thumbnail_url'
+          ) {
             cleanUpdates[key] = null;
           }
         } else {
@@ -379,14 +392,18 @@ export const unitService = {
       id,
       fields: Object.keys(cleanUpdates),
       content_html_length: cleanUpdates.content_html?.length || 0,
-      learning_objectives_count: Array.isArray(cleanUpdates.learning_objectives) ? cleanUpdates.learning_objectives.length : 0,
+      learning_objectives_count: Array.isArray(cleanUpdates.learning_objectives)
+        ? cleanUpdates.learning_objectives.length
+        : 0,
       cleanUpdates: {
         ...cleanUpdates,
-        content_html: cleanUpdates.content_html ? `[${cleanUpdates.content_html.length} chars]` : undefined,
+        content_html: cleanUpdates.content_html
+          ? `[${cleanUpdates.content_html.length} chars]`
+          : undefined,
         learning_objectives: Array.isArray(cleanUpdates.learning_objectives)
           ? `[${cleanUpdates.learning_objectives.length} objetivos]`
-          : undefined
-      }
+          : undefined,
+      },
     });
 
     let timeoutId: NodeJS.Timeout | null = null;
@@ -395,21 +412,29 @@ export const unitService = {
       console.log('updateUnit - Iniciando petición a Supabase...');
       console.log('updateUnit - Campos a actualizar:', Object.keys(cleanUpdates));
       console.log('updateUnit - ID de unidad:', id);
-      console.log('updateUnit - Tamaño total de datos:', JSON.stringify(cleanUpdates).length, 'bytes');
+      console.log(
+        'updateUnit - Tamaño total de datos:',
+        JSON.stringify(cleanUpdates).length,
+        'bytes'
+      );
 
       // Separar content_html y learning_objectives del resto para debugging
       const { content_html, learning_objectives, ...otherUpdates } = cleanUpdates;
       console.log('updateUnit - Actualizando campos básicos:', Object.keys(otherUpdates));
       if (content_html) {
-        console.log('updateUnit - content_html presente, tamaño:', content_html.length, 'caracteres');
+        console.log(
+          'updateUnit - content_html presente, tamaño:',
+          content_html.length,
+          'caracteres'
+        );
       }
       if (Array.isArray(learning_objectives)) {
         console.log('updateUnit - learning_objectives presente:', {
           count: learning_objectives.length,
           total_length: learning_objectives.reduce((sum, obj) => sum + obj.length, 0),
-          preview: learning_objectives.slice(0, 5).map(obj => obj.substring(0, 100)),
+          preview: learning_objectives.slice(0, 5).map((obj) => obj.substring(0, 100)),
           serialized_size: JSON.stringify(learning_objectives).length,
-          full_array: learning_objectives // Log completo para debugging
+          full_array: learning_objectives, // Log completo para debugging
         });
       }
 
@@ -418,10 +443,18 @@ export const unitService = {
         timeoutId = setTimeout(() => {
           console.error('⏱️ TIMEOUT activado en updateUnit después de 30 segundos');
           console.error('updateUnit - La petición HTTP parece estar colgada. Verifica:');
-          console.error('  1. La consola del navegador (pestaña Network) para ver el estado de la petición');
-          console.error('  2. Ejecuta el script 36_simplify_course_units_rls.sql para optimizar las políticas RLS');
+          console.error(
+            '  1. La consola del navegador (pestaña Network) para ver el estado de la petición'
+          );
+          console.error(
+            '  2. Ejecuta el script 36_simplify_course_units_rls.sql para optimizar las políticas RLS'
+          );
           console.error('  3. Si hay algún trigger o constraint bloqueando la actualización');
-          reject(new Error('TIMEOUT: La actualización tardó más de 30 segundos. Si esto persiste, ejecuta el script 36_simplify_course_units_rls.sql para optimizar las políticas RLS.'));
+          reject(
+            new Error(
+              'TIMEOUT: La actualización tardó más de 30 segundos. Si esto persiste, ejecuta el script 36_simplify_course_units_rls.sql para optimizar las políticas RLS.'
+            )
+          );
         }, 30000);
       });
 
@@ -434,15 +467,17 @@ export const unitService = {
       // Solo la usamos para logging diagnóstico, pero no esperamos su resultado
       (async () => {
         try {
-          const sessionTimeout = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('TIMEOUT')), 1000) // Solo 1 segundo para diagnóstico
+          const sessionTimeout = new Promise<never>(
+            (_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 1000) // Solo 1 segundo para diagnóstico
           );
-          const { data: { session } } = await Promise.race([
-            supabase.auth.getSession(),
-            sessionTimeout
-          ]) as any;
+          const {
+            data: { session },
+          } = (await Promise.race([supabase.auth.getSession(), sessionTimeout])) as any;
           if (session) {
-            console.log('updateUnit - ✅ Sesión activa (diagnóstico):', session.user.id.substring(0, 8) + '...');
+            console.log(
+              'updateUnit - ✅ Sesión activa (diagnóstico):',
+              session.user.id.substring(0, 8) + '...'
+            );
           }
         } catch {
           // Ignorar completamente - no afecta la operación
@@ -450,24 +485,30 @@ export const unitService = {
       })();
 
       // Preparar la petición UPDATE - Supabase manejará la autenticación automáticamente
-      console.log('updateUnit - 🔄 Preparando petición UPDATE (Supabase manejará auth automáticamente)...');
+      console.log(
+        'updateUnit - 🔄 Preparando petición UPDATE (Supabase manejará auth automáticamente)...'
+      );
       console.log('updateUnit - URL esperada:', `${supabaseUrl}/rest/v1/course_units?id=eq.${id}`);
 
       // Logging detallado del payload exacto que se enviará
-      console.log('updateUnit - 📦 Payload completo (JSON):', JSON.stringify(cleanUpdates, null, 2));
+      console.log(
+        'updateUnit - 📦 Payload completo (JSON):',
+        JSON.stringify(cleanUpdates, null, 2)
+      );
       if (Array.isArray(cleanUpdates.learning_objectives)) {
         console.log('updateUnit - 📋 learning_objectives array:', {
           type: 'Array',
           length: cleanUpdates.learning_objectives.length,
           values: cleanUpdates.learning_objectives,
-          stringified: JSON.stringify(cleanUpdates.learning_objectives)
+          stringified: JSON.stringify(cleanUpdates.learning_objectives),
         });
       }
 
       // ESTRATEGIA: Si hay learning_objectives con múltiples elementos, intentar actualización en dos pasos
       // Esto puede ayudar a evitar problemas de serialización cuando se combina con content_html
       // Nota: learning_objectives ya fue destructurado en la línea 284, lo reutilizamos aquí
-      const hasMultipleObjectives = Array.isArray(learning_objectives) && learning_objectives.length > 1;
+      const hasMultipleObjectives =
+        Array.isArray(learning_objectives) && learning_objectives.length > 1;
       const learningObjectivesArray = learning_objectives;
 
       // Construir otherFields sin learning_objectives (ya está separado de la línea 284)
@@ -483,64 +524,79 @@ export const unitService = {
 
       if (hasMultipleObjectives) {
         console.log('updateUnit - 🔄 Detectados múltiples learning_objectives, usando función RPC');
-        console.log('updateUnit - 📝 Paso 1: Actualizando learning_objectives vía RPC (evita problemas de serialización)');
-        console.log('updateUnit - 📋 learning_objectives a actualizar:', JSON.stringify(learningObjectivesArray));
+        console.log(
+          'updateUnit - 📝 Paso 1: Actualizando learning_objectives vía RPC (evita problemas de serialización)'
+        );
+        console.log(
+          'updateUnit - 📋 learning_objectives a actualizar:',
+          JSON.stringify(learningObjectivesArray)
+        );
         const step1StartTime = Date.now();
         // Paso 1: Actualizar learning_objectives usando función RPC (evita problemas de serialización del array)
-        supabasePromise = supabase
-          .rpc('update_unit_learning_objectives', {
-            unit_id: id,
-            objectives: learningObjectivesArray
-          })
-          .then(async (result1) => {
-            const step1Elapsed = Date.now() - step1StartTime;
-            console.log(`updateUnit - ⏱️ Paso 1 (RPC) completado en ${step1Elapsed}ms`);
-            if (result1.error) {
-              console.error('updateUnit - ❌ Error en paso 1 (learning_objectives RPC):', result1.error);
-              console.error('updateUnit - Error details:', result1.error);
-              return { data: null, error: result1.error };
-            }
-            // La función RPC devuelve un array, tomar el primer elemento
-            const rpcResult = Array.isArray(result1.data) && result1.data.length > 0 ? result1.data[0] : result1.data;
-            console.log('updateUnit - ✅ Paso 1 completado (learning_objectives actualizados vía RPC):', rpcResult);
-            console.log('updateUnit - 📝 Paso 2: Actualizando resto de campos (incluye content_html)');
+        supabasePromise = Promise.resolve(
+          supabase
+            .rpc('update_unit_learning_objectives', {
+              unit_id: id,
+              objectives: learningObjectivesArray,
+            })
+            .then(async (result1) => {
+              const step1Elapsed = Date.now() - step1StartTime;
+              console.log(`updateUnit - ⏱️ Paso 1 (RPC) completado en ${step1Elapsed}ms`);
+              if (result1.error) {
+                console.error(
+                  'updateUnit - ❌ Error en paso 1 (learning_objectives RPC):',
+                  result1.error
+                );
+                console.error('updateUnit - Error details:', result1.error);
+                return { data: null, error: result1.error };
+              }
+              // La función RPC devuelve un array, tomar el primer elemento
+              const rpcResult =
+                Array.isArray(result1.data) && result1.data.length > 0
+                  ? result1.data[0]
+                  : result1.data;
+              console.log(
+                'updateUnit - ✅ Paso 1 completado (learning_objectives actualizados vía RPC):',
+                rpcResult
+              );
+              console.log(
+                'updateUnit - 📝 Paso 2: Actualizando resto de campos (incluye content_html)'
+              );
 
-            // Paso 2: Actualizar todos los demás campos (incluyendo content_html)
-            const result2 = await supabase
-              .from('course_units')
-              .update(otherFields)
-              .eq('id', id)
-              .select()
-              .single();
+              // Paso 2: Actualizar todos los demás campos (incluyendo content_html)
+              const result2 = await supabase
+                .from('course_units')
+                .update(otherFields)
+                .eq('id', id)
+                .select()
+                .single();
 
-            if (result2.error) {
-              console.error('updateUnit - ❌ Error en paso 2 (campos básicos):', result2.error);
-              return result2;
-            }
-            console.log('updateUnit - ✅ Paso 2 completado (campos básicos actualizados)');
+              if (result2.error) {
+                console.error('updateUnit - ❌ Error en paso 2 (campos básicos):', result2.error);
+                return result2;
+              }
+              console.log('updateUnit - ✅ Paso 2 completado (campos básicos actualizados)');
 
-            return { data: result2.data, error: null };
-          });
+              return { data: result2.data, error: null };
+            })
+        );
       } else {
         // Actualización normal (un solo paso)
-        supabasePromise = supabase
-          .from('course_units')
-          .update(cleanUpdates)
-          .eq('id', id)
-          .select()
-          .single();
+        supabasePromise = Promise.resolve(
+          supabase.from('course_units').update(cleanUpdates).eq('id', id).select().single()
+        );
       }
 
       // Agregar manejo de errores al promise
       supabasePromise = supabasePromise
-        .then(result => {
+        .then((result) => {
           // Capturar cualquier error de red implícito
           if (!result && !result.error && !result.data) {
             console.error('updateUnit - ⚠️ Respuesta vacía o nula de Supabase');
           }
           return result;
         })
-        .catch(error => {
+        .catch((error) => {
           // Capturar errores de red o timeout del cliente
           console.error('updateUnit - ❌ Error capturado en promesa de Supabase:', error);
           console.error('updateUnit - Tipo de error:', error?.constructor?.name);
@@ -558,13 +614,19 @@ export const unitService = {
       // Usar Promise.race para timeout
       const result = await Promise.race([
         supabasePromise
-          .then(result => {
+          .then((result) => {
             const elapsed = Date.now() - startTime;
-            console.log(`updateUnit - Supabase respondió después de ${elapsed}ms:`, result.error ? 'con error' : 'con éxito');
+            console.log(
+              `updateUnit - Supabase respondió después de ${elapsed}ms:`,
+              result.error ? 'con error' : 'con éxito'
+            );
             if (result.error) {
               console.error('updateUnit - Error de Supabase:', result.error);
             } else {
-              console.log('updateUnit - Datos recibidos:', { id: result.data?.id, title: result.data?.title });
+              console.log('updateUnit - Datos recibidos:', {
+                id: result.data?.id,
+                title: result.data?.title,
+              });
             }
             if (timeoutId) {
               clearTimeout(timeoutId);
@@ -572,16 +634,19 @@ export const unitService = {
             }
             return result;
           })
-          .catch(err => {
+          .catch((err) => {
             const elapsed = Date.now() - startTime;
-            console.error(`updateUnit - Error en promesa de Supabase después de ${elapsed}ms:`, err);
+            console.error(
+              `updateUnit - Error en promesa de Supabase después de ${elapsed}ms:`,
+              err
+            );
             if (timeoutId) {
               clearTimeout(timeoutId);
               timeoutId = null;
             }
             throw err;
           }),
-        timeoutPromise
+        timeoutPromise,
       ]);
 
       const { data, error } = result as any;
@@ -592,7 +657,7 @@ export const unitService = {
           message: error?.message || 'Sin mensaje',
           code: error?.code || 'Sin código',
           details: error?.details || 'Sin detalles',
-          hint: error?.hint || 'Sin hint'
+          hint: error?.hint || 'Sin hint',
         });
 
         const errorMsg = error?.message || error?.code || 'Error desconocido';
@@ -624,8 +689,14 @@ export const unitService = {
       }
 
       // Si es timeout, dar mensaje claro
-      if (err?.message?.includes('TIMEOUT') || err?.code === 'TIMEOUT' || err?.message?.includes('tardó')) {
-        const timeoutError = new Error('La operación tardó demasiado tiempo. Intenta guardar contenido más pequeño o verifica tu conexión a internet.');
+      if (
+        err?.message?.includes('TIMEOUT') ||
+        err?.code === 'TIMEOUT' ||
+        err?.message?.includes('tardó')
+      ) {
+        const timeoutError = new Error(
+          'La operación tardó demasiado tiempo. Intenta guardar contenido más pequeño o verifica tu conexión a internet.'
+        );
         console.error('⏱️ Lanzando error de timeout');
         throw timeoutError;
       }
@@ -656,13 +727,10 @@ export const unitService = {
 
   // Eliminar unidad
   async deleteUnit(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('course_units')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('course_units').delete().eq('id', id);
 
     if (error) throw error;
-  }
+  },
 };
 
 // Servicios de Sesiones
@@ -723,7 +791,7 @@ export const sessionService = {
 
     // Limpiar campos undefined
     const cleanSession: any = {};
-    Object.keys(session).forEach(key => {
+    Object.keys(session).forEach((key) => {
       const value = (session as any)[key];
       if (value !== undefined && value !== null) {
         // Manejar arrays
@@ -752,7 +820,7 @@ export const sessionService = {
 
     console.log('createSession - Enviando nueva sesión:', {
       fields: Object.keys(cleanSession),
-      content_html_length: cleanSession.content_html?.length || 0
+      content_html_length: cleanSession.content_html?.length || 0,
     });
 
     try {
@@ -768,7 +836,7 @@ export const sessionService = {
           message: error.message,
           code: error.code,
           details: error.details,
-          hint: error.hint
+          hint: error.hint,
         });
         throw error;
       }
@@ -785,7 +853,7 @@ export const sessionService = {
   async updateSession(id: string, updates: Partial<Session>): Promise<Session> {
     // Limpiar campos undefined
     const cleanUpdates: any = {};
-    Object.keys(updates).forEach(key => {
+    Object.keys(updates).forEach((key) => {
       const value = (updates as any)[key];
       if (value !== undefined && value !== null) {
         // Manejar arrays
@@ -816,7 +884,12 @@ export const sessionService = {
       id,
       fields: Object.keys(cleanUpdates),
       content_html_length: cleanUpdates.content_html?.length || 0,
-      cleanUpdates: { ...cleanUpdates, content_html: cleanUpdates.content_html ? `[${cleanUpdates.content_html.length} chars]` : undefined }
+      cleanUpdates: {
+        ...cleanUpdates,
+        content_html: cleanUpdates.content_html
+          ? `[${cleanUpdates.content_html.length} chars]`
+          : undefined,
+      },
     });
 
     let timeoutId: NodeJS.Timeout | null = null;
@@ -829,32 +902,36 @@ export const sessionService = {
       const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutId = setTimeout(() => {
           console.error('⏱️ TIMEOUT activado en updateSession después de 20 segundos');
-          reject(new Error('TIMEOUT: La actualización tardó más de 20 segundos. Verifica tu conexión o intenta con menos contenido.'));
+          reject(
+            new Error(
+              'TIMEOUT: La actualización tardó más de 20 segundos. Verifica tu conexión o intenta con menos contenido.'
+            )
+          );
         }, 20000);
       });
 
       // Petición a Supabase
-      const supabasePromise = supabase
-        .from('sessions')
-        .update(cleanUpdates)
-        .eq('id', id)
-        .select()
-        .single();
+      const supabasePromise = Promise.resolve(
+        supabase.from('sessions').update(cleanUpdates).eq('id', id).select().single()
+      );
 
       console.log('updateSession - Esperando respuesta de Supabase...');
 
       // Usar Promise.race para timeout
       const result = await Promise.race([
         supabasePromise
-          .then(result => {
-            console.log('updateSession - Supabase respondió:', result.error ? 'con error' : 'con éxito');
+          .then((result) => {
+            console.log(
+              'updateSession - Supabase respondió:',
+              result.error ? 'con error' : 'con éxito'
+            );
             if (timeoutId) {
               clearTimeout(timeoutId);
               timeoutId = null;
             }
             return result;
           })
-          .catch(err => {
+          .catch((err) => {
             console.error('updateSession - Error en promesa de Supabase:', err);
             if (timeoutId) {
               clearTimeout(timeoutId);
@@ -862,7 +939,7 @@ export const sessionService = {
             }
             throw err;
           }),
-        timeoutPromise
+        timeoutPromise,
       ]);
 
       const { data, error } = result as any;
@@ -873,7 +950,7 @@ export const sessionService = {
           message: error?.message || 'Sin mensaje',
           code: error?.code || 'Sin código',
           details: error?.details || 'Sin detalles',
-          hint: error?.hint || 'Sin hint'
+          hint: error?.hint || 'Sin hint',
         });
 
         const errorMsg = error?.message || error?.code || 'Error desconocido';
@@ -905,8 +982,14 @@ export const sessionService = {
       }
 
       // Si es timeout
-      if (err?.message?.includes('TIMEOUT') || err?.code === 'TIMEOUT' || err?.message?.includes('tardó')) {
-        const timeoutError = new Error('La operación tardó demasiado tiempo. Intenta guardar contenido más pequeño o verifica tu conexión.');
+      if (
+        err?.message?.includes('TIMEOUT') ||
+        err?.code === 'TIMEOUT' ||
+        err?.message?.includes('tardó')
+      ) {
+        const timeoutError = new Error(
+          'La operación tardó demasiado tiempo. Intenta guardar contenido más pequeño o verifica tu conexión.'
+        );
         console.error('⏱️ Lanzando error de timeout');
         throw timeoutError;
       }
@@ -937,13 +1020,10 @@ export const sessionService = {
 
   // Eliminar sesión
   async deleteSession(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('sessions')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('sessions').delete().eq('id', id);
 
     if (error) throw error;
-  }
+  },
 };
 
 // Servicios de Materiales
@@ -952,10 +1032,12 @@ export const materialService = {
   async getTeacherMaterials(teacherId: string): Promise<Material[]> {
     const { data, error } = await supabase
       .from('materials')
-      .select(`
+      .select(
+        `
         *,
         courses!inner(teacher_id)
-      `)
+      `
+      )
       .eq('courses.teacher_id', teacherId)
       .order('created_at', { ascending: false });
 
@@ -966,11 +1048,15 @@ export const materialService = {
   // Obtener materiales de un curso
   async getCourseMaterials(courseId: number): Promise<Material[]> {
     // Usar función que incluye materiales asignados mediante material_course_assignments
-    const { data, error } = await supabase
-      .rpc('get_course_materials_including_assigned', { p_course_id: courseId });
+    const { data, error } = await supabase.rpc('get_course_materials_including_assigned', {
+      p_course_id: courseId,
+    });
 
     if (error) {
-      console.warn('Error usando get_course_materials_including_assigned, usando método directo:', error);
+      console.warn(
+        'Error usando get_course_materials_including_assigned, usando método directo:',
+        error
+      );
       // Fallback: método original si la función no existe
       const { data: fallbackData, error: fallbackError } = await supabase
         .from('materials')
@@ -1003,11 +1089,7 @@ export const materialService = {
 
   // Crear nuevo material
   async createMaterial(material: Omit<Material, 'id' | 'created_at'>): Promise<Material> {
-    const { data, error } = await supabase
-      .from('materials')
-      .insert([material])
-      .select()
-      .single();
+    const { data, error } = await supabase.from('materials').insert([material]).select().single();
 
     if (error) throw error;
     return data;
@@ -1025,7 +1107,9 @@ export const materialService = {
     if (error) throw error;
 
     if (!data) {
-      throw new Error('No se pudo actualizar el material. Verifica que tengas permisos para editarlo.');
+      throw new Error(
+        'No se pudo actualizar el material. Verifica que tengas permisos para editarlo.'
+      );
     }
 
     return data;
@@ -1033,10 +1117,7 @@ export const materialService = {
 
   // Eliminar material
   async deleteMaterial(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('materials')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('materials').delete().eq('id', id);
 
     if (error) throw error;
   },
@@ -1047,7 +1128,7 @@ export const materialService = {
     courseId: number,
     teacherId: string,
     role: 'reader' | 'commenter' | 'writer' = 'reader'
-  ): Promise<{ success: any[], failed: any[], viewLink?: string }> {
+  ): Promise<{ success: any[]; failed: any[]; viewLink?: string }> {
     console.log('Compartiendo material:', { materialId, courseId, role });
 
     try {
@@ -1077,9 +1158,7 @@ export const materialService = {
         return { success: [], failed: [] };
       }
 
-      const students = enrollments
-        .map((e: any) => e.users?.email)
-        .filter((email: string) => email); // Filtrar emails nulos
+      const students = enrollments.map((e: any) => e.users?.email).filter((email: string) => email); // Filtrar emails nulos
 
       if (students.length === 0) {
         return { success: [], failed: [] };
@@ -1114,7 +1193,10 @@ export const materialService = {
             .eq('id', materialId);
 
           if (updateError) {
-            console.warn('⚠️ No se pudo actualizar el metadata del material con el viewLink:', updateError);
+            console.warn(
+              '⚠️ No se pudo actualizar el metadata del material con el viewLink:',
+              updateError
+            );
           } else {
             console.log('✅ Enlace de vista previa guardado en metadata del material');
           }
@@ -1139,7 +1221,6 @@ export const materialService = {
           failed: result.failed,
         };
       }
-
     } catch (error) {
       console.error('Error en shareMaterialWithCourseStudents:', error);
       throw error;
@@ -1177,14 +1258,17 @@ export const materialService = {
         console.log('🔄 Intentando obtener token para migración desde el cliente...');
         // Intentar obtener solo el token para hacer la transferencia desde el navegador
         // Esto evita timeouts de la Edge Function en archivos grandes
-        const { data: tokenData, error: tokenError } = await supabase.functions.invoke('migrate-drive-to-bucket', {
-          body: {
-            action: 'get_token',
-            materialId,
-            sourceFileId,
-            courseId
+        const { data: tokenData, error: tokenError } = await supabase.functions.invoke(
+          'migrate-drive-to-bucket',
+          {
+            body: {
+              action: 'get_token',
+              materialId,
+              sourceFileId,
+              courseId,
+            },
           }
-        });
+        );
 
         // Si obtenemos token, hacemos la migración en el cliente
         if (!tokenError && tokenData?.accessToken) {
@@ -1193,9 +1277,12 @@ export const materialService = {
 
           // A. Descargar de Google Drive
           console.log(`⬇️ Descargando archivo de Drive: ${sourceFileId}`);
-          const driveResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${sourceFileId}?alt=media`, {
-            headers: { Authorization: `Bearer ${accessToken}` }
-          });
+          const driveResponse = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${sourceFileId}?alt=media`,
+            {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            }
+          );
 
           if (!driveResponse.ok) {
             const errText = await driveResponse.text();
@@ -1207,14 +1294,14 @@ export const materialService = {
 
           // B. Subir a Supabase Storage
           const mimeType = material.mime_type || blob.type || 'application/octet-stream';
-          const fileExtension = mimeType.includes("pdf")
-            ? ".pdf"
-            : mimeType.includes("image")
-              ? ".jpg"
-              : ".bin";
+          const fileExtension = mimeType.includes('pdf')
+            ? '.pdf'
+            : mimeType.includes('image')
+              ? '.jpg'
+              : '.bin';
 
           const sanitizedFileName = material.title
-            .replace(/[^a-zA-Z0-9.-]/g, "_")
+            .replace(/[^a-zA-Z0-9.-]/g, '_')
             .substring(0, 100);
           const timestamp = Date.now();
           bucketPath = `materials/${courseId}/${sanitizedFileName}_${timestamp}${fileExtension}`;
@@ -1224,34 +1311,40 @@ export const materialService = {
             .from('course-documents')
             .upload(bucketPath, blob, {
               contentType: mimeType,
-              upsert: false
+              upsert: false,
             });
 
           if (uploadError) throw uploadError;
 
-          const { data: urlData } = supabase.storage.from('course-documents').getPublicUrl(bucketPath);
+          const { data: urlData } = supabase.storage
+            .from('course-documents')
+            .getPublicUrl(bucketPath);
           publicUrl = urlData.publicUrl;
           console.log('✅ Transferencia completada exitosamente');
-
         } else {
           // Si no devuelve token (versión vieja de la función), lanzar error para ir al catch
           throw new Error('La función no soporta get_token o no devolvió token');
         }
-
       } catch (clientMigrationError: any) {
-        console.warn('⚠️ Migración cliente falló o no soportada, intentando método servidor...', clientMigrationError.message);
+        console.warn(
+          '⚠️ Migración cliente falló o no soportada, intentando método servidor...',
+          clientMigrationError.message
+        );
 
         // Fallback: Llamada original a Edge Function (modo migrate por defecto)
         // Esto maneja el caso donde la función no ha sido actualizada o falla la descarga cliente
-        const { data: migrateResult, error: migrateError } = await supabase.functions.invoke('migrate-drive-to-bucket', {
-          body: {
-            materialId,
-            sourceFileId,
-            courseId,
-            fileName: material.title,
-            mimeType: material.mime_type
+        const { data: migrateResult, error: migrateError } = await supabase.functions.invoke(
+          'migrate-drive-to-bucket',
+          {
+            body: {
+              materialId,
+              sourceFileId,
+              courseId,
+              fileName: material.title,
+              mimeType: material.mime_type,
+            },
           }
-        });
+        );
 
         if (migrateError) throw migrateError;
 
@@ -1266,14 +1359,14 @@ export const materialService = {
         bucketPath: bucketPath,
         migratedFromDrive: true,
         migratedAt: new Date().toISOString(),
-        originalSourceFileId: sourceFileId // Mantener referencia al original
+        originalSourceFileId: sourceFileId, // Mantener referencia al original
       };
 
       const { error: updateError } = await supabase
         .from('materials')
         .update({
           metadata: updatedMetadata,
-          url: publicUrl // URL pública del bucket
+          url: publicUrl, // URL pública del bucket
         })
         .eq('id', materialId);
 
@@ -1281,9 +1374,8 @@ export const materialService = {
 
       return {
         success: true,
-        bucketPath: bucketPath
+        bucketPath: bucketPath,
       };
-
     } catch (error: any) {
       console.error('Error en migrateDriveToBucket:', error);
 
@@ -1313,7 +1405,7 @@ export const materialService = {
 
       return {
         success: false,
-        error: errorMessage
+        error: errorMessage,
       };
     }
   },
@@ -1368,8 +1460,8 @@ export const materialService = {
             driveFileId: driveFileId, // Incluir ID de Drive si existe
             userId: userId, // Incluir userId para que el worker pueda obtener el token
             materialId: materialId,
-            version: '1.0'
-          }
+            version: '1.0',
+          },
         })
         .select()
         .single();
@@ -1382,7 +1474,7 @@ export const materialService = {
       const updatedMetadata = {
         ...material.metadata,
         processingStatus: 'pending',
-        processingJobId: processResult.jobId
+        processingJobId: processResult.jobId,
       };
 
       const { error: updateError } = await supabase
@@ -1395,12 +1487,15 @@ export const materialService = {
       // 4. Trigger la Cloud Function para procesar inmediatamente (on-demand)
       try {
         console.log('🚀 Triggering RAG worker Cloud Function...');
-        const triggerResponse = await fetch('https://us-central1-eduspark-py.cloudfunctions.net/rag-worker', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
+        const triggerResponse = await fetch(
+          'https://us-central1-eduspark-py.cloudfunctions.net/rag-worker',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
           }
-        });
+        );
 
         if (triggerResponse.ok) {
           console.log('✅ RAG worker triggered successfully');
@@ -1414,14 +1509,13 @@ export const materialService = {
 
       return {
         success: true,
-        jobId: processResult.jobId
+        jobId: processResult.jobId,
       };
-
     } catch (error: any) {
       console.error('Error en processMaterialForRAG:', error);
       return {
         success: false,
-        error: error.message || 'Error desconocido al iniciar procesamiento'
+        error: error.message || 'Error desconocido al iniciar procesamiento',
       };
     }
   },
@@ -1434,7 +1528,7 @@ export const materialService = {
         .update({
           status: 'failed',
           error_message: 'Cancelado manualmente por el usuario',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', jobId);
 
@@ -1442,27 +1536,29 @@ export const materialService = {
 
       console.log(`✅ Job ${jobId} cancelado exitosamente`);
       return { success: true };
-
     } catch (error: any) {
       console.error('Error cancelando job:', error);
       return {
         success: false,
-        error: error.message || 'Error al cancelar job'
+        error: error.message || 'Error al cancelar job',
       };
     }
   },
 
   // Obtener cursos asignados a un material
-  async getMaterialCourses(materialId: string): Promise<Array<{
-    course_id: number;
-    course_title: string;
-    course_code: string;
-    assigned_at: string;
-    assigned_by?: string;
-    notes?: string;
-  }>> {
-    const { data, error } = await supabase
-      .rpc('get_material_courses', { p_material_id: materialId });
+  async getMaterialCourses(materialId: string): Promise<
+    Array<{
+      course_id: number;
+      course_title: string;
+      course_code: string;
+      assigned_at: string;
+      assigned_by?: string;
+      notes?: string;
+    }>
+  > {
+    const { data, error } = await supabase.rpc('get_material_courses', {
+      p_material_id: materialId,
+    });
 
     if (error) {
       console.error('Error fetching material courses:', error);
@@ -1485,13 +1581,12 @@ export const materialService = {
       throw new Error('Usuario no autenticado');
     }
 
-    const { data, error } = await supabase
-      .rpc('assign_material_to_courses', {
-        p_material_id: materialId,
-        p_course_ids: courseIds,
-        p_assigned_by: assignedBy,
-        p_notes: notes || null
-      });
+    const { data, error } = await supabase.rpc('assign_material_to_courses', {
+      p_material_id: materialId,
+      p_course_ids: courseIds,
+      p_assigned_by: assignedBy,
+      p_notes: notes || null,
+    });
 
     if (error) {
       console.error('Error assigning material to courses:', error);
@@ -1506,15 +1601,11 @@ export const materialService = {
   },
 
   // Desasignar material de un curso
-  async unassignMaterialFromCourse(
-    materialId: string,
-    courseId: number
-  ): Promise<boolean> {
-    const { data, error } = await supabase
-      .rpc('unassign_material_from_course', {
-        p_material_id: materialId,
-        p_course_id: courseId
-      });
+  async unassignMaterialFromCourse(materialId: string, courseId: number): Promise<boolean> {
+    const { data, error } = await supabase.rpc('unassign_material_from_course', {
+      p_material_id: materialId,
+      p_course_id: courseId,
+    });
 
     if (error) {
       console.error('Error unassigning material from course:', error);
@@ -1525,19 +1616,20 @@ export const materialService = {
   },
 
   // Obtener unidades asignadas a un material
-  async getMaterialUnits(materialId: string): Promise<Array<{
-    unit_id: string;
-    unit_title: string;
-    unit_number: number;
-    course_id: number;
-    course_title: string;
-    course_code: string;
-    assigned_at: string;
-    assigned_by?: string;
-    notes?: string;
-  }>> {
-    const { data, error } = await supabase
-      .rpc('get_material_units', { p_material_id: materialId });
+  async getMaterialUnits(materialId: string): Promise<
+    Array<{
+      unit_id: string;
+      unit_title: string;
+      unit_number: number;
+      course_id: number;
+      course_title: string;
+      course_code: string;
+      assigned_at: string;
+      assigned_by?: string;
+      notes?: string;
+    }>
+  > {
+    const { data, error } = await supabase.rpc('get_material_units', { p_material_id: materialId });
 
     if (error) {
       console.error('Error fetching material units:', error);
@@ -1548,21 +1640,24 @@ export const materialService = {
   },
 
   // Obtener sesiones asignadas a un material
-  async getMaterialSessions(materialId: string): Promise<Array<{
-    session_id: string;
-    session_title: string;
-    course_id: number;
-    course_title: string;
-    course_code: string;
-    unit_id?: string;
-    unit_title?: string;
-    unit_number?: number;
-    assigned_at: string;
-    assigned_by?: string;
-    notes?: string;
-  }>> {
-    const { data, error } = await supabase
-      .rpc('get_material_sessions', { p_material_id: materialId });
+  async getMaterialSessions(materialId: string): Promise<
+    Array<{
+      session_id: string;
+      session_title: string;
+      course_id: number;
+      course_title: string;
+      course_code: string;
+      unit_id?: string;
+      unit_title?: string;
+      unit_number?: number;
+      assigned_at: string;
+      assigned_by?: string;
+      notes?: string;
+    }>
+  > {
+    const { data, error } = await supabase.rpc('get_material_sessions', {
+      p_material_id: materialId,
+    });
 
     if (error) {
       console.error('Error fetching material sessions:', error);
@@ -1585,13 +1680,12 @@ export const materialService = {
       throw new Error('Usuario no autenticado');
     }
 
-    const { data, error } = await supabase
-      .rpc('assign_material_to_units', {
-        p_material_id: materialId,
-        p_unit_ids: unitIds,
-        p_assigned_by: assignedBy,
-        p_notes: notes || null
-      });
+    const { data, error } = await supabase.rpc('assign_material_to_units', {
+      p_material_id: materialId,
+      p_unit_ids: unitIds,
+      p_assigned_by: assignedBy,
+      p_notes: notes || null,
+    });
 
     if (error) {
       console.error('Error assigning material to units:', error);
@@ -1618,13 +1712,12 @@ export const materialService = {
       throw new Error('Usuario no autenticado');
     }
 
-    const { data, error } = await supabase
-      .rpc('assign_material_to_sessions', {
-        p_material_id: materialId,
-        p_session_ids: sessionIds,
-        p_assigned_by: assignedBy,
-        p_notes: notes || null
-      });
+    const { data, error } = await supabase.rpc('assign_material_to_sessions', {
+      p_material_id: materialId,
+      p_session_ids: sessionIds,
+      p_assigned_by: assignedBy,
+      p_notes: notes || null,
+    });
 
     if (error) {
       console.error('Error assigning material to sessions:', error);
@@ -1639,15 +1732,11 @@ export const materialService = {
   },
 
   // Desasignar material de una unidad
-  async unassignMaterialFromUnit(
-    materialId: string,
-    unitId: string
-  ): Promise<boolean> {
-    const { data, error } = await supabase
-      .rpc('unassign_material_from_unit', {
-        p_material_id: materialId,
-        p_unit_id: unitId
-      });
+  async unassignMaterialFromUnit(materialId: string, unitId: string): Promise<boolean> {
+    const { data, error } = await supabase.rpc('unassign_material_from_unit', {
+      p_material_id: materialId,
+      p_unit_id: unitId,
+    });
 
     if (error) {
       console.error('Error unassigning material from unit:', error);
@@ -1658,15 +1747,11 @@ export const materialService = {
   },
 
   // Desasignar material de una sesión
-  async unassignMaterialFromSession(
-    materialId: string,
-    sessionId: string
-  ): Promise<boolean> {
-    const { data, error } = await supabase
-      .rpc('unassign_material_from_session', {
-        p_material_id: materialId,
-        p_session_id: sessionId
-      });
+  async unassignMaterialFromSession(materialId: string, sessionId: string): Promise<boolean> {
+    const { data, error } = await supabase.rpc('unassign_material_from_session', {
+      p_material_id: materialId,
+      p_session_id: sessionId,
+    });
 
     if (error) {
       console.error('Error unassigning material from session:', error);
@@ -1674,5 +1759,5 @@ export const materialService = {
     }
 
     return data || false;
-  }
+  },
 };

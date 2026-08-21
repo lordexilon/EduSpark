@@ -1,6 +1,6 @@
 import React from 'react';
 import ProgressBar from './ProgressBar';
-import { IconCheckCircle, IconClock, IconTrendingUp } from "@/components/Common/Icons";
+import { IconCheckCircle, IconClock, IconTrendingUp } from '@/components/Common/Icons';
 
 interface ProgressIndicatorProps {
   value: number; // 0 to 100
@@ -23,7 +23,7 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
   size = 'md',
   showPercentage = true,
   className = '',
-  color
+  color,
 }) => {
   const clampedValue = Math.max(0, Math.min(100, value));
   const isComplete = clampedValue >= 100;
@@ -33,18 +33,18 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
     sm: {
       text: 'text-xs',
       bar: 'h-1.5',
-      icon: 'w-4 h-4'
+      icon: 'w-4 h-4',
     },
     md: {
       text: 'text-sm',
       bar: 'h-2',
-      icon: 'w-5 h-5'
+      icon: 'w-5 h-5',
     },
     lg: {
       text: 'text-base',
       bar: 'h-3',
-      icon: 'w-6 h-6'
-    }
+      icon: 'w-6 h-6',
+    },
   };
 
   const sizeConfig = sizeClasses[size];
@@ -74,9 +74,7 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
           <div className="flex items-center gap-2">
             {getIcon()}
             {label && (
-              <span className={`${sizeConfig.text} font-medium text-text-dark`}>
-                {label}
-              </span>
+              <span className={`${sizeConfig.text} font-medium text-text-dark`}>{label}</span>
             )}
           </div>
           {showPercentage && (
@@ -86,14 +84,9 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
           )}
         </div>
       )}
-      <ProgressBar 
-        value={clampedValue} 
-        color={getProgressColor()}
-        height={sizeConfig.bar}
-      />
+      <ProgressBar value={clampedValue} color={getProgressColor()} height={sizeConfig.bar} />
     </div>
   );
 };
 
 export default ProgressIndicator;
-

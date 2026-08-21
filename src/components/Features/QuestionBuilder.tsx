@@ -3,9 +3,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Question } from '@/services/quizService';
-import Button from "@/components/Common/Button";
-import Card from "@/components/Common/Card";
-import { IconPlus, IconTrash, IconCheck, IconX } from "@/components/Common/Icons";
+import Button from '@/components/Common/Button';
+import Card from '@/components/Common/Card';
+import { IconPlus, IconTrash, IconCheck, IconX } from '@/components/Common/Icons';
 
 interface QuestionBuilderProps {
   question?: Partial<Question>;
@@ -15,7 +15,7 @@ interface QuestionBuilderProps {
 
 export const QuestionBuilder: React.FC<QuestionBuilderProps> = ({ question, onSave, onCancel }) => {
   const [questionText, setQuestionText] = useState('');
-  const [questionType, setQuestionType] = useState<'multiple_choice' | 'true_false' | 'short_answer' | 'essay'>('multiple_choice');
+  const [questionType, setQuestionType] = useState<Question['question_type']>('multiple_choice');
   const [points, setPoints] = useState(1);
   const [options, setOptions] = useState<Array<{ id: string; text: string; correct: boolean }>>([]);
   const [correctAnswer, setCorrectAnswer] = useState('');
@@ -36,26 +36,24 @@ export const QuestionBuilder: React.FC<QuestionBuilderProps> = ({ question, onSa
     const newOption = {
       id: `opt_${Date.now()}`,
       text: '',
-      correct: false
+      correct: false,
     };
-    setOptions(prev => [...prev, newOption]);
+    setOptions((prev) => [...prev, newOption]);
   };
 
   const updateOption = (index: number, field: 'text' | 'correct', value: any) => {
     if (field === 'correct') {
       // Comportamiento de Radio Button: solo una correcta
-      setOptions(prev => prev.map((opt, i) =>
-        ({ ...opt, correct: i === index ? value : false })
-      ));
+      setOptions((prev) =>
+        prev.map((opt, i) => ({ ...opt, correct: i === index ? value : false }))
+      );
     } else {
-      setOptions(prev => prev.map((opt, i) =>
-        i === index ? { ...opt, [field]: value } : opt
-      ));
+      setOptions((prev) => prev.map((opt, i) => (i === index ? { ...opt, [field]: value } : opt)));
     }
   };
 
   const removeOption = (index: number) => {
-    setOptions(prev => prev.filter((_, i) => i !== index));
+    setOptions((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSave = () => {
@@ -69,7 +67,7 @@ export const QuestionBuilder: React.FC<QuestionBuilderProps> = ({ question, onSa
       return;
     }
 
-    if (questionType === 'multiple_choice' && !options.some(opt => opt.correct)) {
+    if (questionType === 'multiple_choice' && !options.some((opt) => opt.correct)) {
       alert('Marca una opción como correcta');
       return;
     }
@@ -77,7 +75,7 @@ export const QuestionBuilder: React.FC<QuestionBuilderProps> = ({ question, onSa
     // Obtener la respuesta correcta para multiple_choice
     let finalCorrectAnswer = correctAnswer;
     if (questionType === 'multiple_choice') {
-      const correctOption = options.find(opt => opt.correct);
+      const correctOption = options.find((opt) => opt.correct);
       finalCorrectAnswer = correctOption ? correctOption.id : '';
     }
 
@@ -88,7 +86,7 @@ export const QuestionBuilder: React.FC<QuestionBuilderProps> = ({ question, onSa
       options: questionType === 'multiple_choice' ? options : undefined,
       correct_answer: finalCorrectAnswer,
       explanation: explanation.trim() || undefined,
-      order_index: 0
+      order_index: 0,
     };
 
     onSave(questionData);
@@ -99,9 +97,7 @@ export const QuestionBuilder: React.FC<QuestionBuilderProps> = ({ question, onSa
       <div className="space-y-4">
         {/* Tipo de Pregunta */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Tipo de Pregunta
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Pregunta</label>
           <select
             value={questionType}
             onChange={(e) => setQuestionType(e.target.value as any)}
@@ -116,9 +112,7 @@ export const QuestionBuilder: React.FC<QuestionBuilderProps> = ({ question, onSa
 
         {/* Texto de la Pregunta */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Pregunta *
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Pregunta *</label>
           <textarea
             value={questionText}
             onChange={(e) => setQuestionText(e.target.value)}
@@ -162,8 +156,9 @@ export const QuestionBuilder: React.FC<QuestionBuilderProps> = ({ question, onSa
                     value={option.text}
                     onChange={(e) => updateOption(index, 'text', e.target.value)}
                     placeholder={`Opción ${index + 1}`}
-                    className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary ${option.correct ? 'border-green-500 bg-green-50' : 'border-gray-300'
-                      }`}
+                    className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary ${
+                      option.correct ? 'border-green-500 bg-green-50' : 'border-gray-300'
+                    }`}
                   />
                   <button
                     onClick={() => removeOption(index)}
@@ -216,9 +211,7 @@ export const QuestionBuilder: React.FC<QuestionBuilderProps> = ({ question, onSa
 
         {/* Puntos */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Puntos
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Puntos</label>
           <input
             type="number"
             value={points}
@@ -258,4 +251,3 @@ export const QuestionBuilder: React.FC<QuestionBuilderProps> = ({ question, onSa
 };
 
 export default QuestionBuilder;
-

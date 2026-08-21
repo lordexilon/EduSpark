@@ -1,6 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAgentSystem } from '@/modules/tutor/hooks/useAgentSystem';
-import { IconSparkles, IconX, IconPaperAirplane, IconDownload, IconChevronDown, IconChevronUp } from '@/components/Common/Icons';
+import {
+  IconSparkles,
+  IconX,
+  IconPaperAirplane,
+  IconDownload,
+  IconChevronDown,
+  IconChevronUp,
+} from '@/components/Common/Icons';
 import { useAuth } from '@/hooks/useAuth';
 import { MarkdownText } from '@/components/Common/MarkdownText';
 
@@ -33,11 +40,13 @@ const AssistantIA: React.FC<AssistantIAProps> = ({ courseId, sessionId }) => {
   // Convertir mensajes del sistema de agentes al formato del componente
   const messages: Message[] = React.useMemo(() => {
     if (agentSystem.messages.length === 0) {
-      return [{
-        id: 1,
-        text: '¡Hola! Soy tu asistente para el curso. ¿Cómo puedo ayudarte con el material de esta clase?',
-        sender: 'ai',
-      }];
+      return [
+        {
+          id: 1,
+          text: '¡Hola! Soy tu asistente para el curso. ¿Cómo puedo ayudarte con el material de esta clase?',
+          sender: 'ai',
+        },
+      ];
     }
     return agentSystem.messages.map((msg, index) => ({
       id: index + 1,
@@ -64,18 +73,20 @@ const AssistantIA: React.FC<AssistantIAProps> = ({ courseId, sessionId }) => {
   };
 
   const toggleMessageExpand = (messageId: number) => {
-    setExpandedMessages(prev => ({
+    setExpandedMessages((prev) => ({
       ...prev,
-      [messageId]: !prev[messageId]
+      [messageId]: !prev[messageId],
     }));
   };
 
   const handleExportConversation = async () => {
     try {
-      const conversationText = messages.map((msg, index) => {
-        const timestamp = new Date().toLocaleString('es-ES');
-        return `${msg.sender === 'user' ? 'Tú' : 'Asistente IA'}: ${msg.text}`;
-      }).join('\n\n---\n\n');
+      const conversationText = messages
+        .map((msg, index) => {
+          const timestamp = new Date().toLocaleString('es-ES');
+          return `${msg.sender === 'user' ? 'Tú' : 'Asistente IA'}: ${msg.text}`;
+        })
+        .join('\n\n---\n\n');
 
       const blob = new Blob([conversationText], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -127,11 +138,14 @@ const AssistantIA: React.FC<AssistantIAProps> = ({ courseId, sessionId }) => {
         style={{
           backgroundColor: '#9333ea', // purple-600
           opacity: 1,
-          boxShadow: '0 10px 25px rgba(147, 51, 234, 0.4), 0 0 0 2px rgba(255, 255, 255, 0.1)'
+          boxShadow: '0 10px 25px rgba(147, 51, 234, 0.4), 0 0 0 2px rgba(255, 255, 255, 0.1)',
         }}
         aria-label="Abrir asistente de IA"
       >
-        <IconSparkles className="w-8 h-8 text-white" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
+        <IconSparkles
+          className="w-8 h-8 text-white"
+          style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
+        />
       </button>
 
       {isOpen && (
@@ -155,7 +169,11 @@ const AssistantIA: React.FC<AssistantIAProps> = ({ courseId, sessionId }) => {
                   <IconDownload className="w-5 h-5" />
                 </button>
               )}
-              <button onClick={handleToggle} className="text-text-light hover:text-text-dark p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Cerrar chat">
+              <button
+                onClick={handleToggle}
+                className="text-text-light hover:text-text-dark p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Cerrar chat"
+              >
                 <IconX className="w-6 h-6" />
               </button>
             </div>
@@ -169,19 +187,25 @@ const AssistantIA: React.FC<AssistantIAProps> = ({ courseId, sessionId }) => {
               const displayText = isLong && !isExpanded ? truncateMessage(msg.text) : msg.text;
 
               return (
-                <div key={msg.id} className={`flex items-start gap-2 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
+                <div
+                  key={msg.id}
+                  className={`flex items-start gap-2 ${msg.sender === 'user' ? 'justify-end' : ''}`}
+                >
                   {msg.sender === 'ai' && (
                     <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0 mt-1">
                       <IconSparkles className="w-5 h-5 text-secondary" />
                     </div>
                   )}
                   <div
-                    className={`max-w-xs md:max-w-sm px-4 py-3 rounded-2xl ${msg.sender === 'user'
-                      ? 'bg-primary text-white rounded-br-none'
-                      : 'bg-gray-100 text-text-dark rounded-bl-none'
-                      }`}
+                    className={`max-w-xs md:max-w-sm px-4 py-3 rounded-2xl ${
+                      msg.sender === 'user'
+                        ? 'bg-primary text-white rounded-br-none'
+                        : 'bg-gray-100 text-text-dark rounded-bl-none'
+                    }`}
                   >
-                    <div className={`text-sm ${msg.sender === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                    <div
+                      className={`text-sm ${msg.sender === 'user' ? 'text-white' : 'text-gray-800'}`}
+                    >
                       {msg.sender === 'ai' ? (
                         <MarkdownText text={displayText} className="prose prose-sm max-w-none" />
                       ) : (
@@ -191,10 +215,11 @@ const AssistantIA: React.FC<AssistantIAProps> = ({ courseId, sessionId }) => {
                     {isLong && (
                       <button
                         onClick={() => toggleMessageExpand(msg.id)}
-                        className={`mt-2 text-xs font-medium flex items-center gap-1 ${msg.sender === 'user'
-                          ? 'text-white/80 hover:text-white'
-                          : 'text-gray-600 hover:text-gray-800'
-                          } transition-colors`}
+                        className={`mt-2 text-xs font-medium flex items-center gap-1 ${
+                          msg.sender === 'user'
+                            ? 'text-white/80 hover:text-white'
+                            : 'text-gray-600 hover:text-gray-800'
+                        } transition-colors`}
                       >
                         {isExpanded ? (
                           <>
@@ -231,20 +256,27 @@ const AssistantIA: React.FC<AssistantIAProps> = ({ courseId, sessionId }) => {
           </div>
 
           {/* Input */}
-          <form onSubmit={handleSendMessage} className="p-4 border-t border-border bg-background rounded-b-2xl">
+          <form
+            onSubmit={handleSendMessage}
+            className="p-4 border-t border-border bg-background rounded-b-2xl"
+          >
             <div className="relative">
               <input
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder={sessionId ? "Pregunta sobre esta sesión..." : "Pregunta sobre la clase..."}
+                placeholder={
+                  sessionId ? 'Pregunta sobre esta sesión...' : 'Pregunta sobre la clase...'
+                }
                 className="w-full bg-white border border-border rounded-full py-2 pl-4 pr-12 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary/50 outline-none transition"
                 disabled={agentSystem.isProcessing}
               />
               <button
                 type="submit"
                 className="absolute right-1 top-1/2 -translate-y-1/2 bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={agentSystem.isProcessing || inputValue.trim() === '' || !agentSystem.isInitialized}
+                disabled={
+                  agentSystem.isProcessing || inputValue.trim() === '' || !agentSystem.isInitialized
+                }
                 aria-label="Enviar mensaje"
               >
                 <IconPaperAirplane className="w-4 h-4" />

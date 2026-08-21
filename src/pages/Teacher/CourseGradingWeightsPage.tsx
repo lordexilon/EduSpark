@@ -8,7 +8,12 @@ import { courseService } from '@/services/teacherCourses';
 import { supabase } from '@/lib/supabase';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
-import { IconSave, IconAlertTriangle, IconCheckCircle, IconArrowLeft } from '@/components/Common/Icons';
+import {
+  IconSave,
+  IconAlertTriangle,
+  IconCheckCircle,
+  IconArrowLeft,
+} from '@/components/Common/Icons';
 import ScaleSelector from '@/components/Academic/ScaleSelector';
 
 const CourseGradingWeightsPage: React.FC = () => {
@@ -40,7 +45,9 @@ const CourseGradingWeightsPage: React.FC = () => {
 
       // Verificar si el curso tiene una materia asociada
       if (!course.subject_id) {
-        setError('Este curso no tiene una materia asociada. Por favor, asigne una materia al curso primero.');
+        setError(
+          'Este curso no tiene una materia asociada. Por favor, asigne una materia al curso primero.'
+        );
         setLoading(false);
         return;
       }
@@ -86,7 +93,7 @@ const CourseGradingWeightsPage: React.FC = () => {
         exam3_weight: weights.exam3_weight,
         final_exam_weight: weights.final_exam_weight,
         practicals_weight: weights.practicals_weight,
-        allow_custom_weights: weights.allow_custom_weights
+        allow_custom_weights: weights.allow_custom_weights,
       });
 
       setSuccess(true);
@@ -107,12 +114,17 @@ const CourseGradingWeightsPage: React.FC = () => {
 
     setWeights({
       ...weights,
-      [field]: clampedValue
+      [field]: clampedValue,
     });
   };
 
   const totalWeight = weights
-    ? weights.quizzes_weight + weights.exam1_weight + weights.exam2_weight + weights.exam3_weight + weights.final_exam_weight + weights.practicals_weight
+    ? weights.quizzes_weight +
+      weights.exam1_weight +
+      weights.exam2_weight +
+      weights.exam3_weight +
+      weights.final_exam_weight +
+      weights.practicals_weight
     : 0;
 
   const isValid = Math.abs(totalWeight - 100) < 0.01;
@@ -129,13 +141,11 @@ const CourseGradingWeightsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Configuración de Ponderación</h1>
-          {subjectName && (
-            <p className="text-sm text-gray-600 mt-1">Materia: {subjectName}</p>
-          )}
-          {courseTitle && (
-            <p className="text-xs text-gray-500 mt-1">Curso: {courseTitle}</p>
-          )}
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
+            Configuración de Ponderación
+          </h1>
+          {subjectName && <p className="text-sm text-gray-600 mt-1">Materia: {subjectName}</p>}
+          {courseTitle && <p className="text-xs text-gray-500 mt-1">Curso: {courseTitle}</p>}
         </div>
         <Button
           onClick={() => navigate(-1)}
@@ -173,10 +183,7 @@ const CourseGradingWeightsPage: React.FC = () => {
             Defina la escala de notas que utilizará este curso (ej: 1-5, 1-10, Porcentual).
           </p>
 
-          <ScaleSelector
-            subjectId={subjectId || undefined}
-            className="max-w-md"
-          />
+          <ScaleSelector subjectId={subjectId || undefined} className="max-w-md" />
         </div>
       </Card>
 
@@ -186,7 +193,8 @@ const CourseGradingWeightsPage: React.FC = () => {
             <h2 className="text-xl font-semibold mb-2">Distribución de Ponderaciones</h2>
             <p className="text-sm text-gray-600">
               Configure los porcentajes que representará cada tipo de evaluación en la nota final.
-              La suma total debe ser exactamente 100%. Esta configuración se aplicará a todos los cursos de esta materia.
+              La suma total debe ser exactamente 100%. Esta configuración se aplicará a todos los
+              cursos de esta materia.
             </p>
           </div>
 
@@ -210,9 +218,7 @@ const CourseGradingWeightsPage: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Primer Examen (%)
-              </label>
+              <label className="block text-sm font-medium text-gray-700">Primer Examen (%)</label>
               <input
                 type="number"
                 min="0"
@@ -222,15 +228,11 @@ const CourseGradingWeightsPage: React.FC = () => {
                 onChange={(e) => updateWeight('exam1_weight', parseFloat(e.target.value) || 0)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary/50 outline-none"
               />
-              <p className="text-xs text-gray-500">
-                Porcentaje del primer examen parcial
-              </p>
+              <p className="text-xs text-gray-500">Porcentaje del primer examen parcial</p>
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Segundo Examen (%)
-              </label>
+              <label className="block text-sm font-medium text-gray-700">Segundo Examen (%)</label>
               <input
                 type="number"
                 min="0"
@@ -240,15 +242,11 @@ const CourseGradingWeightsPage: React.FC = () => {
                 onChange={(e) => updateWeight('exam2_weight', parseFloat(e.target.value) || 0)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary/50 outline-none"
               />
-              <p className="text-xs text-gray-500">
-                Porcentaje del segundo examen parcial
-              </p>
+              <p className="text-xs text-gray-500">Porcentaje del segundo examen parcial</p>
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Tercer Examen (%)
-              </label>
+              <label className="block text-sm font-medium text-gray-700">Tercer Examen (%)</label>
               <input
                 type="number"
                 min="0"
@@ -282,9 +280,7 @@ const CourseGradingWeightsPage: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Examen Final (%)
-              </label>
+              <label className="block text-sm font-medium text-gray-700">Examen Final (%)</label>
               <input
                 type="number"
                 min="0"
@@ -294,24 +290,22 @@ const CourseGradingWeightsPage: React.FC = () => {
                 onChange={(e) => updateWeight('final_exam_weight', parseFloat(e.target.value) || 0)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary/50 outline-none"
               />
-              <p className="text-xs text-gray-500">
-                Debe contener "final" en el título
-              </p>
+              <p className="text-xs text-gray-500">Debe contener "final" en el título</p>
             </div>
           </div>
 
           <div className="pt-4 border-t border-gray-200">
             <div className="flex items-center justify-between mb-2">
               <span className="font-semibold text-gray-700">Total:</span>
-              <span className={`text-lg font-bold ${isValid ? 'text-green-600' : 'text-red-600'
-                }`}>
+              <span className={`text-lg font-bold ${isValid ? 'text-green-600' : 'text-red-600'}`}>
                 {totalWeight.toFixed(2)}%
               </span>
             </div>
             {!isValid && (
               <p className="text-sm text-red-600 flex items-center gap-1">
                 <IconAlertTriangle className="w-4 h-4" />
-                La suma debe ser exactamente 100% (diferencia: {Math.abs(totalWeight - 100).toFixed(2)}%)
+                La suma debe ser exactamente 100% (diferencia:{' '}
+                {Math.abs(totalWeight - 100).toFixed(2)}%)
               </p>
             )}
             {isValid && (

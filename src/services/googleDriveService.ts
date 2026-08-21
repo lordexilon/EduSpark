@@ -43,11 +43,13 @@ export const googleDriveService = {
             return {
               id: user.google_drive_folder_id,
               name: user.google_drive_folder_name || folderInfo.name,
-              url: user.google_drive_folder_url || folderInfo.url
+              url: user.google_drive_folder_url || folderInfo.url,
             };
           } else {
             // La carpeta ya no existe en Drive, limpiar la BD y buscar/crear una nueva
-            console.warn(`⚠️ Carpeta ${user.google_drive_folder_id} ya no existe en Drive, buscando o creando nueva...`);
+            console.warn(
+              `⚠️ Carpeta ${user.google_drive_folder_id} ya no existe en Drive, buscando o creando nueva...`
+            );
             await this.unlinkDrive(userId);
           }
         }
@@ -56,7 +58,9 @@ export const googleDriveService = {
       // Obtener token de acceso
       const accessToken = await googleOAuthService.getAccessToken(userId, 'drive');
       if (!accessToken) {
-        throw new Error('No hay token de acceso de Google Drive. Por favor, conecta tu cuenta primero.');
+        throw new Error(
+          'No hay token de acceso de Google Drive. Por favor, conecta tu cuenta primero.'
+        );
       }
 
       // Obtener información del usuario para el nombre de la carpeta
@@ -66,7 +70,7 @@ export const googleDriveService = {
         .eq('id', userId)
         .maybeSingle();
 
-      const folderName = userInfo 
+      const folderName = userInfo
         ? `EduSpark - ${userInfo.first_name} ${userInfo.last_name}`
         : `EduSpark - Usuario ${userId.substring(0, 8)}`;
 
@@ -81,7 +85,7 @@ export const googleDriveService = {
 
       const searchResponse = await fetch(searchUrl.toString(), {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          Authorization: `Bearer ${accessToken}`,
         },
       });
 
@@ -93,7 +97,9 @@ export const googleDriveService = {
           // Encontrar la carpeta que coincida exactamente con el nombre
           existingFolder = searchData.files.find((f: any) => f.name === folderName);
           if (existingFolder) {
-            console.log(`✅ Carpeta existente encontrada: "${folderName}" (ID: ${existingFolder.id})`);
+            console.log(
+              `✅ Carpeta existente encontrada: "${folderName}" (ID: ${existingFolder.id})`
+            );
           }
         }
       } else {
@@ -101,7 +107,7 @@ export const googleDriveService = {
       }
 
       let folder: { id: string; name: string };
-      
+
       if (existingFolder) {
         // Usar la carpeta existente
         folder = existingFolder;
@@ -112,7 +118,7 @@ export const googleDriveService = {
         const folderResponse = await fetch('https://www.googleapis.com/drive/v3/files', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -177,7 +183,9 @@ export const googleDriveService = {
     return {
       id: user.google_drive_folder_id,
       name: user.google_drive_folder_name || 'EduSpark',
-      url: user.google_drive_folder_url || `https://drive.google.com/drive/folders/${user.google_drive_folder_id}`,
+      url:
+        user.google_drive_folder_url ||
+        `https://drive.google.com/drive/folders/${user.google_drive_folder_id}`,
     };
   },
 
@@ -233,7 +241,7 @@ export const googleDriveService = {
       const response = await fetch('https://www.googleapis.com/drive/v3/files', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -273,13 +281,15 @@ export const googleDriveService = {
       const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          Authorization: `Bearer ${accessToken}`,
         },
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(`Error eliminando archivo/carpeta: ${error.error?.message || 'Error desconocido'}`);
+        throw new Error(
+          `Error eliminando archivo/carpeta: ${error.error?.message || 'Error desconocido'}`
+        );
       }
     } catch (error: any) {
       console.error('Error eliminando archivo/carpeta:', error);
@@ -307,14 +317,16 @@ export const googleDriveService = {
         `https://www.googleapis.com/drive/v3/files/${fileId}?fields=parents`,
         {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         }
       );
 
       if (!getResponse.ok) {
         const error = await getResponse.json();
-        throw new Error(`Error obteniendo información del archivo: ${error.error?.message || 'Error desconocido'}`);
+        throw new Error(
+          `Error obteniendo información del archivo: ${error.error?.message || 'Error desconocido'}`
+        );
       }
 
       const fileData = await getResponse.json();
@@ -326,14 +338,16 @@ export const googleDriveService = {
         {
           method: 'PATCH',
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         }
       );
 
       if (!moveResponse.ok) {
         const error = await moveResponse.json();
-        throw new Error(`Error moviendo archivo/carpeta: ${error.error?.message || 'Error desconocido'}`);
+        throw new Error(
+          `Error moviendo archivo/carpeta: ${error.error?.message || 'Error desconocido'}`
+        );
       }
     } catch (error: any) {
       console.error('Error moviendo archivo/carpeta:', error);
@@ -383,7 +397,7 @@ export const googleDriveService = {
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
           },
           body: form,
         }
@@ -437,23 +451,27 @@ export const googleDriveService = {
 
         const response = await fetch(url.toString(), {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         });
 
         if (!response.ok) {
           const error = await response.json();
-          throw new Error(`Error listando carpetas: ${error.error?.message || 'Error desconocido'}`);
+          throw new Error(
+            `Error listando carpetas: ${error.error?.message || 'Error desconocido'}`
+          );
         }
 
         const data = await response.json();
-        
+
         if (data.files) {
-          folders.push(...data.files.map((folder: any) => ({
-            id: folder.id,
-            name: folder.name,
-            modifiedTime: folder.modifiedTime,
-          })));
+          folders.push(
+            ...data.files.map((folder: any) => ({
+              id: folder.id,
+              name: folder.name,
+              modifiedTime: folder.modifiedTime,
+            }))
+          );
         }
 
         pageToken = data.nextPageToken;
@@ -483,7 +501,7 @@ export const googleDriveService = {
         `https://www.googleapis.com/drive/v3/files/${folderId}?fields=id,name`,
         {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         }
       );
@@ -513,7 +531,9 @@ export const googleDriveService = {
     userId: string,
     folderId: string,
     mimeTypes?: string[]
-  ): Promise<Array<{ id: string; name: string; size: number; mimeType: string; modifiedTime: string }>> {
+  ): Promise<
+    Array<{ id: string; name: string; size: number; mimeType: string; modifiedTime: string }>
+  > {
     try {
       const accessToken = await googleOAuthService.getAccessToken(userId, 'drive');
       if (!accessToken) {
@@ -522,20 +542,29 @@ export const googleDriveService = {
 
       // Construir query para filtrar por carpeta
       let query = `'${folderId}' in parents and trashed=false`;
-      
+
       // Filtrar por tipos MIME si se especifican
       if (mimeTypes && mimeTypes.length > 0) {
-        const mimeTypeFilters = mimeTypes.map(type => `mimeType='${type}'`).join(' or ');
+        const mimeTypeFilters = mimeTypes.map((type) => `mimeType='${type}'`).join(' or ');
         query += ` and (${mimeTypeFilters})`;
       }
 
-      const files: Array<{ id: string; name: string; size: number; mimeType: string; modifiedTime: string }> = [];
+      const files: Array<{
+        id: string;
+        name: string;
+        size: number;
+        mimeType: string;
+        modifiedTime: string;
+      }> = [];
       let pageToken: string | undefined;
 
       do {
         const url = new URL('https://www.googleapis.com/drive/v3/files');
         url.searchParams.set('q', query);
-        url.searchParams.set('fields', 'nextPageToken, files(id, name, size, mimeType, modifiedTime)');
+        url.searchParams.set(
+          'fields',
+          'nextPageToken, files(id, name, size, mimeType, modifiedTime)'
+        );
         url.searchParams.set('pageSize', '100');
         if (pageToken) {
           url.searchParams.set('pageToken', pageToken);
@@ -543,25 +572,29 @@ export const googleDriveService = {
 
         const response = await fetch(url.toString(), {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         });
 
         if (!response.ok) {
           const error = await response.json();
-          throw new Error(`Error listando archivos: ${error.error?.message || 'Error desconocido'}`);
+          throw new Error(
+            `Error listando archivos: ${error.error?.message || 'Error desconocido'}`
+          );
         }
 
         const data = await response.json();
-        
+
         if (data.files) {
-          files.push(...data.files.map((file: any) => ({
-            id: file.id,
-            name: file.name,
-            size: parseInt(file.size || '0', 10),
-            mimeType: file.mimeType,
-            modifiedTime: file.modifiedTime,
-          })));
+          files.push(
+            ...data.files.map((file: any) => ({
+              id: file.id,
+              name: file.name,
+              size: parseInt(file.size || '0', 10),
+              mimeType: file.mimeType,
+              modifiedTime: file.modifiedTime,
+            }))
+          );
         }
 
         pageToken = data.nextPageToken;
@@ -593,15 +626,19 @@ export const googleDriveService = {
         `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
         {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Range': `bytes=${startByte}-${endByte}`,
+            Authorization: `Bearer ${accessToken}`,
+            Range: `bytes=${startByte}-${endByte}`,
           },
         }
       );
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: { message: 'Error desconocido' } }));
-        throw new Error(`Error descargando archivo: ${error.error?.message || 'Error desconocido'}`);
+        const error = await response
+          .json()
+          .catch(() => ({ error: { message: 'Error desconocido' } }));
+        throw new Error(
+          `Error descargando archivo: ${error.error?.message || 'Error desconocido'}`
+        );
       }
 
       return await response.arrayBuffer();
@@ -614,10 +651,7 @@ export const googleDriveService = {
   /**
    * Descarga un archivo completo desde Google Drive
    */
-  async downloadFile(
-    userId: string,
-    fileId: string
-  ): Promise<ArrayBuffer> {
+  async downloadFile(userId: string, fileId: string): Promise<ArrayBuffer> {
     try {
       const accessToken = await googleOAuthService.getAccessToken(userId, 'drive');
       if (!accessToken) {
@@ -628,14 +662,18 @@ export const googleDriveService = {
         `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
         {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         }
       );
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: { message: 'Error desconocido' } }));
-        throw new Error(`Error descargando archivo: ${error.error?.message || 'Error desconocido'}`);
+        const error = await response
+          .json()
+          .catch(() => ({ error: { message: 'Error desconocido' } }));
+        throw new Error(
+          `Error descargando archivo: ${error.error?.message || 'Error desconocido'}`
+        );
       }
 
       return await response.arrayBuffer();
@@ -676,7 +714,7 @@ export const googleDriveService = {
             {
               method: 'PATCH',
               headers: {
-                'Authorization': `Bearer ${accessToken}`,
+                Authorization: `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
@@ -689,7 +727,10 @@ export const googleDriveService = {
 
           if (!updateResponse.ok) {
             const errorText = await updateResponse.text().catch(() => 'Error desconocido');
-            console.warn('⚠️ No se pudieron aplicar todas las restricciones al archivo:', errorText);
+            console.warn(
+              '⚠️ No se pudieron aplicar todas las restricciones al archivo:',
+              errorText
+            );
           } else {
             console.log('✅ Restricciones aplicadas al archivo (sin descarga/copia)');
           }
@@ -707,7 +748,7 @@ export const googleDriveService = {
             {
               method: 'POST',
               headers: {
-                'Authorization': `Bearer ${accessToken}`,
+                Authorization: `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
@@ -719,11 +760,16 @@ export const googleDriveService = {
           );
 
           if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: { message: 'Error desconocido' } }));
+            const errorData = await response
+              .json()
+              .catch(() => ({ error: { message: 'Error desconocido' } }));
             const errorMessage = errorData.error?.message || 'Error desconocido';
-            
+
             // Si el error es que el permiso ya existe, considerarlo como éxito
-            if (errorMessage.includes('already exists') || errorMessage.includes('Permission already exists')) {
+            if (
+              errorMessage.includes('already exists') ||
+              errorMessage.includes('Permission already exists')
+            ) {
               success.push(email);
             } else {
               failed.push({ email, error: errorMessage });
@@ -765,21 +811,18 @@ export const googleDriveService = {
       console.log(`[GoogleDrive] Aplicando restricciones de solo lectura al archivo: ${fileId}`);
 
       // Aplicar restricciones al archivo para prevenir descarga e impresión
-      const updateResponse = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            // Restricciones máximas para solo lectura
-            copyRequiresWriterPermission: true, // Requiere permiso de escritor para copiar
-            viewersCanCopyContent: false, // Los visualizadores no pueden copiar contenido
-          }),
-        }
-      );
+      const updateResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          // Restricciones máximas para solo lectura
+          copyRequiresWriterPermission: true, // Requiere permiso de escritor para copiar
+          viewersCanCopyContent: false, // Los visualizadores no pueden copiar contenido
+        }),
+      });
 
       if (!updateResponse.ok) {
         const errorText = await updateResponse.text().catch(() => 'Error desconocido');
@@ -799,10 +842,10 @@ export const googleDriveService = {
     userId: string,
     fileId: string,
     emails: string[]
-  ): Promise<{ 
-    viewLink: string; 
-    success: string[]; 
-    failed: Array<{ email: string; error: string }> 
+  ): Promise<{
+    viewLink: string;
+    success: string[];
+    failed: Array<{ email: string; error: string }>;
   }> {
     try {
       const accessToken = await googleOAuthService.getAccessToken(userId, 'drive');
@@ -812,21 +855,18 @@ export const googleDriveService = {
 
       // 1. Aplicar restricciones al archivo para prevenir descarga e impresión
       try {
-        const updateResponse = await fetch(
-          `https://www.googleapis.com/drive/v3/files/${fileId}`,
-          {
-            method: 'PATCH',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              // Restricciones máximas para solo lectura
-              copyRequiresWriterPermission: true, // Requiere permiso de escritor para copiar
-              viewersCanCopyContent: false, // Los visualizadores no pueden copiar contenido
-            }),
-          }
-        );
+        const updateResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            // Restricciones máximas para solo lectura
+            copyRequiresWriterPermission: true, // Requiere permiso de escritor para copiar
+            viewersCanCopyContent: false, // Los visualizadores no pueden copiar contenido
+          }),
+        });
 
         if (!updateResponse.ok) {
           const errorText = await updateResponse.text().catch(() => 'Error desconocido');
@@ -850,7 +890,7 @@ export const googleDriveService = {
             {
               method: 'POST',
               headers: {
-                'Authorization': `Bearer ${accessToken}`,
+                Authorization: `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
@@ -862,11 +902,16 @@ export const googleDriveService = {
           );
 
           if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: { message: 'Error desconocido' } }));
+            const errorData = await response
+              .json()
+              .catch(() => ({ error: { message: 'Error desconocido' } }));
             const errorMessage = errorData.error?.message || 'Error desconocido';
-            
+
             // Si el error es que el permiso ya existe, considerarlo como éxito
-            if (errorMessage.includes('already exists') || errorMessage.includes('Permission already exists')) {
+            if (
+              errorMessage.includes('already exists') ||
+              errorMessage.includes('Permission already exists')
+            ) {
               success.push(email);
             } else {
               failed.push({ email, error: errorMessage });
@@ -886,7 +931,7 @@ export const googleDriveService = {
           `https://www.googleapis.com/drive/v3/files/${fileId}?fields=webViewLink,webContentLink`,
           {
             headers: {
-              'Authorization': `Bearer ${accessToken}`,
+              Authorization: `Bearer ${accessToken}`,
             },
           }
         );
@@ -910,4 +955,3 @@ export const googleDriveService = {
     }
   },
 };
-

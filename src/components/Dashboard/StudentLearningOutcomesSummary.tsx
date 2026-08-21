@@ -42,7 +42,7 @@ export const StudentLearningOutcomesSummary: React.FC<{ userId: string }> = ({ u
               return {
                 courseId: e.course_id,
                 title: `${d.courseFallback} #${e.course_id}`,
-                s: summary[e.course_id]
+                s: summary[e.course_id],
               };
             }
           })
@@ -51,7 +51,7 @@ export const StudentLearningOutcomesSummary: React.FC<{ userId: string }> = ({ u
           courseId,
           title,
           total: s.total,
-          evidenced: s.evidenced
+          evidenced: s.evidenced,
         }));
         if (!cancelled) setRows(pending);
       } catch (err) {
@@ -92,7 +92,10 @@ export const StudentLearningOutcomesSummary: React.FC<{ userId: string }> = ({ u
               key={r.courseId}
               className="rounded-xl border border-border bg-background/60 dark:bg-brand-dark/30 px-4 py-3 flex flex-col gap-2 min-w-0"
             >
-              <p className="font-semibold text-text-dark dark:text-gray-100 text-sm truncate" title={r.title}>
+              <p
+                className="font-semibold text-text-dark dark:text-gray-100 text-sm truncate"
+                title={r.title}
+              >
                 {r.title}
               </p>
               <div className="flex items-center justify-between gap-2 text-sm">

@@ -1,11 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { getAdminCourseOverview, getModulesByCourse, AdminCourseOverview, CourseModuleRow } from '@/services/adminCourses';
+import {
+  getAdminCourseOverview,
+  getModulesByCourse,
+  AdminCourseOverview,
+  CourseModuleRow,
+} from '@/services/adminCourses';
 import { subjectService, careerService, Subject, Career } from '@/services/academicService';
 import { courseService } from '@/services/teacherCourses';
 
-const TabButton: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }>=({ active, onClick, children })=> (
+const TabButton: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }> = ({
+  active,
+  onClick,
+  children,
+}) => (
   <button
     onClick={onClick}
     className={`px-4 py-2 rounded-t-md border ${active ? 'bg-white border-b-transparent' : 'bg-gray-100 border-gray-200 hover:bg-gray-200'}`}
@@ -16,10 +25,10 @@ const TabButton: React.FC<{ active: boolean; onClick: () => void; children: Reac
 
 const AdminModulesPage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
-  const [tab, setTab] = useState<'teachers'|'students'>('teachers');
+  const [tab, setTab] = useState<'teachers' | 'students'>('teachers');
   const [courses, setCourses] = useState<AdminCourseOverview[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
-  const [error, setError] = useState<string|undefined>();
+  const [error, setError] = useState<string | undefined>();
   const [lastReloadAt, setLastReloadAt] = useState<number>(0);
 
   const loadData = async () => {
@@ -28,7 +37,7 @@ const AdminModulesPage: React.FC = () => {
       setError(undefined);
       const data = await getAdminCourseOverview();
       setCourses(data);
-    } catch (e:any) {
+    } catch (e: any) {
       setError(e.message || 'Error cargando cursos');
     } finally {
       setPageLoading(false);
@@ -74,8 +83,12 @@ const AdminModulesPage: React.FC = () => {
       <h1 className="text-2xl font-semibold mb-4">Administración: Módulos</h1>
 
       <div className="flex gap-2 border-b mb-4">
-        <TabButton active={tab==='teachers'} onClick={()=>setTab('teachers')}>Por Docente</TabButton>
-        <TabButton active={tab==='students'} onClick={()=>setTab('students')}>Por Estudiante</TabButton>
+        <TabButton active={tab === 'teachers'} onClick={() => setTab('teachers')}>
+          Por Docente
+        </TabButton>
+        <TabButton active={tab === 'students'} onClick={() => setTab('students')}>
+          Por Estudiante
+        </TabButton>
       </div>
 
       {pageLoading && <div>Cargando...</div>}
@@ -91,7 +104,7 @@ const AdminModulesPage: React.FC = () => {
               Recargar
             </button>
           </div>
-          {courses.map(course => (
+          {courses.map((course) => (
             <CourseCard key={course.course_id} course={course} tab={tab} />
           ))}
         </div>
@@ -100,10 +113,16 @@ const AdminModulesPage: React.FC = () => {
   );
 };
 
-const CourseCard: React.FC<{ course: AdminCourseOverview; tab: 'teachers'|'students' }>=({ course, tab })=>{
+const CourseCard: React.FC<{ course: AdminCourseOverview; tab: 'teachers' | 'students' }> = ({
+  course,
+  tab,
+}) => {
   const [modules, setModules] = useState<CourseModuleRow[]>([]);
   const [open, setOpen] = useState(false);
-  const [academicInfo, setAcademicInfo] = useState<{subject?: Subject | null; career?: Career | null}>({});
+  const [academicInfo, setAcademicInfo] = useState<{
+    subject?: Subject | null;
+    career?: Career | null;
+  }>({});
   const [courseData, setCourseData] = useState<any>(null);
 
   useEffect(() => {
@@ -114,10 +133,10 @@ const CourseCard: React.FC<{ course: AdminCourseOverview; tab: 'teachers'|'stude
         setCourseData(data);
         if (data?.subject_id) {
           const subject = await subjectService.getSubject(data.subject_id);
-          setAcademicInfo(prev => ({ ...prev, subject }));
+          setAcademicInfo((prev) => ({ ...prev, subject }));
           if (subject?.career_id) {
             const career = await careerService.getCareer(subject.career_id);
-            setAcademicInfo(prev => ({ ...prev, career }));
+            setAcademicInfo((prev) => ({ ...prev, career }));
           }
         }
       } catch (err) {
@@ -126,7 +145,7 @@ const CourseCard: React.FC<{ course: AdminCourseOverview; tab: 'teachers'|'stude
     })();
   }, [course.course_id]);
 
-  useEffect(()=>{
+  useEffect(() => {
     if (!open) return;
     (async () => {
       const data = await getModulesByCourse(course.course_id);
@@ -140,7 +159,8 @@ const CourseCard: React.FC<{ course: AdminCourseOverview; tab: 'teachers'|'stude
         <div>
           <div className="font-medium">{course.course_title || `Curso #${course.course_id}`}</div>
           <div className="text-sm text-gray-600">
-            {course.course_code} · {course.module_count} módulos · {course.student_count} estudiantes
+            {course.course_code} · {course.module_count} módulos · {course.student_count}{' '}
+            estudiantes
             {academicInfo.subject && (
               <span className="ml-2 text-blue-600">
                 · {academicInfo.subject.name}
@@ -160,13 +180,15 @@ const CourseCard: React.FC<{ course: AdminCourseOverview; tab: 'teachers'|'stude
           >
             Gestionar
           </Link>
-          <button className="text-blue-600" onClick={()=>setOpen(v=>!v)}>{open ? 'Ocultar' : 'Ver módulos'}</button>
+          <button className="text-blue-600" onClick={() => setOpen((v) => !v)}>
+            {open ? 'Ocultar' : 'Ver módulos'}
+          </button>
         </div>
       </div>
       {open && (
         <div className="p-4 space-y-2">
           {modules.length === 0 && <div className="text-sm text-gray-500">Sin módulos</div>}
-          {modules.map(m => (
+          {modules.map((m) => (
             <div key={m.id} className="flex items-center justify-between border rounded p-3">
               <div>
                 <div className="font-medium">{m.name}</div>
@@ -187,5 +209,3 @@ const CourseCard: React.FC<{ course: AdminCourseOverview; tab: 'teachers'|'stude
 };
 
 export default AdminModulesPage;
-
-

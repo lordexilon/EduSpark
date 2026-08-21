@@ -37,7 +37,11 @@ export interface TutorMetrics {
 }
 
 export interface StudentInsights {
-  tutorUsageVsProgress: 'high-usage-high-progress' | 'high-usage-low-progress' | 'low-usage-high-progress' | 'low-usage-low-progress';
+  tutorUsageVsProgress:
+    | 'high-usage-high-progress'
+    | 'high-usage-low-progress'
+    | 'low-usage-high-progress'
+    | 'low-usage-low-progress';
   recommendedActions: string[];
   riskLevel: 'low' | 'medium' | 'high';
   efficiency: number; // Progreso por interacción
@@ -85,16 +89,13 @@ export interface CourseComprehensiveReport {
 /**
  * Calcula el progreso académico de un estudiante
  */
-async function getAcademicProgress(
-  studentId: string,
-  courseId: number
-): Promise<AcademicProgress> {
+async function getAcademicProgress(studentId: string, courseId: number): Promise<AcademicProgress> {
   try {
     // Obtener totales del curso
     const [units, sessions, quizzes] = await Promise.all([
       unitService.getCourseUnits(courseId),
       sessionService.getCourseSessions(courseId),
-      quizService.getCourseAssessments(courseId, ['quiz', 'trivia'])
+      quizService.getCourseAssessments(courseId, ['quiz', 'trivia']),
     ]);
 
     // Obtener flashcards del curso ⭐ NUEVO
@@ -106,60 +107,62 @@ async function getAcademicProgress(
     const totalFlashcards = flashcards.length; // ⭐ NUEVO
 
     // Obtener completados
-    const [completedUnits, completedSessions, completedQuizzes, completedFlashcards, enrollment] = await Promise.all([
-      // Unidades completadas
-      supabase
-        .from('unit_progress')
-        .select('unit_id', { count: 'exact' })
-        .eq('student_id', studentId)
-        .eq('course_id', courseId)
-        .eq('is_completed', true)
-        .then(({ count }) => count || 0),
-
-      // Sesiones completadas
-      supabase
-        .from('session_progress')
-        .select('session_id', { count: 'exact' })
-        .eq('student_id', studentId)
-        .eq('course_id', courseId)
-        .eq('is_completed', true)
-        .then(({ count }) => count || 0),
-
-      // Quizzes completados
-      (async () => {
-        const quizIds = quizzes.map(q => q.id);
-        if (quizIds.length === 0) return 0;
-
-        const { data } = await supabase
-          .from('assessment_attempts')
-          .select('assessment_id')
+    const [completedUnits, completedSessions, completedQuizzes, completedFlashcards, enrollment] =
+      await Promise.all([
+        // Unidades completadas
+        supabase
+          .from('unit_progress')
+          .select('unit_id', { count: 'exact' })
           .eq('student_id', studentId)
-          .in('assessment_id', quizIds)
-          .in('status', ['submitted', 'graded']);
+          .eq('course_id', courseId)
+          .eq('is_completed', true)
+          .then(({ count }) => count || 0),
 
-        return new Set(data?.map(a => a.assessment_id) || []).size;
-      })(),
-
-      // Flashcards dominadas (mastery_level >= 4) ⭐ NUEVO
-      (async () => {
-        if (flashcards.length === 0) return 0;
-
-        const flashcardIds = flashcards.map(f => f.id);
-        const { data } = await supabase
-          .from('flashcard_progress')
-          .select('flashcard_id')
+        // Sesiones completadas
+        supabase
+          .from('session_progress')
+          .select('session_id', { count: 'exact' })
           .eq('student_id', studentId)
-          .in('flashcard_id', flashcardIds)
-          .gte('mastery_level', 4); // Dominadas
+          .eq('course_id', courseId)
+          .eq('is_completed', true)
+          .then(({ count }) => count || 0),
 
-        return new Set(data?.map(p => p.flashcard_id) || []).size;
-      })(),
+        // Quizzes completados
+        (async () => {
+          const quizIds = quizzes.map((q) => q.id);
+          if (quizIds.length === 0) return 0;
 
-      // Enrollment para tiempo invertido
-      courseEnrollmentService.getStudentEnrollments(studentId)
-        .then(enrollments => enrollments.find(e => e.course_id === courseId))
-        .catch(() => null)
-    ]);
+          const { data } = await supabase
+            .from('assessment_attempts')
+            .select('assessment_id')
+            .eq('student_id', studentId)
+            .in('assessment_id', quizIds)
+            .in('status', ['submitted', 'graded']);
+
+          return new Set(data?.map((a) => a.assessment_id) || []).size;
+        })(),
+
+        // Flashcards dominadas (mastery_level >= 4) ⭐ NUEVO
+        (async () => {
+          if (flashcards.length === 0) return 0;
+
+          const flashcardIds = flashcards.map((f) => f.id);
+          const { data } = await supabase
+            .from('flashcard_progress')
+            .select('flashcard_id')
+            .eq('student_id', studentId)
+            .in('flashcard_id', flashcardIds)
+            .gte('mastery_level', 4); // Dominadas
+
+          return new Set(data?.map((p) => p.flashcard_id) || []).size;
+        })(),
+
+        // Enrollment para tiempo invertido
+        courseEnrollmentService
+          .getStudentEnrollments(studentId)
+          .then((enrollments) => enrollments.find((e) => e.course_id === courseId))
+          .catch(() => null),
+      ]);
 
     // Calcular porcentaje de completitud
     const completionPercentage = enrollment?.completion_percentage || 0;
@@ -174,7 +177,7 @@ async function getAcademicProgress(
       totalFlashcards, // ⭐ NUEVO
       completedQuizzes,
       totalQuizzes,
-      timeSpentMinutes: enrollment?.time_spent_minutes || 0
+      timeSpentMinutes: enrollment?.time_spent_minutes || 0,
     };
   } catch (error) {
     console.error('Error obteniendo progreso académico:', error);
@@ -186,7 +189,9 @@ async function getAcademicProgress(
       totalSessions: 0,
       completedQuizzes: 0,
       totalQuizzes: 0,
-      timeSpentMinutes: 0
+      completedFlashcards: 0,
+      totalFlashcards: 0,
+      timeSpentMinutes: 0,
     };
   }
 }
@@ -232,19 +237,19 @@ async function getTutorMetricsForStudent(
         lastInteractionDate: null,
         topicsCovered: [],
         performanceImprovement: null,
-        averageResponseTime: 0
+        averageResponseTime: 0,
       };
     }
 
     const totalInteractions = interactions?.length || 0;
     const totalTokens = interactions?.reduce((sum, i) => sum + (i.tokens_used || 0), 0) || 0;
     const totalCost = interactions?.reduce((sum, i) => sum + (parseFloat(i.cost) || 0), 0) || 0;
-    const averageResponseTime = totalInteractions > 0
-      ? interactions!.reduce((sum, i) => sum + (i.response_time_ms || 0), 0) / totalInteractions
-      : 0;
-    const lastInteractionDate = interactions && interactions.length > 0
-      ? interactions[0].created_at
-      : null;
+    const averageResponseTime =
+      totalInteractions > 0
+        ? interactions!.reduce((sum, i) => sum + (i.response_time_ms || 0), 0) / totalInteractions
+        : 0;
+    const lastInteractionDate =
+      interactions && interactions.length > 0 ? interactions[0].created_at : null;
 
     // Obtener temas cubiertos y mejora de desempeño
     const { data: performance, error: performanceError } = await supabase
@@ -267,7 +272,7 @@ async function getTutorMetricsForStudent(
       lastInteractionDate,
       topicsCovered,
       performanceImprovement,
-      averageResponseTime
+      averageResponseTime,
     };
   } catch (error) {
     console.error('Error obteniendo métricas del tutor:', error);
@@ -278,7 +283,7 @@ async function getTutorMetricsForStudent(
       lastInteractionDate: null,
       topicsCovered: [],
       performanceImprovement: null,
-      averageResponseTime: 0
+      averageResponseTime: 0,
     };
   }
 }
@@ -312,7 +317,7 @@ function calculateInsights(
 
   // Calcular eficiencia: Score de 0 a 100
   // Definición: 100% de eficiencia si se obtiene al menos 2% de progreso por interacción
-  const rawEfficiency = tutorUsage > 0 ? (progress / tutorUsage) : 0;
+  const rawEfficiency = tutorUsage > 0 ? progress / tutorUsage : 0;
   const efficiency = Math.min(100, rawEfficiency * 50); // 2% per interaction * 50 = 100%
 
   // Determinar nivel de riesgo
@@ -341,34 +346,36 @@ function calculateInsights(
   }
 
   if (academicProgress.completedUnits < academicProgress.totalUnits) {
-    recommendedActions.push(`Completar ${academicProgress.totalUnits - academicProgress.completedUnits} unidad(es) restante(s)`);
+    recommendedActions.push(
+      `Completar ${academicProgress.totalUnits - academicProgress.completedUnits} unidad(es) restante(s)`
+    );
   }
 
   if (academicProgress.completedQuizzes < academicProgress.totalQuizzes) {
-    recommendedActions.push(`Realizar ${academicProgress.totalQuizzes - academicProgress.completedQuizzes} quiz(zes) pendiente(s)`);
+    recommendedActions.push(
+      `Realizar ${academicProgress.totalQuizzes - academicProgress.completedQuizzes} quiz(zes) pendiente(s)`
+    );
   }
 
   return {
     tutorUsageVsProgress,
     recommendedActions,
     riskLevel,
-    efficiency
+    efficiency,
   };
 }
 
 /**
  * Analiza correlación entre progreso y uso del tutor
  */
-function analyzeCorrelation(
-  students: ComprehensiveStudentData[]
-): CorrelationAnalysis {
+function analyzeCorrelation(students: ComprehensiveStudentData[]): CorrelationAnalysis {
   if (students.length === 0) {
     return {
       positiveCorrelation: 0,
       negativeCorrelation: 0,
       averageProgress: 0,
       averageTutorUsage: 0,
-      efficiencyScore: 0
+      efficiencyScore: 0,
     };
   }
 
@@ -379,7 +386,7 @@ function analyzeCorrelation(
   let totalTutorUsage = 0;
   let totalEfficiency = 0;
 
-  students.forEach(student => {
+  students.forEach((student) => {
     const { academicProgress, tutorMetrics, insights } = student;
 
     totalProgress += academicProgress.completionPercentage;
@@ -398,16 +405,14 @@ function analyzeCorrelation(
     negativeCorrelation: (negativeCount / totalStudents) * 100,
     averageProgress: totalProgress / totalStudents,
     averageTutorUsage: totalTutorUsage / totalStudents,
-    efficiencyScore: totalEfficiency / totalStudents
+    efficiencyScore: totalEfficiency / totalStudents,
   };
 }
 
 /**
  * Calcula métricas agregadas del curso
  */
-function calculateAggregatedMetrics(
-  students: ComprehensiveStudentData[]
-): AggregatedMetrics {
+function calculateAggregatedMetrics(students: ComprehensiveStudentData[]): AggregatedMetrics {
   if (students.length === 0) {
     return {
       totalStudents: 0,
@@ -416,7 +421,7 @@ function calculateAggregatedMetrics(
       studentsWithPositiveCorrelation: 0,
       studentsNeedingAttention: 0,
       totalCost: 0,
-      totalTokens: 0
+      totalTokens: 0,
     };
   }
 
@@ -428,7 +433,7 @@ function calculateAggregatedMetrics(
   let totalCost = 0;
   let totalTokens = 0;
 
-  students.forEach(student => {
+  students.forEach((student) => {
     totalProgress += student.academicProgress.completionPercentage;
     totalInteractions += student.tutorMetrics.totalInteractions;
     totalCost += student.tutorMetrics.totalCost;
@@ -450,7 +455,7 @@ function calculateAggregatedMetrics(
     studentsWithPositiveCorrelation: positiveCorrelation,
     studentsNeedingAttention: needingAttention,
     totalCost,
-    totalTokens
+    totalTokens,
   };
 }
 
@@ -488,7 +493,7 @@ export const comprehensiveReportService = {
       // Obtener progreso académico y métricas del tutor en paralelo
       const [academicProgress, tutorMetrics] = await Promise.all([
         getAcademicProgress(studentId, courseId),
-        getTutorMetricsForStudent(studentId, courseId, dateFrom, dateTo)
+        getTutorMetricsForStudent(studentId, courseId, dateFrom, dateTo),
       ]);
 
       // Calcular insights
@@ -505,7 +510,7 @@ export const comprehensiveReportService = {
         studentEmail: studentData.email,
         academicProgress,
         tutorMetrics,
-        insights
+        insights,
       };
     } catch (error) {
       console.error('Error obteniendo informe comprehensivo del estudiante:', error);
@@ -536,7 +541,7 @@ export const comprehensiveReportService = {
 
       // Obtener estudiantes inscritos
       const enrollments = await courseEnrollmentService.getCourseStudents(courseId);
-      const activeEnrollments = enrollments.filter(e => e.status === 'active');
+      const activeEnrollments = enrollments.filter((e) => e.status === 'active');
 
       if (activeEnrollments.length === 0) {
         return {
@@ -550,28 +555,29 @@ export const comprehensiveReportService = {
             studentsWithPositiveCorrelation: 0,
             studentsNeedingAttention: 0,
             totalCost: 0,
-            totalTokens: 0
+            totalTokens: 0,
           },
           correlation: {
             positiveCorrelation: 0,
             negativeCorrelation: 0,
             averageProgress: 0,
             averageTutorUsage: 0,
-            efficiencyScore: 0
-          }
+            efficiencyScore: 0,
+          },
         };
       }
 
       // Obtener métricas del curso para calcular promedios
       const courseMetrics = await getCourseMetrics(courseId);
       const averageProgress = courseMetrics
-        ? enrollments.reduce((sum, e) => sum + (e.completion_percentage || 0), 0) / enrollments.length
+        ? enrollments.reduce((sum, e) => sum + (e.completion_percentage || 0), 0) /
+          enrollments.length
         : 50;
       const averageTutorUsage = courseMetrics?.averageInteractionsPerStudent || 5;
 
       // Obtener informe de cada estudiante
       const studentReports = await Promise.all(
-        activeEnrollments.map(enrollment =>
+        activeEnrollments.map((enrollment) =>
           this.getStudentComprehensiveReport(
             enrollment.student_id,
             courseId,
@@ -584,9 +590,7 @@ export const comprehensiveReportService = {
       );
 
       // Filtrar nulos
-      const students = studentReports.filter(
-        (s): s is ComprehensiveStudentData => s !== null
-      );
+      const students = studentReports.filter((s): s is ComprehensiveStudentData => s !== null);
 
       // Calcular métricas agregadas
       const aggregated = calculateAggregatedMetrics(students);
@@ -599,7 +603,7 @@ export const comprehensiveReportService = {
         courseTitle: course.title,
         students,
         aggregated,
-        correlation
+        correlation,
       };
     } catch (error) {
       console.error('Error obteniendo informe comprehensivo del curso:', error);
@@ -612,13 +616,15 @@ export const comprehensiveReportService = {
    */
   async analyzeCorrelation(courseId: number): Promise<CorrelationAnalysis> {
     const report = await this.getCourseComprehensiveReport(courseId);
-    return report?.correlation || {
-      positiveCorrelation: 0,
-      negativeCorrelation: 0,
-      averageProgress: 0,
-      averageTutorUsage: 0,
-      efficiencyScore: 0
-    };
+    return (
+      report?.correlation || {
+        positiveCorrelation: 0,
+        negativeCorrelation: 0,
+        averageProgress: 0,
+        averageTutorUsage: 0,
+        efficiencyScore: 0,
+      }
+    );
   },
 
   /**
@@ -636,6 +642,5 @@ export const comprehensiveReportService = {
       console.error('Error disparando generación de reportes semanales:', error);
       return null;
     }
-  }
+  },
 };
-

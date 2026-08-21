@@ -13,48 +13,45 @@ import { Material } from '@/services/teacherCourses';
 // =====================================================
 
 export const SimpleMaterialsList: React.FC<{ materials: Material[] }> = ({ materials }) => {
-    const [pdfViewer, setPdfViewer] = useState({
-        isOpen: false,
-        url: '',
-        title: ''
+  const [pdfViewer, setPdfViewer] = useState({
+    isOpen: false,
+    url: '',
+    title: '',
+  });
+
+  const handleViewPDF = (material: Material) => {
+    setPdfViewer({
+      isOpen: true,
+      url: material.url || '',
+      title: material.title,
     });
+  };
 
-    const handleViewPDF = (material: Material) => {
-        setPdfViewer({
-            isOpen: true,
-            url: material.url || '',
-            title: material.title
-        });
-    };
+  return (
+    <div className="materials-list">
+      {materials.map((material) => (
+        <div key={material.id} className="material-item">
+          <h3>{material.title}</h3>
+          {material.metadata?.description && <p>{material.metadata?.description}</p>}
 
-    return (
-        <div className="materials-list">
-            {materials.map(material => (
-                <div key={material.id} className="material-item">
-                    <h3>{material.title}</h3>
-                    {material.description && <p>{material.description}</p>}
-
-                    {/* Mostrar botón de visualización solo para PDFs */}
-                    {(material.kind === 'pdf' || material.url?.endsWith('.pdf')) && (
-                        <button
-                            onClick={() => handleViewPDF(material)}
-                            className="btn-view-pdf"
-                        >
-                            Ver Documento Protegido
-                        </button>
-                    )}
-                </div>
-            ))}
-
-            {/* Visor seguro de PDF */}
-            <SecurePDFViewer
-                pdfUrl={pdfViewer.url}
-                title={pdfViewer.title}
-                isOpen={pdfViewer.isOpen}
-                onClose={() => setPdfViewer({ isOpen: false, url: '', title: '' })}
-            />
+          {/* Mostrar botón de visualización solo para PDFs */}
+          {(material.kind === 'pdf' || material.url?.endsWith('.pdf')) && (
+            <button onClick={() => handleViewPDF(material)} className="btn-view-pdf">
+              Ver Documento Protegido
+            </button>
+          )}
         </div>
-    );
+      ))}
+
+      {/* Visor seguro de PDF */}
+      <SecurePDFViewer
+        pdfUrl={pdfViewer.url}
+        title={pdfViewer.title}
+        isOpen={pdfViewer.isOpen}
+        onClose={() => setPdfViewer({ isOpen: false, url: '', title: '' })}
+      />
+    </div>
+  );
 };
 
 // =====================================================
@@ -63,61 +60,56 @@ export const SimpleMaterialsList: React.FC<{ materials: Material[] }> = ({ mater
 // =====================================================
 
 export const SessionPDFViewer: React.FC<{
-    sessionMaterials: Material[];
-    sessionTitle: string;
+  sessionMaterials: Material[];
+  sessionTitle: string;
 }> = ({ sessionMaterials, sessionTitle }) => {
-    const [activePDF, setActivePDF] = useState<{
-        isOpen: boolean;
-        material: Material | null;
-    }>({
-        isOpen: false,
-        material: null
-    });
+  const [activePDF, setActivePDF] = useState<{
+    isOpen: boolean;
+    material: Material | null;
+  }>({
+    isOpen: false,
+    material: null,
+  });
 
-    const pdfMaterials = sessionMaterials.filter(
-        m => m.kind === 'pdf' || m.url?.endsWith('.pdf')
-    );
+  const pdfMaterials = sessionMaterials.filter((m) => m.kind === 'pdf' || m.url?.endsWith('.pdf'));
 
-    const openPDF = (material: Material) => {
-        setActivePDF({ isOpen: true, material });
-    };
+  const openPDF = (material: Material) => {
+    setActivePDF({ isOpen: true, material });
+  };
 
-    const closePDF = () => {
-        setActivePDF({ isOpen: false, material: null });
-    };
+  const closePDF = () => {
+    setActivePDF({ isOpen: false, material: null });
+  };
 
-    return (
-        <div className="session-pdf-section">
-            <h2>Materiales de Lectura - {sessionTitle}</h2>
+  return (
+    <div className="session-pdf-section">
+      <h2>Materiales de Lectura - {sessionTitle}</h2>
 
-            <div className="pdf-materials-grid">
-                {pdfMaterials.map(material => (
-                    <div key={material.id} className="pdf-card">
-                        <div className="pdf-icon">📄</div>
-                        <h4>{material.title}</h4>
-                        {material.description && (
-                            <p className="pdf-description">{material.description}</p>
-                        )}
-                        <button
-                            onClick={() => openPDF(material)}
-                            className="btn-open-pdf"
-                        >
-                            Abrir Documento
-                        </button>
-                    </div>
-                ))}
-            </div>
-
-            {activePDF.material && (
-                <SecurePDFViewer
-                    pdfUrl={activePDF.material.url || ''}
-                    title={activePDF.material.title}
-                    isOpen={activePDF.isOpen}
-                    onClose={closePDF}
-                />
+      <div className="pdf-materials-grid">
+        {pdfMaterials.map((material) => (
+          <div key={material.id} className="pdf-card">
+            <div className="pdf-icon">📄</div>
+            <h4>{material.title}</h4>
+            {material.metadata?.description && (
+              <p className="pdf-description">{material.metadata?.description}</p>
             )}
-        </div>
-    );
+            <button onClick={() => openPDF(material)} className="btn-open-pdf">
+              Abrir Documento
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {activePDF.material && (
+        <SecurePDFViewer
+          pdfUrl={activePDF.material.url || ''}
+          title={activePDF.material.title}
+          isOpen={activePDF.isOpen}
+          onClose={closePDF}
+        />
+      )}
+    </div>
+  );
 };
 
 // =====================================================
@@ -126,74 +118,71 @@ export const SessionPDFViewer: React.FC<{
 // =====================================================
 
 export const EnhancedMaterialDisplay: React.FC<{
-    material: Material;
-    showFullPlayer?: boolean;
+  material: Material;
+  showFullPlayer?: boolean;
 }> = ({ material, showFullPlayer = false }) => {
-    const [showSecurePDF, setShowSecurePDF] = useState(false);
+  const [showSecurePDF, setShowSecurePDF] = useState(false);
 
-    // Detectar si es PDF
-    const isPDF = material.kind === 'pdf' || material.url?.endsWith('.pdf');
+  // Detectar si es PDF
+  const isPDF = material.kind === 'pdf' || material.url?.endsWith('.pdf');
 
-    // Verificar si el material debe mostrarse con visor seguro
-    // (puede basarse en metadata o configuración del material)
-    const useSecureViewer = material.metadata?.secure_viewing === true ||
-        material.allow_download === false;
+  // Verificar si el material debe mostrarse con visor seguro
+  // (puede basarse en metadata o configuración del material)
+  const useSecureViewer =
+    material.metadata?.secure_viewing === true || material.allow_download === false;
 
-    if (isPDF && useSecureViewer) {
-        return (
-            <div className="material-display-pdf-secure">
-                <div className="pdf-preview-card">
-                    <div className="pdf-preview-icon">
-                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
-                            <path
-                                d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                            <path
-                                d="M14 2V8H20"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
-                    </div>
-                    <h3>{material.title}</h3>
-                    {material.description && <p>{material.description}</p>}
-
-                    <div className="pdf-info">
-                        <span className="pdf-badge">📄 Documento PDF</span>
-                        <span className="security-badge">🔒 Vista Protegida</span>
-                    </div>
-
-                    <button
-                        onClick={() => setShowSecurePDF(true)}
-                        className="btn-view-secure-pdf"
-                    >
-                        Ver en Modo Seguro
-                    </button>
-                </div>
-
-                <SecurePDFViewer
-                    pdfUrl={material.url || ''}
-                    title={material.title}
-                    isOpen={showSecurePDF}
-                    onClose={() => setShowSecurePDF(false)}
-                />
-            </div>
-        );
-    }
-
-    // Para otros materiales o PDFs no seguros, usar el componente original
+  if (isPDF && useSecureViewer) {
     return (
-        <div className="material-display-default">
-            {/* Renderizado normal del MaterialDisplay */}
-            <p>Material: {material.title}</p>
+      <div className="material-display-pdf-secure">
+        <div className="pdf-preview-card">
+          <div className="pdf-preview-icon">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M14 2V8H20"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+          <h3>{material.title}</h3>
+          {material.metadata?.description && <p>{material.metadata?.description}</p>}
+
+          <div className="pdf-info">
+            <span className="pdf-badge">📄 Documento PDF</span>
+            <span className="security-badge">🔒 Vista Protegida</span>
+          </div>
+
+          <button onClick={() => setShowSecurePDF(true)} className="btn-view-secure-pdf">
+            Ver en Modo Seguro
+          </button>
         </div>
+
+        <SecurePDFViewer
+          pdfUrl={material.url || ''}
+          title={material.title}
+          isOpen={showSecurePDF}
+          onClose={() => setShowSecurePDF(false)}
+        />
+      </div>
     );
+  }
+
+  // Para otros materiales o PDFs no seguros, usar el componente original
+  return (
+    <div className="material-display-default">
+      {/* Renderizado normal del MaterialDisplay */}
+      <p>Material: {material.title}</p>
+    </div>
+  );
 };
 
 // =====================================================
@@ -201,61 +190,61 @@ export const EnhancedMaterialDisplay: React.FC<{
 // =====================================================
 
 export const usePDFViewer = () => {
-    const [viewerState, setViewerState] = useState<{
-        isOpen: boolean;
-        pdfUrl: string;
-        title: string;
-        bucket?: string;
-    }>({
-        isOpen: false,
-        pdfUrl: '',
-        title: '',
-        bucket: 'materials'
+  const [viewerState, setViewerState] = useState<{
+    isOpen: boolean;
+    pdfUrl: string;
+    title: string;
+    bucket?: string;
+  }>({
+    isOpen: false,
+    pdfUrl: '',
+    title: '',
+    bucket: 'materials',
+  });
+
+  const openPDF = (url: string, title: string, bucket: string = 'materials') => {
+    setViewerState({
+      isOpen: true,
+      pdfUrl: url,
+      title,
+      bucket,
     });
+  };
 
-    const openPDF = (url: string, title: string, bucket: string = 'materials') => {
-        setViewerState({
-            isOpen: true,
-            pdfUrl: url,
-            title,
-            bucket
-        });
-    };
+  const closePDF = () => {
+    setViewerState({
+      isOpen: false,
+      pdfUrl: '',
+      title: '',
+      bucket: 'materials',
+    });
+  };
 
-    const closePDF = () => {
-        setViewerState({
-            isOpen: false,
-            pdfUrl: '',
-            title: '',
-            bucket: 'materials'
-        });
-    };
+  const PDFViewerComponent = () => (
+    <SecurePDFViewer
+      pdfUrl={viewerState.pdfUrl}
+      title={viewerState.title}
+      isOpen={viewerState.isOpen}
+      onClose={closePDF}
+      bucket={viewerState.bucket}
+    />
+  );
 
-    const PDFViewerComponent = () => (
-        <SecurePDFViewer
-            pdfUrl={viewerState.pdfUrl}
-            title={viewerState.title}
-            isOpen={viewerState.isOpen}
-            onClose={closePDF}
-            bucket={viewerState.bucket}
-        />
-    );
-
-    return {
-        openPDF,
-        closePDF,
-        PDFViewerComponent,
-        isOpen: viewerState.isOpen
-    };
+  return {
+    openPDF,
+    closePDF,
+    PDFViewerComponent,
+    isOpen: viewerState.isOpen,
+  };
 };
 
 // Uso del hook:
 // const { openPDF, PDFViewerComponent } = usePDFViewer();
-// 
+//
 // <button onClick={() => openPDF(material.url, material.title)}>
 //   Ver PDF
 // </button>
-// 
+//
 // <PDFViewerComponent />
 
 // =====================================================
@@ -266,29 +255,29 @@ export const usePDFViewer = () => {
 import { createContext, useContext, ReactNode } from 'react';
 
 interface PDFViewerContextType {
-    openPDF: (url: string, title: string, bucket?: string) => void;
-    closePDF: () => void;
+  openPDF: (url: string, title: string, bucket?: string) => void;
+  closePDF: () => void;
 }
 
 const PDFViewerContext = createContext<PDFViewerContextType | undefined>(undefined);
 
 export const PDFViewerProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const { openPDF, closePDF, PDFViewerComponent } = usePDFViewer();
+  const { openPDF, closePDF, PDFViewerComponent } = usePDFViewer();
 
-    return (
-        <PDFViewerContext.Provider value={{ openPDF, closePDF }}>
-            {children}
-            <PDFViewerComponent />
-        </PDFViewerContext.Provider>
-    );
+  return (
+    <PDFViewerContext.Provider value={{ openPDF, closePDF }}>
+      {children}
+      <PDFViewerComponent />
+    </PDFViewerContext.Provider>
+  );
 };
 
 export const usePDFViewerContext = () => {
-    const context = useContext(PDFViewerContext);
-    if (!context) {
-        throw new Error('usePDFViewerContext must be used within PDFViewerProvider');
-    }
-    return context;
+  const context = useContext(PDFViewerContext);
+  if (!context) {
+    throw new Error('usePDFViewerContext must be used within PDFViewerProvider');
+  }
+  return context;
 };
 
 // Uso en App.tsx:
@@ -308,27 +297,28 @@ export const usePDFViewerContext = () => {
 // =====================================================
 
 export const SupabaseURLExamples = {
-    // URL pública (si el bucket es público)
-    publicURL: 'https://your-project.supabase.co/storage/v1/object/public/materials/course-1/document.pdf',
+  // URL pública (si el bucket es público)
+  publicURL:
+    'https://your-project.supabase.co/storage/v1/object/public/materials/course-1/document.pdf',
 
-    // Construir URL programáticamente
-    buildPublicURL: (bucket: string, path: string) => {
-        const supabaseURL = import.meta.env.VITE_SUPABASE_URL;
-        return `${supabaseURL}/storage/v1/object/public/${bucket}/${path}`;
-    },
+  // Construir URL programáticamente
+  buildPublicURL: (bucket: string, path: string) => {
+    const supabaseURL = import.meta.env.VITE_SUPABASE_URL;
+    return `${supabaseURL}/storage/v1/object/public/${bucket}/${path}`;
+  },
 
-    // Ejemplo de uso con material de la base de datos
-    getMaterialURL: (material: Material) => {
-        // Si el material ya tiene una URL completa, usarla
-        if (material.url?.startsWith('http')) {
-            return material.url;
-        }
-
-        // Si solo tiene el path, construir la URL
-        const supabaseURL = import.meta.env.VITE_SUPABASE_URL;
-        const bucket = material.metadata?.bucket || 'materials';
-        return `${supabaseURL}/storage/v1/object/public/${bucket}/${material.url}`;
+  // Ejemplo de uso con material de la base de datos
+  getMaterialURL: (material: Material) => {
+    // Si el material ya tiene una URL completa, usarla
+    if (material.url?.startsWith('http')) {
+      return material.url;
     }
+
+    // Si solo tiene el path, construir la URL
+    const supabaseURL = import.meta.env.VITE_SUPABASE_URL;
+    const bucket = material.metadata?.bucket || 'materials';
+    return `${supabaseURL}/storage/v1/object/public/${bucket}/${material.url}`;
+  },
 };
 
 // =====================================================
@@ -336,50 +326,44 @@ export const SupabaseURLExamples = {
 // Mostrar visor seguro solo a ciertos roles
 // =====================================================
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 export const RoleBasedPDFViewer: React.FC<{ material: Material }> = ({ material }) => {
-    const { user } = useAuth();
-    const [showPDF, setShowPDF] = useState(false);
+  const { user } = useAuth();
+  const [showPDF, setShowPDF] = useState(false);
 
-    // Solo estudiantes ven el visor seguro
-    // Profesores y admins pueden descargar
-    const useSecureViewer = user?.role === 'student';
+  // Solo estudiantes ven el visor seguro
+  // Profesores y admins pueden descargar
+  const useSecureViewer = user?.role?.name === 'student';
 
-    const isPDF = material.kind === 'pdf' || material.url?.endsWith('.pdf');
+  const isPDF = material.kind === 'pdf' || material.url?.endsWith('.pdf');
 
-    if (!isPDF) {
-        return <div>No es un PDF</div>;
-    }
+  if (!isPDF) {
+    return <div>No es un PDF</div>;
+  }
 
-    if (useSecureViewer) {
-        return (
-            <>
-                <button onClick={() => setShowPDF(true)}>
-                    Ver Documento (Solo Lectura)
-                </button>
-                <SecurePDFViewer
-                    pdfUrl={material.url || ''}
-                    title={material.title}
-                    isOpen={showPDF}
-                    onClose={() => setShowPDF(false)}
-                />
-            </>
-        );
-    }
-
-    // Profesores/Admins pueden descargar
+  if (useSecureViewer) {
     return (
-        <div>
-            <a
-                href={material.url}
-                download
-                className="btn-download"
-            >
-                Descargar PDF
-            </a>
-        </div>
+      <>
+        <button onClick={() => setShowPDF(true)}>Ver Documento (Solo Lectura)</button>
+        <SecurePDFViewer
+          pdfUrl={material.url || ''}
+          title={material.title}
+          isOpen={showPDF}
+          onClose={() => setShowPDF(false)}
+        />
+      </>
     );
+  }
+
+  // Profesores/Admins pueden descargar
+  return (
+    <div>
+      <a href={material.url} download className="btn-download">
+        Descargar PDF
+      </a>
+    </div>
+  );
 };
 
 // =====================================================

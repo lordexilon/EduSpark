@@ -4,8 +4,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { messagingService, Message, Conversation } from '@/services/messagingService';
 import { useAuth } from '@/hooks/useAuth';
-import Button from "@/components/Common/Button";
-import { IconDownload } from "@/components/Common/Icons";
+import Button from '@/components/Common/Button';
+import { IconDownload } from '@/components/Common/Icons';
 
 interface ChatWindowProps {
   conversation: Conversation;
@@ -32,18 +32,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
     }
 
     // Suscribirse a nuevos mensajes en tiempo real
-    const channel = messagingService.subscribeToMessages(
-      conversation.id,
-      (message) => {
-        // Verificar que el mensaje no esté ya en la lista (evitar duplicados)
-        setMessages((prev) => {
-          const exists = prev.some(m => m.id === message.id);
-          if (exists) return prev;
-          return [...prev, message];
-        });
-        markAsRead();
-      }
-    );
+    const channel = messagingService.subscribeToMessages(conversation.id, (message) => {
+      // Verificar que el mensaje no esté ya en la lista (evitar duplicados)
+      setMessages((prev) => {
+        const exists = prev.some((m) => m.id === message.id);
+        if (exists) return prev;
+        return [...prev, message];
+      });
+      markAsRead();
+    });
 
     subscriptionRef.current = channel;
 
@@ -121,7 +118,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -139,7 +136,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
       return date.toLocaleDateString('es-ES', {
         weekday: 'long',
         day: 'numeric',
-        month: 'long'
+        month: 'long',
       });
     }
   };
@@ -147,7 +144,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
   const shouldShowAvatar = (currentMessage: Message, previousMessage: Message | null) => {
     if (!previousMessage) return true;
     if (currentMessage.sender_id !== previousMessage.sender_id) return true;
-    const timeDiff = new Date(currentMessage.created_at).getTime() - new Date(previousMessage.created_at).getTime();
+    const timeDiff =
+      new Date(currentMessage.created_at).getTime() -
+      new Date(previousMessage.created_at).getTime();
     return timeDiff > 300000; // 5 minutos
   };
 
@@ -162,16 +161,16 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
     try {
       const exportData = messages.map((msg) => ({
         id: msg.id,
-        remitente: msg.sender_id === user?.id
-          ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
-          : `${msg.sender?.first_name || ''} ${msg.sender?.last_name || ''}`.trim(),
-        email_remitente: msg.sender_id === user?.id
-          ? (user.email || 'N/A')
-          : (msg.sender?.email || 'N/A'),
+        remitente:
+          msg.sender_id === user?.id
+            ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
+            : `${msg.sender?.first_name || ''} ${msg.sender?.last_name || ''}`.trim(),
+        email_remitente:
+          msg.sender_id === user?.id ? user.email || 'N/A' : msg.sender?.email || 'N/A',
         contenido: msg.content,
         fecha_hora: formatFullDateTime(msg.created_at),
         leido: msg.is_read ? 'Sí' : 'No',
-        conversacion_id: msg.conversation_id
+        conversacion_id: msg.conversation_id,
       }));
 
       const otherUser = conversation.other_user;
@@ -179,18 +178,28 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
 
       if (format === 'csv') {
         // Crear CSV
-        const headers = ['ID', 'Remitente', 'Email Remitente', 'Contenido', 'Fecha y Hora', 'Leído', 'Conversación ID'];
+        const headers = [
+          'ID',
+          'Remitente',
+          'Email Remitente',
+          'Contenido',
+          'Fecha y Hora',
+          'Leído',
+          'Conversación ID',
+        ];
         const csvRows = [
           headers.join(','),
-          ...exportData.map(row => [
-            row.id,
-            `"${row.remitente}"`,
-            `"${row.email_remitente}"`,
-            `"${row.contenido.replace(/"/g, '""')}"`,
-            `"${row.fecha_hora}"`,
-            row.leido,
-            row.conversacion_id
-          ].join(','))
+          ...exportData.map((row) =>
+            [
+              row.id,
+              `"${row.remitente}"`,
+              `"${row.email_remitente}"`,
+              `"${row.contenido.replace(/"/g, '""')}"`,
+              `"${row.fecha_hora}"`,
+              row.leido,
+              row.conversacion_id,
+            ].join(',')
+          ),
         ];
         const csvContent = csvRows.join('\n');
         const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -202,18 +211,22 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
         URL.revokeObjectURL(url);
       } else {
         // Crear JSON
-        const jsonContent = JSON.stringify({
-          conversacion: {
-            id: conversation.id,
-            participante: `${otherUser?.first_name} ${otherUser?.last_name}`,
-            email_participante: otherUser?.email,
-            curso_id: conversation.course_id || null,
-            fecha_creacion: conversation.created_at
+        const jsonContent = JSON.stringify(
+          {
+            conversacion: {
+              id: conversation.id,
+              participante: `${otherUser?.first_name} ${otherUser?.last_name}`,
+              email_participante: otherUser?.email,
+              curso_id: conversation.course_id || null,
+              fecha_creacion: conversation.created_at,
+            },
+            mensajes: exportData,
+            exportado_el: new Date().toISOString(),
+            total_mensajes: messages.length,
           },
-          mensajes: exportData,
-          exportado_el: new Date().toISOString(),
-          total_mensajes: messages.length
-        }, null, 2);
+          null,
+          2
+        );
         const blob = new Blob([jsonContent], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -254,7 +267,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
           ) : (
             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
               <span className="text-primary font-semibold">
-                {otherUser?.first_name?.[0]}{otherUser?.last_name?.[0]}
+                {otherUser?.first_name?.[0]}
+                {otherUser?.last_name?.[0]}
               </span>
             </div>
           )}
@@ -280,10 +294,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
             </button>
             {showExportMenu && (
               <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setShowExportMenu(false)}
-                />
+                <div className="fixed inset-0 z-10" onClick={() => setShowExportMenu(false)} />
                 <div className="absolute right-0 mt-2 w-48 bg-surface rounded-lg shadow-xl border border-border z-20">
                   <button
                     onClick={() => {
@@ -314,7 +325,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
               aria-label="Cerrar chat"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           )}
@@ -329,9 +345,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
             const previousMessage = index > 0 ? messages[index - 1] : null;
             const showAvatar = !isOwn && shouldShowAvatar(message, previousMessage);
             const showDateHeader = shouldShowDateHeader(message, previousMessage);
-            const showTime = index === messages.length - 1 ||
+            const showTime =
+              index === messages.length - 1 ||
               message.sender_id !== messages[index + 1]?.sender_id ||
-              new Date(messages[index + 1].created_at).getTime() - new Date(message.created_at).getTime() > 300000;
+              new Date(messages[index + 1].created_at).getTime() -
+                new Date(message.created_at).getTime() >
+                300000;
 
             return (
               <React.Fragment key={message.id}>
@@ -345,11 +364,14 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
                   </div>
                 )}
                 <div
-                  className={`flex items-end gap-2 ${isOwn ? 'justify-end' : 'justify-start'} ${showAvatar ? 'mt-4' : 'mt-1'
-                    }`}
+                  className={`flex items-end gap-2 ${isOwn ? 'justify-end' : 'justify-start'} ${
+                    showAvatar ? 'mt-4' : 'mt-1'
+                  }`}
                 >
                   {!isOwn && (
-                    <div className={`flex-shrink-0 ${showAvatar ? 'w-8 h-8' : 'w-0 h-0'} transition-all duration-200`}>
+                    <div
+                      className={`flex-shrink-0 ${showAvatar ? 'w-8 h-8' : 'w-0 h-0'} transition-all duration-200`}
+                    >
                       {showAvatar && (
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shadow-sm border border-primary/20">
                           {message.sender?.avatar_url ? (
@@ -360,39 +382,51 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
                             />
                           ) : (
                             <span className="text-primary text-xs font-bold">
-                              {message.sender?.first_name?.[0]}{message.sender?.last_name?.[0]}
+                              {message.sender?.first_name?.[0]}
+                              {message.sender?.last_name?.[0]}
                             </span>
                           )}
                         </div>
                       )}
                     </div>
                   )}
-                  <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-xs lg:max-w-md`}>
+                  <div
+                    className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-xs lg:max-w-md`}
+                  >
                     {!isOwn && showAvatar && (
                       <span className="text-xs text-text-light opacity-60 mb-1 px-1">
                         {message.sender?.first_name} {message.sender?.last_name}
                       </span>
                     )}
                     <div
-                      className={`px-4 py-2.5 rounded-2xl shadow-sm transition-all duration-200 ${isOwn
-                        ? 'bg-primary text-white rounded-br-sm shadow-lg shadow-primary/20'
-                        : 'bg-surface text-text-dark rounded-bl-sm border border-border shadow-sm'
-                        }`}
+                      className={`px-4 py-2.5 rounded-2xl shadow-sm transition-all duration-200 ${
+                        isOwn
+                          ? 'bg-primary text-white rounded-br-sm shadow-lg shadow-primary/20'
+                          : 'bg-surface text-text-dark rounded-bl-sm border border-border shadow-sm'
+                      }`}
                     >
-                      <p className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${isOwn ? 'text-white' : 'text-text-dark'
-                        }`}>
+                      <p
+                        className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${
+                          isOwn ? 'text-white' : 'text-text-dark'
+                        }`}
+                      >
                         {message.content}
                       </p>
                       {showTime && (
-                        <p className={`text-xs mt-1.5 font-medium ${isOwn ? 'text-white/70' : 'text-text-light opacity-60'
-                          }`}>
+                        <p
+                          className={`text-xs mt-1.5 font-medium ${
+                            isOwn ? 'text-white/70' : 'text-text-light opacity-60'
+                          }`}
+                        >
                           {formatTime(message.created_at)}
                         </p>
                       )}
                     </div>
                   </div>
                   {isOwn && (
-                    <div className={`flex-shrink-0 ${showAvatar ? 'w-8 h-8' : 'w-0 h-0'} transition-all duration-200`}>
+                    <div
+                      className={`flex-shrink-0 ${showAvatar ? 'w-8 h-8' : 'w-0 h-0'} transition-all duration-200`}
+                    >
                       {showAvatar && (
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shadow-sm border border-primary/20">
                           {user?.avatar_url ? (
@@ -403,7 +437,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
                             />
                           ) : (
                             <span className="text-primary text-xs font-bold">
-                              {user?.first_name?.[0]}{user?.last_name?.[0]}
+                              {user?.first_name?.[0]}
+                              {user?.last_name?.[0]}
                             </span>
                           )}
                         </div>
@@ -444,7 +479,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
             ) : (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                />
               </svg>
             )}
           </Button>
@@ -455,4 +495,3 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onClose }) => {
 };
 
 export default ChatWindow;
-

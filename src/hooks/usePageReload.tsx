@@ -23,7 +23,7 @@ export const usePageReload = () => {
     }
 
     // Limpiar localStorage de Vite
-    Object.keys(localStorage).forEach(key => {
+    Object.keys(localStorage).forEach((key) => {
       if (key.startsWith('vite-') || key.startsWith('eduspark-')) {
         localStorage.removeItem(key);
       }
@@ -58,7 +58,7 @@ export const usePageReload = () => {
         event.preventDefault();
         forceReload();
       }
-      
+
       // F5 para recarga normal con limpieza
       if (event.key === 'F5') {
         event.preventDefault();
@@ -67,7 +67,7 @@ export const usePageReload = () => {
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    
+
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
@@ -87,7 +87,7 @@ export const usePageReload = () => {
     };
 
     window.addEventListener('load', handleLoad);
-    
+
     return () => {
       window.removeEventListener('load', handleLoad);
     };
@@ -95,6 +95,6 @@ export const usePageReload = () => {
 
   return {
     forceReload,
-    navigateWithCleanup
+    navigateWithCleanup,
   };
 };

@@ -3,16 +3,14 @@
 // Gestión de conversaciones, memoria y personalización
 // =====================================================
 
-import { supabase } from "../lib/supabase-shared";
-import type { 
-  Conversation, 
-  ChatMessage, 
-  PedagogicalSettings, 
-  StudentProfile, 
+import { supabase } from '../lib/supabase-shared';
+import type { Conversation, ChatMessage, SupabaseResponse } from '../types/agents';
+import type {
+  PedagogicalSettings,
+  StudentProfile,
   GradingScale,
   CourseImage,
   CourseContext,
-  SupabaseResponse 
 } from '../types/pedagogical';
 
 // =====================================================
@@ -20,14 +18,14 @@ import type {
 // =====================================================
 
 export const saveConversation = async (
-  studentId: string, 
-  courseId: string, 
+  studentId: string,
+  courseId: string,
   metadata: Record<string, any> = {}
 ): Promise<SupabaseResponse<Conversation>> => {
   try {
     // Convertir courseId a INTEGER si viene como string
     const courseIdInt = typeof courseId === 'string' ? parseInt(courseId, 10) : courseId;
-    
+
     if (isNaN(courseIdInt)) {
       throw new Error(`Invalid course ID: ${courseId}`);
     }
@@ -37,7 +35,7 @@ export const saveConversation = async (
       .insert({
         student_id: studentId,
         course_id: courseIdInt,
-        metadata: metadata || {}
+        metadata: metadata || {},
       })
       .select()
       .single();
@@ -51,22 +49,24 @@ export const saveConversation = async (
         courseId: data.course_id.toString(),
         startedAt: new Date(data.created_at),
         lastActivityAt: new Date(data.updated_at),
-        metadata: data.metadata || {}
+        metadata: data.metadata || {},
       },
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error saving conversation:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
 
-export const loadConversation = async (conversationId: string): Promise<SupabaseResponse<Conversation>> => {
+export const loadConversation = async (
+  conversationId: string
+): Promise<SupabaseResponse<Conversation>> => {
   try {
     const { data, error } = await supabase
       .from('tutor_conversations')
@@ -83,17 +83,17 @@ export const loadConversation = async (conversationId: string): Promise<Supabase
         courseId: data.course_id.toString(),
         startedAt: new Date(data.created_at),
         lastActivityAt: new Date(data.updated_at),
-        metadata: data.metadata || {}
+        metadata: data.metadata || {},
       },
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error loading conversation:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
@@ -131,7 +131,7 @@ export const saveMessage = async (
         role,
         content,
         audio_url: audioUrl,
-        metadata
+        metadata,
       })
       .select()
       .single();
@@ -145,17 +145,17 @@ export const saveMessage = async (
         text: data.content,
         audioUrl: data.audio_url,
         timestamp: new Date(data.created_at),
-        metadata: data.metadata || {}
+        metadata: data.metadata || {},
       },
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error saving message:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
@@ -174,26 +174,26 @@ export const getConversationHistory = async (
 
     if (error) throw error;
 
-    const messages: ChatMessage[] = data.map(msg => ({
+    const messages: ChatMessage[] = data.map((msg) => ({
       id: msg.id,
       role: msg.role as 'user' | 'assistant' | 'system',
       text: msg.content,
       audioUrl: msg.audio_url,
       timestamp: new Date(msg.created_at),
-      metadata: msg.metadata || {}
+      metadata: msg.metadata || {},
     }));
 
     return {
       data: messages,
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error loading conversation history:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
@@ -202,7 +202,9 @@ export const getConversationHistory = async (
 // Configuración Pedagógica
 // =====================================================
 
-export const getPedagogicalSettings = async (courseId: string): Promise<SupabaseResponse<PedagogicalSettings>> => {
+export const getPedagogicalSettings = async (
+  courseId: string
+): Promise<SupabaseResponse<PedagogicalSettings>> => {
   try {
     const { data, error } = await supabase
       .from('course_pedagogical_settings')
@@ -217,7 +219,7 @@ export const getPedagogicalSettings = async (courseId: string): Promise<Supabase
       return {
         data: null,
         error: null,
-        success: true
+        success: true,
       };
     }
 
@@ -233,24 +235,27 @@ export const getPedagogicalSettings = async (courseId: string): Promise<Supabase
         encourageQuestions: data.encourage_questions,
         voiceName: data.voice_name,
         voiceSpeed: data.voice_speed,
+        enableAudioResponse: data.enable_audio_response ?? true,
         systemPromptOverride: data.system_prompt_override,
         createdAt: new Date(data.created_at),
-        updatedAt: new Date(data.updated_at)
+        updatedAt: new Date(data.updated_at),
       },
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error loading pedagogical settings:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
 
-export const savePedagogicalSettings = async (settings: Omit<PedagogicalSettings, 'id' | 'createdAt' | 'updatedAt'>): Promise<SupabaseResponse<PedagogicalSettings>> => {
+export const savePedagogicalSettings = async (
+  settings: Omit<PedagogicalSettings, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<SupabaseResponse<PedagogicalSettings>> => {
   try {
     const { data, error } = await supabase
       .from('course_pedagogical_settings')
@@ -265,7 +270,7 @@ export const savePedagogicalSettings = async (settings: Omit<PedagogicalSettings
         voice_name: settings.voiceName,
         voice_speed: settings.voiceSpeed,
         system_prompt_override: settings.systemPromptOverride,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .select()
       .single();
@@ -284,19 +289,20 @@ export const savePedagogicalSettings = async (settings: Omit<PedagogicalSettings
         encourageQuestions: data.encourage_questions,
         voiceName: data.voice_name,
         voiceSpeed: data.voice_speed,
+        enableAudioResponse: data.enable_audio_response ?? true,
         systemPromptOverride: data.system_prompt_override,
         createdAt: new Date(data.created_at),
-        updatedAt: new Date(data.updated_at)
+        updatedAt: new Date(data.updated_at),
       },
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error saving pedagogical settings:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
@@ -305,7 +311,10 @@ export const savePedagogicalSettings = async (settings: Omit<PedagogicalSettings
 // Perfil del Estudiante
 // =====================================================
 
-export const getStudentProfile = async (studentId: string, courseId: string): Promise<SupabaseResponse<StudentProfile>> => {
+export const getStudentProfile = async (
+  studentId: string,
+  courseId: string
+): Promise<SupabaseResponse<StudentProfile>> => {
   try {
     const { data, error } = await supabase
       .from('student_learning_profiles')
@@ -327,10 +336,10 @@ export const getStudentProfile = async (studentId: string, courseId: string): Pr
             avgSessionDuration: 0,
             topicsStruggled: [],
             topicsMastered: [],
-            lastUpdated: new Date()
+            lastUpdated: new Date(),
           },
           error: null,
-          success: true
+          success: true,
         };
       }
       throw error;
@@ -346,24 +355,24 @@ export const getStudentProfile = async (studentId: string, courseId: string): Pr
         avgSessionDuration: data.avg_session_duration || 0,
         topicsStruggled: data.topics_struggled || [],
         topicsMastered: data.topics_mastered || [],
-        lastUpdated: new Date(data.updated_at || data.created_at)
+        lastUpdated: new Date(data.updated_at || data.created_at),
       },
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error loading student profile:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
 
 export const updateStudentProfile = async (
-  studentId: string, 
-  courseId: string, 
+  studentId: string,
+  courseId: string,
   updates: Partial<Omit<StudentProfile, 'id' | 'studentId' | 'courseId' | 'lastUpdated'>>
 ): Promise<SupabaseResponse<StudentProfile>> => {
   try {
@@ -379,7 +388,7 @@ export const updateStudentProfile = async (
       course_id: courseIdInt,
       preferred_learning_style: updates.preferredLearningStyle || 'visual',
       topics_struggled: updates.topicsStruggled || [],
-      topics_mastered: updates.topicsMastered || []
+      topics_mastered: updates.topicsMastered || [],
     };
 
     // Solo agregar campos opcionales si están definidos
@@ -392,9 +401,9 @@ export const updateStudentProfile = async (
 
     const { data, error } = await supabase
       .from('student_learning_profiles')
-      .upsert(upsertData, { 
+      .upsert(upsertData, {
         onConflict: 'student_id,course_id',
-        ignoreDuplicates: false 
+        ignoreDuplicates: false,
       })
       .select()
       .single();
@@ -408,7 +417,7 @@ export const updateStudentProfile = async (
           course_id: courseId,
           preferred_learning_style: updates.preferredLearningStyle || 'visual',
           topics_struggled: updates.topicsStruggled || [],
-          topics_mastered: updates.topicsMastered || []
+          topics_mastered: updates.topicsMastered || [],
         };
 
         const { data: basicResult, error: basicError } = await supabase
@@ -429,10 +438,10 @@ export const updateStudentProfile = async (
             avgSessionDuration: 0,
             topicsStruggled: basicResult.topics_struggled || [],
             topicsMastered: basicResult.topics_mastered || [],
-            lastUpdated: new Date(basicResult.updated_at || basicResult.created_at)
+            lastUpdated: new Date(basicResult.updated_at || basicResult.created_at),
           },
           error: null,
-          success: true
+          success: true,
         };
       }
       throw error;
@@ -448,17 +457,17 @@ export const updateStudentProfile = async (
         avgSessionDuration: data.avg_session_duration || 0,
         topicsStruggled: data.topics_struggled || [],
         topicsMastered: data.topics_mastered || [],
-        lastUpdated: new Date(data.last_updated || data.updated_at || data.created_at)
+        lastUpdated: new Date(data.last_updated || data.updated_at || data.created_at),
       },
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error updating student profile:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
@@ -467,7 +476,9 @@ export const updateStudentProfile = async (
 // Escalas de Calificación
 // =====================================================
 
-export const getGradingScale = async (courseId: string): Promise<SupabaseResponse<GradingScale>> => {
+export const getGradingScale = async (
+  courseId: string
+): Promise<SupabaseResponse<GradingScale>> => {
   try {
     const { data, error } = await supabase
       .from('course_grading_scales')
@@ -482,7 +493,7 @@ export const getGradingScale = async (courseId: string): Promise<SupabaseRespons
       return {
         data: null,
         error: null,
-        success: true
+        success: true,
       };
     }
 
@@ -499,17 +510,17 @@ export const getGradingScale = async (courseId: string): Promise<SupabaseRespons
         roundingRule: data.rounding_rule,
         showPercentage: data.show_percentage,
         createdAt: new Date(data.created_at),
-        updatedAt: new Date(data.updated_at)
+        updatedAt: new Date(data.updated_at),
       },
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error loading grading scale:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
@@ -518,7 +529,9 @@ export const getGradingScale = async (courseId: string): Promise<SupabaseRespons
 // Escalas de Calificación (versión actualizada)
 // =====================================================
 
-export const saveGradingScale = async (gradingScale: Omit<GradingScale, 'id' | 'createdAt' | 'updatedAt'>): Promise<SupabaseResponse<GradingScale>> => {
+export const saveGradingScale = async (
+  gradingScale: Omit<GradingScale, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<SupabaseResponse<GradingScale>> => {
   try {
     const { data, error } = await supabase
       .from('course_grading_scales')
@@ -527,7 +540,7 @@ export const saveGradingScale = async (gradingScale: Omit<GradingScale, 'id' | '
         teacher_id: gradingScale.teacherId,
         name: gradingScale.name,
         scale: gradingScale.scale,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .select()
       .single();
@@ -539,20 +552,27 @@ export const saveGradingScale = async (gradingScale: Omit<GradingScale, 'id' | '
         id: data.id,
         courseId: data.course_id,
         teacherId: data.teacher_id,
+        scaleType: 'numeric',
+        minScore: 0,
+        maxScore: 100,
+        passingScore: 60,
+        scaleDefinition: [],
+        roundingRule: 'nearest',
+        showPercentage: true,
         name: data.name,
         scale: data.scale,
         createdAt: new Date(data.created_at),
-        updatedAt: new Date(data.updated_at)
+        updatedAt: new Date(data.updated_at),
       },
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error saving grading scale:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
@@ -582,7 +602,7 @@ export const uploadCourseImage = async (
         file_size_bytes: fileSizeBytes,
         mime_type: mimeType,
         alt_text: altText,
-        metadata
+        metadata,
       })
       .select()
       .single();
@@ -600,22 +620,24 @@ export const uploadCourseImage = async (
         mimeType: data.mime_type,
         altText: data.alt_text,
         metadata: data.metadata || {},
-        createdAt: new Date(data.created_at)
+        createdAt: new Date(data.created_at),
       },
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error uploading course image:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
 
-export const getCourseImages = async (courseId: string): Promise<SupabaseResponse<CourseImage[]>> => {
+export const getCourseImages = async (
+  courseId: string
+): Promise<SupabaseResponse<CourseImage[]>> => {
   try {
     const { data, error } = await supabase
       .from('course_images')
@@ -625,7 +647,7 @@ export const getCourseImages = async (courseId: string): Promise<SupabaseRespons
 
     if (error) throw error;
 
-    const images: CourseImage[] = data.map(img => ({
+    const images: CourseImage[] = data.map((img) => ({
       id: img.id,
       courseId: img.course_id,
       uploadedBy: img.uploaded_by,
@@ -635,20 +657,20 @@ export const getCourseImages = async (courseId: string): Promise<SupabaseRespons
       mimeType: img.mime_type,
       altText: img.alt_text,
       metadata: img.metadata || {},
-      createdAt: new Date(img.created_at)
+      createdAt: new Date(img.created_at),
     }));
 
     return {
       data: images,
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error loading course images:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
@@ -670,14 +692,14 @@ export const getCourseMaterials = async (courseId: string): Promise<SupabaseResp
     return {
       data: data || [],
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error loading course materials:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
@@ -699,7 +721,7 @@ export const saveCourseMaterial = async (
         content,
         type,
         file_url: fileUrl,
-        metadata
+        metadata,
       })
       .select()
       .single();
@@ -709,14 +731,14 @@ export const saveCourseMaterial = async (
     return {
       data,
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error saving course material:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
@@ -742,7 +764,7 @@ export const saveUsageMetric = async (
         course_id: courseId,
         metric_type: metricType,
         metric_value: metricValue,
-        metadata
+        metadata,
       })
       .select()
       .single();
@@ -752,14 +774,14 @@ export const saveUsageMetric = async (
     return {
       data,
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error saving usage metric:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
@@ -793,14 +815,14 @@ export const getUsageMetrics = async (
     return {
       data: data || [],
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error loading usage metrics:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
@@ -826,14 +848,14 @@ export const getAgentConfiguration = async (
     return {
       data,
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error loading agent configuration:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
@@ -852,7 +874,7 @@ export const saveAgentConfiguration = async (
         agent_type: agentType,
         configuration,
         is_active: isActive,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .select()
       .single();
@@ -862,14 +884,14 @@ export const saveAgentConfiguration = async (
     return {
       data,
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error saving agent configuration:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
@@ -878,17 +900,19 @@ export const saveAgentConfiguration = async (
 // Funciones de Utilidad
 // =====================================================
 
-export const getCourseContext = async (courseId: string): Promise<SupabaseResponse<CourseContext>> => {
+export const getCourseContext = async (
+  courseId: string
+): Promise<SupabaseResponse<CourseContext>> => {
   try {
     // Obtener configuración pedagógica
     const pedagogicalResponse = await getPedagogicalSettings(courseId);
-    
+
     // Obtener escala de calificación
     const gradingResponse = await getGradingScale(courseId);
-    
+
     // Obtener materiales del curso
     const materialsResponse = await getCourseMaterials(courseId);
-    
+
     // Obtener imágenes del curso
     const imagesResponse = await getCourseImages(courseId);
 
@@ -896,31 +920,28 @@ export const getCourseContext = async (courseId: string): Promise<SupabaseRespon
       pedagogicalSettings: pedagogicalResponse.data,
       gradingScale: gradingResponse.data,
       materials: materialsResponse.data || [],
-      images: imagesResponse.data || []
+      images: imagesResponse.data || [],
     };
 
     return {
       data: courseContext,
       error: null,
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error loading course context:', error);
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
     };
   }
 };
 
 export const healthCheck = async (): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('tutor_conversations')
-      .select('count')
-      .limit(1);
-    
+    const { error } = await supabase.from('tutor_conversations').select('count').limit(1);
+
     return !error;
   } catch (error) {
     console.error('Supabase health check failed:', error);

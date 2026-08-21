@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authAPI } from '@/services/api';
@@ -40,7 +39,7 @@ const cacheUser = (user: User): void => {
   try {
     const cacheData: CachedUserData = {
       user,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
     localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
     localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
@@ -102,7 +101,7 @@ const createBasicUser = (sessionUser: any): User => {
   const cachedUser = getCachedUser();
   const role = cachedUser?.role || {
     id: 3,
-    name: 'student'
+    name: 'student',
   };
 
   return {
@@ -115,13 +114,15 @@ const createBasicUser = (sessionUser: any): User => {
     avatar_url: sessionUser.user_metadata?.avatar_url || null,
     role: role,
     created_at: sessionUser.created_at,
-    updated_at: sessionUser.updated_at || sessionUser.created_at
+    updated_at: sessionUser.updated_at || sessionUser.created_at,
   };
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [menuFeatures, setMenuFeatures] = useState<import('../services/menuFeatureService').MenuFeature[]>([]);
+  const [menuFeatures, setMenuFeatures] = useState<
+    import('../services/menuFeatureService').MenuFeature[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const initCompleteRef = React.useRef(false);
   const pendingSessionRef = React.useRef<any>(null);
@@ -151,11 +152,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const { data, error: queryError } = await supabase
         .from('users')
-        .select(`
+        .select(
+          `
           id, email, first_name, last_name, identity_document, identity_document_type,
           avatar_url, created_at, updated_at, role_id,
           role:roles(id, name)
-        `)
+        `
+        )
         .eq('id', userId)
         .single();
 
@@ -178,7 +181,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
           userData = {
             ...userResponse.data,
-            role: roleResponse.data
+            role: roleResponse.data,
           };
           error = null;
         }
@@ -206,7 +209,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           role: Array.isArray(roleData) ? roleData[0] : roleData,
           institution_id: instData?.institution_id,
           created_at: userData.created_at,
-          updated_at: userData.updated_at
+          updated_at: userData.updated_at,
         };
 
         setUser(updatedUser);
@@ -225,11 +228,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setUser(cachedUser);
           setLoading(false);
           initCompleteRef.current = true;
-          validateAndUpdateUser(cachedUser.id).catch(() => { });
+          validateAndUpdateUser(cachedUser.id).catch(() => {});
           return;
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!session) {
           setLoading(false);
           initCompleteRef.current = true;
@@ -247,7 +252,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐 Auth state changed:', event, !!session);
 
       if (!initCompleteRef.current) {
@@ -295,7 +302,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setUser(cacheData.user);
               }
             }
-          } catch { }
+          } catch {}
         }
       }
     };
@@ -350,18 +357,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      loading,
-      isAuthenticated,
-      login,
-      logout,
-      register,
-      refreshUser,
-      updateUser,
-      menuFeatures,
-      refreshMenuFeatures
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        isAuthenticated,
+        login,
+        logout,
+        register,
+        refreshUser,
+        updateUser,
+        menuFeatures,
+        refreshMenuFeatures,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

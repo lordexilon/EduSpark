@@ -56,10 +56,13 @@ export async function getCostMetrics(filters?: {
   userId?: string;
 }): Promise<CostMetrics> {
   try {
-    let query = supabase.from('tutor_interactions').select('cost, course_id, student_id, created_at');
+    let query = supabase
+      .from('tutor_interactions')
+      .select('cost, course_id, student_id, created_at');
 
     if (filters?.courseId) {
-      const courseIdNum = typeof filters.courseId === 'string' ? parseInt(filters.courseId, 10) : filters.courseId;
+      const courseIdNum =
+        typeof filters.courseId === 'string' ? parseInt(filters.courseId, 10) : filters.courseId;
       query = query.eq('course_id', courseIdNum);
     }
 
@@ -86,32 +89,14 @@ export async function getCostMetrics(filters?: {
     const monthAgo = new Date(today);
     monthAgo.setMonth(monthAgo.getMonth() - 1);
 
-    const todayInteractions = interactions?.filter(
-      (i) => new Date(i.created_at) >= today
-    ) || [];
-    const weekInteractions = interactions?.filter(
-      (i) => new Date(i.created_at) >= weekAgo
-    ) || [];
-    const monthInteractions = interactions?.filter(
-      (i) => new Date(i.created_at) >= monthAgo
-    ) || [];
+    const todayInteractions = interactions?.filter((i) => new Date(i.created_at) >= today) || [];
+    const weekInteractions = interactions?.filter((i) => new Date(i.created_at) >= weekAgo) || [];
+    const monthInteractions = interactions?.filter((i) => new Date(i.created_at) >= monthAgo) || [];
 
-    const todayCost = todayInteractions.reduce(
-      (sum, i) => sum + (parseFloat(i.cost) || 0),
-      0
-    );
-    const weekCost = weekInteractions.reduce(
-      (sum, i) => sum + (parseFloat(i.cost) || 0),
-      0
-    );
-    const monthCost = monthInteractions.reduce(
-      (sum, i) => sum + (parseFloat(i.cost) || 0),
-      0
-    );
-    const totalCost = interactions?.reduce(
-      (sum, i) => sum + (parseFloat(i.cost) || 0),
-      0
-    ) || 0;
+    const todayCost = todayInteractions.reduce((sum, i) => sum + (parseFloat(i.cost) || 0), 0);
+    const weekCost = weekInteractions.reduce((sum, i) => sum + (parseFloat(i.cost) || 0), 0);
+    const monthCost = monthInteractions.reduce((sum, i) => sum + (parseFloat(i.cost) || 0), 0);
+    const totalCost = interactions?.reduce((sum, i) => sum + (parseFloat(i.cost) || 0), 0) || 0;
 
     // Costos por curso
     const courseCosts = new Map<string, { courseId: string; cost: number }>();
@@ -134,8 +119,7 @@ export async function getCostMetrics(filters?: {
     const byCourse = Array.from(courseCosts.values())
       .map((cc) => ({
         courseId: cc.courseId,
-        courseTitle:
-          courses?.find((c) => c.id === cc.courseId)?.title || 'Curso desconocido',
+        courseTitle: courses?.find((c) => c.id === cc.courseId)?.title || 'Curso desconocido',
         cost: cc.cost,
       }))
       .sort((a, b) => b.cost - a.cost);
@@ -163,9 +147,7 @@ export async function getCostMetrics(filters?: {
         const user = users?.find((u) => u.id === uc.userId);
         return {
           userId: uc.userId,
-          userName: user
-            ? `${user.first_name} ${user.last_name}`
-            : 'Usuario desconocido',
+          userName: user ? `${user.first_name} ${user.last_name}` : 'Usuario desconocido',
           cost: uc.cost,
         };
       })
@@ -243,9 +225,7 @@ export async function getCourseBudgetLimit(courseId: string | number): Promise<n
   try {
     const limits = await getUsageLimits(courseId);
     // Buscar límite de costo mensual para el curso (sin usuario específico)
-    const monthlyLimit = limits.find(
-      l => l.limit_type === 'monthly_cost' && l.user_id === null
-    );
+    const monthlyLimit = limits.find((l) => l.limit_type === 'monthly_cost' && l.user_id === null);
     return monthlyLimit ? monthlyLimit.limit_value : null;
   } catch (error) {
     console.error('Error getting course budget limit:', error);
@@ -256,11 +236,13 @@ export async function getCourseBudgetLimit(courseId: string | number): Promise<n
 /**
  * Crea o actualiza un límite de uso
  */
-export async function setUsageLimit(
-  limit: Omit<UsageLimit, 'id'>
-): Promise<UsageLimit> {
+export async function setUsageLimit(limit: Omit<UsageLimit, 'id'>): Promise<UsageLimit> {
   try {
-    const courseIdNum = limit.course_id ? (typeof limit.course_id === 'string' ? parseInt(limit.course_id, 10) : limit.course_id) : null;
+    const courseIdNum = limit.course_id
+      ? typeof limit.course_id === 'string'
+        ? parseInt(limit.course_id, 10)
+        : limit.course_id
+      : null;
 
     // Verificar si ya existe un límite similar
     let query = supabase
@@ -372,12 +354,15 @@ export async function checkLimitExceeded(
 
         const metrics = await getCostMetrics({
           startDate,
-          courseId: limit.course_id ? (typeof limit.course_id === 'string' ? parseInt(limit.course_id, 10) : limit.course_id) : undefined,
+          courseId: limit.course_id
+            ? typeof limit.course_id === 'string'
+              ? parseInt(limit.course_id, 10)
+              : limit.course_id
+            : undefined,
           userId: limit.user_id || undefined,
         });
 
-        current =
-          limit.limit_type === 'daily_cost' ? metrics.today : metrics.thisMonth;
+        current = limit.limit_type === 'daily_cost' ? metrics.today : metrics.thisMonth;
       } else {
         // Para límites de tokens, necesitaríamos calcular tokens usados
         // Por ahora, retornamos 0

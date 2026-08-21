@@ -2,7 +2,14 @@
 // Componente de gamificación con score visual tipo videojuego
 
 import React from 'react';
-import { IconTrophy, IconBookOpen, IconClipboardCheck, IconAlertCircle, IconCheckCircle, IconCards } from '@/components/Common/Icons';
+import {
+  IconTrophy,
+  IconBookOpen,
+  IconClipboardCheck,
+  IconAlertCircle,
+  IconCheckCircle,
+  IconCards,
+} from '@/components/Common/Icons';
 
 interface GamificationScoreProps {
   totalUnits: number;
@@ -31,29 +38,31 @@ const GamificationScore: React.FC<GamificationScoreProps> = ({
   totalFlashcards = 0,
   completedFlashcards = 0,
   overallProgress,
-  className = ''
+  className = '',
 }) => {
   const pendingUnits = totalUnits - completedUnits;
   const pendingSessions = totalSessions - completedSessions;
   const pendingQuizzes = totalQuizzes - completedQuizzes;
   const pendingFlashcards = totalFlashcards - completedFlashcards;
-  const hasPendingItems = pendingUnits > 0 || pendingSessions > 0 || pendingQuizzes > 0 || pendingFlashcards > 0;
+  const hasPendingItems =
+    pendingUnits > 0 || pendingSessions > 0 || pendingQuizzes > 0 || pendingFlashcards > 0;
 
   // Calcular score (puntos basados en completitud)
   // ⭐ ACTUALIZADO: Incluye flashcards dominadas
   const score = Math.round(
-    (completedUnits * 10) +
-    (completedSessions * 5) +
-    (completedQuizzes * 15) +
-    (completedFlashcards * 8) // ⭐ NUEVO: 8 puntos por flashcard dominada
+    completedUnits * 10 + completedSessions * 5 + completedQuizzes * 15 + completedFlashcards * 8 // ⭐ NUEVO: 8 puntos por flashcard dominada
   );
 
   // Determinar nivel basado en el progreso
   const getLevel = () => {
-    if (overallProgress >= 100) return { level: 'Maestro', color: 'text-yellow-600', bg: 'bg-yellow-100' };
-    if (overallProgress >= 80) return { level: 'Avanzado', color: 'text-purple-600', bg: 'bg-purple-100' };
-    if (overallProgress >= 60) return { level: 'Intermedio', color: 'text-blue-600', bg: 'bg-blue-100' };
-    if (overallProgress >= 40) return { level: 'Principiante', color: 'text-green-600', bg: 'bg-green-100' };
+    if (overallProgress >= 100)
+      return { level: 'Maestro', color: 'text-yellow-600', bg: 'bg-yellow-100' };
+    if (overallProgress >= 80)
+      return { level: 'Avanzado', color: 'text-purple-600', bg: 'bg-purple-100' };
+    if (overallProgress >= 60)
+      return { level: 'Intermedio', color: 'text-blue-600', bg: 'bg-blue-100' };
+    if (overallProgress >= 40)
+      return { level: 'Principiante', color: 'text-green-600', bg: 'bg-green-100' };
     return { level: 'Novato', color: 'text-gray-600', bg: 'bg-gray-100' };
   };
 
@@ -69,7 +78,9 @@ const GamificationScore: React.FC<GamificationScoreProps> = ({
   };
 
   return (
-    <div className={`bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 border-2 border-blue-200 shadow-lg ${className}`}>
+    <div
+      className={`bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 border-2 border-blue-200 shadow-lg ${className}`}
+    >
       {/* Header con Score y Nivel */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
@@ -84,7 +95,9 @@ const GamificationScore: React.FC<GamificationScoreProps> = ({
           <div>
             <h3 className="text-2xl font-bold text-gray-900">Score: {score} pts</h3>
             <div className="flex items-center gap-2 mt-1">
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${levelInfo.bg} ${levelInfo.color}`}>
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-semibold ${levelInfo.bg} ${levelInfo.color}`}
+              >
                 Nivel: {levelInfo.level}
               </span>
             </div>
@@ -113,7 +126,9 @@ const GamificationScore: React.FC<GamificationScoreProps> = ({
       </div>
 
       {/* Estadísticas */}
-      <div className={`grid gap-4 mb-4 ${totalFlashcards > 0 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3'}`}>
+      <div
+        className={`grid gap-4 mb-4 ${totalFlashcards > 0 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3'}`}
+      >
         {/* Unidades */}
         <div className="bg-white rounded-lg p-3 border border-gray-200">
           <div className="flex items-center gap-2 mb-2">
@@ -191,32 +206,34 @@ const GamificationScore: React.FC<GamificationScoreProps> = ({
           <div className="flex items-start gap-3">
             <IconAlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h4 className="text-sm font-semibold text-orange-900 mb-2">
-                Elementos Pendientes
-              </h4>
+              <h4 className="text-sm font-semibold text-orange-900 mb-2">Elementos Pendientes</h4>
               <ul className="space-y-1 text-xs text-orange-800">
                 {pendingUnits > 0 && (
                   <li className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 bg-orange-600 rounded-full"></span>
-                    <strong>{pendingUnits}</strong> unidad{pendingUnits > 1 ? 'es' : ''} sin completar
+                    <strong>{pendingUnits}</strong> unidad{pendingUnits > 1 ? 'es' : ''} sin
+                    completar
                   </li>
                 )}
                 {pendingSessions > 0 && (
                   <li className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 bg-orange-600 rounded-full"></span>
-                    <strong>{pendingSessions}</strong> sesión{pendingSessions > 1 ? 'es' : ''} sin completar
+                    <strong>{pendingSessions}</strong> sesión{pendingSessions > 1 ? 'es' : ''} sin
+                    completar
                   </li>
                 )}
                 {pendingQuizzes > 0 && (
                   <li className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 bg-orange-600 rounded-full"></span>
-                    <strong>{pendingQuizzes}</strong> quiz{pendingQuizzes > 1 ? 'zes' : ''} sin completar
+                    <strong>{pendingQuizzes}</strong> quiz{pendingQuizzes > 1 ? 'zes' : ''} sin
+                    completar
                   </li>
                 )}
                 {pendingFlashcards > 0 && (
                   <li className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 bg-orange-600 rounded-full"></span>
-                    <strong>{pendingFlashcards}</strong> flashcard{pendingFlashcards > 1 ? 's' : ''} sin dominar
+                    <strong>{pendingFlashcards}</strong> flashcard{pendingFlashcards > 1 ? 's' : ''}{' '}
+                    sin dominar
                   </li>
                 )}
               </ul>
@@ -234,9 +251,7 @@ const GamificationScore: React.FC<GamificationScoreProps> = ({
           <div className="flex items-start gap-3">
             <IconCheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h4 className="text-sm font-semibold text-green-900 mb-1">
-                ¡Felicidades! 🎉
-              </h4>
+              <h4 className="text-sm font-semibold text-green-900 mb-1">¡Felicidades! 🎉</h4>
               <p className="text-xs text-green-800">
                 Has completado todos los elementos del curso. ¡Eres un {levelInfo.level}!
               </p>
@@ -249,4 +264,3 @@ const GamificationScore: React.FC<GamificationScoreProps> = ({
 };
 
 export default GamificationScore;
-

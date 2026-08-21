@@ -5,7 +5,9 @@ import { supabase } from '@/lib/supabase';
 
 // Verificar autenticación antes de consultar
 const verifyAuth = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (!session) {
     throw new Error('Usuario no autenticado');
   }
@@ -144,11 +146,7 @@ export const careerService = {
 
   // Obtener carrera por ID
   async getCareer(id: number): Promise<Career | null> {
-    const { data, error } = await supabase
-      .from('careers')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { data, error } = await supabase.from('careers').select('*').eq('id', id).single();
 
     if (error) {
       if (error.code === 'PGRST116') return null;
@@ -159,11 +157,7 @@ export const careerService = {
 
   // Crear nueva carrera
   async createCareer(career: Omit<Career, 'id' | 'created_at' | 'updated_at'>): Promise<Career> {
-    const { data, error } = await supabase
-      .from('careers')
-      .insert([career])
-      .select()
-      .single();
+    const { data, error } = await supabase.from('careers').insert([career]).select().single();
 
     if (error) throw error;
     return data;
@@ -190,7 +184,7 @@ export const careerService = {
       .eq('id', id);
 
     if (error) throw error;
-  }
+  },
 };
 
 // ============================================
@@ -226,11 +220,7 @@ export const subjectService = {
 
   // Obtener materia por ID
   async getSubject(id: number): Promise<Subject | null> {
-    const { data, error } = await supabase
-      .from('subjects')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { data, error } = await supabase.from('subjects').select('*').eq('id', id).single();
 
     if (error) {
       if (error.code === 'PGRST116') return null;
@@ -240,12 +230,10 @@ export const subjectService = {
   },
 
   // Crear nueva materia
-  async createSubject(subject: Omit<Subject, 'id' | 'created_at' | 'updated_at'>): Promise<Subject> {
-    const { data, error } = await supabase
-      .from('subjects')
-      .insert([subject])
-      .select()
-      .single();
+  async createSubject(
+    subject: Omit<Subject, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Subject> {
+    const { data, error } = await supabase.from('subjects').insert([subject]).select().single();
 
     if (error) throw error;
     return data;
@@ -266,13 +254,10 @@ export const subjectService = {
 
   // Eliminar materia
   async deleteSubject(id: number): Promise<void> {
-    const { error } = await supabase
-      .from('subjects')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('subjects').delete().eq('id', id);
 
     if (error) throw error;
-  }
+  },
 };
 
 // ============================================
@@ -282,7 +267,10 @@ export const subjectService = {
 export const careerEnrollmentService = {
   // Obtener matriculaciones de un estudiante
   async getStudentEnrollments(studentId: string): Promise<CareerEnrollment[]> {
-    console.log('🔍 careerEnrollmentService.getStudentEnrollments - Buscando inscripciones para studentId:', studentId);
+    console.log(
+      '🔍 careerEnrollmentService.getStudentEnrollments - Buscando inscripciones para studentId:',
+      studentId
+    );
 
     // Verificar autenticación y obtener auth.uid()
     const authUid = await verifyAuth();
@@ -309,7 +297,10 @@ export const careerEnrollmentService = {
 
     console.log('✅ Inscripciones en carreras encontradas:', data?.length || 0);
     if (data && data.length > 0) {
-      console.log('   Inscripciones:', data.map(e => ({ id: e.id, career_id: e.career_id, status: e.status })));
+      console.log(
+        '   Inscripciones:',
+        data.map((e) => ({ id: e.id, career_id: e.career_id, status: e.status }))
+      );
     }
 
     return data || [];
@@ -328,7 +319,9 @@ export const careerEnrollmentService = {
   },
 
   // Matricular estudiante en carrera
-  async enrollStudent(enrollment: Omit<CareerEnrollment, 'id' | 'created_at' | 'updated_at'>): Promise<CareerEnrollment> {
+  async enrollStudent(
+    enrollment: Omit<CareerEnrollment, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<CareerEnrollment> {
     const { data, error } = await supabase
       .from('career_enrollments')
       .insert([enrollment])
@@ -340,7 +333,10 @@ export const careerEnrollmentService = {
   },
 
   // Actualizar matriculación
-  async updateEnrollment(id: string, updates: Partial<CareerEnrollment>): Promise<CareerEnrollment> {
+  async updateEnrollment(
+    id: string,
+    updates: Partial<CareerEnrollment>
+  ): Promise<CareerEnrollment> {
     const { data, error } = await supabase
       .from('career_enrollments')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -374,13 +370,10 @@ export const careerEnrollmentService = {
 
   // Eliminar completamente la inscripción
   async deleteEnrollment(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('career_enrollments')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('career_enrollments').delete().eq('id', id);
 
     if (error) throw error;
-  }
+  },
 };
 
 // ============================================
@@ -390,7 +383,10 @@ export const careerEnrollmentService = {
 export const courseEnrollmentService = {
   // Obtener inscripciones de un estudiante
   async getStudentEnrollments(studentId: string): Promise<CourseEnrollment[]> {
-    console.log('🔍 courseEnrollmentService.getStudentEnrollments - Buscando inscripciones para studentId:', studentId);
+    console.log(
+      '🔍 courseEnrollmentService.getStudentEnrollments - Buscando inscripciones para studentId:',
+      studentId
+    );
 
     // Verificar autenticación y obtener auth.uid()
     const authUid = await verifyAuth();
@@ -417,7 +413,10 @@ export const courseEnrollmentService = {
 
     console.log('✅ Inscripciones encontradas:', data?.length || 0);
     if (data && data.length > 0) {
-      console.log('   Inscripciones:', data.map(e => ({ id: e.id, course_id: e.course_id, status: e.status })));
+      console.log(
+        '   Inscripciones:',
+        data.map((e) => ({ id: e.id, course_id: e.course_id, status: e.status }))
+      );
     }
 
     return data || [];
@@ -427,14 +426,16 @@ export const courseEnrollmentService = {
   async getCourseStudents(courseId: number): Promise<CourseEnrollment[]> {
     const { data, error } = await supabase
       .from('course_enrollments')
-      .select(`
+      .select(
+        `
         *,
         users!course_enrollments_student_id_fkey (
           first_name,
           last_name,
           email
         )
-      `)
+      `
+      )
       .eq('course_id', courseId)
       .order('enrollment_date', { ascending: false });
 
@@ -458,7 +459,9 @@ export const courseEnrollmentService = {
   },
 
   // Inscribir estudiante en curso
-  async enrollStudent(enrollment: Omit<CourseEnrollment, 'id' | 'created_at' | 'updated_at'>): Promise<CourseEnrollment> {
+  async enrollStudent(
+    enrollment: Omit<CourseEnrollment, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<CourseEnrollment> {
     const { data, error } = await supabase
       .from('course_enrollments')
       .insert([enrollment])
@@ -470,7 +473,10 @@ export const courseEnrollmentService = {
   },
 
   // Actualizar inscripción
-  async updateEnrollment(id: string, updates: Partial<CourseEnrollment>): Promise<CourseEnrollment> {
+  async updateEnrollment(
+    id: string,
+    updates: Partial<CourseEnrollment>
+  ): Promise<CourseEnrollment> {
     const { data, error } = await supabase
       .from('course_enrollments')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -504,13 +510,10 @@ export const courseEnrollmentService = {
 
   // Eliminar completamente la inscripción
   async deleteEnrollment(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('course_enrollments')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('course_enrollments').delete().eq('id', id);
 
     if (error) throw error;
-  }
+  },
 };
 
 // ============================================
@@ -651,7 +654,9 @@ export const subjectAssignmentService = {
   },
 
   // Crear asignación
-  async createAssignment(assignment: Omit<SubjectAssignment, 'id' | 'created_at' | 'updated_at'>): Promise<SubjectAssignment> {
+  async createAssignment(
+    assignment: Omit<SubjectAssignment, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<SubjectAssignment> {
     const { data, error } = await supabase
       .from('subject_assignments')
       .insert([assignment])
@@ -663,7 +668,10 @@ export const subjectAssignmentService = {
   },
 
   // Actualizar asignación
-  async updateAssignment(id: number, updates: Partial<SubjectAssignment>): Promise<SubjectAssignment> {
+  async updateAssignment(
+    id: number,
+    updates: Partial<SubjectAssignment>
+  ): Promise<SubjectAssignment> {
     const { data, error } = await supabase
       .from('subject_assignments')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -677,13 +685,10 @@ export const subjectAssignmentService = {
 
   // Eliminar asignación
   async deleteAssignment(id: number): Promise<void> {
-    const { error } = await supabase
-      .from('subject_assignments')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('subject_assignments').delete().eq('id', id);
 
     if (error) throw error;
-  }
+  },
 };
 
 // ============================================
@@ -691,13 +696,21 @@ export const subjectAssignmentService = {
 // ============================================
 
 export const academicHistoryService = {
-  async getStudentHistory(studentId: string): Promise<Record<number, { status: 'completed' | 'in_progress' | 'available' | 'locked' | 'failed'; grade?: number }>> {
+  async getStudentHistory(
+    studentId: string
+  ): Promise<
+    Record<
+      number,
+      { status: 'completed' | 'in_progress' | 'available' | 'locked' | 'failed'; grade?: number }
+    >
+  > {
     console.log('🔍 academicHistoryService.getStudentHistory - Student:', studentId);
 
     // Obtener inscripciones con detalles del curso y materia
     const { data: enrollments, error } = await supabase
       .from('course_enrollments')
-      .select(`
+      .select(
+        `
         id,
         student_id,
         course_id,
@@ -707,7 +720,8 @@ export const academicHistoryService = {
           id,
           subject_id
         )
-      `)
+      `
+      )
       .eq('student_id', studentId);
 
     if (error) {
@@ -715,7 +729,10 @@ export const academicHistoryService = {
       throw error;
     }
 
-    const history: Record<number, { status: 'completed' | 'in_progress' | 'available' | 'locked' | 'failed'; grade?: number }> = {};
+    const history: Record<
+      number,
+      { status: 'completed' | 'in_progress' | 'available' | 'locked' | 'failed'; grade?: number }
+    > = {};
 
     enrollments?.forEach((enrollment: any) => {
       const subjectId = enrollment.course?.subject_id;
@@ -756,5 +773,5 @@ export const academicHistoryService = {
 
     console.log('✅ Historial procesado:', Object.keys(history).length, 'materias encontradas');
     return history;
-  }
+  },
 };

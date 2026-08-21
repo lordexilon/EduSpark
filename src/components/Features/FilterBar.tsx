@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { IconSearch, IconFilter, IconX } from "@/components/Common/Icons";
-import Button from "@/components/Common/Button";
+import { IconSearch, IconFilter, IconX } from '@/components/Common/Icons';
+import Button from '@/components/Common/Button';
 
 export interface FilterOption {
   value: string;
@@ -47,7 +47,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
   onSortChange,
   onClearFilters,
   hasActiveFilters = false,
-  className = ''
+  className = '',
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -127,9 +127,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
             {/* Ordenamiento */}
             {sortOptions.length > 0 && onSortChange && (
               <div>
-                <label className="block text-sm font-medium text-text-dark mb-1">
-                  Ordenar por
-                </label>
+                <label className="block text-sm font-medium text-text-dark mb-1">Ordenar por</label>
                 <select
                   value={sortValue || ''}
                   onChange={(e) => onSortChange(e.target.value)}
@@ -151,4 +149,3 @@ const FilterBar: React.FC<FilterBarProps> = ({
 };
 
 export default FilterBar;
-

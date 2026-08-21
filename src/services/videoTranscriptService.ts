@@ -28,49 +28,49 @@ interface TranscriptResult {
 
 class YouTubePlatform implements VideoPlatform {
   name = 'youtube' as const;
-  
+
   extractId(url: string): string | null {
     const patterns = [
       /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
       /youtube\.com\/embed\/([^&\n?#]+)/,
       /youtube\.com\/v\/([^&\n?#]+)/,
     ];
-    
+
     for (const pattern of patterns) {
       const match = url.match(pattern);
       if (match) return match[1];
     }
     return null;
   }
-  
+
   async extractTranscript(videoId: string): Promise<string | null> {
     try {
       // Usar la API pública de YouTube para obtener transcripciones
       // Primero intentamos obtener la lista de transcripciones disponibles
       const transcriptUrl = `https://www.youtube.com/api/timedtext?v=${videoId}&lang=es`;
-      
+
       // Intentar obtener transcripción en español primero
       let response = await fetch(transcriptUrl, {
         method: 'GET',
         headers: {
-          'Accept': 'application/xml',
+          Accept: 'application/xml',
         },
       });
-      
+
       if (response.ok) {
         const xml = await response.text();
         return this.parseYouTubeTranscriptXML(xml);
       }
-      
+
       // Si no hay transcripción en español, intentar inglés
       const transcriptUrlEn = `https://www.youtube.com/api/timedtext?v=${videoId}&lang=en`;
       response = await fetch(transcriptUrlEn);
-      
+
       if (response.ok) {
         const xml = await response.text();
         return this.parseYouTubeTranscriptXML(xml);
       }
-      
+
       // Si no hay transcripciones automáticas, intentar con librería de terceros
       // Nota: En producción, esto debería hacerse en un backend/Edge Function
       return await this.extractWithLibrary(videoId);
@@ -79,13 +79,13 @@ class YouTubePlatform implements VideoPlatform {
       return null;
     }
   }
-  
+
   private parseYouTubeTranscriptXML(xml: string): string {
     // Parsear XML de transcripción de YouTube
     const parser = new DOMParser();
     const doc = parser.parseFromString(xml, 'text/xml');
     const texts = doc.querySelectorAll('text');
-    
+
     const transcriptParts: string[] = [];
     texts.forEach((text) => {
       const content = text.textContent?.trim();
@@ -93,10 +93,10 @@ class YouTubePlatform implements VideoPlatform {
         transcriptParts.push(content);
       }
     });
-    
+
     return transcriptParts.join(' ');
   }
-  
+
   private async extractWithLibrary(videoId: string): Promise<string | null> {
     // Para implementación completa, usar una librería como youtube-transcript
     // Por ahora, retornamos null si no hay transcripción automática
@@ -107,12 +107,12 @@ class YouTubePlatform implements VideoPlatform {
 
 class VimeoPlatform implements VideoPlatform {
   name = 'vimeo' as const;
-  
+
   extractId(url: string): string | null {
     const match = url.match(/vimeo\.com\/(\d+)/);
     return match ? match[1] : null;
   }
-  
+
   async extractTranscript(videoId: string): Promise<string | null> {
     try {
       // Vimeo requiere autenticación para obtener transcripciones
@@ -132,11 +132,8 @@ class VimeoPlatform implements VideoPlatform {
 // =====================================================
 
 export class VideoTranscriptService {
-  private platforms: VideoPlatform[] = [
-    new YouTubePlatform(),
-    new VimeoPlatform(),
-  ];
-  
+  private platforms: VideoPlatform[] = [new YouTubePlatform(), new VimeoPlatform()];
+
   /**
    * Detecta la plataforma del video basándose en la URL
    */
@@ -147,20 +144,20 @@ export class VideoTranscriptService {
     }
     return null;
   }
-  
+
   /**
    * Extrae la transcripción de un video y la guarda en la base de datos
    */
   async extractTranscript(materialId: string, url: string): Promise<TranscriptResult> {
     const platform = this.detectPlatform(url);
-    
+
     if (!platform) {
       return {
         success: false,
         error: 'Plataforma de video no soportada o URL inválida',
       };
     }
-    
+
     const videoId = platform.extractId(url);
     if (!videoId) {
       return {
@@ -168,30 +165,31 @@ export class VideoTranscriptService {
         error: 'No se pudo extraer el ID del video',
       };
     }
-    
+
     // Actualizar estado a "processing"
     await this.updateTranscriptionStatus(materialId, 'processing', {
       platform: platform.name,
       videoId,
     });
-    
+
     try {
       const transcript = await platform.extractTranscript(videoId);
-      
+
       if (!transcript) {
         await this.updateTranscriptionStatus(materialId, 'failed');
         return {
           success: false,
-          error: 'No se pudo extraer la transcripción (puede que el video no tenga subtítulos disponibles)',
+          error:
+            'No se pudo extraer la transcripción (puede que el video no tenga subtítulos disponibles)',
         };
       }
-      
+
       // Guardar transcripción en la base de datos
       await this.saveTranscript(materialId, transcript, platform.name, videoId);
-      
+
       // Indexar en RAG
       await this.indexTranscriptInRAG(materialId, transcript);
-      
+
       return {
         success: true,
         transcript,
@@ -206,7 +204,7 @@ export class VideoTranscriptService {
       };
     }
   }
-  
+
   /**
    * Actualiza el estado de la transcripción
    */
@@ -219,27 +217,24 @@ export class VideoTranscriptService {
       const updateData: any = {
         transcription_status: status,
       };
-      
+
       if (metadata) {
         const { data: currentMaterial } = await supabase
           .from('materials')
           .select('transcription_metadata')
           .eq('id', materialId)
           .single();
-        
+
         const currentMetadata = currentMaterial?.transcription_metadata || {};
         updateData.transcription_metadata = { ...currentMetadata, ...metadata };
       }
-      
-      await supabase
-        .from('materials')
-        .update(updateData)
-        .eq('id', materialId);
+
+      await supabase.from('materials').update(updateData).eq('id', materialId);
     } catch (error) {
       console.error('Error actualizando estado de transcripción:', error);
     }
   }
-  
+
   /**
    * Guarda la transcripción en la base de datos
    */
@@ -255,9 +250,9 @@ export class VideoTranscriptService {
         .select('transcription_metadata')
         .eq('id', materialId)
         .single();
-      
+
       const currentMetadata = material?.transcription_metadata || {};
-      
+
       await supabase
         .from('materials')
         .update({
@@ -280,7 +275,7 @@ export class VideoTranscriptService {
       throw error;
     }
   }
-  
+
   /**
    * Indexa la transcripción en el RAG dividiéndola en chunks
    */
@@ -292,23 +287,23 @@ export class VideoTranscriptService {
         .select('course_id, unit_id, session_id, title, metadata')
         .eq('id', materialId)
         .single();
-      
+
       if (materialError || !material) {
         console.error('Error obteniendo material para indexar:', materialError);
         return;
       }
-      
+
       // Dividir transcripción en chunks para RAG
       const chunks = this.splitIntoChunks(transcript, 1000); // 1000 caracteres por chunk
-      
+
       // Generar embeddings y guardar en course_content_chunks
-      
+
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
-        
+
         try {
           const embedding = await generateEmbedding(chunk);
-          
+
           if (embedding && embedding.length > 0) {
             await supabase.from('course_content_chunks').insert({
               course_id: material.course_id,
@@ -325,20 +320,20 @@ export class VideoTranscriptService {
               chunk_index: i,
             });
           }
-          
+
           // Pequeña pausa para no sobrecargar la API
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise((resolve) => setTimeout(resolve, 200));
         } catch (error) {
           console.error(`Error indexando chunk ${i}:`, error);
         }
       }
-      
+
       console.log(`✅ Transcripción indexada en RAG: ${chunks.length} chunks`);
     } catch (error) {
       console.error('Error indexando transcripción en RAG:', error);
     }
   }
-  
+
   /**
    * Divide el texto en chunks para el RAG
    */
@@ -346,7 +341,7 @@ export class VideoTranscriptService {
     const chunks: string[] = [];
     const sentences = text.split(/[.!?]\s+/);
     let currentChunk = '';
-    
+
     for (const sentence of sentences) {
       if ((currentChunk + sentence).length > maxLength && currentChunk) {
         chunks.push(currentChunk.trim());
@@ -355,12 +350,11 @@ export class VideoTranscriptService {
         currentChunk += (currentChunk ? '. ' : '') + sentence;
       }
     }
-    
+
     if (currentChunk) {
       chunks.push(currentChunk.trim());
     }
-    
-    return chunks.filter(chunk => chunk.length > 0);
+
+    return chunks.filter((chunk) => chunk.length > 0);
   }
 }
-

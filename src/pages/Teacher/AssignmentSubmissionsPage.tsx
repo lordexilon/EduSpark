@@ -9,7 +9,14 @@ import { submissionService, AssignmentSubmission } from '@/services/assignments'
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
 import Breadcrumbs from '@/components/Common/Breadcrumbs';
-import { IconArrowLeft, IconCheck, IconX, IconClock, IconFileText, IconUser } from '@/components/Common/Icons';
+import {
+  IconArrowLeft,
+  IconCheck,
+  IconX,
+  IconClock,
+  IconFileText,
+  IconUser,
+} from '@/components/Common/Icons';
 import { RichTextDisplay } from '@/components/Common/RichTextDisplay';
 
 interface SubmissionWithStudent extends AssignmentSubmission {
@@ -48,7 +55,7 @@ export const AssignmentSubmissionsPage: React.FC = () => {
 
       const [assignmentData, submissionsData] = await Promise.all([
         assignmentService.getAssignment(id),
-        submissionService.getAssignmentSubmissions(id)
+        submissionService.getAssignmentSubmissions(id),
       ]);
 
       if (!assignmentData) {
@@ -62,7 +69,7 @@ export const AssignmentSubmissionsPage: React.FC = () => {
       // Inicializar valores de calificación
       const initialGrades: Record<string, string> = {};
       const initialFeedback: Record<string, string> = {};
-      submissionsData.forEach(sub => {
+      submissionsData.forEach((sub) => {
         if (sub.grade !== null && sub.grade !== undefined) {
           initialGrades[sub.id] = sub.grade.toString();
         }
@@ -128,7 +135,10 @@ export const AssignmentSubmissionsPage: React.FC = () => {
 
   const getStudentName = (submission: SubmissionWithStudent) => {
     if (submission.users) {
-      return `${submission.users.first_name} ${submission.users.last_name}`.trim() || submission.users.email;
+      return (
+        `${submission.users.first_name} ${submission.users.last_name}`.trim() ||
+        submission.users.email
+      );
     }
     return 'Estudiante desconocido';
   };
@@ -165,15 +175,13 @@ export const AssignmentSubmissionsPage: React.FC = () => {
           items={[
             { label: 'Dashboard', path: '/teacher/dashboard' },
             { label: 'Tareas', path: '/teacher/assignments' },
-            { label: 'Entregas' }
+            { label: 'Entregas' },
           ]}
         />
         <Card>
           <div className="text-center py-8">
             <p className="text-red-600 mb-4">{error || 'Tarea no encontrada'}</p>
-            <Button onClick={() => navigate('/teacher/assignments')}>
-              Volver a Tareas
-            </Button>
+            <Button onClick={() => navigate('/teacher/assignments')}>Volver a Tareas</Button>
           </div>
         </Card>
       </div>
@@ -187,7 +195,7 @@ export const AssignmentSubmissionsPage: React.FC = () => {
           { label: 'Dashboard', path: '/teacher/dashboard' },
           { label: 'Tareas', path: '/teacher/assignments' },
           { label: assignment.title, path: `/teacher/assignments/${id}` },
-          { label: 'Entregas' }
+          { label: 'Entregas' },
         ]}
       />
 
@@ -259,7 +267,9 @@ export const AssignmentSubmissionsPage: React.FC = () => {
                 {/* Contenido de la entrega */}
                 {submission.text && (
                   <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Respuesta del estudiante:</h4>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                      Respuesta del estudiante:
+                    </h4>
                     <div className="prose prose-sm max-w-none text-gray-700">
                       <RichTextDisplay content={submission.text} />
                     </div>
@@ -295,10 +305,12 @@ export const AssignmentSubmissionsPage: React.FC = () => {
                         max={assignment.max_points}
                         step="0.01"
                         value={gradeValues[submission.id] || ''}
-                        onChange={(e) => setGradeValues({
-                          ...gradeValues,
-                          [submission.id]: e.target.value
-                        })}
+                        onChange={(e) =>
+                          setGradeValues({
+                            ...gradeValues,
+                            [submission.id]: e.target.value,
+                          })
+                        }
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="0.00"
                       />
@@ -309,7 +321,11 @@ export const AssignmentSubmissionsPage: React.FC = () => {
                         disabled={gradingSubmission === submission.id}
                         className="w-full"
                       >
-                        {gradingSubmission === submission.id ? 'Guardando...' : submission.grade !== null ? 'Actualizar Calificación' : 'Calificar'}
+                        {gradingSubmission === submission.id
+                          ? 'Guardando...'
+                          : submission.grade !== null
+                            ? 'Actualizar Calificación'
+                            : 'Calificar'}
                       </Button>
                     </div>
                   </div>
@@ -319,10 +335,12 @@ export const AssignmentSubmissionsPage: React.FC = () => {
                     </label>
                     <textarea
                       value={feedbackValues[submission.id] || ''}
-                      onChange={(e) => setFeedbackValues({
-                        ...feedbackValues,
-                        [submission.id]: e.target.value
-                      })}
+                      onChange={(e) =>
+                        setFeedbackValues({
+                          ...feedbackValues,
+                          [submission.id]: e.target.value,
+                        })
+                      }
                       rows={3}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Escribe comentarios para el estudiante..."
@@ -345,4 +363,3 @@ export const AssignmentSubmissionsPage: React.FC = () => {
 };
 
 export default AssignmentSubmissionsPage;
-

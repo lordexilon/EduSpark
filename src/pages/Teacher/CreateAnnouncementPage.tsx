@@ -11,14 +11,14 @@ import { supabase } from '@/lib/supabase';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
 import Breadcrumbs from '@/components/Common/Breadcrumbs';
-import { 
-  IconArrowLeft, 
-  IconSave, 
+import {
+  IconArrowLeft,
+  IconSave,
   IconAlertTriangle,
   IconBookOpen,
   IconGraduationCap,
   IconUsers,
-  IconUser
+  IconUser,
 } from '@/components/Common/Icons';
 
 const CreateAnnouncementPage: React.FC = () => {
@@ -61,24 +61,21 @@ const CreateAnnouncementPage: React.FC = () => {
   const loadOptions = async () => {
     try {
       setLoadingOptions(true);
-      
+
       // Cargar cursos del profesor
       if (user?.role?.name === 'teacher') {
         const myCourses = await courseService.getMyCourses(user.id);
         setCourses(myCourses);
       } else {
         // Para admins, cargar todos los cursos
-        const { data } = await supabase
-          .from('courses')
-          .select('id, title')
-          .order('title');
-        setCourses(data || []);
+        const { data } = await supabase.from('courses').select('id, title').order('title');
+        setCourses((data as Course[]) || []);
       }
 
       // Cargar carreras
       try {
         const careersData = await careerService.getActiveCareers();
-        setCareers(careersData.map(c => ({ id: c.id, name: c.name })));
+        setCareers(careersData.map((c) => ({ id: c.id, name: c.name })));
       } catch (err) {
         console.error('Error loading careers:', err);
         // Fallback a consulta directa
@@ -90,10 +87,7 @@ const CreateAnnouncementPage: React.FC = () => {
       }
 
       // Cargar roles
-      const { data: rolesData } = await supabase
-        .from('roles')
-        .select('id, name')
-        .order('id');
+      const { data: rolesData } = await supabase.from('roles').select('id, name').order('id');
       setRoles(rolesData || []);
     } catch (err) {
       console.error('Error loading options:', err);
@@ -106,7 +100,7 @@ const CreateAnnouncementPage: React.FC = () => {
     try {
       setLoading(true);
       const myAnnouncements = await announcementService.getMyAnnouncements(user!.id);
-      const announcement = myAnnouncements.find(a => a.id === announcementId);
+      const announcement = myAnnouncements.find((a) => a.id === announcementId);
 
       if (!announcement) {
         setError('Aviso no encontrado');
@@ -121,8 +115,14 @@ const CreateAnnouncementPage: React.FC = () => {
       setTargetRoleId(announcement.target_role_id);
       setPriority(announcement.priority);
       setIsPinned(announcement.is_pinned);
-      setPublishedAt(announcement.published_at ? new Date(announcement.published_at).toISOString().slice(0, 16) : '');
-      setExpiresAt(announcement.expires_at ? new Date(announcement.expires_at).toISOString().slice(0, 16) : '');
+      setPublishedAt(
+        announcement.published_at
+          ? new Date(announcement.published_at).toISOString().slice(0, 16)
+          : ''
+      );
+      setExpiresAt(
+        announcement.expires_at ? new Date(announcement.expires_at).toISOString().slice(0, 16) : ''
+      );
     } catch (err: any) {
       setError('Error al cargar el aviso');
       console.error('Error loading announcement:', err);
@@ -133,7 +133,7 @@ const CreateAnnouncementPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!title.trim() || !content.trim()) {
       setError('El título y el contenido son obligatorios');
       return;
@@ -211,15 +211,15 @@ const CreateAnnouncementPage: React.FC = () => {
     <div className="space-y-6">
       <Breadcrumbs
         items={[
-          { 
-            label: 'Dashboard', 
-            path: user?.role?.name === 'teacher' ? '/teacher/dashboard' : '/dashboard' 
+          {
+            label: 'Dashboard',
+            path: user?.role?.name === 'teacher' ? '/teacher/dashboard' : '/dashboard',
           },
-          { 
-            label: 'Avisos', 
-            path: user?.role?.name === 'teacher' ? '/teacher/announcements' : '/announcements' 
+          {
+            label: 'Avisos',
+            path: user?.role?.name === 'teacher' ? '/teacher/announcements' : '/announcements',
           },
-          { label: isEditing ? 'Editar Aviso' : 'Crear Aviso' }
+          { label: isEditing ? 'Editar Aviso' : 'Crear Aviso' },
         ]}
       />
 
@@ -369,7 +369,9 @@ const CreateAnnouncementPage: React.FC = () => {
                   <select
                     id="course"
                     value={targetCourseId || ''}
-                    onChange={(e) => setTargetCourseId(e.target.value ? parseInt(e.target.value) : undefined)}
+                    onChange={(e) =>
+                      setTargetCourseId(e.target.value ? parseInt(e.target.value) : undefined)
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary/50 outline-none"
                     required={scope === 'course'}
                   >
@@ -391,7 +393,9 @@ const CreateAnnouncementPage: React.FC = () => {
                   <select
                     id="career"
                     value={targetCareerId || ''}
-                    onChange={(e) => setTargetCareerId(e.target.value ? parseInt(e.target.value) : undefined)}
+                    onChange={(e) =>
+                      setTargetCareerId(e.target.value ? parseInt(e.target.value) : undefined)
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary/50 outline-none"
                     required={scope === 'career'}
                   >
@@ -413,7 +417,9 @@ const CreateAnnouncementPage: React.FC = () => {
                   <select
                     id="role"
                     value={targetRoleId || ''}
-                    onChange={(e) => setTargetRoleId(e.target.value ? parseInt(e.target.value) : undefined)}
+                    onChange={(e) =>
+                      setTargetRoleId(e.target.value ? parseInt(e.target.value) : undefined)
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary/50 outline-none"
                     required={scope === 'role'}
                   >
@@ -463,7 +469,10 @@ const CreateAnnouncementPage: React.FC = () => {
             {/* Fechas */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="published_at" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="published_at"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Fecha de Publicación
                 </label>
                 <input
@@ -477,7 +486,10 @@ const CreateAnnouncementPage: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="expires_at" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="expires_at"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Fecha de Expiración
                 </label>
                 <input
@@ -487,24 +499,18 @@ const CreateAnnouncementPage: React.FC = () => {
                   onChange={(e) => setExpiresAt(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary/50 outline-none"
                 />
-                <p className="text-xs text-gray-500 mt-1">Opcional: el aviso dejará de mostrarse después de esta fecha</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Opcional: el aviso dejará de mostrarse después de esta fecha
+                </p>
               </div>
             </div>
 
             {/* Botones */}
             <div className="flex items-center justify-end gap-4 pt-4 border-t border-gray-200">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => navigate(-1)}
-              >
+              <Button type="button" variant="secondary" onClick={() => navigate(-1)}>
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                disabled={saving}
-                leftIcon={<IconSave className="w-5 h-5" />}
-              >
+              <Button type="submit" disabled={saving} leftIcon={<IconSave className="w-5 h-5" />}>
                 {saving ? 'Guardando...' : isEditing ? 'Actualizar Aviso' : 'Crear Aviso'}
               </Button>
             </div>
@@ -516,4 +522,3 @@ const CreateAnnouncementPage: React.FC = () => {
 };
 
 export default CreateAnnouncementPage;
-

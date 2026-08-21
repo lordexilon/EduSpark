@@ -40,7 +40,13 @@ const StudentsManagementPage: React.FC = () => {
   const [showBulkEnrollCourseModal, setShowBulkEnrollCourseModal] = useState(false);
 
   useEffect(() => {
-    if (user?.role?.name === 'admin' || user?.role?.name === 'teacher' || user?.role?.name === 'admin-campus' || user?.role?.name === 'coordinator' || user?.role?.name === 'supervisor') {
+    if (
+      user?.role?.name === 'admin' ||
+      user?.role?.name === 'teacher' ||
+      user?.role?.name === 'admin-campus' ||
+      user?.role?.name === 'coordinator' ||
+      user?.role?.name === 'supervisor'
+    ) {
       // Si necesita filtrar por institución, esperar a que se cargue
       if (shouldFilterByInstitution && institutionLoading) {
         return;
@@ -62,7 +68,9 @@ const StudentsManagementPage: React.FC = () => {
       // Si necesita filtrar por institución, cargar estudiantes filtrados por institución
       let studentsData: Student[] = [];
 
-      console.log(`🔍 StudentsManagementPage: Usuario: ${user?.role?.name}, Institución: ${institution?.name || 'N/A'}, Filtrar por institución: ${shouldFilterByInstitution}`);
+      console.log(
+        `🔍 StudentsManagementPage: Usuario: ${user?.role?.name}, Institución: ${institution?.name || 'N/A'}, Filtrar por institución: ${shouldFilterByInstitution}`
+      );
 
       if (shouldFilterByInstitution && institution) {
         // Obtener el ID del rol de estudiante
@@ -79,7 +87,9 @@ const StudentsManagementPage: React.FC = () => {
         }
 
         // Obtener los IDs de usuarios de la institución
-        console.log(`🔍 StudentsManagementPage: Buscando usuarios de la institución ${institution.name} (ID: ${institution.id})`);
+        console.log(
+          `🔍 StudentsManagementPage: Buscando usuarios de la institución ${institution.name} (ID: ${institution.id})`
+        );
 
         // Para admin-campus, coordinator y supervisor, la política RLS debería filtrar automáticamente
         // La política RLS ya filtra por institution_id = get_user_primary_institution_id()
@@ -94,26 +104,32 @@ const StudentsManagementPage: React.FC = () => {
             code: uiError.code,
             message: uiError.message,
             details: uiError.details,
-            hint: uiError.hint
+            hint: uiError.hint,
           });
           setError('Error al cargar estudiantes de la institución: ' + uiError.message);
           setLoading(false);
           return;
         }
 
-        console.log(`📊 StudentsManagementPage: Total registros obtenidos de user_institutions: ${userInstitutions?.length || 0}`);
+        console.log(
+          `📊 StudentsManagementPage: Total registros obtenidos de user_institutions: ${userInstitutions?.length || 0}`
+        );
         console.log(`📋 StudentsManagementPage: Detalles completos:`, userInstitutions);
 
         // Verificar que todos los registros pertenecen a la institución correcta
         const filteredUserInstitutions = (userInstitutions || []).filter((ui: any) => {
           const matches = ui.institution_id === institution.id;
           if (!matches) {
-            console.warn(`⚠️ StudentsManagementPage: Registro con institution_id=${ui.institution_id} no coincide con ${institution.id}`);
+            console.warn(
+              `⚠️ StudentsManagementPage: Registro con institution_id=${ui.institution_id} no coincide con ${institution.id}`
+            );
           }
           return matches;
         });
 
-        console.log(`📊 StudentsManagementPage: Registros filtrados por institución ${institution.id}: ${filteredUserInstitutions.length}`);
+        console.log(
+          `📊 StudentsManagementPage: Registros filtrados por institución ${institution.id}: ${filteredUserInstitutions.length}`
+        );
 
         if (uiError) {
           console.error('❌ Error obteniendo usuarios de la institución:', uiError);
@@ -122,8 +138,13 @@ const StudentsManagementPage: React.FC = () => {
           return;
         }
 
-        console.log(`📊 StudentsManagementPage: Encontrados ${filteredUserInstitutions?.length || 0} usuarios en la institución ${institution.id}`);
-        console.log(`📋 StudentsManagementPage: Detalles de user_institutions:`, filteredUserInstitutions);
+        console.log(
+          `📊 StudentsManagementPage: Encontrados ${filteredUserInstitutions?.length || 0} usuarios en la institución ${institution.id}`
+        );
+        console.log(
+          `📋 StudentsManagementPage: Detalles de user_institutions:`,
+          filteredUserInstitutions
+        );
 
         const userIds = filteredUserInstitutions.map((ui: any) => ui.user_id);
 
@@ -135,22 +156,29 @@ const StudentsManagementPage: React.FC = () => {
             .in('id', userIds);
 
           if (!usersInfoError && usersInfo) {
-            console.log(`👤 StudentsManagementPage: Usuarios en la institución con sus roles:`, usersInfo.map((u: any) => ({
-              id: u.id,
-              email: u.email,
-              name: `${u.first_name} ${u.last_name}`,
-              role_id: u.role_id,
-              role_name: u.roles?.name
-            })));
+            console.log(
+              `👤 StudentsManagementPage: Usuarios en la institución con sus roles:`,
+              usersInfo.map((u: any) => ({
+                id: u.id,
+                email: u.email,
+                name: `${u.first_name} ${u.last_name}`,
+                role_id: u.role_id,
+                role_name: u.roles?.name,
+              }))
+            );
           }
         }
 
         if (userIds.length === 0) {
-          console.warn(`⚠️ StudentsManagementPage: No hay usuarios en la institución ${institution.name} (ID: ${institution.id})`);
+          console.warn(
+            `⚠️ StudentsManagementPage: No hay usuarios en la institución ${institution.name} (ID: ${institution.id})`
+          );
           studentsData = [];
         } else {
           console.log(`👥 StudentsManagementPage: IDs de usuarios encontrados:`, userIds);
-          console.log(`🔍 StudentsManagementPage: Buscando estudiantes con role_id=${studentRole.id} entre ${userIds.length} usuarios`);
+          console.log(
+            `🔍 StudentsManagementPage: Buscando estudiantes con role_id=${studentRole.id} entre ${userIds.length} usuarios`
+          );
 
           // Obtener los estudiantes de esos usuarios
           const { data, error: studentsError } = await supabase
@@ -166,47 +194,69 @@ const StudentsManagementPage: React.FC = () => {
             throw studentsError;
           }
 
-          console.log(`📋 StudentsManagementPage: Resultado de consulta - Total usuarios consultados: ${userIds.length}, Estudiantes encontrados: ${data?.length || 0}`);
+          console.log(
+            `📋 StudentsManagementPage: Resultado de consulta - Total usuarios consultados: ${userIds.length}, Estudiantes encontrados: ${data?.length || 0}`
+          );
           if (data && data.length === 0) {
             // Si no se encontraron estudiantes, verificar qué roles tienen los usuarios
-            console.log(`⚠️ StudentsManagementPage: No se encontraron estudiantes. Verificando roles de los usuarios...`);
+            console.log(
+              `⚠️ StudentsManagementPage: No se encontraron estudiantes. Verificando roles de los usuarios...`
+            );
             const { data: usersData, error: usersError } = await supabase
               .from('users')
               .select('id, email, first_name, last_name, role_id, roles(name)')
               .in('id', userIds);
 
             if (!usersError && usersData) {
-              console.log(`📋 StudentsManagementPage: Usuarios en la institución con sus roles:`, usersData.map((u: any) => ({
-                id: u.id,
-                email: u.email,
-                name: `${u.first_name} ${u.last_name}`,
-                role_id: u.role_id,
-                role_name: u.roles?.name
-              })));
+              console.log(
+                `📋 StudentsManagementPage: Usuarios en la institución con sus roles:`,
+                usersData.map((u: any) => ({
+                  id: u.id,
+                  email: u.email,
+                  name: `${u.first_name} ${u.last_name}`,
+                  role_id: u.role_id,
+                  role_name: u.roles?.name,
+                }))
+              );
             }
           }
 
           studentsData = (data || []) as Student[];
-          console.log(`✅ StudentsManagementPage: Cargados ${studentsData.length} estudiantes de la institución ${institution.name} (ID: ${institution.id})`);
+          console.log(
+            `✅ StudentsManagementPage: Cargados ${studentsData.length} estudiantes de la institución ${institution.name} (ID: ${institution.id})`
+          );
           if (studentsData.length > 0) {
-            console.log(`📋 StudentsManagementPage: Estudiantes encontrados:`, studentsData.map(s => ({ id: s.id, name: `${s.first_name} ${s.last_name}`, email: s.email })));
+            console.log(
+              `📋 StudentsManagementPage: Estudiantes encontrados:`,
+              studentsData.map((s) => ({
+                id: s.id,
+                name: `${s.first_name} ${s.last_name}`,
+                email: s.email,
+              }))
+            );
           }
         }
       } else if (user?.role?.name === 'admin') {
         // Admin ve todos los estudiantes
         console.log('🔍 StudentsManagementPage: Cargando todos los estudiantes (admin)');
         studentsData = await studentService.getAllStudents();
-        console.log(`✅ StudentsManagementPage: Cargados ${studentsData.length} estudiantes (todos)`);
+        console.log(
+          `✅ StudentsManagementPage: Cargados ${studentsData.length} estudiantes (todos)`
+        );
       } else {
         // Para otros roles sin institución, intentar usar el servicio normal (confía en RLS)
-        console.log(`⚠️ StudentsManagementPage: Usuario ${user?.role?.name} sin institución asignada, intentando cargar estudiantes...`);
+        console.log(
+          `⚠️ StudentsManagementPage: Usuario ${user?.role?.name} sin institución asignada, intentando cargar estudiantes...`
+        );
         studentsData = await studentService.getAllStudents();
-        console.log(`✅ StudentsManagementPage: Cargados ${studentsData.length} estudiantes (filtrados por RLS)`);
+        console.log(
+          `✅ StudentsManagementPage: Cargados ${studentsData.length} estudiantes (filtrados por RLS)`
+        );
       }
 
       const [careersData, coursesData] = await Promise.all([
         careerService.getAllCareers(),
-        courseService.getMyCourses(user!.id).catch(() => [])
+        courseService.getMyCourses(user!.id).catch(() => []),
       ]);
 
       setStudents(studentsData);
@@ -227,7 +277,10 @@ const StudentsManagementPage: React.FC = () => {
       setSelectedStudent(studentWithEnrollments);
 
       // Cargar materias de las carreras del estudiante
-      if (studentWithEnrollments.career_enrollments && studentWithEnrollments.career_enrollments.length > 0) {
+      if (
+        studentWithEnrollments.career_enrollments &&
+        studentWithEnrollments.career_enrollments.length > 0
+      ) {
         const careerIds = studentWithEnrollments.career_enrollments
           .filter((e: any) => e.status === 'active')
           .map((e: any) => e.career_id);
@@ -242,9 +295,9 @@ const StudentsManagementPage: React.FC = () => {
           setSubjects(allSubjects);
 
           // Filtrar cursos por las materias de las carreras del estudiante
-          const subjectIds = allSubjects.map(s => s.id);
-          const filteredCourses = allCourses.filter(course =>
-            course.subject_id && subjectIds.includes(course.subject_id)
+          const subjectIds = allSubjects.map((s) => s.id);
+          const filteredCourses = allCourses.filter(
+            (course) => course.subject_id && subjectIds.includes(course.subject_id)
           );
           setCourses(filteredCourses.length > 0 ? filteredCourses : allCourses);
         } else {
@@ -274,7 +327,7 @@ const StudentsManagementPage: React.FC = () => {
         status: 'active',
         current_semester: 1,
         total_credits_earned: 0,
-        academic_status: 'normal'
+        academic_status: 'normal',
       });
 
       // Recargar datos del estudiante
@@ -301,7 +354,7 @@ const StudentsManagementPage: React.FC = () => {
         attendance_percentage: 0,
         participation_score: 0,
         completion_percentage: 0,
-        time_spent_minutes: 0
+        time_spent_minutes: 0,
       });
 
       // Recargar datos del estudiante
@@ -347,7 +400,12 @@ const StudentsManagementPage: React.FC = () => {
 
   const handleUnenrollCareer = async (enrollmentId: string) => {
     if (!selectedStudent) return;
-    if (!confirm('¿Estás seguro de desmatricular al estudiante de esta carrera? Esta acción no se puede deshacer.')) return;
+    if (
+      !confirm(
+        '¿Estás seguro de desmatricular al estudiante de esta carrera? Esta acción no se puede deshacer.'
+      )
+    )
+      return;
 
     try {
       await careerEnrollmentService.deleteEnrollment(enrollmentId);
@@ -391,7 +449,12 @@ const StudentsManagementPage: React.FC = () => {
 
   const handleUnenrollCourse = async (enrollmentId: string) => {
     if (!selectedStudent) return;
-    if (!confirm('¿Estás seguro de desmatricular al estudiante de este curso? Esta acción no se puede deshacer.')) return;
+    if (
+      !confirm(
+        '¿Estás seguro de desmatricular al estudiante de este curso? Esta acción no se puede deshacer.'
+      )
+    )
+      return;
 
     try {
       await courseEnrollmentService.deleteEnrollment(enrollmentId);
@@ -406,10 +469,8 @@ const StudentsManagementPage: React.FC = () => {
 
   // Bulk Actions
   const toggleSelectStudent = (studentId: string) => {
-    setSelectedStudentIds(prev =>
-      prev.includes(studentId)
-        ? prev.filter(id => id !== studentId)
-        : [...prev, studentId]
+    setSelectedStudentIds((prev) =>
+      prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId]
     );
   };
 
@@ -417,7 +478,7 @@ const StudentsManagementPage: React.FC = () => {
     if (selectedStudentIds.length === filteredStudents.length) {
       setSelectedStudentIds([]);
     } else {
-      setSelectedStudentIds(filteredStudents.map(s => s.id));
+      setSelectedStudentIds(filteredStudents.map((s) => s.id));
     }
   };
 
@@ -435,7 +496,8 @@ const StudentsManagementPage: React.FC = () => {
       const promises = selectedStudentIds.map(async (studentId) => {
         try {
           // Check if already enrolled
-          const existingEnrollments = await careerEnrollmentService.getStudentEnrollments(studentId);
+          const existingEnrollments =
+            await careerEnrollmentService.getStudentEnrollments(studentId);
           const isEnrolled = existingEnrollments.some((e: any) => e.career_id === selectedCareerId);
 
           if (isEnrolled) {
@@ -450,7 +512,7 @@ const StudentsManagementPage: React.FC = () => {
             status: 'active',
             current_semester: 1,
             total_credits_earned: 0,
-            academic_status: 'normal'
+            academic_status: 'normal',
           });
           successCount++;
         } catch (err) {
@@ -461,7 +523,9 @@ const StudentsManagementPage: React.FC = () => {
 
       await Promise.all(promises);
 
-      alert(`Proceso finalizado:\n- Inscritos exitosamente: ${successCount}\n- Omitidos (ya inscritos): ${skippedCount}\n- Errores: ${errorCount}`);
+      alert(
+        `Proceso finalizado:\n- Inscritos exitosamente: ${successCount}\n- Omitidos (ya inscritos): ${skippedCount}\n- Errores: ${errorCount}`
+      );
 
       setShowBulkEnrollCareerModal(false);
       setSelectedCareerId(null);
@@ -489,7 +553,8 @@ const StudentsManagementPage: React.FC = () => {
       const promises = selectedStudentIds.map(async (studentId) => {
         try {
           // Check if already enrolled
-          const existingEnrollments = await courseEnrollmentService.getStudentEnrollments(studentId);
+          const existingEnrollments =
+            await courseEnrollmentService.getStudentEnrollments(studentId);
           const isEnrolled = existingEnrollments.some((e: any) => e.course_id === courseIdInt);
 
           if (isEnrolled) {
@@ -505,7 +570,7 @@ const StudentsManagementPage: React.FC = () => {
             attendance_percentage: 0,
             participation_score: 0,
             completion_percentage: 0,
-            time_spent_minutes: 0
+            time_spent_minutes: 0,
           });
           successCount++;
         } catch (err) {
@@ -516,12 +581,13 @@ const StudentsManagementPage: React.FC = () => {
 
       await Promise.all(promises);
 
-      alert(`Proceso finalizado:\n- Inscritos exitosamente: ${successCount}\n- Omitidos (ya inscritos): ${skippedCount}\n- Errores: ${errorCount}`);
+      alert(
+        `Proceso finalizado:\n- Inscritos exitosamente: ${successCount}\n- Omitidos (ya inscritos): ${skippedCount}\n- Errores: ${errorCount}`
+      );
 
       setShowBulkEnrollCourseModal(false);
       setSelectedCourseId(null);
       setSelectedStudentIds([]); // Clear selection
-
     } catch (err: any) {
       setError(err.message || 'Error en la inscripción masiva');
     } finally {
@@ -529,7 +595,7 @@ const StudentsManagementPage: React.FC = () => {
     }
   };
 
-  const filteredStudents = students.filter(student => {
+  const filteredStudents = students.filter((student) => {
     const query = searchQuery.toLowerCase();
     return (
       student.first_name.toLowerCase().includes(query) ||
@@ -538,7 +604,14 @@ const StudentsManagementPage: React.FC = () => {
     );
   });
 
-  if (!user || (user.role?.name !== 'admin' && user.role?.name !== 'teacher' && user.role?.name !== 'admin-campus' && user.role?.name !== 'coordinator' && user.role?.name !== 'supervisor')) {
+  if (
+    !user ||
+    (user.role?.name !== 'admin' &&
+      user.role?.name !== 'teacher' &&
+      user.role?.name !== 'admin-campus' &&
+      user.role?.name !== 'coordinator' &&
+      user.role?.name !== 'supervisor')
+  ) {
     return (
       <div className="max-w-4xl mx-auto p-6">
         <Card>
@@ -580,7 +653,10 @@ const StudentsManagementPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={selectedStudentIds.length > 0 && selectedStudentIds.length === filteredStudents.length}
+                    checked={
+                      selectedStudentIds.length > 0 &&
+                      selectedStudentIds.length === filteredStudents.length
+                    }
                     onChange={toggleSelectAll}
                     className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                   />
@@ -621,10 +697,11 @@ const StudentsManagementPage: React.FC = () => {
                 {filteredStudents.map((student) => (
                   <div
                     key={student.id}
-                    className={`p-4 border rounded-lg transition-colors flex items-center gap-3 ${selectedStudent?.id === student.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
+                    className={`p-4 border rounded-lg transition-colors flex items-center gap-3 ${
+                      selectedStudent?.id === student.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
                   >
                     <input
                       type="checkbox"
@@ -673,7 +750,9 @@ const StudentsManagementPage: React.FC = () => {
                 <h2 className="text-xl font-bold text-gray-900">Detalles del Estudiante</h2>
                 <div className="mt-4">
                   <p className="text-sm text-gray-600">Nombre</p>
-                  <p className="font-semibold">{selectedStudent.first_name} {selectedStudent.last_name}</p>
+                  <p className="font-semibold">
+                    {selectedStudent.first_name} {selectedStudent.last_name}
+                  </p>
                 </div>
                 <div className="mt-2">
                   <p className="text-sm text-gray-600">Email</p>
@@ -694,24 +773,33 @@ const StudentsManagementPage: React.FC = () => {
                     </Button>
                   )}
                 </div>
-                {selectedStudent.career_enrollments && selectedStudent.career_enrollments.length > 0 ? (
+                {selectedStudent.career_enrollments &&
+                selectedStudent.career_enrollments.length > 0 ? (
                   <div className="space-y-2">
                     {selectedStudent.career_enrollments.map((enrollment: any) => (
                       <div key={enrollment.id} className="p-3 bg-gray-50 rounded text-sm">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <p className="font-medium">
-                              {careers.find(c => c.id === enrollment.career_id)?.name || 'Carrera'}
+                              {careers.find((c) => c.id === enrollment.career_id)?.name ||
+                                'Carrera'}
                             </p>
                             <p className="text-xs text-gray-600">
                               Semestre: {enrollment.current_semester} | Estado:
-                              <span className={`ml-1 px-2 py-0.5 rounded ${enrollment.status === 'active' ? 'bg-green-100 text-green-800' :
-                                enrollment.status === 'suspended' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-gray-100 text-gray-800'
-                                }`}>
-                                {enrollment.status === 'active' ? 'Activo' :
-                                  enrollment.status === 'suspended' ? 'Suspendido' :
-                                    'Inactivo'}
+                              <span
+                                className={`ml-1 px-2 py-0.5 rounded ${
+                                  enrollment.status === 'active'
+                                    ? 'bg-green-100 text-green-800'
+                                    : enrollment.status === 'suspended'
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-gray-100 text-gray-800'
+                                }`}
+                              >
+                                {enrollment.status === 'active'
+                                  ? 'Activo'
+                                  : enrollment.status === 'suspended'
+                                    ? 'Suspendido'
+                                    : 'Inactivo'}
                               </span>
                             </p>
                           </div>
@@ -769,24 +857,32 @@ const StudentsManagementPage: React.FC = () => {
                     </Button>
                   )}
                 </div>
-                {selectedStudent.course_enrollments && selectedStudent.course_enrollments.length > 0 ? (
+                {selectedStudent.course_enrollments &&
+                selectedStudent.course_enrollments.length > 0 ? (
                   <div className="space-y-2">
                     {selectedStudent.course_enrollments.map((enrollment: any) => (
                       <div key={enrollment.id} className="p-3 bg-gray-50 rounded text-sm">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <p className="font-medium">
-                              {courses.find(c => c.id === enrollment.course_id)?.title || 'Curso'}
+                              {courses.find((c) => c.id === enrollment.course_id)?.title || 'Curso'}
                             </p>
                             <p className="text-xs text-gray-600">
                               Progreso: {enrollment.completion_percentage || 0}% | Estado:
-                              <span className={`ml-1 px-2 py-0.5 rounded ${enrollment.status === 'active' ? 'bg-green-100 text-green-800' :
-                                enrollment.status === 'suspended' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-gray-100 text-gray-800'
-                                }`}>
-                                {enrollment.status === 'active' ? 'Activo' :
-                                  enrollment.status === 'suspended' ? 'Suspendido' :
-                                    'Inactivo'}
+                              <span
+                                className={`ml-1 px-2 py-0.5 rounded ${
+                                  enrollment.status === 'active'
+                                    ? 'bg-green-100 text-green-800'
+                                    : enrollment.status === 'suspended'
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-gray-100 text-gray-800'
+                                }`}
+                              >
+                                {enrollment.status === 'active'
+                                  ? 'Activo'
+                                  : enrollment.status === 'suspended'
+                                    ? 'Suspendido'
+                                    : 'Inactivo'}
                               </span>
                             </p>
                           </div>
@@ -847,28 +943,24 @@ const StudentsManagementPage: React.FC = () => {
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-xl font-bold mb-4">Inscribir en Carrera</h3>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Carrera
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Carrera</label>
               <select
                 value={selectedCareerId || ''}
                 onChange={(e) => setSelectedCareerId(parseInt(e.target.value, 10))}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Selecciona una carrera</option>
-                {careers.filter(c => c.is_active).map((career) => (
-                  <option key={career.id} value={career.id}>
-                    {career.name} ({career.code})
-                  </option>
-                ))}
+                {careers
+                  .filter((c) => c.is_active)
+                  .map((career) => (
+                    <option key={career.id} value={career.id}>
+                      {career.name} ({career.code})
+                    </option>
+                  ))}
               </select>
             </div>
             <div className="flex gap-3">
-              <Button
-                onClick={handleEnrollCareer}
-                disabled={!selectedCareerId}
-                className="flex-1"
-              >
+              <Button onClick={handleEnrollCareer} disabled={!selectedCareerId} className="flex-1">
                 Inscribir
               </Button>
               <Button
@@ -893,20 +985,21 @@ const StudentsManagementPage: React.FC = () => {
             <h3 className="text-xl font-bold mb-4">Inscribir en Curso</h3>
 
             {/* Mostrar carreras del estudiante */}
-            {selectedStudent.career_enrollments && selectedStudent.career_enrollments.length > 0 && (
-              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm font-medium text-gray-700 mb-2">Carreras del estudiante:</p>
-                <div className="space-y-1">
-                  {selectedStudent.career_enrollments
-                    .filter((e: any) => e.status === 'active')
-                    .map((enrollment: any) => (
-                      <p key={enrollment.id} className="text-sm text-gray-600">
-                        • {careers.find(c => c.id === enrollment.career_id)?.name || 'Carrera'}
-                      </p>
-                    ))}
+            {selectedStudent.career_enrollments &&
+              selectedStudent.career_enrollments.length > 0 && (
+                <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Carreras del estudiante:</p>
+                  <div className="space-y-1">
+                    {selectedStudent.career_enrollments
+                      .filter((e: any) => e.status === 'active')
+                      .map((enrollment: any) => (
+                        <p key={enrollment.id} className="text-sm text-gray-600">
+                          • {careers.find((c) => c.id === enrollment.career_id)?.name || 'Carrera'}
+                        </p>
+                      ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Filtro por materia (opcional) */}
             {subjects.length > 0 && (
@@ -921,13 +1014,13 @@ const StudentsManagementPage: React.FC = () => {
                     setSelectedSubjectId(subjectId);
                     // Filtrar cursos por materia seleccionada
                     if (subjectId) {
-                      const filtered = allCourses.filter(c => c.subject_id === subjectId);
+                      const filtered = allCourses.filter((c) => c.subject_id === subjectId);
                       setCourses(filtered);
                     } else {
                       // Si no hay filtro, mostrar cursos de todas las materias de las carreras
-                      const subjectIds = subjects.map(s => s.id);
-                      const filtered = allCourses.filter(c =>
-                        c.subject_id && subjectIds.includes(c.subject_id)
+                      const subjectIds = subjects.map((s) => s.id);
+                      const filtered = allCourses.filter(
+                        (c) => c.subject_id && subjectIds.includes(c.subject_id)
                       );
                       setCourses(filtered.length > 0 ? filtered : allCourses);
                     }
@@ -945,9 +1038,7 @@ const StudentsManagementPage: React.FC = () => {
             )}
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Curso
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Curso</label>
               {courses.length === 0 ? (
                 <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <p className="text-sm text-yellow-800">
@@ -964,7 +1055,7 @@ const StudentsManagementPage: React.FC = () => {
                 >
                   <option value="">Selecciona un curso</option>
                   {courses.map((course) => {
-                    const subject = subjects.find(s => s.id === course.subject_id);
+                    const subject = subjects.find((s) => s.id === course.subject_id);
                     return (
                       <option key={course.id} value={String(course.id)}>
                         {course.title} {subject ? `- ${subject.name}` : ''}
@@ -975,11 +1066,7 @@ const StudentsManagementPage: React.FC = () => {
               )}
             </div>
             <div className="flex gap-3">
-              <Button
-                onClick={handleEnrollCourse}
-                disabled={!selectedCourseId}
-                className="flex-1"
-              >
+              <Button onClick={handleEnrollCourse} disabled={!selectedCourseId} className="flex-1">
                 Inscribir
               </Button>
               <Button
@@ -1002,10 +1089,15 @@ const StudentsManagementPage: React.FC = () => {
       {!isSupervisor && showBulkEnrollCourseModal && selectedStudentIds.length > 0 && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4">Inscribir {selectedStudentIds.length} Estudiantes en Curso</h3>
+            <h3 className="text-xl font-bold mb-4">
+              Inscribir {selectedStudentIds.length} Estudiantes en Curso
+            </h3>
 
             <div className="p-3 bg-blue-50 text-blue-800 rounded-lg mb-4 text-sm">
-              <p>ℹ️ Los estudiantes que ya estén inscritos en el curso seleccionado serán omitidos automáticamente.</p>
+              <p>
+                ℹ️ Los estudiantes que ya estén inscritos en el curso seleccionado serán omitidos
+                automáticamente.
+              </p>
             </div>
 
             {/* Filtro por materia (opcional) */}
@@ -1020,7 +1112,7 @@ const StudentsManagementPage: React.FC = () => {
                   setSelectedSubjectId(subjectId);
                   // Filtrar cursos por materia seleccionada
                   if (subjectId) {
-                    const filtered = allCourses.filter(c => c.subject_id === subjectId);
+                    const filtered = allCourses.filter((c) => c.subject_id === subjectId);
                     setCourses(filtered);
                   } else {
                     setCourses(allCourses);
@@ -1040,9 +1132,7 @@ const StudentsManagementPage: React.FC = () => {
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Curso
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Curso</label>
               {courses.length === 0 ? (
                 <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <p className="text-sm text-yellow-800">No hay cursos disponibles.</p>
@@ -1091,27 +1181,32 @@ const StudentsManagementPage: React.FC = () => {
       {!isSupervisor && showBulkEnrollCareerModal && selectedStudentIds.length > 0 && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold mb-4">Inscribir {selectedStudentIds.length} Estudiantes en Carrera</h3>
+            <h3 className="text-xl font-bold mb-4">
+              Inscribir {selectedStudentIds.length} Estudiantes en Carrera
+            </h3>
 
             <div className="p-3 bg-blue-50 text-blue-800 rounded-lg mb-4 text-sm">
-              <p>ℹ️ Los estudiantes que ya estén inscritos en la carrera seleccionada serán omitidos automáticamente.</p>
+              <p>
+                ℹ️ Los estudiantes que ya estén inscritos en la carrera seleccionada serán omitidos
+                automáticamente.
+              </p>
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Carrera
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Carrera</label>
               <select
                 value={selectedCareerId || ''}
                 onChange={(e) => setSelectedCareerId(parseInt(e.target.value, 10))}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Selecciona una carrera</option>
-                {careers.filter(c => c.is_active).map((career) => (
-                  <option key={career.id} value={career.id}>
-                    {career.name} ({career.code})
-                  </option>
-                ))}
+                {careers
+                  .filter((c) => c.is_active)
+                  .map((career) => (
+                    <option key={career.id} value={career.id}>
+                      {career.name} ({career.code})
+                    </option>
+                  ))}
               </select>
             </div>
             <div className="flex gap-3">

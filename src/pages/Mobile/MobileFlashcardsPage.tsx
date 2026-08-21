@@ -2,11 +2,11 @@ import React from 'react';
 import { StudentFlashcardsPage } from '@/pages/Student/StudentFlashcardsPage';
 
 const MobileFlashcardsPage: React.FC = () => {
-    return (
-        <div className="min-h-screen w-full bg-gray-50 pb-safe">
-            <StudentFlashcardsPage />
+  return (
+    <div className="min-h-screen w-full bg-gray-50 pb-safe">
+      <StudentFlashcardsPage />
 
-            <style>{`
+      <style>{`
                 /* Mobile specific overrides for flashcards */
                 .sfp-page {
                     padding: 16px !important;
@@ -17,8 +17,8 @@ const MobileFlashcardsPage: React.FC = () => {
                     margin-top: 10px;
                 }
             `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default MobileFlashcardsPage;

@@ -35,7 +35,7 @@ interface GoogleConfig {
 
 /**
  * Servicio para interactuar con Google Calendar API
- * 
+ *
  * NOTA: Para usar este servicio necesitas:
  * 1. Configurar Google Cloud Project
  * 2. Habilitar Google Calendar API y Google Meet API
@@ -45,7 +45,7 @@ interface GoogleConfig {
 export const googleCalendarService = {
   /**
    * Crea un evento en Google Calendar con Google Meet
-   * 
+   *
    * @param accessToken Token de acceso OAuth del profesor
    * @param params Parámetros del evento
    * @returns Información del evento creado con el enlace de Meet
@@ -76,7 +76,7 @@ export const googleCalendarService = {
         },
         attendees: [
           { email: params.teacherEmail, organizer: true },
-          ...(params.attendees || []).map(email => ({ email })),
+          ...(params.attendees || []).map((email) => ({ email })),
         ],
       };
 
@@ -103,9 +103,8 @@ export const googleCalendarService = {
 
       // Extraer el enlace de Meet
       const meetLink =
-        data.conferenceData?.entryPoints?.find(
-          (entry: any) => entry.entryPointType === 'video'
-        )?.uri || '';
+        data.conferenceData?.entryPoints?.find((entry: any) => entry.entryPointType === 'video')
+          ?.uri || '';
 
       if (!meetLink) {
         throw new Error('No se pudo obtener el enlace de Google Meet');
@@ -151,7 +150,8 @@ export const googleCalendarService = {
       const updatedEvent = {
         ...existingEvent,
         summary: params.title || existingEvent.summary,
-        description: params.description !== undefined ? params.description : existingEvent.description,
+        description:
+          params.description !== undefined ? params.description : existingEvent.description,
         start: params.startTime
           ? {
               dateTime: params.startTime.toISOString(),
@@ -167,7 +167,7 @@ export const googleCalendarService = {
         attendees: params.attendees
           ? [
               { email: params.teacherEmail || existingEvent.organizer.email, organizer: true },
-              ...params.attendees.map(email => ({ email })),
+              ...params.attendees.map((email) => ({ email })),
             ]
           : existingEvent.attendees,
       };
@@ -195,11 +195,12 @@ export const googleCalendarService = {
       const data = await updateResponse.json();
 
       const meetLink =
-        data.conferenceData?.entryPoints?.find(
+        data.conferenceData?.entryPoints?.find((entry: any) => entry.entryPointType === 'video')
+          ?.uri ||
+        existingEvent.conferenceData?.entryPoints?.find(
           (entry: any) => entry.entryPointType === 'video'
-        )?.uri || existingEvent.conferenceData?.entryPoints?.find(
-          (entry: any) => entry.entryPointType === 'video'
-        )?.uri || '';
+        )?.uri ||
+        '';
 
       return {
         eventId: data.id,
@@ -229,9 +230,7 @@ export const googleCalendarService = {
 
       if (!response.ok && response.status !== 404) {
         const error = await response.json();
-        throw new Error(
-          `Error al eliminar evento: ${error.error?.message || response.statusText}`
-        );
+        throw new Error(`Error al eliminar evento: ${error.error?.message || response.statusText}`);
       }
     } catch (error) {
       console.error('Error eliminando evento en Google Calendar:', error);
@@ -266,9 +265,8 @@ export const googleCalendarService = {
       const data = await response.json();
 
       const meetLink =
-        data.conferenceData?.entryPoints?.find(
-          (entry: any) => entry.entryPointType === 'video'
-        )?.uri || '';
+        data.conferenceData?.entryPoints?.find((entry: any) => entry.entryPointType === 'video')
+          ?.uri || '';
 
       return {
         eventId: data.id,
@@ -283,12 +281,13 @@ export const googleCalendarService = {
 
   /**
    * Obtiene la URL de autorización OAuth 2.0 para Google Calendar
-   * 
+   *
    * NOTA: Esto debe implementarse en el backend por seguridad
    */
   getAuthorizationUrl(redirectUri: string, state?: string): string {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
-    const scope = 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events';
+    const scope =
+      'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events';
     const encodedRedirectUri = encodeURIComponent(redirectUri);
     const encodedScope = encodeURIComponent(scope);
     const encodedState = state ? `&state=${encodeURIComponent(state)}` : '';
@@ -306,8 +305,14 @@ export const googleAuthHelper = {
    * Almacena el token de acceso del usuario (debe almacenarse de forma segura)
    * @deprecated Usar googleOAuthService.saveTokens
    */
-  async storeAccessToken(userId: string, accessToken: string, refreshToken?: string): Promise<void> {
-    console.warn('googleAuthHelper.storeAccessToken está deprecado. Usa googleOAuthService.saveTokens');
+  async storeAccessToken(
+    userId: string,
+    accessToken: string,
+    refreshToken?: string
+  ): Promise<void> {
+    console.warn(
+      'googleAuthHelper.storeAccessToken está deprecado. Usa googleOAuthService.saveTokens'
+    );
     // Delegar al nuevo servicio
     await googleOAuthService.saveTokens(
       userId,
@@ -323,7 +328,9 @@ export const googleAuthHelper = {
    * @deprecated Usar googleOAuthService.getAccessToken
    */
   async getAccessToken(userId: string): Promise<string | null> {
-    console.warn('googleAuthHelper.getAccessToken está deprecado. Usa googleOAuthService.getAccessToken');
+    console.warn(
+      'googleAuthHelper.getAccessToken está deprecado. Usa googleOAuthService.getAccessToken'
+    );
     return await googleOAuthService.getAccessToken(userId);
   },
 
@@ -332,7 +339,9 @@ export const googleAuthHelper = {
    * @deprecated Usar googleOAuthService.refreshAccessToken
    */
   async refreshAccessToken(refreshToken: string): Promise<string> {
-    console.warn('googleAuthHelper.refreshAccessToken está deprecado. Usa googleOAuthService.refreshAccessToken');
+    console.warn(
+      'googleAuthHelper.refreshAccessToken está deprecado. Usa googleOAuthService.refreshAccessToken'
+    );
     const result = await googleOAuthService.refreshAccessToken(refreshToken);
     return result.access_token;
   },

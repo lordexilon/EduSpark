@@ -10,36 +10,38 @@
 const detectLanguage = (text: string): 'es' | 'en' => {
   const trimmedText = text.trim();
   if (!trimmedText) return 'es'; // Por defecto español
-  
+
   // Contar caracteres típicos de cada idioma
   const spanishChars = /[áéíóúñüÁÉÍÓÚÑÜ¿¡]/g;
-  const spanishWords = /\b(el|la|los|las|de|del|en|un|una|es|son|con|por|para|que|como|más|muy|también|está|están|hacer|tener|ser|estar|haber|poder|decir|ver|dar|saber|ir|venir|pasar|quedar|deber|parecer|hablar|llevar|dejar|seguir|encontrar|llamar|pensar|salir|volver|tomar|conocer|vivir|sentir|tratar|mirar|contar|empezar|esperar|buscar|existir|entrar|trabajar|escribir|perder|producir|ocurrir|entender|pedir|recordar|terminar|permitir|aparecer|conseguir|servir|sacar|necesitar|mantener|resultar|leer|caer|cambiar|presentar|crear|abrir|considerar|oír|acabar|convertir|ganar|formar|traer|morir|aceptar|realizar|suponer|comprender|lograr|explicar|preguntar|tocar|reconocer|estudiar|alcanzar|nacer|dirigir|correr|utilizar|pagar|ayudar|gustar|jugar|escuchar|continuar|encontrar|sufrir|ofrecer|descubrir|intentar|recibir|mostrar|elegir|abandonar)\b/gi;
-  
+  const spanishWords =
+    /\b(el|la|los|las|de|del|en|un|una|es|son|con|por|para|que|como|más|muy|también|está|están|hacer|tener|ser|estar|haber|poder|decir|ver|dar|saber|ir|venir|pasar|quedar|deber|parecer|hablar|llevar|dejar|seguir|encontrar|llamar|pensar|salir|volver|tomar|conocer|vivir|sentir|tratar|mirar|contar|empezar|esperar|buscar|existir|entrar|trabajar|escribir|perder|producir|ocurrir|entender|pedir|recordar|terminar|permitir|aparecer|conseguir|servir|sacar|necesitar|mantener|resultar|leer|caer|cambiar|presentar|crear|abrir|considerar|oír|acabar|convertir|ganar|formar|traer|morir|aceptar|realizar|suponer|comprender|lograr|explicar|preguntar|tocar|reconocer|estudiar|alcanzar|nacer|dirigir|correr|utilizar|pagar|ayudar|gustar|jugar|escuchar|continuar|encontrar|sufrir|ofrecer|descubrir|intentar|recibir|mostrar|elegir|abandonar)\b/gi;
+
   const spanishMatches = (trimmedText.match(spanishChars) || []).length;
   const spanishWordMatches = (trimmedText.match(spanishWords) || []).length;
-  
+
   // Palabras comunes en inglés
-  const englishWords = /\b(the|a|an|is|are|was|were|be|been|being|have|has|had|having|do|does|did|doing|will|would|should|could|may|might|must|can|this|that|these|those|I|you|he|she|it|we|they|me|him|her|us|them|my|your|his|her|its|our|their|what|which|who|whom|whose|where|when|why|how|all|each|every|both|few|many|other|some|such|no|nor|not|only|own|same|so|than|too|very|just|now|then|more|most|less|least|about|into|through|during|including|against|among|throughout|despite|towards|upon|concerning|to|of|in|for|on|with|at|by|from|up|about|into|through|during|including|against|among|throughout|despite|towards|upon|concerning)\b/gi;
+  const englishWords =
+    /\b(the|a|an|is|are|was|were|be|been|being|have|has|had|having|do|does|did|doing|will|would|should|could|may|might|must|can|this|that|these|those|I|you|he|she|it|we|they|me|him|her|us|them|my|your|his|her|its|our|their|what|which|who|whom|whose|where|when|why|how|all|each|every|both|few|many|other|some|such|no|nor|not|only|own|same|so|than|too|very|just|now|then|more|most|less|least|about|into|through|during|including|against|among|throughout|despite|towards|upon|concerning|to|of|in|for|on|with|at|by|from|up|about|into|through|during|including|against|among|throughout|despite|towards|upon|concerning)\b/gi;
   const englishWordMatches = (trimmedText.match(englishWords) || []).length;
-  
+
   // Puntuación específica de español
   const hasSpanishPunctuation = /[¿¡]/.test(trimmedText);
-  
+
   // Si hay caracteres específicos del español o puntuación española, es español
   if (spanishMatches > 0 || hasSpanishPunctuation) {
     return 'es';
   }
-  
+
   // Si hay más palabras en inglés que en español, es inglés
   if (englishWordMatches > spanishWordMatches && englishWordMatches > 2) {
     return 'en';
   }
-  
+
   // Si hay palabras en español pero no en inglés, es español
   if (spanishWordMatches > 2 && englishWordMatches === 0) {
     return 'es';
   }
-  
+
   // Por defecto, español
   return 'es';
 };
@@ -47,7 +49,7 @@ const detectLanguage = (text: string): 'es' | 'en' => {
 /**
  * Sintetiza texto a voz usando Google Cloud Text-to-Speech API
  * Detecta automáticamente el idioma del texto (español/inglés)
- * 
+ *
  * @param text - Texto a sintetizar
  * @param options - Opciones de voz:
  *   - voiceName: Nombre de la voz (ej: 'es-US-Neural2-A', 'es-ES-Neural2-A', etc.)
@@ -71,7 +73,7 @@ export const synthesizeSpeech = async (
   try {
     // Obtener API key de Google Cloud (puede ser la misma que Gemini o una diferente)
     const apiKey = import.meta.env.VITE_GOOGLE_CLOUD_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
-    
+
     if (!apiKey) {
       console.warn('⚠️ Google Cloud API Key no configurada. Saltando síntesis de voz.');
       return null;
@@ -151,10 +153,12 @@ export const synthesizeSpeech = async (
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('❌ Error en Text-to-Speech API:', errorData);
-      
+
       // Manejar errores específicos
       if (response.status === 403) {
-        console.warn('⚠️ Text-to-Speech API: Error 403 - La API key no tiene permisos o la API no está habilitada');
+        console.warn(
+          '⚠️ Text-to-Speech API: Error 403 - La API key no tiene permisos o la API no está habilitada'
+        );
         console.warn('💡 Para habilitar Text-to-Speech:');
         console.warn('   1. Ve a Google Cloud Console: https://console.cloud.google.com/');
         console.warn('   2. Selecciona tu proyecto');
@@ -164,12 +168,12 @@ export const synthesizeSpeech = async (
         console.warn('   6. O crea una nueva API key específica para Text-to-Speech');
         return null; // Retornar null en lugar de lanzar error
       }
-      
+
       if (response.status === 401) {
         console.warn('⚠️ Text-to-Speech API: Error 401 - API key inválida o expirada');
         return null;
       }
-      
+
       throw new Error(`Text-to-Speech API error: ${response.status} ${response.statusText}`);
     }
 
@@ -188,13 +192,13 @@ export const synthesizeSpeech = async (
     return null;
   } catch (error: any) {
     console.error('❌ Error synthesizing speech:', error);
-    
+
     // Si es un error 403, no es crítico - el sistema puede continuar sin audio
     if (error?.message?.includes('403') || error?.message?.includes('Forbidden')) {
       console.warn('⚠️ Text-to-Speech no disponible - el sistema continuará sin audio');
       return null;
     }
-    
+
     return null;
   }
 };
@@ -205,7 +209,7 @@ export const synthesizeSpeech = async (
 export const listVoices = async (languageCode: string = 'es-ES'): Promise<any[]> => {
   try {
     const apiKey = import.meta.env.VITE_GOOGLE_CLOUD_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
-    
+
     if (!apiKey) {
       console.warn('⚠️ Google Cloud API Key no configurada.');
       return [];
@@ -226,4 +230,3 @@ export const listVoices = async (languageCode: string = 'es-ES'): Promise<any[]>
     return [];
   }
 };
-

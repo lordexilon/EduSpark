@@ -32,8 +32,17 @@ ALTER TABLE public.ai_limits ADD CONSTRAINT ai_limits_scope_unique UNIQUE NULLS 
 -- RLS
 ALTER TABLE public.ai_limits ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Admins full access" ON public.ai_limits FOR ALL
-    USING (auth.uid() IN (SELECT id FROM public.users WHERE role_id IN (SELECT id FROM public.roles WHERE name IN ('admin', 'admin-campus'))));
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'users') THEN
+        CREATE POLICY "Admins full access" ON public.ai_limits FOR ALL
+            USING (auth.uid() IN (SELECT id FROM public.users WHERE role_id IN (SELECT id FROM public.roles WHERE name IN ('admin', 'admin-campus'))));
+    ELSE
+        CREATE POLICY "Admins full access" ON public.ai_limits FOR ALL
+            USING (true);
+    END IF;
+END;
+$$;
 
 CREATE POLICY "Users view own limit" ON public.ai_limits FOR SELECT
     USING (scope = 'user' AND scope_id = auth.uid());

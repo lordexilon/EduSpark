@@ -79,7 +79,9 @@ export class TemporaryFileStorage {
       const request = store.add(tempFile);
 
       request.onsuccess = () => {
-        console.log(`[TemporaryFileStorage] Archivo almacenado temporalmente: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+        console.log(
+          `[TemporaryFileStorage] Archivo almacenado temporalmente: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`
+        );
         resolve({ id, url });
       };
       request.onerror = () => {
@@ -192,7 +194,9 @@ export class TemporaryFileStorage {
           cursor.continue();
         } else {
           if (deletedCount > 0) {
-            console.log(`[TemporaryFileStorage] Limpieza completada: ${deletedCount} archivo(s) expirado(s) eliminado(s)`);
+            console.log(
+              `[TemporaryFileStorage] Limpieza completada: ${deletedCount} archivo(s) expirado(s) eliminado(s)`
+            );
           }
           resolve(deletedCount);
         }
@@ -264,15 +268,20 @@ export const tempFileStorage = new TemporaryFileStorage();
 if (typeof window !== 'undefined') {
   // Inicializar en el siguiente tick para no bloquear
   setTimeout(() => {
-    tempFileStorage.init().then(() => {
-      // Limpiar archivos expirados al iniciar
-      tempFileStorage.cleanupExpired().catch(console.error);
-      
-      // Limpiar cada hora
-      setInterval(() => {
+    tempFileStorage
+      .init()
+      .then(() => {
+        // Limpiar archivos expirados al iniciar
         tempFileStorage.cleanupExpired().catch(console.error);
-      }, 60 * 60 * 1000);
-    }).catch(console.error);
+
+        // Limpiar cada hora
+        setInterval(
+          () => {
+            tempFileStorage.cleanupExpired().catch(console.error);
+          },
+          60 * 60 * 1000
+        );
+      })
+      .catch(console.error);
   }, 100);
 }
-

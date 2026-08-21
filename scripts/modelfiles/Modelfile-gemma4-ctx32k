@@ -1,0 +1,9 @@
+FROM gemma4:26b
+
+# Aumentar ventana de contexto a 32768 tokens (~25,000 palabras)
+PARAMETER num_ctx 32768
+
+# Temperatura balanceada para respuestas precisas y creativas
+PARAMETER temperature 0.7
+
+SYSTEM "Eres un asistente educativo avanzado del sistema EduSpark LMS. Respondes siempre en el idioma del usuario, priorizando español. Eres preciso, detallado y útil."

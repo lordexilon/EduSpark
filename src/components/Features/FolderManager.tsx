@@ -2,8 +2,8 @@
 // Componente para administrar y navegar por carpetas de Google Drive
 
 import React, { useState, useEffect } from 'react';
-import Card from "@/components/Common/Card";
-import Button from "@/components/Common/Button";
+import Card from '@/components/Common/Card';
+import Button from '@/components/Common/Button';
 import { googleDriveService } from '@/services/googleDriveService';
 import {
   Folder,
@@ -19,7 +19,7 @@ import {
   Plus,
   Trash2,
   Unlink,
-  AlertTriangle
+  AlertTriangle,
 } from 'lucide-react';
 
 interface FolderInfo {
@@ -60,7 +60,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
   const [currentFolderId, setCurrentFolderId] = useState<string>(rootFolderId);
   const [currentFolderName, setCurrentFolderName] = useState<string>(rootFolderName);
   const [folderPath, setFolderPath] = useState<Array<{ id: string; name: string }>>([
-    { id: rootFolderId, name: rootFolderName }
+    { id: rootFolderId, name: rootFolderName },
   ]);
   const [folders, setFolders] = useState<FolderInfo[]>([]);
   const [files, setFiles] = useState<FileInfo[]>([]);
@@ -108,7 +108,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
   const navigateToFolder = (folderId: string, folderName: string) => {
     setCurrentFolderId(folderId);
     setCurrentFolderName(folderName);
-    setFolderPath(prev => [...prev, { id: folderId, name: folderName }]);
+    setFolderPath((prev) => [...prev, { id: folderId, name: folderName }]);
     if (onFolderSelect) {
       onFolderSelect(folderId, folderName);
     }
@@ -145,10 +145,18 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
 
   const getFileStatus = (fileId: string) => {
     if (processedFiles.includes(fileId)) {
-      return { icon: <CheckCircle size={16} className="text-green-600" />, text: 'Procesado', color: 'text-green-600' };
+      return {
+        icon: <CheckCircle size={16} className="text-green-600" />,
+        text: 'Procesado',
+        color: 'text-green-600',
+      };
     }
     if (selectedFiles.includes(fileId)) {
-      return { icon: <Clock size={16} className="text-blue-600" />, text: 'Seleccionado', color: 'text-blue-600' };
+      return {
+        icon: <Clock size={16} className="text-blue-600" />,
+        text: 'Seleccionado',
+        color: 'text-blue-600',
+      };
     }
     return null;
   };
@@ -163,7 +171,11 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
       setCreatingFolder(true);
       setError(null);
 
-      const newFolder = await googleDriveService.createFolder(userId, newFolderName.trim(), currentFolderId);
+      const newFolder = await googleDriveService.createFolder(
+        userId,
+        newFolderName.trim(),
+        currentFolderId
+      );
 
       // Recargar contenido
       await loadFolderContent();
@@ -180,12 +192,16 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
   };
 
   const handleDeleteItem = async (itemId: string, itemName: string, isFolder: boolean) => {
-    if (!confirm(`¿Estás seguro de que deseas eliminar ${isFolder ? 'la carpeta' : 'el archivo'} "${itemName}"? Esta acción no se puede deshacer.`)) {
+    if (
+      !confirm(
+        `¿Estás seguro de que deseas eliminar ${isFolder ? 'la carpeta' : 'el archivo'} "${itemName}"? Esta acción no se puede deshacer.`
+      )
+    ) {
       return;
     }
 
     try {
-      setDeletingItems(prev => new Set(prev).add(itemId));
+      setDeletingItems((prev) => new Set(prev).add(itemId));
       setError(null);
 
       await googleDriveService.deleteFileOrFolder(userId, itemId);
@@ -201,7 +217,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
       console.error('Error eliminando item:', err);
       setError(err.message || 'Error al eliminar el item');
     } finally {
-      setDeletingItems(prev => {
+      setDeletingItems((prev) => {
         const newSet = new Set(prev);
         newSet.delete(itemId);
         return newSet;
@@ -226,7 +242,9 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
     <Card>
       <div className="mb-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Administrador de Carpetas</h3>
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+            Administrador de Carpetas
+          </h3>
           <div className="flex items-center space-x-2">
             <Button
               onClick={() => setShowCreateFolder(!showCreateFolder)}
@@ -265,7 +283,9 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
           <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <div className="flex items-center space-x-2 mb-2">
               <Folder size={20} className="text-blue-600 dark:text-blue-400" />
-              <h4 className="font-semibold text-gray-800 dark:text-gray-100">Crear Nueva Carpeta</h4>
+              <h4 className="font-semibold text-gray-800 dark:text-gray-100">
+                Crear Nueva Carpeta
+              </h4>
             </div>
             <div className="flex items-center space-x-2">
               <input
@@ -315,12 +335,18 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
         {showUnlinkConfirm && (
           <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
             <div className="flex items-start space-x-3">
-              <AlertTriangle size={20} className="text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-1" />
+              <AlertTriangle
+                size={20}
+                className="text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-1"
+              />
               <div className="flex-1">
-                <h4 className="font-semibold text-yellow-800 dark:text-yellow-300 mb-2">Desconectar Carpeta</h4>
+                <h4 className="font-semibold text-yellow-800 dark:text-yellow-300 mb-2">
+                  Desconectar Carpeta
+                </h4>
                 <p className="text-sm text-yellow-700 dark:text-yellow-400 mb-3">
-                  ¿Estás seguro de que deseas desconectar esta carpeta? No se eliminará de Google Drive,
-                  pero dejarás de tener acceso desde esta aplicación. Puedes volver a conectarla más tarde.
+                  ¿Estás seguro de que deseas desconectar esta carpeta? No se eliminará de Google
+                  Drive, pero dejarás de tener acceso desde esta aplicación. Puedes volver a
+                  conectarla más tarde.
                 </p>
                 <div className="flex items-center space-x-2">
                   <Button
@@ -330,10 +356,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                   >
                     Sí, Desconectar
                   </Button>
-                  <Button
-                    onClick={() => setShowUnlinkConfirm(false)}
-                    variant="secondary"
-                  >
+                  <Button onClick={() => setShowUnlinkConfirm(false)} variant="secondary">
                     Cancelar
                   </Button>
                 </div>
@@ -356,10 +379,11 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
               <ChevronRight size={16} className="text-gray-400" />
               <button
                 onClick={() => navigateToPath(index)}
-                className={`text-sm ${index === folderPath.length - 1
-                  ? 'text-gray-800 font-semibold'
-                  : 'text-blue-600 hover:text-blue-700'
-                  }`}
+                className={`text-sm ${
+                  index === folderPath.length - 1
+                    ? 'text-gray-800 font-semibold'
+                    : 'text-blue-600 hover:text-blue-700'
+                }`}
               >
                 {folder.name}
               </button>
@@ -371,28 +395,31 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
         <div className="flex items-center space-x-2 mb-4">
           <button
             onClick={() => setViewMode('folders')}
-            className={`px-3 py-1 rounded text-sm ${viewMode === 'folders'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700'
-              }`}
+            className={`px-3 py-1 rounded text-sm ${
+              viewMode === 'folders'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700'
+            }`}
           >
             Solo Carpetas
           </button>
           <button
             onClick={() => setViewMode('files')}
-            className={`px-3 py-1 rounded text-sm ${viewMode === 'files'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700'
-              }`}
+            className={`px-3 py-1 rounded text-sm ${
+              viewMode === 'files'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700'
+            }`}
           >
             Solo Archivos
           </button>
           <button
             onClick={() => setViewMode('both')}
-            className={`px-3 py-1 rounded text-sm ${viewMode === 'both'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700'
-              }`}
+            className={`px-3 py-1 rounded text-sm ${
+              viewMode === 'both'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700'
+            }`}
           >
             Ambos
           </button>
@@ -420,7 +447,9 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                 <span>Carpetas ({folders.length})</span>
               </h4>
               {folders.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No hay subcarpetas en esta carpeta</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
+                  No hay subcarpetas en esta carpeta
+                </p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                   {folders.map((folder) => (
@@ -434,7 +463,9 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                       >
                         <Folder className="text-blue-500 flex-shrink-0" size={20} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{folder.name}</p>
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                            {folder.name}
+                          </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
                             {formatDate(folder.modifiedTime)}
                           </p>
@@ -468,30 +499,38 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                 <span>Archivos PDF/PPT ({files.length})</span>
               </h4>
               {files.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No hay archivos PDF o PPT en esta carpeta</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
+                  No hay archivos PDF o PPT en esta carpeta
+                </p>
               ) : (
                 <div className="space-y-2">
                   {(() => {
                     // Filtrar archivos duplicados (mismo ID)
-                    const uniqueFiles = files.filter((file, index, self) =>
-                      index === self.findIndex(f => f.id === file.id)
+                    const uniqueFiles = files.filter(
+                      (file, index, self) => index === self.findIndex((f) => f.id === file.id)
                     );
                     return uniqueFiles.map((file, index) => {
                       const status = getFileStatus(file.id);
                       return (
                         <div
                           key={`${file.id}-${index}`}
-                          className={`flex items-center justify-between p-3 border rounded-lg ${selectedFiles.includes(file.id)
-                            ? 'border-blue-500 bg-blue-50 dark:border-blue-700/50 dark:bg-blue-900/10'
-                            : processedFiles.includes(file.id)
-                              ? 'border-green-300 bg-green-50 dark:border-green-800/50 dark:bg-green-900/10'
-                              : 'border-gray-200 hover:bg-gray-50 dark:border-gray-700/50 dark:hover:bg-gray-800/30'
-                            }`}
+                          className={`flex items-center justify-between p-3 border rounded-lg ${
+                            selectedFiles.includes(file.id)
+                              ? 'border-blue-500 bg-blue-50 dark:border-blue-700/50 dark:bg-blue-900/10'
+                              : processedFiles.includes(file.id)
+                                ? 'border-green-300 bg-green-50 dark:border-green-800/50 dark:bg-green-900/10'
+                                : 'border-gray-200 hover:bg-gray-50 dark:border-gray-700/50 dark:hover:bg-gray-800/30'
+                          }`}
                         >
                           <div className="flex items-center space-x-3 flex-1 min-w-0">
-                            <FileText className="text-gray-500 dark:text-gray-400 flex-shrink-0" size={20} />
+                            <FileText
+                              className="text-gray-500 dark:text-gray-400 flex-shrink-0"
+                              size={20}
+                            />
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{file.name}</p>
+                              <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                                {file.name}
+                              </p>
                               <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400">
                                 <span>{formatFileSize(file.size)}</span>
                                 <span>•</span>
@@ -517,9 +556,15 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                             )}
                             <button
                               onClick={() => handleDeleteItem(file.id, file.name, false)}
-                              disabled={deletingItems.has(file.id) || processedFiles.includes(file.id)}
+                              disabled={
+                                deletingItems.has(file.id) || processedFiles.includes(file.id)
+                              }
                               className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              title={processedFiles.includes(file.id) ? 'No se puede eliminar un archivo procesado' : 'Eliminar archivo'}
+                              title={
+                                processedFiles.includes(file.id)
+                                  ? 'No se puede eliminar un archivo procesado'
+                                  : 'Eliminar archivo'
+                              }
                             >
                               {deletingItems.has(file.id) ? (
                                 <RefreshCw size={16} className="animate-spin" />
@@ -541,4 +586,3 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
     </Card>
   );
 };
-

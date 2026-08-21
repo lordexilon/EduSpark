@@ -7,11 +7,12 @@ import { VideoPlayer } from './VideoPlayer';
 import { VideoTranscriptService } from '@/services/videoTranscriptService';
 import { DocumentViewer } from './DocumentViewer';
 import SecurePDFViewer from './SecurePDFViewer'; // Visor seguro de PDF
-import { IconBookOpen, IconEye, IconVideoCamera } from "@/components/Common/Icons";
+import { IconBookOpen, IconEye, IconVideoCamera } from '@/components/Common/Icons';
 import { supabase } from '@/lib/supabase';
 
 // URL de la Cloud Function para servir PDFs con restricciones
-const SERVE_PDF_READONLY_URL = import.meta.env.VITE_SERVE_PDF_READONLY_URL || 'https://servepdfreadonly-mcc5aevj6a-uc.a.run.app';
+const SERVE_PDF_READONLY_URL =
+  import.meta.env.VITE_SERVE_PDF_READONLY_URL || 'https://servepdfreadonly-mcc5aevj6a-uc.a.run.app';
 
 interface MaterialDisplayProps {
   material: Material;
@@ -20,7 +21,7 @@ interface MaterialDisplayProps {
 
 export const MaterialDisplay: React.FC<MaterialDisplayProps> = ({
   material,
-  showFullPlayer = false
+  showFullPlayer = false,
 }) => {
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
@@ -48,13 +49,17 @@ export const MaterialDisplay: React.FC<MaterialDisplayProps> = ({
   const isVideoByKind = material.kind === 'video';
   const detectedPlatform = material.url ? detectVideoPlatform(material.url) : null;
   const isVideoByUrl = detectedPlatform !== null;
-  const isVideoByTitle = material.title?.toLowerCase().includes('video') ||
+  const isVideoByTitle =
+    material.title?.toLowerCase().includes('video') ||
     material.title?.toLowerCase().includes('youtube') ||
     material.title?.toLowerCase().includes('vimeo');
   const isVideo = isVideoByKind || isVideoByUrl || (isVideoByTitle && material.url);
 
-  const platform = isVideo ? (material.video_platform || detectedPlatform) : null;
-  const videoId = isVideo && material.url ? (material.video_id || getVideoId(material.url, platform || undefined)) : undefined;
+  const platform = isVideo ? material.video_platform || detectedPlatform : null;
+  const videoId =
+    isVideo && material.url
+      ? material.video_id || getVideoId(material.url, platform || undefined)
+      : undefined;
 
   // Si showFullPlayer es true y tenemos una URL que parece ser de video, mostrar reproductor completo
   if (showFullPlayer && material.url && (isVideoByKind || isVideoByUrl)) {
@@ -104,9 +109,7 @@ export const MaterialDisplay: React.FC<MaterialDisplayProps> = ({
                 <h4 className="text-base font-semibold text-gray-900 group-hover:text-primary">
                   {material.title}
                 </h4>
-                <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700">
-                  Video
-                </span>
+                <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700">Video</span>
                 {material.transcription_status === 'completed' && (
                   <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700">
                     ✓ Transcripción
@@ -157,7 +160,8 @@ export const MaterialDisplay: React.FC<MaterialDisplayProps> = ({
                 {material.transcription_status === 'completed' && (
                   <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                     <p className="text-sm text-green-800">
-                      <strong>✓ Transcripción disponible:</strong> Puedes hacer preguntas al tutor IA sobre el contenido de este video.
+                      <strong>✓ Transcripción disponible:</strong> Puedes hacer preguntas al tutor
+                      IA sobre el contenido de este video.
                     </p>
                   </div>
                 )}
@@ -172,8 +176,10 @@ export const MaterialDisplay: React.FC<MaterialDisplayProps> = ({
   // Para otros tipos de materiales
   const sourceFileId = material.metadata?.sourceFileId;
   const viewLink = material.metadata?.viewLink;
-  const driveUrl = viewLink || (sourceFileId ? `https://drive.google.com/file/d/${sourceFileId}/view` : null);
-  const originalUrl = material.url && material.url.trim() !== '' && material.url.trim() !== '#' ? material.url : null;
+  const driveUrl =
+    viewLink || (sourceFileId ? `https://drive.google.com/file/d/${sourceFileId}/view` : null);
+  const originalUrl =
+    material.url && material.url.trim() !== '' && material.url.trim() !== '#' ? material.url : null;
 
   // Para archivos en Supabase Storage
   const isSupabaseStorage = originalUrl?.includes('supabase.co/storage');
@@ -197,7 +203,10 @@ export const MaterialDisplay: React.FC<MaterialDisplayProps> = ({
       // SecurePDFViewer ya tiene esta lógica, así que le pasamos la URL original
       // y él se encarga de generar la signed URL con createSignedUrl()
       if (isSupabaseStorage && originalUrl) {
-        console.log('[MaterialDisplay] 🛡️ Usando URL directa de Supabase Storage (signed URL será generada por el visor):', material.title);
+        console.log(
+          '[MaterialDisplay] 🛡️ Usando URL directa de Supabase Storage (signed URL será generada por el visor):',
+          material.title
+        );
         setSecureUrl(originalUrl);
         return originalUrl;
       }
@@ -210,13 +219,18 @@ export const MaterialDisplay: React.FC<MaterialDisplayProps> = ({
 
         // Transformar /view o /edit en /preview para el visor
         if (rawUrl.includes('/file/d/')) {
-          googlePreviewUrl = rawUrl.replace(/\/view.*$/, '/preview').replace(/\/edit.*$/, '/preview');
+          googlePreviewUrl = rawUrl
+            .replace(/\/view.*$/, '/preview')
+            .replace(/\/edit.*$/, '/preview');
         } else if (rawUrl.includes('id=')) {
           // Manejar formato id=...
           googlePreviewUrl = rawUrl.replace('view', 'preview').replace('edit', 'preview');
         }
 
-        console.log('[MaterialDisplay] 🛡️ Generando URL de previsualización de Google Drive:', material.title);
+        console.log(
+          '[MaterialDisplay] 🛡️ Generando URL de previsualización de Google Drive:',
+          material.title
+        );
         setSecureUrl(googlePreviewUrl);
         return googlePreviewUrl;
       }
@@ -240,46 +254,64 @@ export const MaterialDisplay: React.FC<MaterialDisplayProps> = ({
       <>
         <button
           type="button"
-          onClick={useCallback(async (e: React.MouseEvent<HTMLButtonElement>) => {
-            e.preventDefault();
-            e.stopPropagation();
+          onClick={useCallback(
+            async (e: React.MouseEvent<HTMLButtonElement>) => {
+              e.preventDefault();
+              e.stopPropagation();
 
-            if (!hasUrl) {
-              console.warn('Material sin URL válida:', material);
-              alert('Este material no tiene una URL disponible para visualizar.');
-              return;
-            }
-
-            // Si es un PDF de Supabase, usamos el Visor Seguro (Canvas)
-            // Si es un PDF de Drive, usamos el Visor de Documentos (Iframe) porque es más estable con Drive
-            if (isPDF && !isDriveFallback) {
-              console.log('[MaterialDisplay] 🔒 Abriendo Visor Seguro (Canvas) para PDF de Supabase:', material.title);
-              await getSecureUrl();
-              setShowSecurePDFViewer(true);
-            } else {
-              console.log('[MaterialDisplay] 🔒 Abriendo Visor de Documentos (Iframe) para:', material.title);
-              if (isPDF && isDriveFallback) {
-                console.log('[MaterialDisplay] 🛡️ PDF de Drive detectado, usando preview directo de Google para mayor estabilidad.');
+              if (!hasUrl) {
+                console.warn('Material sin URL válida:', material);
+                alert('Este material no tiene una URL disponible para visualizar.');
+                return;
               }
-              if (isReadOnly || isDriveFallback) {
+
+              // Si es un PDF de Supabase, usamos el Visor Seguro (Canvas)
+              // Si es un PDF de Drive, usamos el Visor de Documentos (Iframe) porque es más estable con Drive
+              if (isPDF && !isDriveFallback) {
+                console.log(
+                  '[MaterialDisplay] 🔒 Abriendo Visor Seguro (Canvas) para PDF de Supabase:',
+                  material.title
+                );
                 await getSecureUrl();
+                setShowSecurePDFViewer(true);
+              } else {
+                console.log(
+                  '[MaterialDisplay] 🔒 Abriendo Visor de Documentos (Iframe) para:',
+                  material.title
+                );
+                if (isPDF && isDriveFallback) {
+                  console.log(
+                    '[MaterialDisplay] 🛡️ PDF de Drive detectado, usando preview directo de Google para mayor estabilidad.'
+                  );
+                }
+                if (isReadOnly || isDriveFallback) {
+                  await getSecureUrl();
+                }
+                setShowDocumentViewer(true);
               }
-              setShowDocumentViewer(true);
-            }
-          }, [hasUrl, isPDF, isReadOnly, isDriveFallback, material.title, getSecureUrl])}
-          className={`block w-full p-3 bg-white border rounded-lg transition-all group text-left ${hasUrl ? 'hover:border-primary hover:bg-primary/5 cursor-pointer' : 'opacity-75 cursor-not-allowed'
-            } ${isReadOnly ? 'border-amber-200 bg-amber-50/30' : 'border-gray-200'}`}
+            },
+            [hasUrl, isPDF, isReadOnly, isDriveFallback, material.title, getSecureUrl]
+          )}
+          className={`block w-full p-3 bg-white border rounded-lg transition-all group text-left ${
+            hasUrl
+              ? 'hover:border-primary hover:bg-primary/5 cursor-pointer'
+              : 'opacity-75 cursor-not-allowed'
+          } ${isReadOnly ? 'border-amber-200 bg-amber-50/30' : 'border-gray-200'}`}
           disabled={!hasUrl}
         >
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <IconBookOpen className={`w-5 h-5 flex-shrink-0 ${isReadOnly ? 'text-amber-600' : 'text-primary'}`} />
+                <IconBookOpen
+                  className={`w-5 h-5 flex-shrink-0 ${isReadOnly ? 'text-amber-600' : 'text-primary'}`}
+                />
                 <h4 className="text-base font-semibold text-gray-900 group-hover:text-primary">
                   {material.title}
                 </h4>
-                <span className={`text-xs px-2 py-0.5 rounded ${isReadOnly ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-700'}`}>
-                  {isPDF ? 'PDF' : (material.kind || 'Documento')}
+                <span
+                  className={`text-xs px-2 py-0.5 rounded ${isReadOnly ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-700'}`}
+                >
+                  {isPDF ? 'PDF' : material.kind || 'Documento'}
                 </span>
                 {isReadOnly && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">
@@ -289,7 +321,9 @@ export const MaterialDisplay: React.FC<MaterialDisplayProps> = ({
               </div>
 
               {material.metadata?.description && (
-                <p className="text-xs text-gray-500 line-clamp-1">{material.metadata.description}</p>
+                <p className="text-xs text-gray-500 line-clamp-1">
+                  {material.metadata.description}
+                </p>
               )}
 
               {isDriveFallback && (
@@ -301,43 +335,39 @@ export const MaterialDisplay: React.FC<MaterialDisplayProps> = ({
             </div>
             <IconEye className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors flex-shrink-0 ml-3" />
           </div>
-        </button >
+        </button>
 
         {/* Visor de documentos estándar (Iframe) */}
-        {
-          showDocumentViewer && hasUrl && (
-            <DocumentViewer
-              material={{
-                ...material,
-                url: secureUrl || viewLink || material.url,
-                allow_download: false,
-                allow_print: false,
-                allow_view: true,
-                metadata: {
-                  ...material.metadata,
-                  isReadOnly: true
-                }
-              }}
-              isOpen={showDocumentViewer}
-              onClose={() => {
-                setShowDocumentViewer(false);
-              }}
-            />
-          )
-        }
+        {showDocumentViewer && hasUrl && (
+          <DocumentViewer
+            material={{
+              ...material,
+              url: secureUrl || viewLink || material.url,
+              allow_download: false,
+              allow_print: false,
+              allow_view: true,
+              metadata: {
+                ...material.metadata,
+                isReadOnly: true,
+              },
+            }}
+            isOpen={showDocumentViewer}
+            onClose={() => {
+              setShowDocumentViewer(false);
+            }}
+          />
+        )}
 
         {/* Visor Seguro de PDF (Canvas) */}
-        {
-          showSecurePDFViewer && hasUrl && (
-            <SecurePDFViewer
-              pdfUrl={secureUrl || originalUrl || driveUrl || ''}
-              title={material.title}
-              isOpen={showSecurePDFViewer}
-              onClose={() => setShowSecurePDFViewer(false)}
-              bucket="materials"
-            />
-          )
-        }
+        {showSecurePDFViewer && hasUrl && (
+          <SecurePDFViewer
+            pdfUrl={secureUrl || originalUrl || driveUrl || ''}
+            title={material.title}
+            isOpen={showSecurePDFViewer}
+            onClose={() => setShowSecurePDFViewer(false)}
+            bucket="materials"
+          />
+        )}
       </>
     );
   }

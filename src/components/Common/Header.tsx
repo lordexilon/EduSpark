@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -55,7 +53,13 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         </button>
         <button
           onClick={() => {
-            const isTeacher = ['teacher', 'admin', 'admin-campus', 'coordinator', 'supervisor'].includes(user?.role?.name || '');
+            const isTeacher = [
+              'teacher',
+              'admin',
+              'admin-campus',
+              'coordinator',
+              'supervisor',
+            ].includes(user?.role?.name || '');
             navigate(isTeacher ? '/teacher/messages' : '/messages');
           }}
           className={`relative text-text-light hover:text-text-dark transition p-1 rounded hover:bg-background ${totalUnread > 0 ? 'animate-pulse' : ''}`}

@@ -24,7 +24,8 @@ export const forumRepliesService = {
   async listReplies(topicId: string): Promise<ForumReply[]> {
     const { data, error } = await supabase
       .from('forum_replies')
-      .select(`
+      .select(
+        `
         id,
         topic_id,
         author_id,
@@ -36,7 +37,8 @@ export const forumRepliesService = {
           last_name,
           avatar_url
         )
-      `)
+      `
+      )
       .eq('topic_id', topicId)
       .order('created_at', { ascending: true });
 
@@ -69,7 +71,8 @@ export const forumRepliesService = {
         author_id: input.authorId,
         content: input.content,
       })
-      .select(`
+      .select(
+        `
         id,
         topic_id,
         author_id,
@@ -81,7 +84,8 @@ export const forumRepliesService = {
           last_name,
           avatar_url
         )
-      `)
+      `
+      )
       .single();
 
     if (error) {
@@ -100,6 +104,11 @@ export const forumRepliesService = {
       );
     }
 
+    const users = data.users as unknown as {
+      first_name: string | null;
+      last_name: string | null;
+      avatar_url?: string | null;
+    };
     return {
       id: data.id,
       topic_id: data.topic_id,
@@ -109,9 +118,9 @@ export const forumRepliesService = {
       updated_at: data.updated_at,
       author: data.users
         ? {
-            first_name: data.users.first_name ?? null,
-            last_name: data.users.last_name ?? null,
-            avatar_url: data.users.avatar_url ?? null,
+            first_name: users.first_name ?? null,
+            last_name: users.last_name ?? null,
+            avatar_url: users.avatar_url ?? null,
           }
         : null,
     };
@@ -122,7 +131,8 @@ export const forumRepliesService = {
       .from('forum_replies')
       .update({ content })
       .eq('id', replyId)
-      .select(`
+      .select(
+        `
         id,
         topic_id,
         author_id,
@@ -134,7 +144,8 @@ export const forumRepliesService = {
           last_name,
           avatar_url
         )
-      `)
+      `
+      )
       .single();
 
     if (error) {
@@ -151,6 +162,11 @@ export const forumRepliesService = {
       );
     }
 
+    const users = data.users as unknown as {
+      first_name: string | null;
+      last_name: string | null;
+      avatar_url?: string | null;
+    };
     return {
       id: data.id,
       topic_id: data.topic_id,
@@ -160,19 +176,16 @@ export const forumRepliesService = {
       updated_at: data.updated_at,
       author: data.users
         ? {
-            first_name: data.users.first_name ?? null,
-            last_name: data.users.last_name ?? null,
-            avatar_url: data.users.avatar_url ?? null,
+            first_name: users.first_name ?? null,
+            last_name: users.last_name ?? null,
+            avatar_url: users.avatar_url ?? null,
           }
         : null,
     };
   },
 
   async deleteReply(replyId: string, topicId: string): Promise<void> {
-    const { error } = await supabase
-      .from('forum_replies')
-      .delete()
-      .eq('id', replyId);
+    const { error } = await supabase.from('forum_replies').delete().eq('id', replyId);
 
     if (error) {
       throw error;
@@ -189,4 +202,3 @@ export const forumRepliesService = {
     }
   },
 };
-

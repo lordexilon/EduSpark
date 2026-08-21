@@ -7,7 +7,14 @@ import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
 import Breadcrumbs from '@/components/Common/Breadcrumbs';
 import FilterBar from '@/components/Features/FilterBar';
-import { IconChevronRight, IconCalendar, IconBookOpen, IconPlusCircle, IconPencil, IconArrowLeft } from '@/components/Common/Icons';
+import {
+  IconChevronRight,
+  IconCalendar,
+  IconBookOpen,
+  IconPlusCircle,
+  IconPencil,
+  IconArrowLeft,
+} from '@/components/Common/Icons';
 import { useAuth } from '@/hooks/useAuth';
 
 const SessionsListPage: React.FC = () => {
@@ -46,7 +53,7 @@ const SessionsListPage: React.FC = () => {
       const [courseData, sessionsData, unitsData] = await Promise.all([
         courseService.getCourse(courseId),
         sessionService.getCourseSessions(courseId),
-        unitService.getCourseUnits(courseId)
+        unitService.getCourseUnits(courseId),
       ]);
 
       setCourse(courseData);
@@ -62,7 +69,7 @@ const SessionsListPage: React.FC = () => {
 
   const getUnitTitle = (unitId: string | null | undefined): string => {
     if (!unitId) return 'Sin módulo';
-    const unit = units.find(u => u.id === unitId);
+    const unit = units.find((u) => u.id === unitId);
     return unit ? `Módulo ${unit.number}: ${unit.title}` : 'Sin módulo';
   };
 
@@ -82,9 +89,7 @@ const SessionsListPage: React.FC = () => {
         <div className="text-center py-8">
           <h2 className="text-xl font-semibold text-text-dark mb-4">Selecciona un curso</h2>
           <p className="text-text-light mb-4">{error}</p>
-          <Button onClick={() => navigate('/my/courses')}>
-            Ver Mis Cursos
-          </Button>
+          <Button onClick={() => navigate('/my/courses')}>Ver Mis Cursos</Button>
         </div>
       </div>
     );
@@ -100,9 +105,7 @@ const SessionsListPage: React.FC = () => {
             <Button variant="secondary" onClick={() => navigate('/my/courses')}>
               Volver a Mis Cursos
             </Button>
-            <Button onClick={loadSessions}>
-              Reintentar
-            </Button>
+            <Button onClick={loadSessions}>Reintentar</Button>
           </div>
         </div>
       </div>
@@ -157,7 +160,7 @@ const SessionsListPage: React.FC = () => {
             { label: 'Dashboard', path: '/dashboard' },
             { label: 'Mis Cursos', path: '/my/courses' },
             { label: course.title, path: `/courses/${course.id}` },
-            { label: 'Sesiones' }
+            { label: 'Sesiones' },
           ]}
         />
       )}
@@ -175,7 +178,9 @@ const SessionsListPage: React.FC = () => {
           </Button>
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-text-dark">{course.title}</h1>
-            <p className="text-text-light">Sesiones del curso • {sessions.length} {sessions.length === 1 ? 'sesión' : 'sesiones'}</p>
+            <p className="text-text-light">
+              Sesiones del curso • {sessions.length} {sessions.length === 1 ? 'sesión' : 'sesiones'}
+            </p>
           </div>
           {user?.role?.name === 'teacher' && (
             <Button
@@ -196,22 +201,29 @@ const SessionsListPage: React.FC = () => {
           onSearchChange={setSearchQuery}
           searchPlaceholder="Buscar sesiones por título o descripción..."
           filters={[
-            ...(units.length > 0 ? [{
-              key: 'unit',
-              label: 'Módulo',
-              options: [
-                { value: '', label: 'Todos' },
-                ...units.map(unit => ({ value: unit.id, label: `Módulo ${unit.number}: ${unit.title}` }))
-              ],
-              value: unitFilter,
-              onChange: setUnitFilter
-            }] : [])
+            ...(units.length > 0
+              ? [
+                  {
+                    key: 'unit',
+                    label: 'Módulo',
+                    options: [
+                      { value: '', label: 'Todos' },
+                      ...units.map((unit) => ({
+                        value: unit.id,
+                        label: `Módulo ${unit.number}: ${unit.title}`,
+                      })),
+                    ],
+                    value: unitFilter,
+                    onChange: setUnitFilter,
+                  },
+                ]
+              : []),
           ]}
           sortOptions={[
             { value: 'order', label: 'Por orden' },
             { value: 'date-asc', label: 'Fecha (más antigua)' },
             { value: 'date-desc', label: 'Fecha (más reciente)' },
-            { value: 'title', label: 'Título (A-Z)' }
+            { value: 'title', label: 'Título (A-Z)' },
           ]}
           sortValue={sortBy}
           onSortChange={setSortBy}
@@ -231,15 +243,15 @@ const SessionsListPage: React.FC = () => {
         // Filtro de búsqueda
         if (searchQuery.trim()) {
           const query = searchQuery.toLowerCase();
-          filtered = filtered.filter(s =>
-            s.title.toLowerCase().includes(query) ||
-            s.description?.toLowerCase().includes(query)
+          filtered = filtered.filter(
+            (s) =>
+              s.title.toLowerCase().includes(query) || s.description?.toLowerCase().includes(query)
           );
         }
 
         // Filtro por módulo
         if (unitFilter) {
-          filtered = filtered.filter(s => s.unit_id === unitFilter);
+          filtered = filtered.filter((s) => s.unit_id === unitFilter);
         }
 
         // Ordenamiento
@@ -274,17 +286,20 @@ const SessionsListPage: React.FC = () => {
         });
 
         // Re-agrupar sesiones filtradas
-        const filteredSessionsByUnit = filtered.reduce((acc, session) => {
-          const unitId = session.unit_id || 'sin-unidad';
-          if (!acc[unitId]) {
-            acc[unitId] = [];
-          }
-          acc[unitId].push(session);
-          return acc;
-        }, {} as Record<string, Session[]>);
+        const filteredSessionsByUnit = filtered.reduce(
+          (acc, session) => {
+            const unitId = session.unit_id || 'sin-unidad';
+            if (!acc[unitId]) {
+              acc[unitId] = [];
+            }
+            acc[unitId].push(session);
+            return acc;
+          },
+          {} as Record<string, Session[]>
+        );
 
         // Ordenar sesiones dentro de cada unidad
-        Object.keys(filteredSessionsByUnit).forEach(unitId => {
+        Object.keys(filteredSessionsByUnit).forEach((unitId) => {
           filteredSessionsByUnit[unitId].sort((a, b) => {
             if (a.order_index !== null && b.order_index !== null) {
               return a.order_index - b.order_index;
@@ -331,8 +346,8 @@ const SessionsListPage: React.FC = () => {
                   .sort(([unitIdA], [unitIdB]) => {
                     if (unitIdA === 'sin-unidad') return 1;
                     if (unitIdB === 'sin-unidad') return -1;
-                    const unitA = units.find(u => u.id === unitIdA);
-                    const unitB = units.find(u => u.id === unitIdB);
+                    const unitA = units.find((u) => u.id === unitIdA);
+                    const unitB = units.find((u) => u.id === unitIdB);
                     if (!unitA || !unitB) return 0;
                     return unitA.number - unitB.number;
                   })
@@ -358,7 +373,9 @@ const SessionsListPage: React.FC = () => {
                               <div>
                                 <div className="flex items-center text-primary mb-2">
                                   <IconBookOpen className="w-5 h-5 mr-2" />
-                                  <h3 className="text-lg font-semibold line-clamp-1">{session.title}</h3>
+                                  <h3 className="text-lg font-semibold line-clamp-1">
+                                    {session.title}
+                                  </h3>
                                 </div>
                                 {session.description && (
                                   <p className="text-sm text-text-light mb-3 line-clamp-2 flex-grow">
@@ -373,7 +390,7 @@ const SessionsListPage: React.FC = () => {
                                         weekday: 'long',
                                         year: 'numeric',
                                         month: 'long',
-                                        day: 'numeric'
+                                        day: 'numeric',
                                       })}
                                     </span>
                                   </div>
@@ -381,7 +398,8 @@ const SessionsListPage: React.FC = () => {
                               </div>
                               <div className="mt-auto text-right">
                                 <span className="inline-flex items-center text-primary font-medium">
-                                  Ver Detalles <IconChevronRight className="w-5 h-5 ml-1 group-hover:translate-x-1 transition-transform" />
+                                  Ver Detalles{' '}
+                                  <IconChevronRight className="w-5 h-5 ml-1 group-hover:translate-x-1 transition-transform" />
                                 </span>
                               </div>
                             </Link>
@@ -408,59 +426,59 @@ const SessionsListPage: React.FC = () => {
             ) : (
               // Todas las sesiones juntas si no hay módulos
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filtered
-                  .map((session) => (
-                    <Card
-                      key={session.id}
-                      className="h-full flex flex-col justify-between hover:border-primary border-2 border-transparent transition-all group relative"
-                    >
-                      <Link to={`/session/${session.id}`} className="flex flex-col h-full">
-                        <div>
-                          <div className="flex items-center text-primary mb-2">
-                            <IconBookOpen className="w-5 h-5 mr-2" />
-                            <h3 className="text-lg font-semibold line-clamp-1">{session.title}</h3>
+                {filtered.map((session) => (
+                  <Card
+                    key={session.id}
+                    className="h-full flex flex-col justify-between hover:border-primary border-2 border-transparent transition-all group relative"
+                  >
+                    <Link to={`/session/${session.id}`} className="flex flex-col h-full">
+                      <div>
+                        <div className="flex items-center text-primary mb-2">
+                          <IconBookOpen className="w-5 h-5 mr-2" />
+                          <h3 className="text-lg font-semibold line-clamp-1">{session.title}</h3>
+                        </div>
+                        {session.description && (
+                          <p className="text-sm text-text-light mb-3 line-clamp-2 flex-grow">
+                            {session.description}
+                          </p>
+                        )}
+                        {session.starts_at && (
+                          <div className="flex items-center text-xs text-text-light opacity-60 mb-4">
+                            <IconCalendar className="w-4 h-4 mr-1.5" />
+                            <span>
+                              {new Date(session.starts_at).toLocaleDateString('es-ES', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                              })}
+                            </span>
                           </div>
-                          {session.description && (
-                            <p className="text-sm text-text-light mb-3 line-clamp-2 flex-grow">
-                              {session.description}
-                            </p>
-                          )}
-                          {session.starts_at && (
-                            <div className="flex items-center text-xs text-text-light opacity-60 mb-4">
-                              <IconCalendar className="w-4 h-4 mr-1.5" />
-                              <span>
-                                {new Date(session.starts_at).toLocaleDateString('es-ES', {
-                                  weekday: 'long',
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric'
-                                })}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="mt-auto text-right">
-                          <span className="inline-flex items-center text-primary font-medium">
-                            Ver Detalles <IconChevronRight className="w-5 h-5 ml-1 group-hover:translate-x-1 transition-transform" />
-                          </span>
-                        </div>
-                      </Link>
-                      {user?.role?.name === 'teacher' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="absolute top-2 right-2 !p-1 text-text-light opacity-40 hover:text-primary hover:opacity-100"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/session/editar/${session.id}`);
-                          }}
-                          aria-label="Editar Sesión"
-                        >
-                          <IconPencil className="w-5 h-5" />
-                        </Button>
-                      )}
-                    </Card>
-                  ))}
+                        )}
+                      </div>
+                      <div className="mt-auto text-right">
+                        <span className="inline-flex items-center text-primary font-medium">
+                          Ver Detalles{' '}
+                          <IconChevronRight className="w-5 h-5 ml-1 group-hover:translate-x-1 transition-transform" />
+                        </span>
+                      </div>
+                    </Link>
+                    {user?.role?.name === 'teacher' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-2 right-2 !p-1 text-text-light opacity-40 hover:text-primary hover:opacity-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/session/editar/${session.id}`);
+                        }}
+                        aria-label="Editar Sesión"
+                      >
+                        <IconPencil className="w-5 h-5" />
+                      </Button>
+                    )}
+                  </Card>
+                ))}
               </div>
             )}
           </>

@@ -4,13 +4,29 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserInstitution } from '@/hooks/useUserInstitution';
-import { bulkSuspendReactivateService, SuspendReactivateUserData, SuspendReactivateResult } from '@/services/bulkSuspendReactivateService';
+import {
+  bulkSuspendReactivateService,
+  SuspendReactivateUserData,
+  SuspendReactivateResult,
+} from '@/services/bulkSuspendReactivateService';
 import { paymentService, PaymentStatus } from '@/services/paymentService';
 import { institutionService } from '@/services/institutionService';
 import { supabase } from '@/lib/supabase';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
-import { IconUpload, IconFileText, IconUsers, IconCheck, IconX, IconXCircle, IconDownload, IconAlertTriangle, IconBan, IconCheckCircle, IconDollarSign } from '@/components/Common/Icons';
+import {
+  IconUpload,
+  IconFileText,
+  IconUsers,
+  IconCheck,
+  IconX,
+  IconXCircle,
+  IconDownload,
+  IconAlertTriangle,
+  IconBan,
+  IconCheckCircle,
+  IconDollarSign,
+} from '@/components/Common/Icons';
 import AdminRoute from '@/components/Common/AdminRoute';
 
 const BulkSuspendReactivatePage: React.FC = () => {
@@ -23,7 +39,9 @@ const BulkSuspendReactivatePage: React.FC = () => {
   const [result, setResult] = useState<SuspendReactivateResult | null>(null);
   const [paymentInfo, setPaymentInfo] = useState<Map<string, PaymentStatus>>(new Map());
   const [loadingPaymentInfo, setLoadingPaymentInfo] = useState(false);
-  const [processingMode, setProcessingMode] = useState<'suspend_reactivate' | 'payments'>('payments');
+  const [processingMode, setProcessingMode] = useState<'suspend_reactivate' | 'payments'>(
+    'payments'
+  );
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleParseCSV = () => {
@@ -81,17 +99,19 @@ const BulkSuspendReactivatePage: React.FC = () => {
     // Si es supervisor, validar que todos los usuarios pertenezcan a su institución
     if (isSupervisor && institution) {
       // Obtener los documentos de identidad de los usuarios parseados
-      const identityDocuments = parsedUsers.map(u => u.identity_document).filter(Boolean);
+      const identityDocuments = parsedUsers.map((u) => u.identity_document).filter(Boolean);
 
       if (identityDocuments.length > 0) {
         // Buscar usuarios por documento de identidad
         const { data: usersData, error: usersError } = await supabase
           .from('users')
-          .select(`
+          .select(
+            `
             id,
             identity_document,
             user_institutions!inner(institution_id)
-          `)
+          `
+          )
           .in('identity_document', identityDocuments)
           .eq('user_institutions.institution_id', institution.id);
 
@@ -105,17 +125,19 @@ const BulkSuspendReactivatePage: React.FC = () => {
         const validDocuments = new Set((usersData || []).map((u: any) => u.identity_document));
 
         // Filtrar usuarios que no pertenecen a la institución
-        const usersFromOtherInstitution = parsedUsers.filter(u =>
-          u.identity_document && !validDocuments.has(u.identity_document)
+        const usersFromOtherInstitution = parsedUsers.filter(
+          (u) => u.identity_document && !validDocuments.has(u.identity_document)
         );
 
         if (usersFromOtherInstitution.length > 0) {
-          alert(`Error: ${usersFromOtherInstitution.length} usuario(s) no pertenecen a tu institución "${institution.name}":\n\n` +
-            usersFromOtherInstitution.map(u => `- ${u.identity_document}`).join('\n'));
+          alert(
+            `Error: ${usersFromOtherInstitution.length} usuario(s) no pertenecen a tu institución "${institution.name}":\n\n` +
+              usersFromOtherInstitution.map((u) => `- ${u.identity_document}`).join('\n')
+          );
 
           // Continuar solo con los usuarios válidos
-          parsedUsers = parsedUsers.filter(u =>
-            !u.identity_document || validDocuments.has(u.identity_document)
+          parsedUsers = parsedUsers.filter(
+            (u) => !u.identity_document || validDocuments.has(u.identity_document)
           );
         }
       }
@@ -125,18 +147,22 @@ const BulkSuspendReactivatePage: React.FC = () => {
     const validUsers: SuspendReactivateUserData[] = [];
     const invalidUsers: Array<{ identity_document: string; errors: string[] }> = [];
 
-    parsedUsers.forEach(user => {
+    parsedUsers.forEach((user) => {
       const validation = bulkSuspendReactivateService.validateSuspendReactivateData(user);
       if (validation.valid) {
         validUsers.push(user);
       } else {
-        invalidUsers.push({ identity_document: user.identity_document || 'sin documento', errors: validation.errors });
+        invalidUsers.push({
+          identity_document: user.identity_document || 'sin documento',
+          errors: validation.errors,
+        });
       }
     });
 
     if (invalidUsers.length > 0) {
-      const errorMsg = `Se encontraron ${invalidUsers.length} usuario(s) con errores:\n\n` +
-        invalidUsers.map(u => `- ${u.identity_document}: ${u.errors.join(', ')}`).join('\n');
+      const errorMsg =
+        `Se encontraron ${invalidUsers.length} usuario(s) con errores:\n\n` +
+        invalidUsers.map((u) => `- ${u.identity_document}: ${u.errors.join(', ')}`).join('\n');
       alert(errorMsg);
     }
 
@@ -157,37 +183,44 @@ const BulkSuspendReactivatePage: React.FC = () => {
     }
 
     // Determinar acción basada en paid o is_active
-    const suspendCount = users.filter(u => {
+    const suspendCount = users.filter((u) => {
       // Si tiene campo paid, usar ese
       if (u.paid !== undefined) {
-        const paid = typeof u.paid === 'string'
-          ? u.paid.toLowerCase()
-          : String(u.paid);
-        return paid === 'false' || paid === '0' || paid === 'no' ||
-          paid === 'no pagado' || paid === 'unpaid' || paid === 'sin pago' ||
-          paid === 'pendiente' || paid === 'pending';
+        const paid = typeof u.paid === 'string' ? u.paid.toLowerCase() : String(u.paid);
+        return (
+          paid === 'false' ||
+          paid === '0' ||
+          paid === 'no' ||
+          paid === 'no pagado' ||
+          paid === 'unpaid' ||
+          paid === 'sin pago' ||
+          paid === 'pendiente' ||
+          paid === 'pending'
+        );
       }
       // Si no, usar is_active
-      const status = typeof u.is_active === 'string'
-        ? u.is_active.toLowerCase()
-        : String(u.is_active);
+      const status =
+        typeof u.is_active === 'string' ? u.is_active.toLowerCase() : String(u.is_active);
       return status === 'false' || status === '0' || status === 'suspender' || status === 'suspend';
     }).length;
 
     const reactivateCount = users.length - suspendCount;
 
-    const modeText = processingMode === 'payments'
-      ? 'Procesar pagos y actualizar estados'
-      : 'Suspender/Reactivar usuarios';
+    const modeText =
+      processingMode === 'payments'
+        ? 'Procesar pagos y actualizar estados'
+        : 'Suspender/Reactivar usuarios';
 
-    if (!confirm(
-      `¿Estás seguro de ${modeText.toLowerCase()} para ${users.length} usuario(s)?\n\n` +
-      `- Suspender: ${suspendCount}\n` +
-      `- Reactivar: ${reactivateCount}\n\n` +
-      (processingMode === 'payments'
-        ? 'Se registrarán los pagos y se actualizará el estado automáticamente.'
-        : 'Se actualizará el estado de los usuarios.')
-    )) {
+    if (
+      !confirm(
+        `¿Estás seguro de ${modeText.toLowerCase()} para ${users.length} usuario(s)?\n\n` +
+          `- Suspender: ${suspendCount}\n` +
+          `- Reactivar: ${reactivateCount}\n\n` +
+          (processingMode === 'payments'
+            ? 'Se registrarán los pagos y se actualizará el estado automáticamente.'
+            : 'Se actualizará el estado de los usuarios.')
+      )
+    ) {
       return;
     }
 
@@ -197,26 +230,30 @@ const BulkSuspendReactivatePage: React.FC = () => {
 
       // Si es supervisor, validar nuevamente antes de procesar
       if (isSupervisor && institution) {
-        const identityDocuments = users.map(u => u.identity_document).filter(Boolean);
+        const identityDocuments = users.map((u) => u.identity_document).filter(Boolean);
 
         if (identityDocuments.length > 0) {
           const { data: usersData } = await supabase
             .from('users')
-            .select(`
+            .select(
+              `
               id,
               identity_document,
               user_institutions!inner(institution_id)
-            `)
+            `
+            )
             .in('identity_document', identityDocuments)
             .eq('user_institutions.institution_id', institution.id);
 
           const validDocuments = new Set((usersData || []).map((u: any) => u.identity_document));
-          const invalidUsers = users.filter(u =>
-            u.identity_document && !validDocuments.has(u.identity_document)
+          const invalidUsers = users.filter(
+            (u) => u.identity_document && !validDocuments.has(u.identity_document)
           );
 
           if (invalidUsers.length > 0) {
-            alert(`Error: No puedes procesar ${invalidUsers.length} usuario(s) que no pertenecen a tu institución.`);
+            alert(
+              `Error: No puedes procesar ${invalidUsers.length} usuario(s) que no pertenecen a tu institución.`
+            );
             setProcessing(false);
             return;
           }
@@ -227,10 +264,16 @@ const BulkSuspendReactivatePage: React.FC = () => {
 
       if (processingMode === 'payments') {
         // Procesar pagos y actualizar estados automáticamente
-        processResult = await bulkSuspendReactivateService.processPaymentsFromExcel(users, isSupervisor && institution ? institution.id : undefined);
+        processResult = await bulkSuspendReactivateService.processPaymentsFromExcel(
+          users,
+          isSupervisor && institution ? institution.id : undefined
+        );
       } else {
         // Solo suspender/reactivar sin procesar pagos
-        processResult = await bulkSuspendReactivateService.bulkSuspendReactivateUsers(users, isSupervisor && institution ? institution.id : undefined);
+        processResult = await bulkSuspendReactivateService.bulkSuspendReactivateUsers(
+          users,
+          isSupervisor && institution ? institution.id : undefined
+        );
       }
 
       setResult(processResult);
@@ -238,9 +281,9 @@ const BulkSuspendReactivatePage: React.FC = () => {
       if (processResult.success_count > 0) {
         alert(
           `✅ Procesamiento completado:\n\n` +
-          `- Total: ${processResult.total}\n` +
-          `- Exitosos: ${processResult.success_count}\n` +
-          `- Fallidos: ${processResult.failed_count}`
+            `- Total: ${processResult.total}\n` +
+            `- Exitosos: ${processResult.success_count}\n` +
+            `- Fallidos: ${processResult.failed_count}`
         );
 
         // Limpiar lista si todo fue exitoso
@@ -281,56 +324,56 @@ const BulkSuspendReactivatePage: React.FC = () => {
         // Plantilla para procesar pagos
         data = [
           {
-            'identity_document': '12345678',
-            'paid': 'true',
-            'payment_date': '2025-01-15',
-            'amount': 50.00
+            identity_document: '12345678',
+            paid: 'true',
+            payment_date: '2025-01-15',
+            amount: 50.0,
           },
           {
-            'identity_document': '87654321',
-            'paid': 'false',
-            'payment_date': '',
-            'amount': ''
+            identity_document: '87654321',
+            paid: 'false',
+            payment_date: '',
+            amount: '',
           },
           {
-            'identity_document': '11223344',
-            'paid': 'si',
-            'payment_date': '2025-01-20',
-            'amount': 50.00
+            identity_document: '11223344',
+            paid: 'si',
+            payment_date: '2025-01-20',
+            amount: 50.0,
           },
           {
-            'identity_document': '44332211',
-            'paid': 'no',
-            'payment_date': '',
-            'amount': ''
+            identity_document: '44332211',
+            paid: 'no',
+            payment_date: '',
+            amount: '',
           },
           {
-            'identity_document': '99887766',
-            'paid': 'pagado',
-            'payment_date': '2025-01-25',
-            'amount': 50.00
-          }
+            identity_document: '99887766',
+            paid: 'pagado',
+            payment_date: '2025-01-25',
+            amount: 50.0,
+          },
         ];
         fileName = 'plantilla_pagos_mensualidad.xlsx';
       } else {
         // Plantilla para solo suspender/reactivar
         data = [
           {
-            'identity_document': '12345678',
-            'is_active': 'false'
+            identity_document: '12345678',
+            is_active: 'false',
           },
           {
-            'identity_document': '87654321',
-            'is_active': 'true'
+            identity_document: '87654321',
+            is_active: 'true',
           },
           {
-            'identity_document': '11223344',
-            'is_active': 'suspender'
+            identity_document: '11223344',
+            is_active: 'suspender',
           },
           {
-            'identity_document': '44332211',
-            'is_active': 'reactivar'
-          }
+            identity_document: '44332211',
+            is_active: 'reactivar',
+          },
         ];
         fileName = 'plantilla_suspender_reactivar_usuarios.xlsx';
       }
@@ -340,64 +383,66 @@ const BulkSuspendReactivatePage: React.FC = () => {
       const ws = XLSX.utils.json_to_sheet(data);
 
       // Ajustar ancho de columnas
-      const colWidths = processingMode === 'payments'
-        ? [
-          { wch: 20 }, // identity_document
-          { wch: 15 }, // paid
-          { wch: 15 }, // payment_date
-          { wch: 12 }  // amount
-        ]
-        : [
-          { wch: 20 }, // identity_document
-          { wch: 15 }  // is_active
-        ];
+      const colWidths =
+        processingMode === 'payments'
+          ? [
+              { wch: 20 }, // identity_document
+              { wch: 15 }, // paid
+              { wch: 15 }, // payment_date
+              { wch: 12 }, // amount
+            ]
+          : [
+              { wch: 20 }, // identity_document
+              { wch: 15 }, // is_active
+            ];
       ws['!cols'] = colWidths;
 
       // Agregar worksheet al workbook
       XLSX.utils.book_append_sheet(wb, ws, 'Datos');
 
       // Crear hoja de instrucciones
-      const instructionsData = processingMode === 'payments'
-        ? [
-          ['INSTRUCCIONES PARA PLANTILLA DE PAGOS'],
-          [''],
-          ['Columnas requeridas:'],
-          ['- identity_document: Documento de identidad del usuario (requerido)'],
-          ['- paid: Indica si pagó la mensualidad (requerido)'],
-          [''],
-          ['Valores aceptados para "paid":'],
-          ['- Pagó: true, 1, si, yes, pagado, paid, pago, sí'],
-          ['- No pagó: false, 0, no, no pagado, unpaid, sin pago, pendiente, pending'],
-          [''],
-          ['Columnas opcionales:'],
-          ['- payment_date: Fecha del pago (formato: YYYY-MM-DD)'],
-          ['- amount: Monto pagado (número decimal)'],
-          [''],
-          ['Ejemplos:'],
-          ['12345678 | true  | 2025-01-15 | 50.00'],
-          ['87654321 | false |             |'],
-          ['11223344 | si    | 2025-01-20 | 50.00'],
-          [''],
-          ['NOTA: Si paid = true/si/pagado → Usuario se activa/reactiva automáticamente'],
-          ['      Si paid = false/no/no pagado → Usuario se suspende automáticamente']
-        ]
-        : [
-          ['INSTRUCCIONES PARA PLANTILLA DE SUSPENDER/REACTIVAR'],
-          [''],
-          ['Columnas requeridas:'],
-          ['- identity_document: Documento de identidad del usuario (requerido)'],
-          ['- is_active: Estado del usuario (requerido)'],
-          [''],
-          ['Valores aceptados para "is_active":'],
-          ['- Activar/Reactivar: true, 1, activo, active, reactivar, reactivate'],
-          ['- Suspender: false, 0, suspendido, suspended, suspender, suspend'],
-          [''],
-          ['Ejemplos:'],
-          ['12345678 | false'],
-          ['87654321 | true'],
-          ['11223344 | suspender'],
-          ['44332211 | reactivar']
-        ];
+      const instructionsData =
+        processingMode === 'payments'
+          ? [
+              ['INSTRUCCIONES PARA PLANTILLA DE PAGOS'],
+              [''],
+              ['Columnas requeridas:'],
+              ['- identity_document: Documento de identidad del usuario (requerido)'],
+              ['- paid: Indica si pagó la mensualidad (requerido)'],
+              [''],
+              ['Valores aceptados para "paid":'],
+              ['- Pagó: true, 1, si, yes, pagado, paid, pago, sí'],
+              ['- No pagó: false, 0, no, no pagado, unpaid, sin pago, pendiente, pending'],
+              [''],
+              ['Columnas opcionales:'],
+              ['- payment_date: Fecha del pago (formato: YYYY-MM-DD)'],
+              ['- amount: Monto pagado (número decimal)'],
+              [''],
+              ['Ejemplos:'],
+              ['12345678 | true  | 2025-01-15 | 50.00'],
+              ['87654321 | false |             |'],
+              ['11223344 | si    | 2025-01-20 | 50.00'],
+              [''],
+              ['NOTA: Si paid = true/si/pagado → Usuario se activa/reactiva automáticamente'],
+              ['      Si paid = false/no/no pagado → Usuario se suspende automáticamente'],
+            ]
+          : [
+              ['INSTRUCCIONES PARA PLANTILLA DE SUSPENDER/REACTIVAR'],
+              [''],
+              ['Columnas requeridas:'],
+              ['- identity_document: Documento de identidad del usuario (requerido)'],
+              ['- is_active: Estado del usuario (requerido)'],
+              [''],
+              ['Valores aceptados para "is_active":'],
+              ['- Activar/Reactivar: true, 1, activo, active, reactivar, reactivate'],
+              ['- Suspender: false, 0, suspendido, suspended, suspender, suspend'],
+              [''],
+              ['Ejemplos:'],
+              ['12345678 | false'],
+              ['87654321 | true'],
+              ['11223344 | suspender'],
+              ['44332211 | reactivar'],
+            ];
 
       const wsInstructions = XLSX.utils.aoa_to_sheet(instructionsData);
       wsInstructions['!cols'] = [{ wch: 80 }];
@@ -410,13 +455,14 @@ const BulkSuspendReactivatePage: React.FC = () => {
     } catch (error: any) {
       console.error('Error generando plantilla Excel:', error);
       // Fallback a CSV si falla Excel
-      const template = processingMode === 'payments'
-        ? `identity_document,paid,payment_date,amount
+      const template =
+        processingMode === 'payments'
+          ? `identity_document,paid,payment_date,amount
 12345678,true,2025-01-15,50.00
 87654321,false,,
 11223344,si,2025-01-20,50.00
 44332211,no,,`
-        : `identity_document,is_active
+          : `identity_document,is_active
 12345678,false
 87654321,true
 11223344,suspender
@@ -426,16 +472,19 @@ const BulkSuspendReactivatePage: React.FC = () => {
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      const fileName = processingMode === 'payments'
-        ? 'plantilla_pagos_mensualidad.csv'
-        : 'plantilla_suspender_reactivar_usuarios.csv';
+      const fileName =
+        processingMode === 'payments'
+          ? 'plantilla_pagos_mensualidad.csv'
+          : 'plantilla_suspender_reactivar_usuarios.csv';
       link.setAttribute('download', fileName);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
-      alert('Se descargó la plantilla en formato CSV. Para Excel, asegúrate de tener la librería xlsx instalada.');
+      alert(
+        'Se descargó la plantilla en formato CSV. Para Excel, asegúrate de tener la librería xlsx instalada.'
+      );
     }
   };
 
@@ -451,9 +500,10 @@ const BulkSuspendReactivatePage: React.FC = () => {
   };
 
   const getStatusIcon = (status: boolean | string) => {
-    const isActive = typeof status === 'boolean'
-      ? status
-      : !['false', '0', 'suspender', 'suspend'].includes(String(status).toLowerCase());
+    const isActive =
+      typeof status === 'boolean'
+        ? status
+        : !['false', '0', 'suspender', 'suspend'].includes(String(status).toLowerCase());
 
     return isActive ? (
       <IconCheckCircle className="w-5 h-5 text-green-600" />
@@ -472,7 +522,9 @@ const BulkSuspendReactivatePage: React.FC = () => {
         usersToLoad.map(async (user) => {
           if (user.identity_document) {
             try {
-              const status = await paymentService.getPaymentStatusByIdentityDocument(user.identity_document);
+              const status = await paymentService.getPaymentStatusByIdentityDocument(
+                user.identity_document
+              );
               newPaymentInfo.set(user.identity_document, status);
             } catch (error) {
               console.warn(`Error cargando info de pago para ${user.identity_document}:`, error);
@@ -501,7 +553,9 @@ const BulkSuspendReactivatePage: React.FC = () => {
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">Suspender/Reactivar Usuarios Masivamente</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Suspender/Reactivar Usuarios Masivamente
+            </h1>
             <p className="mt-2 text-gray-600">
               Importa un archivo CSV con documentos de identidad para suspender o reactivar usuarios
             </p>
@@ -520,9 +574,7 @@ const BulkSuspendReactivatePage: React.FC = () => {
                   onChange={(e) => setProcessingMode(e.target.value as any)}
                   className="w-4 h-4 text-blue-600"
                 />
-                <span className="text-sm font-medium">
-                  Procesar Pagos (Recomendado)
-                </span>
+                <span className="text-sm font-medium">Procesar Pagos (Recomendado)</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -533,9 +585,7 @@ const BulkSuspendReactivatePage: React.FC = () => {
                   onChange={(e) => setProcessingMode(e.target.value as any)}
                   className="w-4 h-4 text-blue-600"
                 />
-                <span className="text-sm font-medium">
-                  Solo Suspender/Reactivar
-                </span>
+                <span className="text-sm font-medium">Solo Suspender/Reactivar</span>
               </label>
             </div>
             <p className="text-xs text-gray-600 mt-2">
@@ -570,8 +620,10 @@ const BulkSuspendReactivatePage: React.FC = () => {
                 {loadingPaymentInfo ? 'Procesando...' : 'Seleccionar archivo Excel'}
               </label>
               <p className="text-xs text-gray-600 mt-2">
-                El archivo Excel debe tener columnas: <code>identity_document</code> (o documento/ci/dni) y <code>paid</code> (o pagado/pago/mensualidad).
-                Valores para paid: <code>true/false</code>, <code>si/no</code>, <code>pagado/no pagado</code>, <code>1/0</code>
+                El archivo Excel debe tener columnas: <code>identity_document</code> (o
+                documento/ci/dni) y <code>paid</code> (o pagado/pago/mensualidad). Valores para
+                paid: <code>true/false</code>, <code>si/no</code>, <code>pagado/no pagado</code>,{' '}
+                <code>1/0</code>
               </p>
             </div>
 
@@ -587,8 +639,8 @@ const BulkSuspendReactivatePage: React.FC = () => {
                   Descargar Plantilla Excel
                 </Button>
                 <p className="text-sm text-gray-600">
-                  Descarga la plantilla Excel (.xlsx) con el formato correcto y ejemplos.
-                  Incluye hoja de instrucciones detalladas.
+                  Descarga la plantilla Excel (.xlsx) con el formato correcto y ejemplos. Incluye
+                  hoja de instrucciones detalladas.
                 </p>
               </div>
               <div>
@@ -616,9 +668,7 @@ const BulkSuspendReactivatePage: React.FC = () => {
           {users.length > 0 && (
             <Card className="p-6 mb-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">
-                  Usuarios a Procesar ({users.length})
-                </h2>
+                <h2 className="text-xl font-semibold">Usuarios a Procesar ({users.length})</h2>
                 <Button
                   onClick={handleProcess}
                   disabled={processing}
@@ -650,14 +700,22 @@ const BulkSuspendReactivatePage: React.FC = () => {
                           Documento: {user.identity_document}
                         </div>
                         <div className="text-sm text-gray-600">
-                          Acción: {(() => {
+                          Acción:{' '}
+                          {(() => {
                             // Si tiene campo paid, mostrar información de pago
                             if (user.paid !== undefined) {
-                              const paid = typeof user.paid === 'string'
-                                ? user.paid.toLowerCase()
-                                : String(user.paid);
-                              const isPaid = paid === 'true' || paid === '1' || paid === 'si' ||
-                                paid === 'pagado' || paid === 'paid' || paid === 'pago' || paid === 'sí';
+                              const paid =
+                                typeof user.paid === 'string'
+                                  ? user.paid.toLowerCase()
+                                  : String(user.paid);
+                              const isPaid =
+                                paid === 'true' ||
+                                paid === '1' ||
+                                paid === 'si' ||
+                                paid === 'pagado' ||
+                                paid === 'paid' ||
+                                paid === 'pago' ||
+                                paid === 'sí';
                               return isPaid ? '✅ Pagó - Reactivar' : '❌ No pagó - Suspender';
                             }
                             // Si no, usar is_active
@@ -740,7 +798,7 @@ const BulkSuspendReactivatePage: React.FC = () => {
                 <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
                   <h3 className="font-medium text-red-600">Usuarios con errores:</h3>
                   {result.results
-                    .filter(r => !r.success)
+                    .filter((r) => !r.success)
                     .map((resultItem, index) => (
                       <div key={index} className="p-2 bg-red-50 rounded text-sm">
                         <div className="font-medium">{resultItem.identity_document}</div>
@@ -753,17 +811,19 @@ const BulkSuspendReactivatePage: React.FC = () => {
                 <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
                   <h3 className="font-medium text-green-600">Usuarios procesados exitosamente:</h3>
                   {result.results
-                    .filter(r => r.success)
+                    .filter((r) => r.success)
                     .map((resultItem, index) => (
                       <div key={index} className="p-2 bg-green-50 rounded text-sm">
                         <div className="font-medium">{resultItem.identity_document}</div>
                         <div className="text-green-600">{resultItem.message}</div>
-                        {resultItem.previous_status !== undefined && resultItem.new_status !== undefined && (
-                          <div className="text-xs text-gray-600 mt-1">
-                            Estado anterior: {resultItem.previous_status ? 'Activo' : 'Suspendido'} →
-                            Estado nuevo: {resultItem.new_status ? 'Activo' : 'Suspendido'}
-                          </div>
-                        )}
+                        {resultItem.previous_status !== undefined &&
+                          resultItem.new_status !== undefined && (
+                            <div className="text-xs text-gray-600 mt-1">
+                              Estado anterior:{' '}
+                              {resultItem.previous_status ? 'Activo' : 'Suspendido'} → Estado nuevo:{' '}
+                              {resultItem.new_status ? 'Activo' : 'Suspendido'}
+                            </div>
+                          )}
                       </div>
                     ))}
                 </div>
@@ -778,12 +838,13 @@ const BulkSuspendReactivatePage: React.FC = () => {
               <div>
                 <h3 className="font-medium text-blue-900 mb-1">ℹ️ Información</h3>
                 <p className="text-sm text-blue-800">
-                  Los usuarios se identifican mediante su <strong>documento de identidad</strong> (campo único).
-                  Asegúrate de que el documento de identidad esté correctamente registrado en el sistema.
+                  Los usuarios se identifican mediante su <strong>documento de identidad</strong>{' '}
+                  (campo único). Asegúrate de que el documento de identidad esté correctamente
+                  registrado en el sistema.
                 </p>
                 <p className="text-sm text-blue-800 mt-2">
-                  <strong>Valores aceptados para is_active:</strong> <code>true/false</code>, <code>1/0</code>,
-                  <code>suspender/reactivar</code>, <code>suspend/reactivate</code>
+                  <strong>Valores aceptados para is_active:</strong> <code>true/false</code>,{' '}
+                  <code>1/0</code>,<code>suspender/reactivar</code>, <code>suspend/reactivate</code>
                 </p>
               </div>
             </div>
@@ -795,4 +856,3 @@ const BulkSuspendReactivatePage: React.FC = () => {
 };
 
 export default BulkSuspendReactivatePage;
-

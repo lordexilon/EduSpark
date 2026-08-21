@@ -30,7 +30,7 @@ const TeacherRoute: React.FC<TeacherRouteProps> = ({ children }) => {
     userId: user?.id,
     roleName: user?.role?.name,
     hasAccess,
-    allowedRoles
+    allowedRoles,
   });
 
   if (!user) {

@@ -7,7 +7,16 @@ import { uploadFlashcardImage } from '@/services/flashcardService';
 import { CourseUnit, Session } from '@/services/teacherCourses';
 import Button from '@/components/Common/Button';
 import Card from '@/components/Common/Card';
-import { IconUpload, IconX, IconImage, IconPlus, IconTrash, IconSparkles, IconLoader, IconRefreshCw } from '@/components/Common/Icons';
+import {
+  IconUpload,
+  IconX,
+  IconImage,
+  IconPlus,
+  IconTrash,
+  IconSparkles,
+  IconLoader,
+  IconRefreshCw,
+} from '@/components/Common/Icons';
 import { AiService } from '@/services/aiService';
 import { getAiImageQuota } from '@/services/tutorLimitsService';
 import { useAuth } from '@/hooks/useAuth';
@@ -41,8 +50,12 @@ const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
   const [tags, setTags] = useState(flashcard?.tags?.join(', ') || '');
   const [difficultyLevel, setDifficultyLevel] = useState(flashcard?.difficulty_level || 1);
   const [pointsValue, setPointsValue] = useState(flashcard?.points_value || 0);
-  const [selectedUnitId, setSelectedUnitId] = useState<string | undefined>(initialUnitId || flashcard?.unit_id);
-  const [selectedSessionId, setSelectedSessionId] = useState<string | undefined>(initialSessionId || flashcard?.session_id);
+  const [selectedUnitId, setSelectedUnitId] = useState<string | undefined>(
+    initialUnitId || flashcard?.unit_id
+  );
+  const [selectedSessionId, setSelectedSessionId] = useState<string | undefined>(
+    initialSessionId || flashcard?.session_id
+  );
   const [uploading, setUploading] = useState(false);
   const [uploadingField, setUploadingField] = useState<'front' | 'back' | null>(null);
   const [isMultipleChoice, setIsMultipleChoice] = useState(flashcard?.is_multiple_choice || false);
@@ -102,8 +115,7 @@ const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
       }
 
       // 3. Update Quota locally
-      setImageQuota(prev => (prev !== null ? Math.max(0, prev - 1) : null));
-
+      setImageQuota((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
     } catch (error: any) {
       console.error('Error generating image:', error);
       alert(error.message || 'Error al generar la imagen');
@@ -155,7 +167,8 @@ const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
 
   const handleAddOption = () => {
     const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-    const nextLabel = labels[answerOptions.length] || String.fromCharCode(65 + answerOptions.length);
+    const nextLabel =
+      labels[answerOptions.length] || String.fromCharCode(65 + answerOptions.length);
     setAnswerOptions([...answerOptions, { label: nextLabel, text: '' }]);
   };
 
@@ -188,7 +201,11 @@ const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
         alert('Todas las opciones deben tener texto');
         return;
       }
-      if (correctAnswerIndex === undefined || correctAnswerIndex < 0 || correctAnswerIndex >= answerOptions.length) {
+      if (
+        correctAnswerIndex === undefined ||
+        correctAnswerIndex < 0 ||
+        correctAnswerIndex >= answerOptions.length
+      ) {
         alert('Debes seleccionar la respuesta correcta');
         return;
       }
@@ -239,9 +256,7 @@ const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
 
         {/* Título (opcional) */}
         <div>
-          <label className="block text-sm font-medium text-text-dark mb-2">
-            Título (opcional)
-          </label>
+          <label className="block text-sm font-medium text-text-dark mb-2">Título (opcional)</label>
           <input
             type="text"
             value={title}
@@ -266,7 +281,10 @@ const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
                     // Si se cambia la unidad, limpiar la sesión si no pertenece a la nueva unidad
                     if (e.target.value) {
                       const newUnitSessions = sessions.filter((s) => s.unit_id === e.target.value);
-                      if (selectedSessionId && !newUnitSessions.find((s) => s.id === selectedSessionId)) {
+                      if (
+                        selectedSessionId &&
+                        !newUnitSessions.find((s) => s.id === selectedSessionId)
+                      ) {
                         setSelectedSessionId(undefined);
                       }
                     } else {
@@ -304,9 +322,7 @@ const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
                   ))}
                 </select>
                 {selectedUnitId && availableSessions.length === 0 && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    No hay sesiones en esta unidad
-                  </p>
+                  <p className="text-xs text-gray-500 mt-1">No hay sesiones en esta unidad</p>
                 )}
               </div>
             )}
@@ -482,12 +498,7 @@ const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
             ))}
 
             {answerOptions.length < 8 && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleAddOption}
-                className="w-full"
-              >
+              <Button type="button" variant="outline" onClick={handleAddOption} className="w-full">
                 <IconPlus className="w-4 h-4 mr-2" />
                 Agregar Opción
               </Button>
@@ -628,9 +639,7 @@ const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               placeholder="0"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Puntos que vale dominar esta flashcard
-            </p>
+            <p className="text-xs text-gray-500 mt-1">Puntos que vale dominar esta flashcard</p>
           </div>
         </div>
 
@@ -663,4 +672,3 @@ const FlashcardEditor: React.FC<FlashcardEditorProps> = ({
 };
 
 export default FlashcardEditor;
-

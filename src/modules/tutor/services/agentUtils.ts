@@ -8,13 +8,9 @@ import type {
   AgentResponse,
   ConversationContext,
   ContextWindow,
-  StudentProgress
+  StudentProgress,
 } from '../types/agents';
-import type {
-  PedagogicalSettings,
-  StudentProfile,
-  GradingScale
-} from '../types/pedagogical';
+import type { PedagogicalSettings, StudentProfile, GradingScale } from '../types/pedagogical';
 
 // =====================================================
 // Utilidades de Contexto
@@ -37,13 +33,13 @@ export const createConversationContext = (
     conversationId,
     pedagogicalSettings,
     studentProfile,
-    recentMessages: recentMessages.map(msg => ({
+    recentMessages: recentMessages.map((msg) => ({
       id: msg.id || Date.now().toString(),
       role: msg.role,
       text: msg.text,
       timestamp: msg.timestamp || new Date(),
-      metadata: msg.metadata || {}
-    }))
+      metadata: msg.metadata || {},
+    })),
   };
 };
 
@@ -66,8 +62,8 @@ export const enrichContext = (
       courseMaterials: additionalData.courseMaterials || [],
       courseImages: additionalData.courseImages || [],
       usageMetrics: additionalData.usageMetrics || [],
-      gradingScale: additionalData.gradingScale
-    }
+      gradingScale: additionalData.gradingScale,
+    },
   };
 };
 
@@ -85,9 +81,9 @@ export const extractContextForAgent = (
         courseId: context.courseId,
         pedagogicalSettings: {
           voiceName: context.pedagogicalSettings.voiceName,
-          voiceSpeed: context.pedagogicalSettings.voiceSpeed
+          voiceSpeed: context.pedagogicalSettings.voiceSpeed,
         } as any,
-        recentMessages: context.recentMessages.slice(-5) // Solo últimos 5 mensajes
+        recentMessages: context.recentMessages.slice(-5), // Solo últimos 5 mensajes
       };
 
     case 'rag':
@@ -96,7 +92,7 @@ export const extractContextForAgent = (
         courseId: context.courseId,
         pedagogicalSettings: context.pedagogicalSettings,
         studentProfile: context.studentProfile,
-        recentMessages: context.recentMessages.slice(-10) // Últimos 10 mensajes
+        recentMessages: context.recentMessages.slice(-10), // Últimos 10 mensajes
       };
 
     case 'context':
@@ -105,7 +101,7 @@ export const extractContextForAgent = (
         courseId: context.courseId,
         pedagogicalSettings: context.pedagogicalSettings,
         studentProfile: context.studentProfile,
-        recentMessages: context.recentMessages
+        recentMessages: context.recentMessages,
       };
 
     case 'coordinator':
@@ -154,10 +150,14 @@ ${pedagogicalSettings.systemPromptOverride ? `\n${pedagogicalSettings.systemProm
  */
 const getStyleInstructions = (style: string): string => {
   const styles = {
-    'socratico': 'Utiliza el método socrático: haz preguntas guiadas para que el estudiante llegue a sus propias conclusiones. Evita dar respuestas directas.',
-    'directo': 'Proporciona explicaciones claras y estructuradas. Sé directo y conciso en tus respuestas.',
-    'colaborativo': 'Fomenta la participación activa del estudiante. Haz preguntas abiertas y promueve la discusión.',
-    'constructivista': 'Ayuda al estudiante a construir su conocimiento conectando con experiencias previas. Guía paso a paso.'
+    socratico:
+      'Utiliza el método socrático: haz preguntas guiadas para que el estudiante llegue a sus propias conclusiones. Evita dar respuestas directas.',
+    directo:
+      'Proporciona explicaciones claras y estructuradas. Sé directo y conciso en tus respuestas.',
+    colaborativo:
+      'Fomenta la participación activa del estudiante. Haz preguntas abiertas y promueve la discusión.',
+    constructivista:
+      'Ayuda al estudiante a construir su conocimiento conectando con experiencias previas. Guía paso a paso.',
   };
 
   return styles[style as keyof typeof styles] || styles.directo;
@@ -168,10 +168,11 @@ const getStyleInstructions = (style: string): string => {
  */
 const getToneInstructions = (tone: string): string => {
   const tones = {
-    'amigable': 'Mantén un tono amigable, cercano y accesible. Usa un lenguaje casual pero respetuoso.',
-    'formal': 'Mantén un tono académico y profesional. Usa un lenguaje formal y estructurado.',
-    'motivador': 'Sé alentador y positivo. Motiva al estudiante y celebra sus logros.',
-    'neutro': 'Mantén un tono equilibrado y objetivo. Sé profesional pero accesible.'
+    amigable:
+      'Mantén un tono amigable, cercano y accesible. Usa un lenguaje casual pero respetuoso.',
+    formal: 'Mantén un tono académico y profesional. Usa un lenguaje formal y estructurado.',
+    motivador: 'Sé alentador y positivo. Motiva al estudiante y celebra sus logros.',
+    neutro: 'Mantén un tono equilibrado y objetivo. Sé profesional pero accesible.',
   };
 
   return tones[tone as keyof typeof tones] || tones.amigable;
@@ -182,9 +183,11 @@ const getToneInstructions = (tone: string): string => {
  */
 const getDetailInstructions = (level: string): string => {
   const levels = {
-    'basico': 'Proporciona explicaciones simples y fundamentales. Evita tecnicismos innecesarios.',
-    'medio': 'Equilibra la simplicidad con el detalle necesario. Incluye información relevante sin abrumar.',
-    'avanzado': 'Proporciona explicaciones detalladas y técnicas. Incluye conceptos avanzados cuando sea apropiado.'
+    basico: 'Proporciona explicaciones simples y fundamentales. Evita tecnicismos innecesarios.',
+    medio:
+      'Equilibra la simplicidad con el detalle necesario. Incluye información relevante sin abrumar.',
+    avanzado:
+      'Proporciona explicaciones detalladas y técnicas. Incluye conceptos avanzados cuando sea apropiado.',
   };
 
   return levels[level as keyof typeof levels] || levels.medio;
@@ -209,10 +212,11 @@ const getStudentInstructions = (profile: StudentProfile): string => {
  */
 const getLearningStyleInstructions = (style: string): string => {
   const styles = {
-    'visual': 'Incluye descripciones visuales, diagramas conceptuales y representaciones gráficas.',
-    'auditory': 'Usa explicaciones verbales detalladas y ejemplos sonoros.',
-    'kinesthetic': 'Incluye ejemplos prácticos y actividades que involucren movimiento o manipulación.',
-    'reading': 'Proporciona textos estructurados y recursos escritos para consulta.'
+    visual: 'Incluye descripciones visuales, diagramas conceptuales y representaciones gráficas.',
+    auditory: 'Usa explicaciones verbales detalladas y ejemplos sonoros.',
+    kinesthetic:
+      'Incluye ejemplos prácticos y actividades que involucren movimiento o manipulación.',
+    reading: 'Proporciona textos estructurados y recursos escritos para consulta.',
   };
 
   return styles[style as keyof typeof styles] || 'Adaptable a diferentes estilos';
@@ -223,9 +227,9 @@ const getLearningStyleInstructions = (style: string): string => {
  */
 const getDifficultyInstructions = (level: string): string => {
   const levels = {
-    'basico': 'Mantén las explicaciones simples y fundamentales.',
-    'medio': 'Proporciona un nivel intermedio de complejidad.',
-    'avanzado': 'Puedes incluir conceptos avanzados y técnicos.'
+    basico: 'Mantén las explicaciones simples y fundamentales.',
+    medio: 'Proporciona un nivel intermedio de complejidad.',
+    avanzado: 'Puedes incluir conceptos avanzados y técnicos.',
   };
 
   return levels[level as keyof typeof levels] || 'Nivel intermedio';
@@ -264,14 +268,14 @@ export const enhanceAgentResponse = (
       contextUsed: {
         pedagogicalSettings: !!context.pedagogicalSettings,
         studentProfile: !!context.studentProfile,
-        recentMessages: context.recentMessages.length
+        recentMessages: context.recentMessages.length,
       },
       personalization: {
         teachingStyle: context.pedagogicalSettings.teachingStyle,
         tonePreference: context.pedagogicalSettings.tonePreference,
-        detailLevel: context.pedagogicalSettings.detailLevel
-      }
-    }
+        detailLevel: context.pedagogicalSettings.detailLevel,
+      },
+    },
   };
 };
 
@@ -282,7 +286,7 @@ export const combineAgentResponses = (
   responses: AgentResponse[],
   context: ConversationContext
 ): AgentResponse => {
-  const successfulResponses = responses.filter(r => r.success);
+  const successfulResponses = responses.filter((r) => r.success);
 
   if (successfulResponses.length === 0) {
     return {
@@ -292,9 +296,9 @@ export const combineAgentResponses = (
         model: 'multi-agent',
         source: 'Agent Coordinator',
         contextUsed: 'No context used',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
-      agentUsed: 'coordinator'
+      agentUsed: 'coordinator',
     };
   }
 
@@ -304,9 +308,7 @@ export const combineAgentResponses = (
   }
 
   // Combinar múltiples respuestas
-  const combinedMessage = successfulResponses
-    .map(r => r.message)
-    .join('\n\n---\n\n');
+  const combinedMessage = successfulResponses.map((r) => r.message).join('\n\n---\n\n');
 
   return {
     success: true,
@@ -320,10 +322,10 @@ export const combineAgentResponses = (
       personalization: {
         teachingStyle: context.pedagogicalSettings.teachingStyle,
         tonePreference: context.pedagogicalSettings.tonePreference,
-        detailLevel: context.pedagogicalSettings.detailLevel
-      }
+        detailLevel: context.pedagogicalSettings.detailLevel,
+      },
     },
-    agentUsed: 'coordinator'
+    agentUsed: 'coordinator',
   };
 };
 
@@ -334,7 +336,9 @@ export const combineAgentResponses = (
 /**
  * Analiza la calidad de una respuesta
  */
-export const analyzeResponseQuality = (response: AgentResponse): {
+export const analyzeResponseQuality = (
+  response: AgentResponse
+): {
   score: number;
   factors: {
     length: number;
@@ -357,8 +361,8 @@ export const analyzeResponseQuality = (response: AgentResponse): {
       length: length / 1000, // Normalizado
       completeness,
       personalization,
-      clarity
-    }
+      clarity,
+    },
   };
 };
 
@@ -369,14 +373,19 @@ export const extractConversationMetrics = (
   messages: AgentMessage[],
   context: ConversationContext
 ): Record<string, number> => {
-  const userMessages = messages.filter(m => m.role === 'user');
-  const assistantMessages = messages.filter(m => m.role === 'assistant');
+  const userMessages = messages.filter((m) => m.role === 'user');
+  const assistantMessages = messages.filter((m) => m.role === 'assistant');
 
-  const avgResponseTime = assistantMessages.length > 0 ?
-    assistantMessages.reduce((sum, msg) => sum + (msg.metadata?.responseTime || 0), 0) / assistantMessages.length : 0;
+  const avgResponseTime =
+    assistantMessages.length > 0
+      ? assistantMessages.reduce((sum, msg) => sum + (msg.metadata?.responseTime || 0), 0) /
+        assistantMessages.length
+      : 0;
 
-  const avgMessageLength = messages.length > 0 ?
-    messages.reduce((sum, msg) => sum + msg.text.length, 0) / messages.length : 0;
+  const avgMessageLength =
+    messages.length > 0
+      ? messages.reduce((sum, msg) => sum + msg.text.length, 0) / messages.length
+      : 0;
 
   return {
     totalMessages: messages.length,
@@ -385,7 +394,7 @@ export const extractConversationMetrics = (
     avgResponseTime,
     avgMessageLength,
     interactionCount: context.studentProfile.interactionCount,
-    personalizationLevel: context.pedagogicalSettings ? 1.0 : 0.0
+    personalizationLevel: context.pedagogicalSettings ? 1.0 : 0.0,
   };
 };
 
@@ -409,23 +418,25 @@ export const generateDebugInfo = (
     response: {
       success: response.success,
       messageLength: response.message.length,
-      metadata: response.metadata
+      metadata: response.metadata,
     },
     context: {
       studentId: context.studentId,
       courseId: context.courseId,
       recentMessages: context.recentMessages.length,
       pedagogicalSettings: !!context.pedagogicalSettings,
-      studentProfile: !!context.studentProfile
+      studentProfile: !!context.studentProfile,
     },
-    quality: analyzeResponseQuality(response)
+    quality: analyzeResponseQuality(response),
   };
 };
 
 /**
  * Valida la configuración del sistema
  */
-export const validateSystemConfiguration = (config: any): {
+export const validateSystemConfiguration = (
+  config: any
+): {
   valid: boolean;
   errors: string[];
   warnings: string[];
@@ -440,7 +451,6 @@ export const validateSystemConfiguration = (config: any): {
   if (!config.supabase?.anonKey) {
     errors.push('Supabase Anon Key no configurada');
   }
-
 
   // Validar configuración de Gemini
   if (!config.gemini?.apiKey) {
@@ -459,7 +469,7 @@ export const validateSystemConfiguration = (config: any): {
   return {
     valid: errors.length === 0,
     errors,
-    warnings
+    warnings,
   };
 };
 
@@ -478,5 +488,5 @@ export const agentUtils = {
   analyzeResponseQuality,
   extractConversationMetrics,
   generateDebugInfo,
-  validateSystemConfiguration
+  validateSystemConfiguration,
 };

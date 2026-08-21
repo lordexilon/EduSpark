@@ -3,8 +3,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { videoCallService, VideoCallConfig } from '@/services/videoCallService';
-import Button from "@/components/Common/Button";
-import { IconVideoCamera, IconCalendar, IconClock, IconUsers, IconCheckCircle, IconX } from "@/components/Common/Icons";
+import Button from '@/components/Common/Button';
+import {
+  IconVideoCamera,
+  IconCalendar,
+  IconClock,
+  IconUsers,
+  IconCheckCircle,
+  IconX,
+} from '@/components/Common/Icons';
 
 interface VideoCallSchedulerProps {
   sessionId?: string;
@@ -17,8 +24,16 @@ interface VideoCallSchedulerProps {
   studentEmails?: string[];
   existingMeetLink?: string | null;
   existingCalendarEventId?: string | null;
-  onVideoCallCreated?: (result: { meetLink: string; calendarEventId: string; calendarEventUrl: string }) => void;
-  onVideoCallUpdated?: (result: { meetLink: string; calendarEventId: string; calendarEventUrl: string }) => void;
+  onVideoCallCreated?: (result: {
+    meetLink: string;
+    calendarEventId: string;
+    calendarEventUrl: string;
+  }) => void;
+  onVideoCallUpdated?: (result: {
+    meetLink: string;
+    calendarEventId: string;
+    calendarEventUrl: string;
+  }) => void;
   onVideoCallDeleted?: () => void;
 }
 
@@ -127,7 +142,10 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {
       console.error('Error creando videollamada:', err);
-      setError(err.message || 'Error al crear la videollamada. Verifica que tengas Google Calendar conectado.');
+      setError(
+        err.message ||
+          'Error al crear la videollamada. Verifica que tengas Google Calendar conectado.'
+      );
     } finally {
       setLoading(false);
     }
@@ -215,7 +233,8 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
             {hasVideoCall ? 'Editar Videollamada' : 'Programar Videollamada'}
           </h3>
           <p className="text-sm text-blue-700">
-            Crea una videollamada en Google Meet para esta sesión. Los estudiantes recibirán la invitación automáticamente.
+            Crea una videollamada en Google Meet para esta sesión. Los estudiantes recibirán la
+            invitación automáticamente.
           </p>
         </div>
       </div>
@@ -289,7 +308,9 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
             </label>
             <div className="text-sm text-gray-600 bg-white p-2 rounded border border-gray-200 max-h-32 overflow-y-auto">
               {studentEmails.map((email, idx) => (
-                <div key={idx} className="py-1">{email}</div>
+                <div key={idx} className="py-1">
+                  {email}
+                </div>
               ))}
             </div>
             <p className="text-xs text-gray-500 mt-1">
@@ -305,7 +326,11 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
             className="flex items-center gap-2"
           >
             <IconVideoCamera className="w-4 h-4" />
-            {loading ? 'Creando...' : hasVideoCall ? 'Actualizar Videollamada' : 'Crear Videollamada'}
+            {loading
+              ? 'Creando...'
+              : hasVideoCall
+                ? 'Actualizar Videollamada'
+                : 'Crear Videollamada'}
           </Button>
           {editMode && (
             <Button
@@ -322,8 +347,9 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
         </div>
 
         <p className="text-xs text-gray-500 mt-2">
-          <strong>Nota:</strong> Asegúrate de tener Google Calendar conectado en tu cuenta.
-          La videollamada se creará automáticamente y los estudiantes recibirán la invitación por email.
+          <strong>Nota:</strong> Asegúrate de tener Google Calendar conectado en tu cuenta. La
+          videollamada se creará automáticamente y los estudiantes recibirán la invitación por
+          email.
         </p>
       </div>
     </div>

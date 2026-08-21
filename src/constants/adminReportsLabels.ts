@@ -12,12 +12,14 @@ export const adminReportsText = {
     refresh: 'Actualizar',
     updating: 'Actualizando...',
     exporting: 'Exportando...',
-    cacheHintPrefix: 'Mostrando datos guardados en este navegador para reducir tráfico. Válidos hasta el próximo cierre diario (~21:00 h, Paraguay). Expiran:',
-    freshHint: 'Datos recién calculados. Se volverán a usar desde caché en visitas posteriores hasta el próximo cierre diario (~21:00 h, Paraguay).',
+    cacheHintPrefix:
+      'Mostrando datos guardados en este navegador para reducir tráfico. Válidos hasta el próximo cierre diario (~21:00 h, Paraguay). Expiran:',
+    freshHint:
+      'Datos recién calculados. Se volverán a usar desde caché en visitas posteriores hasta el próximo cierre diario (~21:00 h, Paraguay).',
     from: 'Desde:',
     to: 'Hasta:',
     clearFilters: 'Limpiar Filtros',
-    
+
     // Metrics
     institutions: 'Instituciones',
     totalCourses: 'Cursos Totales',
@@ -26,7 +28,7 @@ export const adminReportsText = {
     avgProgress: 'Progreso Promedio',
     totalInteractions: 'Interacciones Totales',
     totalTokens: 'Tokens Totales',
-    
+
     // Breakdown
     costBreakdown: 'Desglose de Costos Totales',
     tutorAi: 'Tutor IA',
@@ -34,7 +36,7 @@ export const adminReportsText = {
     aiUsage: 'Uso de IA',
     grandTotal: 'Total General',
     costPctOfTotal: 'del total',
-    
+
     // Audit Log
     auditTitle: 'Registro de Auditoría de Sistemas',
     auditSubtitle: 'Trazabilidad completa de acciones críticas y cumplimiento SCA.',
@@ -42,19 +44,19 @@ export const adminReportsText = {
     last24h: 'Últimas 24h',
     aiAlerts: 'Alertas AI',
     searchPlaceholder: 'Buscar por usuario o acción...',
-    
+
     // Table Headers
     actor: 'Actor',
     action: 'Acción',
     resource: 'Recurso',
     dateTime: 'Fecha / Hora (PY)',
     metadata: 'Metadatos del Evento',
-    
+
     // General
     noData: 'No hay datos disponibles',
     loading: 'Cargando...',
     error: 'Error al cargar los datos',
-    
+
     // Risk Widget
     riskTitle: 'Alumnos en Riesgo',
     riskSubtitle: 'o sin entregas',
@@ -69,67 +71,69 @@ export const adminReportsText = {
     sendMsg: 'Enviar mensaje',
   },
   gn: {
-    pageTitle: 'Marandu Guasu Opaite Mbo\'ehaogua',
-    subtitle: 'Admin techakuaa opaite mbo\'ehao, carrera ha kurso kuéra rehegua',
-    note: 'Kurso ñemombyky (tutor mba\'ekuaa ha jeho promedio). Ndaojejapói token pyahu ko\'ápe: moñe\'ẽnte base de datos-pe.',
+    pageTitle: "Marandu Guasu Opaite Mbo'ehaogua",
+    subtitle: "Admin techakuaa opaite mbo'ehao, carrera ha kurso kuéra rehegua",
+    note: "Kurso ñemombyky (tutor mba'ekuaa ha jeho promedio). Ndaojejapói token pyahu ko'ápe: moñe'ẽnte base de datos-pe.",
     exportEnrollments: 'Emboguejy Matrícula',
     refresh: 'Embopyahu',
     updating: 'Oñembopyahu hína...',
     exporting: 'Oñemboguejy hína...',
-    cacheHintPrefix: 'Ehecha marandu ñongatupy ko navegador-pe. Ovale ko árape g̃uarã (21:00 h, Paraguay). Opa hína:',
-    freshHint: 'Marandu pyahuite. Ojepurúta jey caché guive ambue jave eikéramo, ko ára paha peve (~21:00 h, Paraguay).',
+    cacheHintPrefix:
+      'Ehecha marandu ñongatupy ko navegador-pe. Ovale ko árape g̃uarã (21:00 h, Paraguay). Opa hína:',
+    freshHint:
+      'Marandu pyahuite. Ojepurúta jey caché guive ambue jave eikéramo, ko ára paha peve (~21:00 h, Paraguay).',
     from: 'Guive:',
     to: 'Peve:',
-    clearFilters: 'Ei’o mboha\'eha',
-    
+    clearFilters: "Ei’o mboha'eha",
+
     // Metrics
-    institutions: 'Mbo\'ehaokuéra',
+    institutions: "Mbo'ehaokuéra",
     totalCourses: 'Kurso kuéra',
-    students: 'Temimbo\'ekuéra',
+    students: "Temimbo'ekuéra",
     totalCost: 'Hepykue Ojoypýpe',
     avgProgress: 'Jeho Promedio',
     totalInteractions: 'Ñemongeta Ojoypýpe',
     totalTokens: 'Token Ojoypýpe',
-    
+
     // Breakdown
     costBreakdown: 'Hepykue Ñembojao',
     tutorAi: 'Tutor IA',
-    processing: 'Mba\'apopy',
+    processing: "Mba'apopy",
     aiUsage: 'IA Puru',
     grandTotal: 'Opaite Hepykue',
     costPctOfTotal: 'opaite guive',
-    
+
     // Audit Log
     auditTitle: 'Tembiasakue Trazabilidad rehegua',
-    auditSubtitle: 'Tembiasakue opaite tembiapo mbo\'ehao rehegua (SCA).',
+    auditSubtitle: "Tembiasakue opaite tembiapo mbo'ehao rehegua (SCA).",
     recentEvents: 'Tembiapo pyahukuéra',
     last24h: '24 aravo paha',
-    aiAlerts: 'Sapy\'apy IA',
+    aiAlerts: "Sapy'apy IA",
     searchPlaceholder: 'Eheka tekove térã tembiapo...',
-    
+
     // Table Headers
     actor: 'Tekove',
     action: 'Tembiapo',
-    resource: 'Mba\'epu',
+    resource: "Mba'epu",
     dateTime: 'Ara / Aravo (PY)',
     metadata: 'Marandu Detalle',
-    
+
     // General
     noData: 'Ndaipóri marandu',
     loading: 'Oñehenyhẽ hína...',
     error: 'Oiko peteĩ jejavy marandu rekoha',
 
     // Risk Widget
-    riskTitle: 'Temimbo\'e oikoasýva',
+    riskTitle: "Temimbo'e oikoasýva",
     riskSubtitle: 'térã ndohejáiva tembiapo',
     riskCritical: 'Ivaieterei',
     riskWarning: 'Kyhyje',
     noSubmissions: 'Ndohejáiva',
     allClear: '¡Opaite hoypýpe!',
-    noRiskDesc: 'Ndaipóri temimbo\'e oikoasýva ko\'ápe.',
+    noRiskDesc: "Ndaipóri temimbo'e oikoasýva ko'ápe.",
     showMore: 'Ehecha',
     showLess: 'Emomichĩ',
     more: 've',
-    sendMsg: 'Embou ñe\'ẽ',
-  }
+    sendMsg: "Embou ñe'ẽ",
+  },
 } as const;

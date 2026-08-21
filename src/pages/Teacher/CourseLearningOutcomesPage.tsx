@@ -8,7 +8,7 @@ import { quizService, Assessment } from '@/services/quizService';
 import {
   learningOutcomeService,
   LearningOutcome,
-  AssessmentLearningOutcomeLink
+  AssessmentLearningOutcomeLink,
 } from '@/services/learningOutcomeService';
 import { supabaseUrl } from '@/lib/supabase';
 
@@ -20,7 +20,10 @@ function isMissingRaTablesError(e: unknown): boolean {
   if (!o) return false;
   if (o.code === 'PGRST205') return true;
   const msg = String(o.message || '');
-  return msg.includes('learning_outcomes') && (msg.includes('schema cache') || msg.includes('Could not find'));
+  return (
+    msg.includes('learning_outcomes') &&
+    (msg.includes('schema cache') || msg.includes('Could not find'))
+  );
 }
 
 function linksToMap(links: AssessmentLearningOutcomeLink[]): Map<string, Set<string>> {
@@ -64,7 +67,7 @@ export const CourseLearningOutcomesPage: React.FC = () => {
       setCourseTitle(course.title);
       const [u, asmt] = await Promise.all([
         unitService.getCourseUnits(cid),
-        quizService.getCourseAssessmentsForTeacher(cid)
+        quizService.getCourseAssessments(cid),
       ]);
       setUnits(u);
       setAssessments(asmt);
@@ -72,7 +75,7 @@ export const CourseLearningOutcomesPage: React.FC = () => {
       try {
         const [loList, links] = await Promise.all([
           learningOutcomeService.listByCourse(cid),
-          learningOutcomeService.listLinksForCourse(cid)
+          learningOutcomeService.listLinksForCourse(cid),
         ]);
         setLos(loList);
         setLinkMap(linksToMap(links));
@@ -126,7 +129,7 @@ export const CourseLearningOutcomesPage: React.FC = () => {
         statement,
         bloom_level: newBloom || null,
         sort_order: los.length,
-        is_active: true
+        is_active: true,
       });
       setLos((prev) => [...prev, created].sort((a, b) => a.code.localeCompare(b.code)));
       setNewCode('');
@@ -143,7 +146,12 @@ export const CourseLearningOutcomesPage: React.FC = () => {
 
   const handleDeleteLo = async (id: string) => {
     if (migrationNeeded) return;
-    if (!confirm('¿Eliminar este resultado de aprendizaje? Se quitarán los vínculos con evaluaciones.')) return;
+    if (
+      !confirm(
+        '¿Eliminar este resultado de aprendizaje? Se quitarán los vínculos con evaluaciones.'
+      )
+    )
+      return;
     try {
       await learningOutcomeService.delete(id);
       setLos((prev) => prev.filter((x) => x.id !== id));
@@ -183,9 +191,7 @@ export const CourseLearningOutcomesPage: React.FC = () => {
   };
 
   if (!courseId || Number.isNaN(cid)) {
-    return (
-      <div className="p-6 text-center text-gray-600">Curso no válido</div>
-    );
+    return <div className="p-6 text-center text-gray-600">Curso no válido</div>;
   }
 
   if (loading) {
@@ -200,10 +206,16 @@ export const CourseLearningOutcomesPage: React.FC = () => {
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <Button variant="outline" onClick={() => navigate(`/teacher/courses/${courseId}`)} leftIcon={<IconArrowLeft className="w-4 h-4" />}>
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/teacher/courses/${courseId}`)}
+            leftIcon={<IconArrowLeft className="w-4 h-4" />}
+          >
             Volver al curso
           </Button>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mt-4">Resultados de aprendizaje</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mt-4">
+            Resultados de aprendizaje
+          </h1>
           <p className="text-gray-600 dark:text-gray-400">{courseTitle}</p>
         </div>
       </div>
@@ -212,12 +224,18 @@ export const CourseLearningOutcomesPage: React.FC = () => {
         <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-700 px-4 py-4 text-sm text-amber-950 dark:text-amber-100 space-y-2">
           <p className="font-semibold">Faltan tablas en Supabase (error PGRST205 / 404)</p>
           <p>
-            En el proyecto Supabase que usa esta app (<code className="rounded bg-amber-100/80 dark:bg-amber-900/50 px-1 break-all">{supabaseUrl}</code>),
-            todavía no está aplicada la migración de Resultados de aprendizaje (debe coincidir con <code className="rounded px-1">VITE_SUPABASE_URL</code> en{' '}
+            En el proyecto Supabase que usa esta app (
+            <code className="rounded bg-amber-100/80 dark:bg-amber-900/50 px-1 break-all">
+              {supabaseUrl}
+            </code>
+            ), todavía no está aplicada la migración de Resultados de aprendizaje (debe coincidir
+            con <code className="rounded px-1">VITE_SUPABASE_URL</code> en{' '}
             <code className="rounded px-1">.env</code>).
           </p>
           <ol className="list-decimal pl-5 space-y-1">
-            <li>Supabase Dashboard → tu proyecto → <strong>SQL Editor</strong> → New query.</li>
+            <li>
+              Supabase Dashboard → tu proyecto → <strong>SQL Editor</strong> → New query.
+            </li>
             <li>
               Pegá y ejecutá el archivo del repo:{' '}
               <code className="rounded bg-amber-100/80 dark:bg-amber-900/50 px-1 text-xs">
@@ -236,10 +254,14 @@ export const CourseLearningOutcomesPage: React.FC = () => {
       )}
 
       <Card className={`p-6 ${migrationNeeded ? 'opacity-60 pointer-events-none' : ''}`}>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Nuevo resultado de aprendizaje</h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Nuevo resultado de aprendizaje
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Código
+            </label>
             <input
               className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
               value={newCode}
@@ -248,7 +270,9 @@ export const CourseLearningOutcomesPage: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unidad (opcional)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Unidad (opcional)
+            </label>
             <select
               className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
               value={newUnitId}
@@ -263,7 +287,9 @@ export const CourseLearningOutcomesPage: React.FC = () => {
             </select>
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Enunciado</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Enunciado
+            </label>
             <textarea
               className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm min-h-[80px]"
               value={newStatement}
@@ -272,7 +298,9 @@ export const CourseLearningOutcomesPage: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bloom (opcional)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Bloom (opcional)
+            </label>
             <select
               className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
               value={newBloom}
@@ -287,29 +315,45 @@ export const CourseLearningOutcomesPage: React.FC = () => {
           </div>
         </div>
         <div className="mt-4">
-          <Button onClick={handleAddLo} disabled={adding} leftIcon={<IconPlus className="w-4 h-4" />}>
+          <Button
+            onClick={handleAddLo}
+            disabled={adding}
+            leftIcon={<IconPlus className="w-4 h-4" />}
+          >
             Agregar RA
           </Button>
         </div>
       </Card>
 
       <Card className={`p-6 ${migrationNeeded ? 'opacity-60 pointer-events-none' : ''}`}>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">RA declarados en el curso</h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          RA declarados en el curso
+        </h2>
         {migrationNeeded ? (
-          <p className="text-gray-500 text-sm">Las tablas de RA no están disponibles hasta aplicar la migración.</p>
+          <p className="text-gray-500 text-sm">
+            Las tablas de RA no están disponibles hasta aplicar la migración.
+          </p>
         ) : los.length === 0 ? (
-          <p className="text-gray-500 text-sm">Aún no hay RA. Creá al menos uno para vincularlo a evaluaciones.</p>
+          <p className="text-gray-500 text-sm">
+            Aún no hay RA. Creá al menos uno para vincularlo a evaluaciones.
+          </p>
         ) : (
           <ul className="divide-y divide-gray-200 dark:divide-gray-700">
             {los.map((lo) => (
               <li key={lo.id} className="py-4 flex flex-col sm:flex-row sm:justify-between gap-2">
                 <div>
-                  <span className="font-mono text-sm font-semibold text-blue-600 dark:text-blue-400">{lo.code}</span>
+                  <span className="font-mono text-sm font-semibold text-blue-600 dark:text-blue-400">
+                    {lo.code}
+                  </span>
                   {lo.unit_id && (
-                    <span className="ml-2 text-xs text-gray-500">({unitLabel.get(lo.unit_id) || 'Unidad'})</span>
+                    <span className="ml-2 text-xs text-gray-500">
+                      ({unitLabel.get(lo.unit_id) || 'Unidad'})
+                    </span>
                   )}
                   {lo.bloom_level && (
-                    <span className="ml-2 text-xs uppercase tracking-wide text-gray-400">{lo.bloom_level}</span>
+                    <span className="ml-2 text-xs uppercase tracking-wide text-gray-400">
+                      {lo.bloom_level}
+                    </span>
                   )}
                   <p className="text-gray-800 dark:text-gray-200 mt-1">{lo.statement}</p>
                 </div>
@@ -327,14 +371,19 @@ export const CourseLearningOutcomesPage: React.FC = () => {
       </Card>
 
       <Card className={`p-6 ${migrationNeeded ? 'opacity-60 pointer-events-none' : ''}`}>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Vincular evaluaciones</h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          Vincular evaluaciones
+        </h2>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-          Marcá qué RA evidencia cada evaluación publicada. La evidencia de logro se considera al aprobar el instrumento (según reglas del curso).
+          Marcá qué RA evidencia cada evaluación publicada. La evidencia de logro se considera al
+          aprobar el instrumento (según reglas del curso).
         </p>
         {assessments.length === 0 ? (
           <p className="text-gray-500 text-sm">No hay evaluaciones en este curso.</p>
         ) : los.length === 0 ? (
-          <p className="text-gray-500 text-sm">Creá al menos un RA arriba para habilitar vínculos.</p>
+          <p className="text-gray-500 text-sm">
+            Creá al menos un RA arriba para habilitar vínculos.
+          </p>
         ) : (
           <div className="space-y-6">
             {assessments.map((a) => (
@@ -352,9 +401,7 @@ export const CourseLearningOutcomesPage: React.FC = () => {
                       <span className="ml-2 text-xs text-amber-600">Borrador</span>
                     )}
                   </div>
-                  {savingId === a.id && (
-                    <span className="text-xs text-gray-500">Guardando…</span>
-                  )}
+                  {savingId === a.id && <span className="text-xs text-gray-500">Guardando…</span>}
                 </div>
                 <div className="flex flex-wrap gap-3">
                   {los.map((lo) => {
@@ -371,7 +418,9 @@ export const CourseLearningOutcomesPage: React.FC = () => {
                           disabled={savingId === a.id}
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
-                        <span className="font-mono text-xs text-blue-600 dark:text-blue-400">{lo.code}</span>
+                        <span className="font-mono text-xs text-blue-600 dark:text-blue-400">
+                          {lo.code}
+                        </span>
                       </label>
                     );
                   })}

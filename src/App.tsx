@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { TenantProvider } from '@/context/TenantContext';
 import RouterWrapper from '@/components/Common/RouterWrapper';
 import GoogleOAuthCallbackPage from '@/pages/Common/GoogleOAuthCallbackPage';
 
@@ -10,6 +11,9 @@ import PublicRoutes from '@/routes/PublicRoutes';
 import TeacherRoutes from '@/routes/TeacherRoutes';
 import StudentRoutes from '@/routes/StudentRoutes';
 import MobileRoutes from '@/routes/MobileRoutes';
+
+// Components
+import { ChatWidget } from '@/components/Chat/ChatWidget';
 
 /**
  * AppRoutes handles the top-level conditional rendering based on authentication state.
@@ -24,7 +28,12 @@ const AppRoutes: React.FC = () => {
 
   const currentPath = typeof window !== 'undefined' ? window.location.pathname : location.pathname;
 
-  console.log('🎨 AppRoutes render:', { user: !!user, loading, pathname: location.pathname, windowPath: currentPath });
+  console.log('🎨 AppRoutes render:', {
+    user: !!user,
+    loading,
+    pathname: location.pathname,
+    windowPath: currentPath,
+  });
 
   // CRITICAL: Render OAuth callback directly to avoid layout/state interference
   if (currentPath === '/auth/google/callback' || location.pathname === '/auth/google/callback') {
@@ -59,17 +68,24 @@ const AppRoutes: React.FC = () => {
 
   // Authenticated routes based on roles
   const isTeacherOrAdmin = [
-    'teacher', 'admin', 'admin-campus', 'coordinator', 'supervisor'
+    'teacher',
+    'admin',
+    'admin-campus',
+    'coordinator',
+    'supervisor',
   ].includes(user?.role?.name || '');
 
   return (
-    <Routes>
-      {isTeacherOrAdmin ? (
-        <Route path="/*" element={<TeacherRoutes />} />
-      ) : (
-        <Route path="/*" element={<StudentRoutes />} />
-      )}
-    </Routes>
+    <>
+      <Routes>
+        {isTeacherOrAdmin ? (
+          <Route path="/*" element={<TeacherRoutes />} />
+        ) : (
+          <Route path="/*" element={<StudentRoutes />} />
+        )}
+      </Routes>
+      <ChatWidget />
+    </>
   );
 };
 
@@ -102,7 +118,9 @@ class ErrorBoundary extends React.Component<
             </p>
             {this.state.error && (
               <details className="text-left mt-4">
-                <summary className="cursor-pointer text-sm text-gray-500">Detalles del error</summary>
+                <summary className="cursor-pointer text-sm text-gray-500">
+                  Detalles del error
+                </summary>
                 <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto">
                   {this.state.error.toString()}
                 </pre>
@@ -129,9 +147,11 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <AuthProvider>
         <ThemeProvider>
-          <RouterWrapper>
-            <AppRoutes />
-          </RouterWrapper>
+          <TenantProvider>
+            <RouterWrapper>
+              <AppRoutes />
+            </RouterWrapper>
+          </TenantProvider>
         </ThemeProvider>
       </AuthProvider>
     </ErrorBoundary>

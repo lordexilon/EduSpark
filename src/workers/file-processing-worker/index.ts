@@ -29,14 +29,14 @@ async function main() {
     res.status(200).json({
       status: 'healthy',
       service: 'rag-processing-worker',
-      version: '1.0.0'
+      version: '1.0.0',
     });
   });
 
   app.get('/health', (req, res) => {
     res.status(200).json({
       status: 'healthy',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   });
 
@@ -62,14 +62,13 @@ async function main() {
             status: 'pending' as const,
             createdAt: new Date(),
             updatedAt: new Date(),
-            ...jobData
+            ...jobData,
           };
 
           await processTextContentJob(tempJob);
 
           console.log(`[API] Trabajo procesado exitosamente (directo)`);
           return res.status(200).json({ success: true, jobId: tempJob.id, processed: true });
-
         } catch (error: any) {
           console.error('[API] Error procesando trabajo directo:', error);
           return res.status(500).json({ error: error.message || 'Error procesando contenido' });
@@ -79,7 +78,7 @@ async function main() {
       // Para otros tipos de trabajos, usar Firestore
       const jobId = await createJob({
         status: 'pending',
-        ...jobData
+        ...jobData,
       });
 
       console.log(`[API] Trabajo creado exitosamente: ${jobId}`);
@@ -87,8 +86,7 @@ async function main() {
 
       // Trigger inmediato del worker
       console.log('[API] Triggering worker immediately...');
-      runWorker().catch(err => console.error('[Worker] Error en trigger manual:', err));
-
+      runWorker().catch((err) => console.error('[Worker] Error en trigger manual:', err));
     } catch (error: any) {
       console.error('[API] Error creando trabajo:', error);
       res.status(500).json({ error: error.message || 'Error interno' });
@@ -101,29 +99,30 @@ async function main() {
       const { userId, newPassword } = req.body;
 
       if (!userId || !newPassword) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Faltan datos requeridos (userId, newPassword)' 
+        return res.status(400).json({
+          success: false,
+          error: 'Faltan datos requeridos (userId, newPassword)',
         });
       }
 
       if (newPassword.length < 6) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'La contraseña debe tener al menos 6 caracteres' 
+        return res.status(400).json({
+          success: false,
+          error: 'La contraseña debe tener al menos 6 caracteres',
         });
       }
 
       // Crear cliente de Supabase con service role key para operaciones de administración
       const { createClient } = await import('@supabase/supabase-js');
       const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const serviceKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      const serviceKey =
+        process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
       if (!url || !serviceKey) {
         console.error('[API] Error: SUPABASE_URL y SUPABASE_SERVICE_KEY deben estar configurados');
-        return res.status(500).json({ 
-          success: false, 
-          error: 'Configuración del servidor incompleta' 
+        return res.status(500).json({
+          success: false,
+          error: 'Configuración del servidor incompleta',
         });
       }
 
@@ -136,25 +135,24 @@ async function main() {
 
       // Usar la API de administración de Supabase para cambiar la contraseña
       const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-        password: newPassword
+        password: newPassword,
       });
 
       if (error) {
         console.error('[API] Error cambiando contraseña:', error);
-        return res.status(400).json({ 
-          success: false, 
-          error: error.message || 'Error al cambiar la contraseña' 
+        return res.status(400).json({
+          success: false,
+          error: error.message || 'Error al cambiar la contraseña',
         });
       }
 
       console.log(`[API] Contraseña cambiada exitosamente para usuario: ${userId}`);
       return res.status(200).json({ success: true });
-
     } catch (error: any) {
       console.error('[API] Error en cambio de contraseña:', error);
-      return res.status(500).json({ 
-        success: false, 
-        error: error.message || 'Error interno del servidor' 
+      return res.status(500).json({
+        success: false,
+        error: error.message || 'Error interno del servidor',
       });
     }
   });
@@ -166,13 +164,13 @@ async function main() {
 
   // Ejecutar worker inmediatamente
   console.log('[Worker] Ejecutando ciclo inicial...');
-  await runWorker().catch(error => {
+  await runWorker().catch((error) => {
     console.error('[Worker] Error en ejecución inicial:', error);
   });
 
   // Ejecutar worker periódicamente
   setInterval(async () => {
-    await runWorker().catch(error => {
+    await runWorker().catch((error) => {
       console.error('[Worker] Error en ejecución periódica:', error);
     });
   }, WORKER_INTERVAL);
@@ -203,7 +201,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Iniciar worker
-main().catch(error => {
+main().catch((error) => {
   console.error('[Worker] Error fatal:', error);
   process.exit(1);
 });

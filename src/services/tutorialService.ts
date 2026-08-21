@@ -5,11 +5,11 @@
 
 import { supabase } from '@/lib/supabase';
 
-export type TutorialId = 
+export type TutorialId =
   | 'welcome'
-  | 'course-view' 
-  | 'tutor-ai' 
-  | 'course-materials' 
+  | 'course-view'
+  | 'tutor-ai'
+  | 'course-materials'
   | 'course-evaluations'
   | 'tutor-voice'
   | 'tutor-sources';
@@ -47,7 +47,8 @@ export async function isTutorialCompleted(
       .eq('tutorial_id', tutorialId)
       .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+    if (error && error.code !== 'PGRST116') {
+      // PGRST116 = no rows returned
       console.error('Error verificando tutorial:', error);
       return false;
     }
@@ -71,18 +72,19 @@ export async function markTutorialCompleted(
 ): Promise<void> {
   try {
     // Intentar guardar en Supabase
-    const { error } = await supabase
-      .from('user_tutorials')
-      .upsert({
+    const { error } = await supabase.from('user_tutorials').upsert(
+      {
         user_id: userId,
         tutorial_id: tutorialId,
         completed: true,
         dont_show_again: dontShowAgain,
         completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id,tutorial_id'
-      });
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: 'user_id,tutorial_id',
+      }
+    );
 
     if (error) {
       console.error('Error guardando tutorial en Supabase:', error);
@@ -103,10 +105,7 @@ export async function markTutorialCompleted(
 /**
  * Verifica si el usuario marcó "no volver a mostrar" para un tutorial
  */
-export async function shouldShowTutorial(
-  userId: string,
-  tutorialId: TutorialId
-): Promise<boolean> {
+export async function shouldShowTutorial(userId: string, tutorialId: TutorialId): Promise<boolean> {
   try {
     const { data, error } = await supabase
       .from('user_tutorials')
@@ -140,10 +139,7 @@ export async function shouldShowTutorial(
 /**
  * Resetea un tutorial (marca como no completado)
  */
-export async function resetTutorial(
-  userId: string,
-  tutorialId: TutorialId
-): Promise<void> {
+export async function resetTutorial(userId: string, tutorialId: TutorialId): Promise<void> {
   try {
     const { error } = await supabase
       .from('user_tutorials')
@@ -166,9 +162,7 @@ export async function resetTutorial(
 /**
  * Obtiene todos los tutoriales completados del usuario
  */
-export async function getCompletedTutorials(
-  userId: string
-): Promise<TutorialId[]> {
+export async function getCompletedTutorials(userId: string): Promise<TutorialId[]> {
   try {
     const { data, error } = await supabase
       .from('user_tutorials')
@@ -186,8 +180,16 @@ export async function getCompletedTutorials(
     console.error('Error obteniendo tutoriales:', error);
     // Fallback: leer de localStorage
     const completed: TutorialId[] = [];
-    const tutorialIds: TutorialId[] = ['welcome', 'course-view', 'tutor-ai', 'course-materials', 'course-evaluations', 'tutor-voice', 'tutor-sources'];
-    tutorialIds.forEach(id => {
+    const tutorialIds: TutorialId[] = [
+      'welcome',
+      'course-view',
+      'tutor-ai',
+      'course-materials',
+      'course-evaluations',
+      'tutor-voice',
+      'tutor-sources',
+    ];
+    tutorialIds.forEach((id) => {
       if (localStorage.getItem(`tutorial_${id}_completed`) === 'true') {
         completed.push(id);
       }
@@ -199,10 +201,7 @@ export async function getCompletedTutorials(
 /**
  * Guarda el progreso de un tutorial (último paso visto)
  */
-export function saveTutorialProgress(
-  tutorialId: TutorialId,
-  stepIndex: number
-): void {
+export function saveTutorialProgress(tutorialId: TutorialId, stepIndex: number): void {
   const key = `tutorial_${tutorialId}_progress`;
   localStorage.setItem(key, stepIndex.toString());
 }
@@ -223,4 +222,3 @@ export function clearTutorialProgress(tutorialId: TutorialId): void {
   const key = `tutorial_${tutorialId}_progress`;
   localStorage.removeItem(key);
 }
-

@@ -31,7 +31,7 @@ export function splitIntoChunks(text: string, maxChars: number = 32000): string[
           // Si la oración sola es muy grande, dividirla
           if (sentence.length > maxChars) {
             const subChunks = sentence.match(new RegExp(`.{1,${maxChars}}`, 'g')) || [];
-            chunks.push(...subChunks.map(c => c.trim()));
+            chunks.push(...subChunks.map((c) => c.trim()));
           } else {
             currentChunk = sentence;
           }
@@ -57,7 +57,7 @@ export function splitIntoChunks(text: string, maxChars: number = 32000): string[
     chunks.push(currentChunk.trim());
   }
 
-  return chunks.filter(chunk => chunk.length > 0);
+  return chunks.filter((chunk) => chunk.length > 0);
 }
 
 /**
@@ -138,4 +138,3 @@ export function processTextIntoChunks(
     },
   }));
 }
-

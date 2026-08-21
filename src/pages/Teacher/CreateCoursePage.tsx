@@ -7,7 +7,14 @@ import { supabase } from '@/lib/supabase';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
 import { uploadCourseMedia } from '@/services/storageService';
-import { IconX, IconZoomIn, IconZoomOut, IconMaximize, IconMinimize, IconSparkles } from '@/components/Common/Icons';
+import {
+  IconX,
+  IconZoomIn,
+  IconZoomOut,
+  IconMaximize,
+  IconMinimize,
+  IconSparkles,
+} from '@/components/Common/Icons';
 import AICourseWizard from '@/components/Features/course-wizard/AICourseWizard';
 
 const CreateCoursePage: React.FC = () => {
@@ -33,7 +40,7 @@ const CreateCoursePage: React.FC = () => {
     academic_period: '',
     start_date: '',
     end_date: '',
-    max_students: ''
+    max_students: '',
   });
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
@@ -54,15 +61,18 @@ const CreateCoursePage: React.FC = () => {
     if (subjectIdParam && !isEditing) {
       const subjectId = parseInt(subjectIdParam);
       // Cargar la materia para obtener su carrera
-      subjectService.getSubject(subjectId).then(subject => {
-        if (subject) {
-          setFormData(prev => ({
-            ...prev,
-            subject_id: subjectId.toString(),
-            career_id: subject.career_id?.toString() || ''
-          }));
-        }
-      }).catch(err => console.error('Error loading subject:', err));
+      subjectService
+        .getSubject(subjectId)
+        .then((subject) => {
+          if (subject) {
+            setFormData((prev) => ({
+              ...prev,
+              subject_id: subjectId.toString(),
+              career_id: subject.career_id?.toString() || '',
+            }));
+          }
+        })
+        .catch((err) => console.error('Error loading subject:', err));
     }
   }, [id, isEditing, searchParams, user?.id]);
 
@@ -76,7 +86,7 @@ const CreateCoursePage: React.FC = () => {
     try {
       const [careersData, subjectsData] = await Promise.all([
         careerService.getActiveCareers(),
-        subjectService.getAllSubjects()
+        subjectService.getAllSubjects(),
       ]);
       setCareers(careersData);
       setSubjects(subjectsData);
@@ -96,7 +106,10 @@ const CreateCoursePage: React.FC = () => {
         course = await courseService.getCourse(courseId);
       } catch (error: any) {
         console.error('Error loading course:', error);
-        const isAdmin = user?.role?.name === 'admin' || user?.role?.name === 'coordinator' || user?.role?.name === 'admin-campus';
+        const isAdmin =
+          user?.role?.name === 'admin' ||
+          user?.role?.name === 'coordinator' ||
+          user?.role?.name === 'admin-campus';
         if (isAdmin) {
           try {
             const { data, error: supabaseError } = await supabase
@@ -108,7 +121,7 @@ const CreateCoursePage: React.FC = () => {
             if (!supabaseError && data) {
               course = data as Course;
             }
-          } catch (e) { }
+          } catch (e) {}
         }
       }
 
@@ -117,13 +130,13 @@ const CreateCoursePage: React.FC = () => {
           title: course.title,
           code: course.code || '',
           description: course.description || '',
-          status: course.status,
+          status: course.status as 'active' | 'draft',
           career_id: '',
           subject_id: course.subject_id?.toString() || '',
           academic_period: course.academic_period || '',
           start_date: course.start_date || '',
           end_date: course.end_date || '',
-          max_students: course.max_students?.toString() || ''
+          max_students: course.max_students?.toString() || '',
         });
         setThumbnailUrl((course as any).thumbnail_url || '');
 
@@ -131,7 +144,7 @@ const CreateCoursePage: React.FC = () => {
           try {
             const subject = await subjectService.getSubject(course.subject_id);
             if (subject?.career_id) {
-              setFormData(prev => ({ ...prev, career_id: subject.career_id.toString() }));
+              setFormData((prev) => ({ ...prev, career_id: subject.career_id.toString() }));
             }
           } catch (err) {
             console.error('Error loading subject:', err);
@@ -150,7 +163,7 @@ const CreateCoursePage: React.FC = () => {
   };
 
   const filteredSubjects = formData.career_id
-    ? subjects.filter(s => s.career_id === parseInt(formData.career_id))
+    ? subjects.filter((s) => s.career_id === parseInt(formData.career_id))
     : [];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -183,7 +196,7 @@ const CreateCoursePage: React.FC = () => {
         end_date: formData.end_date || undefined,
         max_students: formData.max_students ? parseInt(formData.max_students) : undefined,
         institution_id: institutionId,
-        thumbnail_url: thumbnailUrl || null
+        thumbnail_url: thumbnailUrl || null,
       };
 
       if (isEditing && id) {
@@ -203,9 +216,11 @@ const CreateCoursePage: React.FC = () => {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSelectThumbnailFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,13 +240,18 @@ const CreateCoursePage: React.FC = () => {
       setUploadingThumbnail(true);
       setThumbnailUploadInfo('Optimizando y subiendo imagen...');
 
-      const result = await uploadCourseMedia(isEditing && id ? id : 'temp', file, 'course-thumbnails', {
-        maxWidth: 2000,
-        maxHeight: 2000,
-        quality: 0.85,
-        format: 'image/webp',
-        signal: controller.signal,
-      });
+      const result = await uploadCourseMedia(
+        isEditing && id ? id : 'temp',
+        file,
+        'course-thumbnails',
+        {
+          maxWidth: 2000,
+          maxHeight: 2000,
+          quality: 0.85,
+          format: 'image/webp',
+          signal: controller.signal,
+        }
+      );
 
       if (!result.success || !result.url) {
         throw new Error(result.error || 'No se pudo subir la imagen.');
@@ -263,12 +283,14 @@ const CreateCoursePage: React.FC = () => {
             {isEditing ? 'Editar Curso' : 'Crear Nuevo Curso'}
           </h1>
           <p className="text-text-light">
-            {isEditing ? 'Modifica la información del curso' : 'Completa la información básica para crear tu curso'}
+            {isEditing
+              ? 'Modifica la información del curso'
+              : 'Completa la información básica para crear tu curso'}
           </p>
         </div>
         {!isEditing && (
           <Button
-            variant={showAIWizard ? "secondary" : "primary"}
+            variant={showAIWizard ? 'secondary' : 'primary'}
             onClick={() => setShowAIWizard(!showAIWizard)}
             className="shadow-lg shadow-indigo-100"
           >
@@ -283,60 +305,149 @@ const CreateCoursePage: React.FC = () => {
         <Card className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-text-dark mb-2">Título del Curso *</label>
-              <input type="text" name="title" required value={formData.title} onChange={handleChange} className="input-field" />
+              <label className="block text-sm font-medium text-text-dark mb-2">
+                Título del Curso *
+              </label>
+              <input
+                type="text"
+                name="title"
+                required
+                value={formData.title}
+                onChange={handleChange}
+                className="input-field"
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text-dark mb-2">Código del Curso</label>
-              <input type="text" name="code" value={formData.code} onChange={handleChange} className="input-field" />
+              <label className="block text-sm font-medium text-text-dark mb-2">
+                Código del Curso
+              </label>
+              <input
+                type="text"
+                name="code"
+                value={formData.code}
+                onChange={handleChange}
+                className="input-field"
+              />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-text-dark mb-2">Descripción</label>
-              <textarea name="description" rows={4} value={formData.description} onChange={handleChange} className="input-field" />
+              <textarea
+                name="description"
+                rows={4}
+                value={formData.description}
+                onChange={handleChange}
+                className="input-field"
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text-dark mb-2">Estado del Curso</label>
-              <select name="status" value={formData.status} onChange={handleChange} className="input-field">
+              <label className="block text-sm font-medium text-text-dark mb-2">
+                Estado del Curso
+              </label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className="input-field"
+              >
                 <option value="draft">Borrador</option>
                 <option value="active">Activo</option>
               </select>
             </div>
 
             <div className="pt-6 border-t border-border">
-              <h3 className="text-lg font-semibold text-text-dark mb-4">Información Académica (Opcional)</h3>
+              <h3 className="text-lg font-semibold text-text-dark mb-4">
+                Información Académica (Opcional)
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-text-dark mb-2">Carrera</label>
-                  <select name="career_id" value={formData.career_id} onChange={(e) => setFormData(prev => ({ ...prev, career_id: e.target.value, subject_id: '' }))} className="input-field">
+                  <select
+                    name="career_id"
+                    value={formData.career_id}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        career_id: e.target.value,
+                        subject_id: '',
+                      }))
+                    }
+                    className="input-field"
+                  >
                     <option value="">Seleccionar carrera</option>
-                    {careers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    {careers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-text-dark mb-2">Materia</label>
-                  <select name="subject_id" value={formData.subject_id} onChange={handleChange} className="input-field" disabled={!formData.career_id}>
+                  <select
+                    name="subject_id"
+                    value={formData.subject_id}
+                    onChange={handleChange}
+                    className="input-field"
+                    disabled={!formData.career_id}
+                  >
                     <option value="">Seleccionar materia</option>
-                    {filteredSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    {filteredSubjects.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-text-dark mb-2">Período Académico</label>
-                  <input type="text" name="academic_period" value={formData.academic_period} onChange={handleChange} className="input-field" />
+                  <label className="block text-sm font-medium text-text-dark mb-2">
+                    Período Académico
+                  </label>
+                  <input
+                    type="text"
+                    name="academic_period"
+                    value={formData.academic_period}
+                    onChange={handleChange}
+                    className="input-field"
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-text-dark mb-2">Máximo de Estudiantes</label>
-                  <input type="number" name="max_students" value={formData.max_students} onChange={handleChange} className="input-field" />
+                  <label className="block text-sm font-medium text-text-dark mb-2">
+                    Máximo de Estudiantes
+                  </label>
+                  <input
+                    type="number"
+                    name="max_students"
+                    value={formData.max_students}
+                    onChange={handleChange}
+                    className="input-field"
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-text-dark mb-2">Fecha de Inicio</label>
-                  <input type="date" name="start_date" value={formData.start_date} onChange={handleChange} className="input-field" />
+                  <label className="block text-sm font-medium text-text-dark mb-2">
+                    Fecha de Inicio
+                  </label>
+                  <input
+                    type="date"
+                    name="start_date"
+                    value={formData.start_date}
+                    onChange={handleChange}
+                    className="input-field"
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-text-dark mb-2">Fecha de Fin</label>
-                  <input type="date" name="end_date" value={formData.end_date} onChange={handleChange} className="input-field" />
+                  <label className="block text-sm font-medium text-text-dark mb-2">
+                    Fecha de Fin
+                  </label>
+                  <input
+                    type="date"
+                    name="end_date"
+                    value={formData.end_date}
+                    onChange={handleChange}
+                    className="input-field"
+                  />
                 </div>
               </div>
             </div>
@@ -346,31 +457,94 @@ const CreateCoursePage: React.FC = () => {
               {thumbnailUrl ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <Button type="button" variant="secondary" size="sm" onClick={() => setImageZoom(Math.max(imageZoom - 25, 50))}><IconZoomOut className="w-4 h-4" /></Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setImageZoom(Math.max(imageZoom - 25, 50))}
+                    >
+                      <IconZoomOut className="w-4 h-4" />
+                    </Button>
                     <span className="text-sm">{imageZoom}%</span>
-                    <Button type="button" variant="secondary" size="sm" onClick={() => setImageZoom(Math.min(imageZoom + 25, 300))}><IconZoomIn className="w-4 h-4" /></Button>
-                    <Button type="button" variant="secondary" size="sm" onClick={() => setImageExpanded(!imageExpanded)}>{imageExpanded ? <IconMinimize className="w-4 h-4" /> : <IconMaximize className="w-4 h-4" />}</Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setImageZoom(Math.min(imageZoom + 25, 300))}
+                    >
+                      <IconZoomIn className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setImageExpanded(!imageExpanded)}
+                    >
+                      {imageExpanded ? (
+                        <IconMinimize className="w-4 h-4" />
+                      ) : (
+                        <IconMaximize className="w-4 h-4" />
+                      )}
+                    </Button>
                   </div>
-                  <div className={`border rounded-lg bg-gray-50 flex justify-center items-center overflow-auto ${imageExpanded ? 'h-96' : 'h-48'}`}>
-                    <img src={thumbnailUrl} alt="Preview" style={{ transform: `scale(${imageZoom / 100})`, maxWidth: '100%' }} />
+                  <div
+                    className={`border rounded-lg bg-gray-50 flex justify-center items-center overflow-auto ${imageExpanded ? 'h-96' : 'h-48'}`}
+                  >
+                    <img
+                      src={thumbnailUrl}
+                      alt="Preview"
+                      style={{ transform: `scale(${imageZoom / 100})`, maxWidth: '100%' }}
+                    />
                   </div>
                   <div className="flex gap-2">
-                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleSelectThumbnailFile} className="hidden" />
-                    <Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={uploadingThumbnail}>Cambiar Imagen</Button>
-                    <Button type="button" variant="secondary" onClick={() => setThumbnailUrl('')}>Eliminar</Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleSelectThumbnailFile}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingThumbnail}
+                    >
+                      Cambiar Imagen
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={() => setThumbnailUrl('')}>
+                      Eliminar
+                    </Button>
                   </div>
                 </div>
               ) : (
-                <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center bg-gray-50 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleSelectThumbnailFile} className="hidden" />
+                <div
+                  className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center bg-gray-50 cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleSelectThumbnailFile}
+                    className="hidden"
+                  />
                   <p className="text-sm text-gray-600">Haz clic para subir una imagen de portada</p>
                 </div>
               )}
-              {thumbnailUploadInfo && <p className="text-xs text-blue-600 mt-2">{thumbnailUploadInfo}</p>}
+              {thumbnailUploadInfo && (
+                <p className="text-xs text-blue-600 mt-2">{thumbnailUploadInfo}</p>
+              )}
             </div>
 
             <div className="flex justify-end space-x-3 pt-6 border-t border-border">
-              <Button type="button" variant="secondary" onClick={() => navigate('/teacher/courses')}>Cancelar</Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => navigate('/teacher/courses')}
+              >
+                Cancelar
+              </Button>
               <Button type="submit" disabled={loading || !formData.title.trim()}>
                 {loading ? 'Guardando...' : 'Guardar Cambios'}
               </Button>

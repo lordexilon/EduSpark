@@ -55,7 +55,7 @@ export async function createMaterial(input: CourseMaterialInput) {
     .insert(payload)
     .select('*')
     .single();
-  
+
   if (error) throw error;
   return data;
 }
@@ -72,11 +72,6 @@ export async function updateMaterial(id: number, patch: Partial<CourseMaterialIn
 }
 
 export async function deleteMaterial(id: number) {
-  const { error } = await supabase
-    .from('course_materials')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from('course_materials').delete().eq('id', id);
   if (error) throw error;
 }
-
-

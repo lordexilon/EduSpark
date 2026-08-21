@@ -57,14 +57,12 @@ export async function generateEmbeddingsBatch(texts: string[]): Promise<number[]
   const batchSize = 5; // Reducido para evitar rate limits
   for (let i = 0; i < texts.length; i += batchSize) {
     const batch = texts.slice(i, i + batchSize);
-    const batchEmbeddings = await Promise.all(
-      batch.map(text => generateEmbedding(text))
-    );
+    const batchEmbeddings = await Promise.all(batch.map((text) => generateEmbedding(text)));
     embeddings.push(...batchEmbeddings);
 
     // Pequeño delay entre lotes
     if (i + batchSize < texts.length) {
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 200));
     }
   }
 

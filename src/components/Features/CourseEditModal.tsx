@@ -3,10 +3,16 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Course } from '@/services/teacherCourses';
-import Card from "@/components/Common/Card";
-import Button from "@/components/Common/Button";
+import Card from '@/components/Common/Card';
+import Button from '@/components/Common/Button';
 import { uploadCourseMedia } from '@/services/storageService';
-import { IconX, IconZoomIn, IconZoomOut, IconMaximize, IconMinimize } from '@/components/Common/Icons';
+import {
+  IconX,
+  IconZoomIn,
+  IconZoomOut,
+  IconMaximize,
+  IconMinimize,
+} from '@/components/Common/Icons';
 
 interface CourseEditModalProps {
   course: Course;
@@ -14,16 +20,14 @@ interface CourseEditModalProps {
   onSave: (courseData: Partial<Course>) => Promise<void>;
 }
 
-export const CourseEditModal: React.FC<CourseEditModalProps> = ({
-  course,
-  onClose,
-  onSave
-}) => {
+export const CourseEditModal: React.FC<CourseEditModalProps> = ({ course, onClose, onSave }) => {
   const [title, setTitle] = useState(course.title);
   const [code, setCode] = useState(course.code || '');
   const [description, setDescription] = useState(course.description || '');
   const [status, setStatus] = useState<'active' | 'draft' | 'archived'>(course.status);
-  const [startDate, setStartDate] = useState(course.start_date ? course.start_date.split('T')[0] : '');
+  const [startDate, setStartDate] = useState(
+    course.start_date ? course.start_date.split('T')[0] : ''
+  );
   const [endDate, setEndDate] = useState(course.end_date ? course.end_date.split('T')[0] : '');
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -109,11 +113,11 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
   };
 
   const handleZoomIn = () => {
-    setImageZoom(prev => Math.min(prev + 25, 300)); // Máximo 300%
+    setImageZoom((prev) => Math.min(prev + 25, 300)); // Máximo 300%
   };
 
   const handleZoomOut = () => {
-    setImageZoom(prev => Math.max(prev - 25, 50)); // Mínimo 50%
+    setImageZoom((prev) => Math.max(prev - 25, 50)); // Mínimo 50%
   };
 
   const handleResetZoom = () => {
@@ -129,12 +133,12 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!title.trim()) {
       alert('Por favor ingresa un título');
       return;
     }
-    
+
     setLoading(true);
 
     try {
@@ -153,7 +157,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
       } else {
         (courseData as any).thumbnail_url = null;
       }
-      
+
       await onSave(courseData);
       onClose();
     } catch (error: any) {
@@ -166,12 +170,12 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className={`w-full ${imageExpanded ? 'max-w-6xl' : 'max-w-4xl'} max-h-[90vh] overflow-y-auto`}>
+      <Card
+        className={`w-full ${imageExpanded ? 'max-w-6xl' : 'max-w-4xl'} max-h-[90vh] overflow-y-auto`}
+      >
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">
-              Editar Curso
-            </h2>
+            <h2 className="text-2xl font-bold text-gray-900">Editar Curso</h2>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 text-3xl leading-none"
@@ -248,7 +252,10 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
             {/* Fechas del Curso */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="start_date"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Fecha de Inicio
                 </label>
                 <input
@@ -280,7 +287,7 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Imagen del Curso
               </label>
-              
+
               {thumbnailUrl ? (
                 <div className="space-y-3">
                   {/* Controles de zoom y expandir */}
@@ -322,15 +329,24 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
                       variant="secondary"
                       size="sm"
                       onClick={handleToggleExpand}
-                      title={imageExpanded ? "Contraer" : "Expandir"}
+                      title={imageExpanded ? 'Contraer' : 'Expandir'}
                     >
-                      {imageExpanded ? <IconMinimize className="w-4 h-4" /> : <IconMaximize className="w-4 h-4" />}
+                      {imageExpanded ? (
+                        <IconMinimize className="w-4 h-4" />
+                      ) : (
+                        <IconMaximize className="w-4 h-4" />
+                      )}
                     </Button>
                   </div>
 
                   {/* Vista de imagen con zoom */}
-                  <div className={`border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-100 ${imageExpanded ? 'p-4' : 'p-2'}`}>
-                    <div className="flex items-center justify-center overflow-auto" style={{ maxHeight: imageExpanded ? '70vh' : '400px' }}>
+                  <div
+                    className={`border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-100 ${imageExpanded ? 'p-4' : 'p-2'}`}
+                  >
+                    <div
+                      className="flex items-center justify-center overflow-auto"
+                      style={{ maxHeight: imageExpanded ? '70vh' : '400px' }}
+                    >
                       <img
                         ref={imageRef}
                         src={thumbnailUrl}
@@ -363,15 +379,11 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
                     >
                       {uploadingThumbnail ? 'Subiendo...' : 'Cambiar Imagen'}
                     </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={handleRemoveThumbnail}
-                    >
+                    <Button type="button" variant="secondary" onClick={handleRemoveThumbnail}>
                       Eliminar Imagen
                     </Button>
                   </div>
-                  
+
                   {thumbnailUploadInfo && (
                     <p className="text-sm text-gray-600">{thumbnailUploadInfo}</p>
                   )}
@@ -405,18 +417,10 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
 
             {/* Botones de acción */}
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={onClose}
-                disabled={loading}
-              >
+              <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                disabled={loading || uploadingThumbnail}
-              >
+              <Button type="submit" disabled={loading || uploadingThumbnail}>
                 {loading ? 'Guardando...' : 'Guardar Cambios'}
               </Button>
             </div>
@@ -426,4 +430,3 @@ export const CourseEditModal: React.FC<CourseEditModalProps> = ({
     </div>
   );
 };
-

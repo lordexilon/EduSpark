@@ -23,11 +23,7 @@ const formatRelativeTime = (isoDate?: string | null) => {
   return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-const getDisplayName = (
-  firstName?: string | null,
-  lastName?: string | null,
-  fallback?: string
-) => {
+const getDisplayName = (firstName?: string | null, lastName?: string | null, fallback?: string) => {
   const parts = `${firstName || ''} ${lastName || ''}`.trim();
   return parts || fallback || 'Usuario';
 };
@@ -35,7 +31,10 @@ const getDisplayName = (
 const getAvatarInitials = (name: string) => {
   const parts = name.split(' ').filter(Boolean);
   if (parts.length === 0) return 'U';
-  return parts.slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join('');
+  return parts
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('');
 };
 
 const ForumTopicPage: React.FC = () => {
@@ -175,9 +174,7 @@ const ForumTopicPage: React.FC = () => {
       setSavingEdit(true);
       setActionError(null);
       const updated = await forumRepliesService.updateReply(editingReplyId, editContent.trim());
-      setReplies((prev) =>
-        prev.map((reply) => (reply.id === updated.id ? updated : reply))
-      );
+      setReplies((prev) => prev.map((reply) => (reply.id === updated.id ? updated : reply)));
       handleCancelEditReply();
       if (refreshTopicMetrics) {
         await refreshTopicMetrics();
@@ -192,7 +189,9 @@ const ForumTopicPage: React.FC = () => {
 
   const handleDeleteReply = async (reply: ForumReply) => {
     if (!topicId) return;
-    const confirmed = window.confirm('¿Deseas eliminar esta respuesta? Esta acción no se puede deshacer.');
+    const confirmed = window.confirm(
+      '¿Deseas eliminar esta respuesta? Esta acción no se puede deshacer.'
+    );
     if (!confirmed) return;
 
     try {
@@ -303,7 +302,9 @@ const ForumTopicPage: React.FC = () => {
 
         {replies.length === 0 ? (
           <Card>
-            <p className="text-sm text-slate-500 text-center py-6">Sé el primero en responder a este tema.</p>
+            <p className="text-sm text-slate-500 text-center py-6">
+              Sé el primero en responder a este tema.
+            </p>
           </Card>
         ) : (
           replies.map((reply) => {
@@ -442,4 +443,3 @@ const ForumTopicPage: React.FC = () => {
 };
 
 export default ForumTopicPage;
-

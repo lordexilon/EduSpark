@@ -30,7 +30,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
   const { login, loading } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -41,8 +41,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
       const savedError = sessionStorage.getItem('loginError');
       if (savedError && savedError.trim().length > 0) {
         // Limpiar errores de red antiguos que no son relevantes para el usuario
-        const networkErrors = ['Failed to fetch', 'NetworkError', 'Network request failed', 'Error de conexión'];
-        const isNetworkError = networkErrors.some(err => savedError.includes(err));
+        const networkErrors = [
+          'Failed to fetch',
+          'NetworkError',
+          'Network request failed',
+          'Error de conexión',
+        ];
+        const isNetworkError = networkErrors.some((err) => savedError.includes(err));
 
         if (isNetworkError) {
           // Los errores de red antiguos no son relevantes, limpiarlos
@@ -69,7 +74,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
       const savedError = sessionStorage.getItem('loginError');
       if (savedError) {
         const networkErrors = ['Failed to fetch', 'NetworkError', 'Network request failed'];
-        const isNetworkError = networkErrors.some(err => savedError.includes(err));
+        const isNetworkError = networkErrors.some((err) => savedError.includes(err));
 
         if (isNetworkError) {
           console.log('🧹 LoginForm: Limpiando error de red antiguo de sessionStorage');
@@ -105,7 +110,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
     if (loginError && loginError.trim().length > 0) {
       // No guardar errores de red en sessionStorage (no son relevantes para el usuario)
       const networkErrors = ['Failed to fetch', 'NetworkError', 'Network request failed'];
-      const isNetworkError = networkErrors.some(err => loginError.includes(err));
+      const isNetworkError = networkErrors.some((err) => loginError.includes(err));
 
       if (isNetworkError) {
         console.log('⚠️ LoginForm: Error de red detectado, no guardando en sessionStorage');
@@ -149,7 +154,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
     try {
       const result = await login(formData.email, formData.password);
 
-      console.log('📋 LoginForm: Resultado del login:', { success: result.success, error: result.error });
+      console.log('📋 LoginForm: Resultado del login:', {
+        success: result.success,
+        error: result.error,
+      });
 
       if (result.success) {
         // Limpiar cualquier error previo antes de éxito
@@ -158,7 +166,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
         onSuccess?.();
       } else {
         // Mostrar el mensaje de error específico que viene de la API
-        const errorMessage = result.error || 'Error al iniciar sesión. Por favor, verifica tus credenciales.';
+        const errorMessage =
+          result.error || 'Error al iniciar sesión. Por favor, verifica tus credenciales.';
         console.log('❌ LoginForm: Estableciendo loginError:', errorMessage);
 
         // CRÍTICO: Guardar en sessionStorage INMEDIATAMENTE antes de setState
@@ -171,7 +180,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
       }
     } catch (err: any) {
       // Capturar cualquier error inesperado
-      const errorMessage = err?.message || 'Error inesperado al iniciar sesión. Por favor, intenta nuevamente.';
+      const errorMessage =
+        err?.message || 'Error inesperado al iniciar sesión. Por favor, intenta nuevamente.';
       console.log('❌ LoginForm: Error capturado en catch:', errorMessage);
 
       // CRÍTICO: Guardar en sessionStorage INMEDIATAMENTE
@@ -183,9 +193,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     }));
   };
 
@@ -195,28 +205,30 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
       <div className="w-full max-w-md mx-auto">
         <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/50 p-8">
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              ¡Bienvenido de vuelta!
-            </h2>
-            <p className="text-gray-600">
-              Inicia sesión en tu cuenta
-            </p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Bienvenido de vuelta!</h2>
+            <p className="text-gray-600">Inicia sesión en tu cuenta</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Mensaje de error - usar loginError que persiste entre re-renders */}
             {(() => {
-              console.log('🖼️ LoginForm RENDER: loginError =', loginError, 'length =', loginError?.length);
+              console.log(
+                '🖼️ LoginForm RENDER: loginError =',
+                loginError,
+                'length =',
+                loginError?.length
+              );
               return loginError && loginError.trim().length > 0;
             })() ? (
               <div
                 data-error-message
-                className={`border-l-4 px-4 py-3 rounded-lg shadow-md mb-4 ${loginError.includes('conexión') || loginError.includes('servidor')
-                  ? 'bg-yellow-50 border-yellow-500 text-yellow-800'
-                  : loginError.includes('deshabilitada') || loginError.includes('prohibido')
-                    ? 'bg-orange-50 border-orange-500 text-orange-800'
-                    : 'bg-red-50 border-red-500 text-red-700'
-                  }`}
+                className={`border-l-4 px-4 py-3 rounded-lg shadow-md mb-4 ${
+                  loginError.includes('conexión') || loginError.includes('servidor')
+                    ? 'bg-yellow-50 border-yellow-500 text-yellow-800'
+                    : loginError.includes('deshabilitada') || loginError.includes('prohibido')
+                      ? 'bg-orange-50 border-orange-500 text-orange-800'
+                      : 'bg-red-50 border-red-500 text-red-700'
+                }`}
                 role="alert"
                 aria-live="assertive"
                 style={{
@@ -225,8 +237,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
                   visibility: 'visible',
                   minHeight: '50px',
                   zIndex: 1000,
-                  position: 'relative'
-                }}>
+                  position: 'relative',
+                }}
+              >
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 mt-0.5">
                     {loginError.includes('conexión') || loginError.includes('servidor') ? (
@@ -239,7 +252,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
                   </div>
                   <div className="ml-3 flex-1">
                     <p className="text-sm font-semibold leading-relaxed">{loginError}</p>
-                    {(loginError.includes('email no ha sido confirmado') || loginError.includes('deshabilitada')) && (
+                    {(loginError.includes('email no ha sido confirmado') ||
+                      loginError.includes('deshabilitada')) && (
                       <p className="mt-2 text-xs opacity-80">
                         Si necesitas ayuda, contacta al administrador.
                       </p>
@@ -254,9 +268,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
                         Por seguridad, espera unos minutos antes de volver a intentar.
                       </p>
                     )}
-                    {(loginError.includes('incorrectos') || loginError.includes('no existe') || loginError.includes('contraseña') || loginError.includes('credenciales')) && (
+                    {(loginError.includes('incorrectos') ||
+                      loginError.includes('no existe') ||
+                      loginError.includes('contraseña') ||
+                      loginError.includes('credenciales')) && (
                       <p className="mt-2 text-xs opacity-80">
-                        Verifica que el email y la contraseña sean correctos. Si olvidaste tu contraseña o necesitas ayuda, contacta al administrador.
+                        Verifica que el email y la contraseña sean correctos. Si olvidaste tu
+                        contraseña o necesitas ayuda, contacta al administrador.
                       </p>
                     )}
                     {loginError.includes('formato del email') && (
@@ -337,7 +355,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) 
                   <div className="w-full border-t border-gray-200"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400">¿Nuevo en EduSpark?</span>
+                  <span className="px-2 bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400">
+                    ¿Nuevo en EduSpark?
+                  </span>
                 </div>
               </div>
               <button

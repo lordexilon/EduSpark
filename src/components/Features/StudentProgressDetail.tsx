@@ -2,7 +2,12 @@
 // Componente para mostrar el progreso detallado de un estudiante en un curso
 
 import React from 'react';
-import { IconBookOpen, IconClipboardCheck, IconCheckCircle, IconClock } from "@/components/Common/Icons";
+import {
+  IconBookOpen,
+  IconClipboardCheck,
+  IconCheckCircle,
+  IconClock,
+} from '@/components/Common/Icons';
 import ProgressBar from '@/components/Common/ProgressBar';
 
 interface StudentProgressDetailProps {
@@ -36,7 +41,7 @@ const StudentProgressDetail: React.FC<StudentProgressDetailProps> = ({
   overallProgress,
   timeSpentMinutes,
   className = '',
-  showDetails = true
+  showDetails = true,
 }) => {
   const pendingUnits = totalUnits - completedUnits;
   const pendingSessions = totalSessions - completedSessions;
@@ -61,11 +66,7 @@ const StudentProgressDetail: React.FC<StudentProgressDetailProps> = ({
 
       {/* Barra de Progreso */}
       <div className="mb-4">
-        <ProgressBar 
-          value={overallProgress} 
-          color="var(--primary)"
-          height="h-3"
-        />
+        <ProgressBar value={overallProgress} color="var(--primary)" height="h-3" />
       </div>
 
       {/* Estadísticas */}
@@ -123,7 +124,8 @@ const StudentProgressDetail: React.FC<StudentProgressDetailProps> = ({
       <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
         <IconClock className="w-4 h-4" />
         <span>
-          Tiempo invertido: {hours > 0 ? `${hours}h ` : ''}{minutes}m
+          Tiempo invertido: {hours > 0 ? `${hours}h ` : ''}
+          {minutes}m
         </span>
       </div>
 
@@ -141,19 +143,22 @@ const StudentProgressDetail: React.FC<StudentProgressDetailProps> = ({
                     {pendingUnits > 0 && (
                       <li className="flex items-center gap-2">
                         <span className="w-1.5 h-1.5 bg-orange-600 rounded-full"></span>
-                        <strong>{pendingUnits}</strong> unidad{pendingUnits > 1 ? 'es' : ''} sin completar
+                        <strong>{pendingUnits}</strong> unidad{pendingUnits > 1 ? 'es' : ''} sin
+                        completar
                       </li>
                     )}
                     {pendingSessions > 0 && (
                       <li className="flex items-center gap-2">
                         <span className="w-1.5 h-1.5 bg-orange-600 rounded-full"></span>
-                        <strong>{pendingSessions}</strong> sesión{pendingSessions > 1 ? 'es' : ''} sin completar
+                        <strong>{pendingSessions}</strong> sesión{pendingSessions > 1 ? 'es' : ''}{' '}
+                        sin completar
                       </li>
                     )}
                     {pendingQuizzes > 0 && (
                       <li className="flex items-center gap-2">
                         <span className="w-1.5 h-1.5 bg-orange-600 rounded-full"></span>
-                        <strong>{pendingQuizzes}</strong> quiz{pendingQuizzes > 1 ? 'zes' : ''} sin completar
+                        <strong>{pendingQuizzes}</strong> quiz{pendingQuizzes > 1 ? 'zes' : ''} sin
+                        completar
                       </li>
                     )}
                   </ul>
@@ -182,4 +187,3 @@ const StudentProgressDetail: React.FC<StudentProgressDetailProps> = ({
 };
 
 export default StudentProgressDetail;
-

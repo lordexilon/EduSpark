@@ -5,15 +5,25 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { courseService, Course, unitService, CourseUnit } from '@/services/teacherCourses';
-import { comprehensiveReportService, ComprehensiveStudentData } from '@/services/comprehensiveReportService';
+import {
+  comprehensiveReportService,
+  ComprehensiveStudentData,
+} from '@/services/comprehensiveReportService';
 import { useAuth } from '@/hooks/useAuth';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
 import GamificationScore from '@/components/Features/GamificationScore';
 import {
-  IconChevronLeft, IconRefreshCw, IconRobot, IconBookOpen,
-  IconClipboardCheck, IconTrendingUp, IconCheckCircle,
-  IconAlertTriangle, IconCards, IconClock
+  IconChevronLeft,
+  IconRefreshCw,
+  IconRobot,
+  IconBookOpen,
+  IconClipboardCheck,
+  IconTrendingUp,
+  IconCheckCircle,
+  IconAlertTriangle,
+  IconCards,
+  IconClock,
 } from '@/components/Common/Icons';
 import ProgressBar from '@/components/Common/ProgressBar';
 
@@ -29,25 +39,45 @@ const StatPill: React.FC<{
   colorClass: string;
   bgClass: string;
 }> = ({ icon, label, value, sub, colorClass, bgClass }) => (
-  <div className={`${bgClass} rounded-xl p-4 border border-gray-100 dark:border-gray-700 flex flex-col gap-1`}>
+  <div
+    className={`${bgClass} rounded-xl p-4 border border-gray-100 dark:border-gray-700 flex flex-col gap-1`}
+  >
     <div className="flex items-center gap-2 mb-1">
       <span className={colorClass}>{icon}</span>
-      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</span>
+      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+        {label}
+      </span>
     </div>
-    <span className="text-2xl font-extrabold text-gray-900 dark:text-white leading-none">{value}</span>
+    <span className="text-2xl font-extrabold text-gray-900 dark:text-white leading-none">
+      {value}
+    </span>
     {sub && <span className="text-xs text-gray-500 dark:text-gray-400">{sub}</span>}
   </div>
 );
 
 const RiskBadge: React.FC<{ level: 'low' | 'medium' | 'high' }> = ({ level }) => {
   const map = {
-    low: { label: 'Riesgo Bajo', cls: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800', icon: 'verified_user' },
-    medium: { label: 'Riesgo Moderado', cls: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800', icon: 'warning' },
-    high: { label: 'Riesgo Alto', cls: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800', icon: 'error' },
+    low: {
+      label: 'Riesgo Bajo',
+      cls: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800',
+      icon: 'verified_user',
+    },
+    medium: {
+      label: 'Riesgo Moderado',
+      cls: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800',
+      icon: 'warning',
+    },
+    high: {
+      label: 'Riesgo Alto',
+      cls: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800',
+      icon: 'error',
+    },
   };
   const cfg = map[level];
   return (
-    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${cfg.cls}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${cfg.cls}`}
+    >
       <span className="material-symbols-outlined text-sm">{cfg.icon}</span>
       {cfg.label}
     </span>
@@ -95,10 +125,16 @@ export const StudentSelfReportPage: React.FC = () => {
       const avgTutor = courseReport?.correlation.averageTutorUsage || 5;
 
       const studentReport = await comprehensiveReportService.getStudentComprehensiveReport(
-        user.id, courseId, avgProgress, avgTutor
+        user.id,
+        courseId,
+        avgProgress,
+        avgTutor
       );
 
-      if (!studentReport) { setError('No se pudo cargar tu asesoramiento'); return; }
+      if (!studentReport) {
+        setError('No se pudo cargar tu asesoramiento');
+        return;
+      }
       setReport(studentReport);
     } catch (err: any) {
       console.error('Error loading AI advisor data:', err);
@@ -108,11 +144,19 @@ export const StudentSelfReportPage: React.FC = () => {
     }
   };
 
-  const handleRefresh = async () => { setRefreshing(true); await loadData(); setRefreshing(false); };
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  };
 
   const formatDate = (d: string | null) => {
     if (!d) return 'Nunca';
-    return new Date(d).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+    return new Date(d).toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
   };
 
   // ── Derived data ──
@@ -125,13 +169,18 @@ export const StudentSelfReportPage: React.FC = () => {
 
     // Participation grade
     const totalActivities = ap.totalUnits + ap.totalSessions + ap.totalQuizzes + ap.totalFlashcards;
-    const completedActivities = ap.completedUnits + ap.completedSessions + ap.completedQuizzes + ap.completedFlashcards;
-    const participationPct = totalActivities > 0 ? Math.round((completedActivities / totalActivities) * 100) : 0;
+    const completedActivities =
+      ap.completedUnits + ap.completedSessions + ap.completedQuizzes + ap.completedFlashcards;
+    const participationPct =
+      totalActivities > 0 ? Math.round((completedActivities / totalActivities) * 100) : 0;
 
     let participationGrade: { label: string; color: string; emoji: string };
-    if (participationPct >= 80) participationGrade = { label: 'Excelente', color: 'text-green-600', emoji: '🌟' };
-    else if (participationPct >= 60) participationGrade = { label: 'Buena', color: 'text-blue-600', emoji: '👍' };
-    else if (participationPct >= 30) participationGrade = { label: 'Regular', color: 'text-amber-600', emoji: '⚡' };
+    if (participationPct >= 80)
+      participationGrade = { label: 'Excelente', color: 'text-green-600', emoji: '🌟' };
+    else if (participationPct >= 60)
+      participationGrade = { label: 'Buena', color: 'text-blue-600', emoji: '👍' };
+    else if (participationPct >= 30)
+      participationGrade = { label: 'Regular', color: 'text-amber-600', emoji: '⚡' };
     else participationGrade = { label: 'Baja', color: 'text-red-600', emoji: '📌' };
 
     // Usage pattern label
@@ -158,15 +207,31 @@ export const StudentSelfReportPage: React.FC = () => {
       },
     };
 
-    const usageProfile = usageMap[insights.tutorUsageVsProgress] || usageMap['low-usage-low-progress'];
+    const usageProfile =
+      usageMap[insights.tutorUsageVsProgress] || usageMap['low-usage-low-progress'];
 
     // Overwrite profile color for low-low if they are just starting (progress < 10) to avoid scaring them
-    if (insights.tutorUsageVsProgress === 'low-usage-low-progress' && ap.completionPercentage < 10) {
+    if (
+      insights.tutorUsageVsProgress === 'low-usage-low-progress' &&
+      ap.completionPercentage < 10
+    ) {
       usageProfile.label = 'Iniciando';
       usageProfile.color = 'text-gray-600';
     }
 
-    return { ap, tm, insights, hours, minutes, timeLabel, participationPct, participationGrade, usageProfile, completedActivities, totalActivities };
+    return {
+      ap,
+      tm,
+      insights,
+      hours,
+      minutes,
+      timeLabel,
+      participationPct,
+      participationGrade,
+      usageProfile,
+      completedActivities,
+      totalActivities,
+    };
   }, [report]);
 
   // ──────────────────────────────────────────────
@@ -188,7 +253,9 @@ export const StudentSelfReportPage: React.FC = () => {
           <div className="p-6 text-center">
             <span className="material-symbols-outlined text-4xl text-red-400 mb-2">error</span>
             <p className="text-red-800 dark:text-red-300 font-medium">{error}</p>
-            <Button onClick={loadData} className="mt-4">Reintentar</Button>
+            <Button onClick={loadData} className="mt-4">
+              Reintentar
+            </Button>
           </div>
         </Card>
       </div>
@@ -198,19 +265,32 @@ export const StudentSelfReportPage: React.FC = () => {
   if (!course || !report || !derived) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <Card><div className="text-center py-8"><p className="text-gray-600 dark:text-gray-400">No se encontró información</p></div></Card>
+        <Card>
+          <div className="text-center py-8">
+            <p className="text-gray-600 dark:text-gray-400">No se encontró información</p>
+          </div>
+        </Card>
       </div>
     );
   }
 
-  const { ap, tm, insights, timeLabel, participationPct, participationGrade, usageProfile, completedActivities, totalActivities } = derived;
+  const {
+    ap,
+    tm,
+    insights,
+    timeLabel,
+    participationPct,
+    participationGrade,
+    usageProfile,
+    completedActivities,
+    totalActivities,
+  } = derived;
 
   // ──────────────────────────────────────────────
   // RENDER
   // ──────────────────────────────────────────────
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-
       {/* ═══ HERO HEADER ═══ */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 p-6 sm:p-8 text-white">
         {/* bg decoration */}
@@ -225,7 +305,9 @@ export const StudentSelfReportPage: React.FC = () => {
               <span className="material-symbols-outlined text-3xl icon-filled">psychology</span>
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-display">Asesoramiento IA</h1>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-display">
+                Asesoramiento IA
+              </h1>
               <p className="text-white/80 text-sm mt-0.5">{course.title}</p>
             </div>
           </div>
@@ -250,7 +332,9 @@ export const StudentSelfReportPage: React.FC = () => {
             <p className="text-xl font-extrabold">{Math.round(ap.completionPercentage)}%</p>
           </div>
           <div className="bg-white/15 backdrop-blur rounded-xl px-4 py-3">
-            <p className="text-white/70 text-[10px] uppercase font-bold tracking-wider">Participación</p>
+            <p className="text-white/70 text-[10px] uppercase font-bold tracking-wider">
+              Participación
+            </p>
             <p className="text-xl font-extrabold">{participationPct}%</p>
           </div>
           <div className="bg-white/15 backdrop-blur rounded-xl px-4 py-3">
@@ -259,7 +343,9 @@ export const StudentSelfReportPage: React.FC = () => {
           </div>
           <div className="bg-white/15 backdrop-blur rounded-xl px-4 py-3">
             <p className="text-white/70 text-[10px] uppercase font-bold tracking-wider">Tutor IA</p>
-            <p className="text-xl font-extrabold">{tm.totalInteractions} <span className="text-sm font-normal">consultas</span></p>
+            <p className="text-xl font-extrabold">
+              {tm.totalInteractions} <span className="text-sm font-normal">consultas</span>
+            </p>
           </div>
         </div>
 
@@ -276,8 +362,12 @@ export const StudentSelfReportPage: React.FC = () => {
       <Card className="p-6 dark:bg-gray-800/50">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-indigo-600 dark:text-indigo-400">groups</span>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Grado de Participación</h2>
+            <span className="material-symbols-outlined text-indigo-600 dark:text-indigo-400">
+              groups
+            </span>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+              Grado de Participación
+            </h2>
           </div>
           <span className={`text-lg font-extrabold ${participationGrade.color}`}>
             {participationGrade.emoji} {participationGrade.label}
@@ -295,10 +385,14 @@ export const StudentSelfReportPage: React.FC = () => {
               className="h-full rounded-full transition-all duration-1000 ease-out"
               style={{
                 width: `${participationPct}%`,
-                background: participationPct >= 80 ? 'linear-gradient(90deg, #10b981, #059669)'
-                  : participationPct >= 60 ? 'linear-gradient(90deg, #3b82f6, #6366f1)'
-                    : participationPct >= 30 ? 'linear-gradient(90deg, #f59e0b, #d97706)'
-                      : 'linear-gradient(90deg, #ef4444, #dc2626)',
+                background:
+                  participationPct >= 80
+                    ? 'linear-gradient(90deg, #10b981, #059669)'
+                    : participationPct >= 60
+                      ? 'linear-gradient(90deg, #3b82f6, #6366f1)'
+                      : participationPct >= 30
+                        ? 'linear-gradient(90deg, #f59e0b, #d97706)'
+                        : 'linear-gradient(90deg, #ef4444, #dc2626)',
               }}
             ></div>
           </div>
@@ -310,7 +404,13 @@ export const StudentSelfReportPage: React.FC = () => {
             icon={<IconBookOpen className="w-4 h-4" />}
             label="Unidades"
             value={`${ap.completedUnits}/${ap.totalUnits}`}
-            sub={ap.totalUnits === 0 ? 'Sin contenido' : ap.completedUnits === ap.totalUnits ? '✅ Completado' : `${ap.totalUnits - ap.completedUnits} pendientes`}
+            sub={
+              ap.totalUnits === 0
+                ? 'Sin contenido'
+                : ap.completedUnits === ap.totalUnits
+                  ? '✅ Completado'
+                  : `${ap.totalUnits - ap.completedUnits} pendientes`
+            }
             colorClass="text-blue-600"
             bgClass="bg-blue-50 dark:bg-blue-900/10"
           />
@@ -318,7 +418,13 @@ export const StudentSelfReportPage: React.FC = () => {
             icon={<IconCheckCircle className="w-4 h-4" />}
             label="Sesiones"
             value={`${ap.completedSessions}/${ap.totalSessions}`}
-            sub={ap.totalSessions === 0 ? 'Sin contenido' : ap.completedSessions === ap.totalSessions ? '✅ Completado' : `${ap.totalSessions - ap.completedSessions} pendientes`}
+            sub={
+              ap.totalSessions === 0
+                ? 'Sin contenido'
+                : ap.completedSessions === ap.totalSessions
+                  ? '✅ Completado'
+                  : `${ap.totalSessions - ap.completedSessions} pendientes`
+            }
             colorClass="text-purple-600"
             bgClass="bg-purple-50 dark:bg-purple-900/10"
           />
@@ -326,7 +432,13 @@ export const StudentSelfReportPage: React.FC = () => {
             icon={<IconClipboardCheck className="w-4 h-4" />}
             label="Evaluaciones"
             value={`${ap.completedQuizzes}/${ap.totalQuizzes}`}
-            sub={ap.totalQuizzes === 0 ? 'Sin contenido' : ap.completedQuizzes === ap.totalQuizzes ? '✅ Completado' : `${ap.totalQuizzes - ap.completedQuizzes} pendientes`}
+            sub={
+              ap.totalQuizzes === 0
+                ? 'Sin contenido'
+                : ap.completedQuizzes === ap.totalQuizzes
+                  ? '✅ Completado'
+                  : `${ap.totalQuizzes - ap.completedQuizzes} pendientes`
+            }
             colorClass="text-green-600"
             bgClass="bg-green-50 dark:bg-green-900/10"
           />
@@ -334,7 +446,13 @@ export const StudentSelfReportPage: React.FC = () => {
             icon={<IconCards className="w-4 h-4" />}
             label="Flashcards"
             value={`${ap.completedFlashcards}/${ap.totalFlashcards}`}
-            sub={ap.totalFlashcards === 0 ? 'Sin contenido' : ap.completedFlashcards === ap.totalFlashcards ? '✅ Dominadas' : `${ap.totalFlashcards - ap.completedFlashcards} por dominar`}
+            sub={
+              ap.totalFlashcards === 0
+                ? 'Sin contenido'
+                : ap.completedFlashcards === ap.totalFlashcards
+                  ? '✅ Dominadas'
+                  : `${ap.totalFlashcards - ap.completedFlashcards} por dominar`
+            }
             colorClass="text-indigo-600"
             bgClass="bg-indigo-50 dark:bg-indigo-900/10"
           />
@@ -356,7 +474,6 @@ export const StudentSelfReportPage: React.FC = () => {
 
       {/* ═══ TWO-COLUMN: Tutor IA + Perfil de Aprendizaje ═══ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
         {/* ── Tutor IA ── */}
         <Card className="p-6 dark:bg-gray-800/50">
           <div className="flex items-center gap-2 mb-4">
@@ -366,13 +483,19 @@ export const StudentSelfReportPage: React.FC = () => {
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Interacciones totales</span>
-              <span className="text-2xl font-extrabold text-gray-900 dark:text-white">{tm.totalInteractions}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Interacciones totales
+              </span>
+              <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
+                {tm.totalInteractions}
+              </span>
             </div>
 
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600 dark:text-gray-400">Última consulta</span>
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatDate(tm.lastInteractionDate)}</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                {formatDate(tm.lastInteractionDate)}
+              </span>
             </div>
 
             {tm.lastInteractionDate && (
@@ -380,7 +503,9 @@ export const StudentSelfReportPage: React.FC = () => {
                 <span className="text-sm text-gray-600 dark:text-gray-400">Hace cuánto</span>
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {(() => {
-                    const days = Math.floor((Date.now() - new Date(tm.lastInteractionDate!).getTime()) / 86400000);
+                    const days = Math.floor(
+                      (Date.now() - new Date(tm.lastInteractionDate!).getTime()) / 86400000
+                    );
                     if (days === 0) return 'Hoy';
                     if (days === 1) return 'Ayer';
                     return `Hace ${days} días`;
@@ -392,10 +517,17 @@ export const StudentSelfReportPage: React.FC = () => {
             {/* Topics */}
             {tm.topicsCovered.length > 0 && (
               <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
-                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Temas consultados</p>
+                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                  Temas consultados
+                </p>
                 <div className="flex flex-wrap gap-1.5">
                   {tm.topicsCovered.map((t, i) => (
-                    <span key={i} className="px-2.5 py-1 bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-full text-[11px] font-semibold">{t}</span>
+                    <span
+                      key={i}
+                      className="px-2.5 py-1 bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-full text-[11px] font-semibold"
+                    >
+                      {t}
+                    </span>
                   ))}
                 </div>
               </div>
@@ -404,7 +536,8 @@ export const StudentSelfReportPage: React.FC = () => {
             {tm.totalInteractions === 0 && (
               <div className="p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl">
                 <p className="text-sm text-blue-800 dark:text-blue-300">
-                  💡 <strong>Tip:</strong> El Tutor IA puede ayudarte a entender mejor los conceptos.
+                  💡 <strong>Tip:</strong> El Tutor IA puede ayudarte a entender mejor los
+                  conceptos.
                   <button
                     onClick={() => navigate('/tutor')}
                     className="ml-1 font-bold text-blue-600 dark:text-blue-400 hover:underline"
@@ -421,17 +554,25 @@ export const StudentSelfReportPage: React.FC = () => {
         <Card className="p-6 dark:bg-gray-800/50">
           <div className="flex items-center gap-2 mb-4">
             <IconTrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Tu Perfil de Aprendizaje</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+              Tu Perfil de Aprendizaje
+            </h2>
           </div>
 
           <div className="space-y-4">
             {/* Profile badge */}
             <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
               <div className="flex items-center gap-3 mb-2">
-                <span className="material-symbols-outlined text-2xl text-indigo-500">person_search</span>
+                <span className="material-symbols-outlined text-2xl text-indigo-500">
+                  person_search
+                </span>
                 <div>
-                  <p className={`text-base font-extrabold ${usageProfile.color}`}>{usageProfile.label}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{usageProfile.desc}</p>
+                  <p className={`text-base font-extrabold ${usageProfile.color}`}>
+                    {usageProfile.label}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                    {usageProfile.desc}
+                  </p>
                 </div>
               </div>
             </div>
@@ -439,16 +580,24 @@ export const StudentSelfReportPage: React.FC = () => {
             {/* Efficiency */}
             <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Eficiencia del Tutor</span>
-                <span className="text-lg font-bold text-gray-900 dark:text-white">{insights.efficiency.toFixed(1)}%</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Eficiencia del Tutor
+                </span>
+                <span className="text-lg font-bold text-gray-900 dark:text-white">
+                  {insights.efficiency.toFixed(1)}%
+                </span>
               </div>
               <div className="h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{
                     width: `${insights.efficiency}%`,
-                    background: insights.efficiency > 70 ? '#10b981'
-                      : insights.efficiency > 30 ? '#f59e0b' : '#ef4444',
+                    background:
+                      insights.efficiency > 70
+                        ? '#10b981'
+                        : insights.efficiency > 30
+                          ? '#f59e0b'
+                          : '#ef4444',
                   }}
                 ></div>
               </div>
@@ -467,8 +616,12 @@ export const StudentSelfReportPage: React.FC = () => {
                 <div className="flex items-start gap-2">
                   <IconCheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-bold text-green-800 dark:text-green-300">¡Excelente Correlación! 🎉</p>
-                    <p className="text-xs text-green-700 dark:text-green-400">Tu uso del tutor está positivamente correlacionado con tu avance. Sigue así.</p>
+                    <p className="text-sm font-bold text-green-800 dark:text-green-300">
+                      ¡Excelente Correlación! 🎉
+                    </p>
+                    <p className="text-xs text-green-700 dark:text-green-400">
+                      Tu uso del tutor está positivamente correlacionado con tu avance. Sigue así.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -478,8 +631,13 @@ export const StudentSelfReportPage: React.FC = () => {
                 <div className="flex items-start gap-2">
                   <IconAlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-bold text-orange-800 dark:text-orange-300">Revisa tu Estrategia</p>
-                    <p className="text-xs text-orange-700 dark:text-orange-400">Usas mucho el tutor pero no avanzas. Intenta preguntas más específicas y completa las actividades pendientes.</p>
+                    <p className="text-sm font-bold text-orange-800 dark:text-orange-300">
+                      Revisa tu Estrategia
+                    </p>
+                    <p className="text-xs text-orange-700 dark:text-orange-400">
+                      Usas mucho el tutor pero no avanzas. Intenta preguntas más específicas y
+                      completa las actividades pendientes.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -492,9 +650,15 @@ export const StudentSelfReportPage: React.FC = () => {
       {insights.recommendedActions.length > 0 && (
         <Card className="p-6 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/10 dark:to-blue-900/10 border-indigo-200 dark:border-indigo-800">
           <div className="flex items-center gap-2 mb-4">
-            <span className="material-symbols-outlined text-indigo-600 dark:text-indigo-400 icon-filled">auto_awesome</span>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Recomendaciones Personalizadas</h2>
-            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-600 text-white uppercase tracking-wider">IA</span>
+            <span className="material-symbols-outlined text-indigo-600 dark:text-indigo-400 icon-filled">
+              auto_awesome
+            </span>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+              Recomendaciones Personalizadas
+            </h2>
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-600 text-white uppercase tracking-wider">
+              IA
+            </span>
           </div>
 
           <div className="space-y-3">
@@ -541,8 +705,9 @@ export const StudentSelfReportPage: React.FC = () => {
       {/* ═══ PIE INFORMATIVO ═══ */}
       <div className="text-center py-4">
         <p className="text-xs text-gray-400 dark:text-gray-500">
-          <span className="material-symbols-outlined text-xs align-text-bottom">info</span>{' '}
-          Este análisis se genera automáticamente a partir de tu actividad en el curso. Los datos se actualizan en tiempo real.
+          <span className="material-symbols-outlined text-xs align-text-bottom">info</span> Este
+          análisis se genera automáticamente a partir de tu actividad en el curso. Los datos se
+          actualizan en tiempo real.
         </p>
       </div>
     </div>

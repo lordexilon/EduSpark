@@ -4,12 +4,12 @@
 // =====================================================
 
 import type { ChatMessage, ContextWindow, StudentProgress } from '../types/agents';
-import { 
-  getConversationHistory, 
-  saveMessage, 
+import {
+  getConversationHistory,
+  saveMessage,
   updateStudentProfile,
   saveUsageMetric,
-  getUsageMetrics
+  getUsageMetrics,
 } from './supabaseService';
 
 // =====================================================
@@ -27,7 +27,7 @@ const DEFAULT_CONFIG: MemoryConfig = {
   maxLocalMessages: 50,
   contextWindowSize: 10,
   enableLongTermMemory: true,
-  autoSummarizeThreshold: 20
+  autoSummarizeThreshold: 20,
 };
 
 // =====================================================
@@ -49,7 +49,7 @@ export class MemoryService {
    */
   async initializeConversation(conversationId: string): Promise<void> {
     this.conversationId = conversationId;
-    
+
     if (this.config.enableLongTermMemory) {
       await this.loadLongTermMemory(conversationId);
     }
@@ -79,11 +79,11 @@ export class MemoryService {
    */
   private async loadLongTermMemory(conversationId: string): Promise<void> {
     const longTermMessages = await this.getLongTermMemory(conversationId);
-    
+
     // Combinar mensajes locales y de largo plazo, evitando duplicados
-    const existingIds = new Set(this.localMessages.map(msg => msg.id));
-    const newMessages = longTermMessages.filter(msg => !existingIds.has(msg.id));
-    
+    const existingIds = new Set(this.localMessages.map((msg) => msg.id));
+    const newMessages = longTermMessages.filter((msg) => !existingIds.has(msg.id));
+
     this.localMessages = [...this.localMessages, ...newMessages]
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
       .slice(-this.config.maxLocalMessages);
@@ -92,12 +92,9 @@ export class MemoryService {
   /**
    * Guarda un mensaje en la memoria
    */
-  async saveToMemory(
-    message: ChatMessage, 
-    conversationId?: string
-  ): Promise<boolean> {
+  async saveToMemory(message: ChatMessage, conversationId?: string): Promise<boolean> {
     const targetConversationId = conversationId || this.conversationId;
-    
+
     if (!targetConversationId) {
       console.warn('No conversation ID available for saving message');
       return false;
@@ -145,7 +142,7 @@ export class MemoryService {
       messages: recentMessages,
       summary,
       relevantTopics,
-      studentProgress
+      studentProgress,
     };
   }
 
@@ -168,12 +165,12 @@ export class MemoryService {
 
     // Si hay pocos mensajes, usar todos
     if (messages.length <= 5) {
-      return messages.map(msg => `${msg.role}: ${msg.text}`).join('\n');
+      return messages.map((msg) => `${msg.role}: ${msg.text}`).join('\n');
     }
 
     // Para conversaciones largas, crear un resumen
-    const userMessages = messages.filter(msg => msg.role === 'user');
-    const assistantMessages = messages.filter(msg => msg.role === 'assistant');
+    const userMessages = messages.filter((msg) => msg.role === 'user');
+    const assistantMessages = messages.filter((msg) => msg.role === 'assistant');
 
     const topics = this.extractTopics('', messages);
     const lastUserMessage = userMessages[userMessages.length - 1]?.text || '';
@@ -190,25 +187,48 @@ export class MemoryService {
    * Extrae temas relevantes de los mensajes
    */
   private extractTopics(query: string, messages: ChatMessage[]): string[] {
-    const allText = [query, ...messages.map(msg => msg.text)].join(' ').toLowerCase();
-    
+    const allText = [query, ...messages.map((msg) => msg.text)].join(' ').toLowerCase();
+
     // Palabras clave comunes en educación
     const educationKeywords = [
-      'matemáticas', 'matematica', 'algebra', 'geometría', 'geometria',
-      'física', 'fisica', 'química', 'quimica', 'biología', 'biologia',
-      'historia', 'geografía', 'geografia', 'literatura', 'filosofía', 'filosofia',
-      'programación', 'programacion', 'informática', 'informatica',
-      'teorema', 'ecuación', 'ecuacion', 'función', 'funcion',
-      'concepto', 'definición', 'definicion', 'ejemplo', 'ejercicio'
+      'matemáticas',
+      'matematica',
+      'algebra',
+      'geometría',
+      'geometria',
+      'física',
+      'fisica',
+      'química',
+      'quimica',
+      'biología',
+      'biologia',
+      'historia',
+      'geografía',
+      'geografia',
+      'literatura',
+      'filosofía',
+      'filosofia',
+      'programación',
+      'programacion',
+      'informática',
+      'informatica',
+      'teorema',
+      'ecuación',
+      'ecuacion',
+      'función',
+      'funcion',
+      'concepto',
+      'definición',
+      'definicion',
+      'ejemplo',
+      'ejercicio',
     ];
 
-    const foundTopics = educationKeywords.filter(keyword => 
-      allText.includes(keyword)
-    );
+    const foundTopics = educationKeywords.filter((keyword) => allText.includes(keyword));
 
     // Agregar temas únicos de los metadatos
     const metadataTopics = messages
-      .flatMap(msg => msg.metadata?.topics || [])
+      .flatMap((msg) => msg.metadata?.topics || [])
       .filter((topic, index, arr) => arr.indexOf(topic) === index);
 
     return [...foundTopics, ...metadataTopics].slice(0, 10); // Máximo 10 temas
@@ -218,30 +238,30 @@ export class MemoryService {
    * Analiza el progreso del estudiante
    */
   private analyzeStudentProgress(messages: ChatMessage[]): StudentProgress {
-    const userMessages = messages.filter(msg => msg.role === 'user');
-    const assistantMessages = messages.filter(msg => msg.role === 'assistant');
+    const userMessages = messages.filter((msg) => msg.role === 'user');
+    const assistantMessages = messages.filter((msg) => msg.role === 'assistant');
 
     // Contar interacciones
     const interactionCount = userMessages.length;
 
     // Calcular duración promedio de sesión (simulado)
-    const avgSessionDuration = messages.length > 0 ? 
-      (Date.now() - messages[0].timestamp.getTime()) / (1000 * 60) : 0; // en minutos
+    const avgSessionDuration =
+      messages.length > 0 ? (Date.now() - messages[0].timestamp.getTime()) / (1000 * 60) : 0; // en minutos
 
     // Extraer temas de dificultad y maestría de los metadatos
     const topicsStruggled = messages
-      .flatMap(msg => msg.metadata?.topicsStruggled || [])
+      .flatMap((msg) => msg.metadata?.topicsStruggled || [])
       .filter((topic, index, arr) => arr.indexOf(topic) === index);
 
     const topicsMastered = messages
-      .flatMap(msg => msg.metadata?.topicsMastered || [])
+      .flatMap((msg) => msg.metadata?.topicsMastered || [])
       .filter((topic, index, arr) => arr.indexOf(topic) === index);
 
     return {
       topicsMastered,
       topicsStruggled,
       interactionCount,
-      avgSessionDuration
+      avgSessionDuration,
     };
   }
 
@@ -264,7 +284,7 @@ export class MemoryService {
         const parsed = JSON.parse(stored);
         this.localMessages = parsed.map((msg: any) => ({
           ...msg,
-          timestamp: new Date(msg.timestamp)
+          timestamp: new Date(msg.timestamp),
         }));
       }
     } catch (error) {
@@ -304,7 +324,7 @@ export class MemoryService {
     return {
       localMessages: [...this.localMessages],
       conversationId: this.conversationId,
-      config: { ...this.config }
+      config: { ...this.config },
     };
   }
 
@@ -330,7 +350,7 @@ export class MemoryService {
       );
 
       const results = await Promise.all(promises);
-      return results.every(result => result.success);
+      return results.every((result) => result.success);
     } catch (error) {
       console.error('Error saving usage metrics:', error);
       return false;
@@ -340,11 +360,7 @@ export class MemoryService {
   /**
    * Obtiene métricas de uso del tutor
    */
-  async getUsageMetrics(
-    courseId: string,
-    studentId?: string,
-    metricType?: string
-  ) {
+  async getUsageMetrics(courseId: string, studentId?: string, metricType?: string) {
     try {
       const response = await getUsageMetrics(courseId, studentId, metricType);
       return response.data || [];
@@ -365,12 +381,12 @@ export class MemoryService {
     try {
       const progress = this.analyzeStudentProgress(messages);
       const topics = this.extractTopics('', messages);
-      
+
       const updates = {
         interactionCount: progress.interactionCount,
         avgSessionDuration: progress.avgSessionDuration,
         topicsStruggled: progress.topicsStruggled,
-        topicsMastered: progress.topicsMastered
+        topicsMastered: progress.topicsMastered,
       };
 
       const response = await updateStudentProfile(studentId, courseId, updates);
@@ -399,13 +415,12 @@ export class MemoryService {
    */
   searchMessages(query: string, limit: number = 10): ChatMessage[] {
     const searchTerm = query.toLowerCase();
-    
+
     return this.localMessages
-      .filter(msg => 
-        msg.text.toLowerCase().includes(searchTerm) ||
-        msg.metadata?.topics?.some((topic: string) => 
-          topic.toLowerCase().includes(searchTerm)
-        )
+      .filter(
+        (msg) =>
+          msg.text.toLowerCase().includes(searchTerm) ||
+          msg.metadata?.topics?.some((topic: string) => topic.toLowerCase().includes(searchTerm))
       )
       .slice(-limit)
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
@@ -422,16 +437,19 @@ export class MemoryService {
     topics: string[];
     duration: number;
   } {
-    const userMessages = this.localMessages.filter(msg => msg.role === 'user');
-    const assistantMessages = this.localMessages.filter(msg => msg.role === 'assistant');
-    
+    const userMessages = this.localMessages.filter((msg) => msg.role === 'user');
+    const assistantMessages = this.localMessages.filter((msg) => msg.role === 'assistant');
+
     const totalLength = this.localMessages.reduce((sum, msg) => sum + msg.text.length, 0);
-    const avgMessageLength = this.localMessages.length > 0 ? totalLength / this.localMessages.length : 0;
-    
+    const avgMessageLength =
+      this.localMessages.length > 0 ? totalLength / this.localMessages.length : 0;
+
     const topics = this.extractTopics('', this.localMessages);
-    
-    const duration = this.localMessages.length > 0 ? 
-      (Date.now() - this.localMessages[0].timestamp.getTime()) / (1000 * 60) : 0; // en minutos
+
+    const duration =
+      this.localMessages.length > 0
+        ? (Date.now() - this.localMessages[0].timestamp.getTime()) / (1000 * 60)
+        : 0; // en minutos
 
     return {
       totalMessages: this.localMessages.length,
@@ -439,7 +457,7 @@ export class MemoryService {
       assistantMessages: assistantMessages.length,
       avgMessageLength: Math.round(avgMessageLength),
       topics,
-      duration: Math.round(duration)
+      duration: Math.round(duration),
     };
   }
 
@@ -456,26 +474,23 @@ export class MemoryService {
       conversationId: this.conversationId,
       stats: this.getConversationStats(),
       messages: [...this.localMessages],
-      config: { ...this.config }
+      config: { ...this.config },
     };
   }
 
   /**
    * Importa memoria desde datos externos
    */
-  importMemory(data: {
-    messages: ChatMessage[];
-    conversationId?: string;
-  }): void {
-    this.localMessages = data.messages.map(msg => ({
+  importMemory(data: { messages: ChatMessage[]; conversationId?: string }): void {
+    this.localMessages = data.messages.map((msg) => ({
       ...msg,
-      timestamp: new Date(msg.timestamp)
+      timestamp: new Date(msg.timestamp),
     }));
-    
+
     if (data.conversationId) {
       this.conversationId = data.conversationId;
     }
-    
+
     this.saveLocalMessages();
   }
 
@@ -489,16 +504,13 @@ export class MemoryService {
 
     // Mantener los mensajes más recientes y algunos importantes
     const recentMessages = this.localMessages.slice(-keepRecent);
-    const importantMessages = this.localMessages
-      .slice(0, -keepRecent)
-      .filter(msg => 
-        msg.metadata?.important === true ||
-        msg.role === 'system' ||
-        msg.text.length > 200 // Mensajes largos probablemente importantes
-      );
+    const importantMessages = this.localMessages.slice(0, -keepRecent).filter(
+      (msg) => msg.metadata?.important === true || msg.role === 'system' || msg.text.length > 200 // Mensajes largos probablemente importantes
+    );
 
-    this.localMessages = [...importantMessages, ...recentMessages]
-      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    this.localMessages = [...importantMessages, ...recentMessages].sort(
+      (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+    );
 
     this.saveLocalMessages();
   }
@@ -507,11 +519,11 @@ export class MemoryService {
    * Marca un mensaje como importante
    */
   markMessageAsImportant(messageId: string): void {
-    const message = this.localMessages.find(msg => msg.id === messageId);
+    const message = this.localMessages.find((msg) => msg.id === messageId);
     if (message) {
       message.metadata = {
         ...message.metadata,
-        important: true
+        important: true,
       };
       this.saveLocalMessages();
     }
@@ -521,7 +533,7 @@ export class MemoryService {
    * Obtiene mensajes importantes
    */
   getImportantMessages(): ChatMessage[] {
-    return this.localMessages.filter(msg => msg.metadata?.important === true);
+    return this.localMessages.filter((msg) => msg.metadata?.important === true);
   }
 }
 

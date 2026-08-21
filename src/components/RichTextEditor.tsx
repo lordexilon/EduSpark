@@ -67,7 +67,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[200px] p-3',
+        class:
+          'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[200px] p-3',
       },
     },
   });
@@ -81,9 +82,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     if (!nextHtml && currentHtml === '<p></p>') return;
 
     const selection = editor.state.selection;
-    editor.commands.setContent(nextHtml, false, {
-      preserveWhitespace: true,
-    });
+    editor.commands.setContent(nextHtml, { emitUpdate: false });
     if (selection) {
       const { from, to } = selection;
       editor.commands.setTextSelection({ from, to });
@@ -156,7 +155,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         event.target.value = '';
       }
     },
-    [onUploadImage, editor],
+    [onUploadImage, editor]
   );
 
   if (!editor) {
@@ -329,13 +328,14 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           onClick={() => {
-            const { state } = editor;
-            const { selection } = state;
-            const node = selection.node;
-            if (node && node.type.name === 'image') {
-              editor.chain().focus().updateAttributes('image', {
-                style: 'width: 25%; height: auto;'
-              }).run();
+            if (editor.isActive('image')) {
+              editor
+                .chain()
+                .focus()
+                .updateAttributes('image', {
+                  style: 'width: 25%; height: auto;',
+                })
+                .run();
             } else {
               alert('Por favor, selecciona una imagen primero haciendo clic sobre ella.');
             }
@@ -348,13 +348,14 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           onClick={() => {
-            const { state } = editor;
-            const { selection } = state;
-            const node = selection.node;
-            if (node && node.type.name === 'image') {
-              editor.chain().focus().updateAttributes('image', {
-                style: 'width: 50%; height: auto;'
-              }).run();
+            if (editor.isActive('image')) {
+              editor
+                .chain()
+                .focus()
+                .updateAttributes('image', {
+                  style: 'width: 50%; height: auto;',
+                })
+                .run();
             } else {
               alert('Por favor, selecciona una imagen primero haciendo clic sobre ella.');
             }
@@ -367,13 +368,14 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           onClick={() => {
-            const { state } = editor;
-            const { selection } = state;
-            const node = selection.node;
-            if (node && node.type.name === 'image') {
-              editor.chain().focus().updateAttributes('image', {
-                style: 'width: 75%; height: auto;'
-              }).run();
+            if (editor.isActive('image')) {
+              editor
+                .chain()
+                .focus()
+                .updateAttributes('image', {
+                  style: 'width: 75%; height: auto;',
+                })
+                .run();
             } else {
               alert('Por favor, selecciona una imagen primero haciendo clic sobre ella.');
             }
@@ -386,13 +388,14 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           onClick={() => {
-            const { state } = editor;
-            const { selection } = state;
-            const node = selection.node;
-            if (node && node.type.name === 'image') {
-              editor.chain().focus().updateAttributes('image', {
-                style: 'width: 100%; height: auto;'
-              }).run();
+            if (editor.isActive('image')) {
+              editor
+                .chain()
+                .focus()
+                .updateAttributes('image', {
+                  style: 'width: 100%; height: auto;',
+                })
+                .run();
             } else {
               alert('Por favor, selecciona una imagen primero haciendo clic sobre ella.');
             }
@@ -436,9 +439,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         </button>
       </div>
       <EditorContent editor={editor} className="editor-content" />
-      {!editor.getText() && (
-        <div className="editor-placeholder">{placeholder}</div>
-      )}
+      {!editor.getText() && <div className="editor-placeholder">{placeholder}</div>}
     </div>
   );
 };

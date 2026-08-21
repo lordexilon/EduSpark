@@ -79,7 +79,10 @@ export async function saveGeneralKnowledgeResponse(
       .single();
 
     if (error) {
-      console.warn('⚠️ Error saving general knowledge response (no se interrumpe el flujo):', error);
+      console.warn(
+        '⚠️ Error saving general knowledge response (no se interrumpe el flujo):',
+        error
+      );
       return null;
     }
 
@@ -92,7 +95,10 @@ export async function saveGeneralKnowledgeResponse(
 
     return data;
   } catch (error) {
-    console.warn('⚠️ Failed to save general knowledge response (no se interrumpe el flujo):', error);
+    console.warn(
+      '⚠️ Failed to save general knowledge response (no se interrumpe el flujo):',
+      error
+    );
     return null;
   }
 }
@@ -168,9 +174,7 @@ export async function markFeedbackResponsesProcessed(
 /**
  * Obtiene estadísticas de retroalimentación
  */
-export async function getFeedbackStats(
-  courseId?: number
-): Promise<{
+export async function getFeedbackStats(courseId?: number): Promise<{
   total: number;
   pending: number;
   processed: number;
@@ -178,9 +182,7 @@ export async function getFeedbackStats(
   avgQualityScore: number;
 }> {
   try {
-    let query = supabase
-      .from('tutor_general_knowledge_responses')
-      .select('status, quality_score');
+    let query = supabase.from('tutor_general_knowledge_responses').select('status, quality_score');
 
     if (courseId) {
       query = query.eq('course_id', courseId);
@@ -204,10 +206,8 @@ export async function getFeedbackStats(
     );
     if (processedResponses.length > 0) {
       stats.avgQualityScore =
-        processedResponses.reduce(
-          (sum: number, r: any) => sum + (r.quality_score || 0),
-          0
-        ) / processedResponses.length;
+        processedResponses.reduce((sum: number, r: any) => sum + (r.quality_score || 0), 0) /
+        processedResponses.length;
     }
 
     return stats;

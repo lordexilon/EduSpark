@@ -15,29 +15,28 @@ interface ProcessingProgressProps {
 export const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
   jobs,
   onHideFile,
-  hiddenFileIds = new Set()
+  hiddenFileIds = new Set(),
 }) => {
   if (jobs.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        No hay trabajos de procesamiento
-      </div>
-    );
+    return <div className="text-center py-8 text-gray-500">No hay trabajos de procesamiento</div>;
   }
 
   // Agrupar por archivo
-  const jobsByFile = jobs.reduce((acc, job) => {
-    // Si el archivo está oculto, no lo incluimos
-    if (hiddenFileIds.has(job.sourceFileId)) {
-      return acc;
-    }
+  const jobsByFile = jobs.reduce(
+    (acc, job) => {
+      // Si el archivo está oculto, no lo incluimos
+      if (hiddenFileIds.has(job.sourceFileId)) {
+        return acc;
+      }
 
-    if (!acc[job.sourceFileId]) {
-      acc[job.sourceFileId] = [];
-    }
-    acc[job.sourceFileId].push(job);
-    return acc;
-  }, {} as Record<string, FileProcessingJob[]>);
+      if (!acc[job.sourceFileId]) {
+        acc[job.sourceFileId] = [];
+      }
+      acc[job.sourceFileId].push(job);
+      return acc;
+    },
+    {} as Record<string, FileProcessingJob[]>
+  );
 
   if (Object.keys(jobsByFile).length === 0) {
     return (
@@ -103,9 +102,9 @@ export const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
 
   const calculateProgress = (fileJobs: FileProcessingJob[]) => {
     const total = fileJobs.length;
-    const completed = fileJobs.filter(j => j.status === 'completed').length;
-    const processing = fileJobs.filter(j => j.status === 'processing').length;
-    const failed = fileJobs.filter(j => j.status === 'failed').length;
+    const completed = fileJobs.filter((j) => j.status === 'completed').length;
+    const processing = fileJobs.filter((j) => j.status === 'processing').length;
+    const failed = fileJobs.filter((j) => j.status === 'failed').length;
 
     return {
       total,
@@ -132,14 +131,17 @@ export const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
       {Object.entries(jobsByFile).map(([fileId, fileJobs]) => {
         const firstJob = fileJobs[0];
         const progress = calculateProgress(fileJobs);
-        const processingJob = fileJobs.find(j => j.status === 'processing');
+        const processingJob = fileJobs.find((j) => j.status === 'processing');
         const isStuck = processingJob ? isJobStuck(processingJob) : false;
 
         // Si está colgado, tratamos visualmente como fallido/advertencia
         const displayStatus = isStuck ? 'failed' : firstJob.status;
 
         return (
-          <div key={fileId} className="bg-white border border-gray-200 rounded-lg p-4 relative group">
+          <div
+            key={fileId}
+            className="bg-white border border-gray-200 rounded-lg p-4 relative group"
+          >
             {/* Botón de ocultar en la esquina */}
             {onHideFile && (
               <button
@@ -155,7 +157,10 @@ export const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
               <div className="flex items-center space-x-3">
                 {getStatusIcon(firstJob.status, isStuck)}
                 <div>
-                  <h4 className="font-semibold text-gray-800 truncate max-w-[200px]" title={firstJob.sourceFileName}>
+                  <h4
+                    className="font-semibold text-gray-800 truncate max-w-[200px]"
+                    title={firstJob.sourceFileName}
+                  >
                     {firstJob.sourceFileName}
                   </h4>
                   <p className="text-sm text-gray-500">
@@ -163,12 +168,19 @@ export const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
                   </p>
                 </div>
               </div>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${isStuck ? 'bg-orange-100 text-orange-800' :
-                firstJob.status === 'completed' ? 'bg-green-100 text-green-700' :
-                  firstJob.status === 'failed' ? 'bg-red-100 text-red-700' :
-                    firstJob.status === 'processing' ? 'bg-blue-100 text-blue-700' :
-                      'bg-gray-100 text-gray-700'
-                }`}>
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  isStuck
+                    ? 'bg-orange-100 text-orange-800'
+                    : firstJob.status === 'completed'
+                      ? 'bg-green-100 text-green-700'
+                      : firstJob.status === 'failed'
+                        ? 'bg-red-100 text-red-700'
+                        : firstJob.status === 'processing'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-gray-100 text-gray-700'
+                }`}
+              >
                 {getStatusText(firstJob.status, isStuck)}
               </span>
             </div>
@@ -177,32 +189,47 @@ export const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
             {firstJob.chunksTotal !== undefined && firstJob.chunksTotal > 0 && (
               <div className="mb-3">
                 <div className="flex justify-between text-sm mb-1">
-                  <span className={`font-medium ${isStuck ? 'text-orange-700' :
-                    firstJob.status === 'processing' ? 'text-blue-700' :
-                      firstJob.status === 'completed' ? 'text-green-700' :
-                        'text-gray-600'
-                    }`}>
+                  <span
+                    className={`font-medium ${
+                      isStuck
+                        ? 'text-orange-700'
+                        : firstJob.status === 'processing'
+                          ? 'text-blue-700'
+                          : firstJob.status === 'completed'
+                            ? 'text-green-700'
+                            : 'text-gray-600'
+                    }`}
+                  >
                     {firstJob.chunksProcessed || 0} de {firstJob.chunksTotal} chunks completados
                   </span>
-                  <span className={`font-semibold ${isStuck ? 'text-orange-700' :
-                    firstJob.status === 'processing' ? 'text-blue-700' :
-                      firstJob.status === 'completed' ? 'text-green-700' :
-                        'text-gray-600'
-                    }`}>
+                  <span
+                    className={`font-semibold ${
+                      isStuck
+                        ? 'text-orange-700'
+                        : firstJob.status === 'processing'
+                          ? 'text-blue-700'
+                          : firstJob.status === 'completed'
+                            ? 'text-green-700'
+                            : 'text-gray-600'
+                    }`}
+                  >
                     {Math.round(((firstJob.chunksProcessed || 0) / firstJob.chunksTotal) * 100)}%
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
                   <div
-                    className={`h-2.5 rounded-full transition-all duration-500 ease-out ${isStuck
-                      ? 'bg-orange-500'
-                      : firstJob.status === 'processing'
-                        ? 'bg-gradient-to-r from-blue-500 to-blue-600'
-                        : firstJob.status === 'completed'
-                          ? 'bg-gradient-to-r from-green-500 to-green-600'
-                          : 'bg-gray-400'
-                      }`}
-                    style={{ width: `${Math.round(((firstJob.chunksProcessed || 0) / firstJob.chunksTotal) * 100)}%` }}
+                    className={`h-2.5 rounded-full transition-all duration-500 ease-out ${
+                      isStuck
+                        ? 'bg-orange-500'
+                        : firstJob.status === 'processing'
+                          ? 'bg-gradient-to-r from-blue-500 to-blue-600'
+                          : firstJob.status === 'completed'
+                            ? 'bg-gradient-to-r from-green-500 to-green-600'
+                            : 'bg-gray-400'
+                    }`}
+                    style={{
+                      width: `${Math.round(((firstJob.chunksProcessed || 0) / firstJob.chunksTotal) * 100)}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -212,7 +239,9 @@ export const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
             {firstJob.jobType === 'split' && firstJob.chunksCreated && !firstJob.chunksTotal && (
               <div className="mb-3">
                 <div className="flex justify-between text-sm text-gray-600 mb-1">
-                  <span>Progreso: {progress.completed} de {progress.total} trozos</span>
+                  <span>
+                    Progreso: {progress.completed} de {progress.total} trozos
+                  </span>
                   <span>{progress.percentage}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
@@ -248,7 +277,9 @@ export const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
                   <ProcessingTimer
                     startTime={firstJob.startedAt || firstJob.createdAt}
                     isProcessing={true}
-                    estimatedMinutes={firstJob.metadata?.estimatedCosts?.processingTime?.estimatedMinutes}
+                    estimatedMinutes={
+                      firstJob.metadata?.estimatedCosts?.processingTime?.estimatedMinutes
+                    }
                     chunksProcessed={firstJob.chunksProcessed}
                     chunksTotal={firstJob.chunksTotal}
                   />
@@ -260,9 +291,13 @@ export const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
             {progress.failed > 0 && (
               <div className="mt-2 space-y-1">
                 {fileJobs
-                  .filter(j => j.status === 'failed')
-                  .map(job => (
-                    <div key={job.id} id={`error-${job.id}`} className="text-sm text-red-600 bg-red-50 rounded p-2 flex items-start justify-between gap-2">
+                  .filter((j) => j.status === 'failed')
+                  .map((job) => (
+                    <div
+                      key={job.id}
+                      id={`error-${job.id}`}
+                      className="text-sm text-red-600 bg-red-50 rounded p-2 flex items-start justify-between gap-2"
+                    >
                       <div className="flex-1">
                         <strong>Error:</strong> {job.errorMessage || 'Error desconocido'}
                       </div>
@@ -288,4 +323,3 @@ export const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
     </div>
   );
 };
-

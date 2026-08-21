@@ -4,41 +4,45 @@
 
 BEGIN;
 
-DROP POLICY IF EXISTS "Manage assessments" ON public.assessments;
+DO $$ BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'assessments') THEN
+    DROP POLICY IF EXISTS "Manage assessments" ON public.assessments;
 
-CREATE POLICY "Manage assessments" ON public.assessments
-    FOR ALL 
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.courses c
-            JOIN public.users u ON u.id = auth.uid()
-            JOIN public.roles r ON u.role_id = r.id
-            WHERE c.id = assessments.course_id
-            AND (
-                r.name = 'admin'
-                OR c.teacher_id = auth.uid()
-                OR (
-                    public.check_user_access_to_institution(c.institution_id)
-                    AND r.name IN ('admin-campus', 'supervisor', 'coordinator')
+    CREATE POLICY "Manage assessments" ON public.assessments
+        FOR ALL 
+        USING (
+            EXISTS (
+                SELECT 1 FROM public.courses c
+                JOIN public.users u ON u.id = auth.uid()
+                JOIN public.roles r ON u.role_id = r.id
+                WHERE c.id = assessments.course_id
+                AND (
+                    r.name = 'admin'
+                    OR c.teacher_id = auth.uid()
+                    OR (
+                        public.check_user_access_to_institution(c.institution_id)
+                        AND r.name IN ('admin-campus', 'supervisor', 'coordinator')
+                    )
                 )
             )
         )
-    )
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM public.courses c
-            JOIN public.users u ON u.id = auth.uid()
-            JOIN public.roles r ON u.role_id = r.id
-            WHERE c.id = assessments.course_id
-            AND (
-                r.name = 'admin'
-                OR c.teacher_id = auth.uid()
-                OR (
-                    public.check_user_access_to_institution(c.institution_id)
-                    AND r.name IN ('admin-campus', 'supervisor', 'coordinator')
+        WITH CHECK (
+            EXISTS (
+                SELECT 1 FROM public.courses c
+                JOIN public.users u ON u.id = auth.uid()
+                JOIN public.roles r ON u.role_id = r.id
+                WHERE c.id = assessments.course_id
+                AND (
+                    r.name = 'admin'
+                    OR c.teacher_id = auth.uid()
+                    OR (
+                        public.check_user_access_to_institution(c.institution_id)
+                        AND r.name IN ('admin-campus', 'supervisor', 'coordinator')
+                    )
                 )
             )
-        )
-    );
+        );
+  END IF;
+END $$;
 
 COMMIT;

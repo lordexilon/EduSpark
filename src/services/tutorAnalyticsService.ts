@@ -65,7 +65,12 @@ export async function getStudentMetrics(
 ): Promise<StudentMetrics[]> {
   try {
     const courseIdNum = typeof courseId === 'string' ? parseInt(courseId, 10) : courseId;
-    console.log('📊 getStudentMetrics: Obteniendo métricas para curso:', courseIdNum, 'con filtros:', filters);
+    console.log(
+      '📊 getStudentMetrics: Obteniendo métricas para curso:',
+      courseIdNum,
+      'con filtros:',
+      filters
+    );
 
     // Construir consulta de interacciones con filtros
     let query = supabase
@@ -102,7 +107,9 @@ export async function getStudentMetrics(
     // Obtener métricas agregadas
     const { data: performanceData, error: performanceError } = await supabase
       .from('student_tutor_performance')
-      .select('student_id, total_interactions, total_tokens_used, total_cost, topics_covered, performance_improvement')
+      .select(
+        'student_id, total_interactions, total_tokens_used, total_cost, topics_covered, performance_improvement'
+      )
       .eq('course_id', courseIdNum);
 
     if (performanceError) {
@@ -110,7 +117,10 @@ export async function getStudentMetrics(
       throw performanceError;
     }
 
-    console.log('📊 getStudentMetrics: Datos de performance encontrados:', performanceData?.length || 0);
+    console.log(
+      '📊 getStudentMetrics: Datos de performance encontrados:',
+      performanceData?.length || 0
+    );
 
     // Obtener información de estudiantes
     const studentIds = [...new Set(interactions?.map((i) => i.student_id) || [])];
@@ -139,6 +149,10 @@ export async function getStudentMetrics(
         lastInteractionDate: null,
         topicsCovered: [],
         performanceImprovement: null,
+        totalRatings: 0,
+        thumbsUpCount: 0,
+        thumbsDownCount: 0,
+        averageRating: 0,
       });
     });
 
@@ -169,10 +183,8 @@ export async function getStudentMetrics(
       );
       metrics.averageResponseTime =
         studentInteractionsList.length > 0
-          ? studentInteractionsList.reduce(
-            (sum, i) => sum + (i.response_time_ms || 0),
-            0
-          ) / studentInteractionsList.length
+          ? studentInteractionsList.reduce((sum, i) => sum + (i.response_time_ms || 0), 0) /
+            studentInteractionsList.length
           : 0;
 
       const lastInteraction = studentInteractionsList[0];
@@ -228,7 +240,12 @@ export async function getCourseMetrics(
 ): Promise<CourseMetrics | null> {
   try {
     const courseIdNum = typeof courseId === 'string' ? parseInt(courseId, 10) : courseId;
-    console.log('📊 getCourseMetrics: Obteniendo métricas del curso:', courseIdNum, 'con filtros:', filters);
+    console.log(
+      '📊 getCourseMetrics: Obteniendo métricas del curso:',
+      courseIdNum,
+      'con filtros:',
+      filters
+    );
 
     // Obtener información del curso
     const { data: course, error: courseError } = await supabase
@@ -291,8 +308,7 @@ export async function getCourseMetrics(
     const activeStudents = new Set(interactions?.map((i) => i.student_id) || []).size;
     const totalInteractions = interactions?.length || 0;
     const totalTokens = interactions?.reduce((sum, i) => sum + (i.tokens_used || 0), 0) || 0;
-    const totalCost =
-      interactions?.reduce((sum, i) => sum + (parseFloat(i.cost) || 0), 0) || 0;
+    const totalCost = interactions?.reduce((sum, i) => sum + (parseFloat(i.cost) || 0), 0) || 0;
 
     // Validación de consistencia de datos
     if (activeStudents > totalStudents) {
@@ -331,7 +347,10 @@ export async function getCourseMetrics(
     const studentsNeedingAttention: string[] = [];
     const studentInteractionCounts = new Map<string, number>();
     interactions?.forEach((i) => {
-      studentInteractionCounts.set(i.student_id, (studentInteractionCounts.get(i.student_id) || 0) + 1);
+      studentInteractionCounts.set(
+        i.student_id,
+        (studentInteractionCounts.get(i.student_id) || 0) + 1
+      );
     });
 
     // Estudiantes con muchas interacciones pero bajo desempeño
@@ -353,8 +372,7 @@ export async function getCourseMetrics(
     });
 
     // Calcular tasa de participación con validación
-    const participationRate =
-      totalStudents > 0 ? (activeStudents / totalStudents) * 100 : 0;
+    const participationRate = totalStudents > 0 ? (activeStudents / totalStudents) * 100 : 0;
 
     // Validar rango de participación (0-100)
     const validatedParticipationRate = Math.max(0, Math.min(100, participationRate));
@@ -385,8 +403,7 @@ export async function getCourseMetrics(
       totalInteractions,
       totalTokens,
       totalCost,
-      averageInteractionsPerStudent:
-        activeStudents > 0 ? totalInteractions / activeStudents : 0,
+      averageInteractionsPerStudent: activeStudents > 0 ? totalInteractions / activeStudents : 0,
       topTopics,
       studentsNeedingAttention: [...new Set(studentsNeedingAttention)],
       // Agregar métricas de ratings
@@ -518,4 +535,3 @@ export async function getStudentsNeedingAttention(
     return [];
   }
 }
-

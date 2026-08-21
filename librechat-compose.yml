@@ -1,0 +1,120 @@
+services:
+  # 🗄️ Base de datos MongoDB para almacenar historiales y usuarios de LibreChat
+  librechat-db:
+    image: mongo:latest
+    container_name: librechat-mongodb
+    restart: unless-stopped
+    volumes:
+      - librechat-data:/data/db
+    networks:
+      - eduspark-gateway-net
+
+  # 💬 Interfaz LibreChat (imagen estable - incluye panel de admin)
+  librechat:
+    image: ghcr.io/danny-avila/librechat:latest
+    container_name: librechat-app
+    ports:
+      - "3080:3080"
+    depends_on:
+      - librechat-db
+    restart: unless-stopped
+    environment:
+      - MONGO_URI=mongodb://librechat-db:27017/LibreChat
+      - HOST=0.0.0.0
+      - PORT=3080
+      - CONFIG_PATH=/app/librechat.yaml
+      # Claves de cifrado requeridas por LibreChat
+      - JWT_SECRET=eduspark-librechat-secret-jwt-key-2026
+      - JWT_REFRESH_SECRET=eduspark-librechat-secret-refresh-jwt-key-2026
+      - CREDS_KEY=1a3e3bec0054ca4fadb9d2b1ea1fc057d8cb524ddfd3b2f9ddc4c8e6fcd3aa1f
+      - CREDS_IV=b30971d0321ab94cfd5a8910ed9aa56f
+      # Control de autenticación y registro local
+      - ALLOW_REGISTRATION=true
+      - ALLOW_SOCIAL_LOGIN=false
+      # Panel de Administración
+      - ADMIN_PANEL=true
+      - ADMIN_ROLE=ADMIN
+      # URL del panel admin para redirección OAuth
+      - ADMIN_PANEL_URL=http://localhost:3090
+      # URL interna del servicio RAG para procesar archivos
+      - RAG_API_URL=http://rag_api:8000
+    command: sh -c "node /app/patch-agents.js && npm run backend"
+    volumes:
+      - ./librechat.yaml:/app/librechat.yaml
+      - ./patch-agents.js:/app/patch-agents.js
+      - C:\Users\Legion 5\Documents:/data/documents
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - eduspark-gateway-net
+
+  # 🧠 RAG API (Procesamiento de Archivos y Embeddings para LibreChat)
+  rag_api:
+    image: ghcr.io/danny-avila/librechat-rag-api-dev-lite:latest
+    container_name: librechat-rag-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - RAG_PORT=8000
+      # Conexión a la base de datos Supabase local (pgvector) a través de la red interna Docker
+      - POSTGRES_HOST=supabase_db_eduspark-lms-local
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+      # Configuración de Embeddings vía Ollama
+      - EMBEDDINGS_PROVIDER=ollama
+      - EMBEDDINGS_MODEL=nomic-embed-text
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - eduspark-gateway-net
+      - supabase_network_eduspark-lms-local
+
+  # 🛡️ Panel de Administración (servicio separado - puerto 3090)
+  # Docs: https://www.librechat.ai/docs/features/admin_panel
+  librechat-admin:
+    image: ghcr.io/clickhouse/librechat-admin-panel:latest
+    container_name: librechat-admin-panel
+    ports:
+      - "3090:3000"   # Puerto 3090 en el host → 3000 en el contenedor
+    restart: unless-stopped
+    environment:
+      # Secreto de sesión (mínimo 32 caracteres)
+      - SESSION_SECRET=eduspark-admin-panel-session-secret-2026
+      # URL del API de LibreChat (desde dentro del contenedor Docker)
+      - VITE_API_BASE_URL=http://host.docker.internal:3080
+      - API_SERVER_URL=http://librechat-app:3080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - librechat
+    networks:
+      - eduspark-gateway-net
+
+  # 💼 Langflow OpenAI Proxy Gateway
+  langflow-proxy:
+    build:
+      context: ./langflow-proxy
+    container_name: langflow-proxy
+    ports:
+      - "54333:54333"
+    environment:
+      - PORT=54333
+      - LANGFLOW_API_KEY=
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - eduspark-gateway-net
+    restart: unless-stopped
+
+volumes:
+  librechat-data:
+
+networks:
+  eduspark-gateway-net:
+    driver: bridge
+  supabase_network_eduspark-lms-local:
+    external: true

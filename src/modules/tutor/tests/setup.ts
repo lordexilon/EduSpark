@@ -21,8 +21,8 @@ Object.defineProperty(window, 'SpeechRecognition', {
     onend: null,
     continuous: false,
     interimResults: false,
-    lang: 'es-ES'
-  }))
+    lang: 'es-ES',
+  })),
 });
 
 Object.defineProperty(window, 'webkitSpeechRecognition', {
@@ -35,8 +35,8 @@ Object.defineProperty(window, 'webkitSpeechRecognition', {
     onend: null,
     continuous: false,
     interimResults: false,
-    lang: 'es-ES'
-  }))
+    lang: 'es-ES',
+  })),
 });
 
 // Mock de AudioContext
@@ -49,8 +49,8 @@ Object.defineProperty(window, 'AudioContext', {
     destination: {},
     currentTime: 0,
     sampleRate: 44100,
-    state: 'running'
-  }))
+    state: 'running',
+  })),
 });
 
 // Mock de MediaRecorder
@@ -64,8 +64,8 @@ Object.defineProperty(window, 'MediaRecorder', {
     ondataavailable: null,
     onerror: null,
     onstop: null,
-    state: 'inactive'
-  }))
+    state: 'inactive',
+  })),
 });
 
 // Mock de navigator.mediaDevices
@@ -73,11 +73,13 @@ Object.defineProperty(navigator, 'mediaDevices', {
   writable: true,
   value: {
     getUserMedia: jest.fn().mockResolvedValue({
-      getTracks: () => [{
-        stop: jest.fn()
-      }]
-    })
-  }
+      getTracks: () => [
+        {
+          stop: jest.fn(),
+        },
+      ],
+    }),
+  },
 });
 
 // Mock de localStorage
@@ -87,11 +89,11 @@ const localStorageMock = {
   removeItem: jest.fn(),
   clear: jest.fn(),
   length: 0,
-  key: jest.fn()
+  key: jest.fn(),
 };
 
 Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock
+  value: localStorageMock,
 });
 
 // Mock de sessionStorage
@@ -101,11 +103,11 @@ const sessionStorageMock = {
   removeItem: jest.fn(),
   clear: jest.fn(),
   length: 0,
-  key: jest.fn()
+  key: jest.fn(),
 };
 
 Object.defineProperty(window, 'sessionStorage', {
-  value: sessionStorageMock
+  value: sessionStorageMock,
 });
 
 // Mock de fetch
@@ -119,7 +121,7 @@ global.console = {
   error: jest.fn(),
   warn: jest.fn(),
   info: jest.fn(),
-  debug: jest.fn()
+  debug: jest.fn(),
 };
 
 // Restaurar console después de cada test

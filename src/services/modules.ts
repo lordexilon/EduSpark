@@ -26,11 +26,11 @@ export async function createModule(input: CourseModuleInput) {
     order: input.order ?? 0,
     is_active: input.is_active ?? true,
   };
-  
+
   // Agregar campos opcionales
   if (input.title) insertData.title = input.title;
   if (input.description) insertData.description = input.description;
-  
+
   const { data, error } = await supabase
     .from('course_modules')
     .insert(insertData)
@@ -52,11 +52,6 @@ export async function updateModule(id: number, patch: Partial<CourseModuleInput>
 }
 
 export async function deleteModule(id: number) {
-  const { error } = await supabase
-    .from('course_modules')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from('course_modules').delete().eq('id', id);
   if (error) throw error;
 }
-
-

@@ -18,7 +18,7 @@ interface PedagogicalSettingsDemoProps {
 export const PedagogicalSettingsDemo: React.FC<PedagogicalSettingsDemoProps> = ({
   courseId,
   teacherId,
-  className = ''
+  className = '',
 }) => {
   const [showSummary, setShowSummary] = useState(true);
   const [demoCourse, setDemoCourse] = useState<Course | null>(null);
@@ -36,12 +36,12 @@ export const PedagogicalSettingsDemo: React.FC<PedagogicalSettingsDemoProps> = (
     refreshGradingScale,
     hasChanges,
     canSave,
-    getSettingsSummary
+    getSettingsSummary,
   } = usePedagogicalSettings({
     courseId,
     teacherId,
     initialSettings: null,
-    initialGradingScale: null
+    initialGradingScale: null,
   });
 
   // Cargar datos del curso de demostración
@@ -53,17 +53,17 @@ export const PedagogicalSettingsDemo: React.FC<PedagogicalSettingsDemoProps> = (
       description: 'Curso introductorio de biología para estudiantes de primer año',
       teacherId,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     });
   }, [courseId, teacherId]);
 
   // Manejar guardado de configuración
   const handleSaveSettings = async (updates: any): Promise<boolean> => {
     console.log('Guardando configuración pedagógica:', updates);
-    
+
     // Simular delay de guardado
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
     // En una implementación real, aquí se llamaría a la API
     return true;
   };
@@ -71,10 +71,10 @@ export const PedagogicalSettingsDemo: React.FC<PedagogicalSettingsDemoProps> = (
   // Manejar guardado de escala de calificación
   const handleSaveGradingScale = async (updates: any): Promise<boolean> => {
     console.log('Guardando escala de calificación:', updates);
-    
+
     // Simular delay de guardado
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
     // En una implementación real, aquí se llamaría a la API
     return true;
   };
@@ -82,10 +82,10 @@ export const PedagogicalSettingsDemo: React.FC<PedagogicalSettingsDemoProps> = (
   // Manejar subida de imagen
   const handleImageUpload = async (file: File): Promise<string | null> => {
     console.log('Subiendo imagen:', file.name);
-    
+
     // Simular delay de subida
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     // En una implementación real, aquí se subiría la imagen
     return `https://example.com/images/${file.name}`;
   };
@@ -106,7 +106,9 @@ export const PedagogicalSettingsDemo: React.FC<PedagogicalSettingsDemoProps> = (
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-2xl font-bold text-white">Panel de Configuración Pedagógica</h2>
-            <p className="text-slate-400">Personaliza el comportamiento del tutor virtual para tu curso</p>
+            <p className="text-slate-400">
+              Personaliza el comportamiento del tutor virtual para tu curso
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -129,7 +131,9 @@ export const PedagogicalSettingsDemo: React.FC<PedagogicalSettingsDemoProps> = (
           <div className="bg-slate-700 p-4 rounded-lg">
             <h3 className="font-medium text-white mb-2">Estado</h3>
             <div className="flex items-center">
-              <span className={`w-2 h-2 rounded-full mr-2 ${hasChanges ? 'bg-yellow-500' : 'bg-green-500'}`}></span>
+              <span
+                className={`w-2 h-2 rounded-full mr-2 ${hasChanges ? 'bg-yellow-500' : 'bg-green-500'}`}
+              ></span>
               <span className="text-slate-300 text-sm">
                 {hasChanges ? 'Cambios pendientes' : 'Guardado'}
               </span>
@@ -154,7 +158,11 @@ export const PedagogicalSettingsDemo: React.FC<PedagogicalSettingsDemoProps> = (
           <div className="mt-4 bg-red-900 border border-red-700 text-red-300 px-4 py-3 rounded">
             <div className="flex items-center">
               <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
               </svg>
               {error}
             </div>
@@ -188,13 +196,18 @@ export const PedagogicalSettingsDemo: React.FC<PedagogicalSettingsDemoProps> = (
       <div className="bg-blue-900 border border-blue-700 text-blue-300 px-4 py-3 rounded">
         <div className="flex items-start">
           <svg className="w-5 h-5 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+              clipRule="evenodd"
+            />
           </svg>
           <div>
             <h4 className="font-medium mb-1">Modo Demostración</h4>
             <p className="text-sm">
-              Este es un panel de demostración. En una implementación real, los cambios se guardarían 
-              automáticamente en la base de datos y se aplicarían inmediatamente al tutor virtual.
+              Este es un panel de demostración. En una implementación real, los cambios se
+              guardarían automáticamente en la base de datos y se aplicarían inmediatamente al tutor
+              virtual.
             </p>
           </div>
         </div>

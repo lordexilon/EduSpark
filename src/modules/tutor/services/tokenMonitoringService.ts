@@ -33,17 +33,17 @@ interface MonthlyUsage {
 // Precios de Gemini API (por 1M tokens) - Actualizado 2025
 const GEMINI_PRICING = {
   'gemini-1.5-flash': {
-    input: 0.075,   // $0.075 por 1M tokens de entrada
-    output: 0.30    // $0.30 por 1M tokens de salida
+    input: 0.075, // $0.075 por 1M tokens de entrada
+    output: 0.3, // $0.30 por 1M tokens de salida
   },
   'gemini-1.5-pro': {
-    input: 1.25,    // $1.25 por 1M tokens de entrada
-    output: 5.00    // $5.00 por 1M tokens de salida
+    input: 1.25, // $1.25 por 1M tokens de entrada
+    output: 5.0, // $5.00 por 1M tokens de salida
   },
   'gemini-2.5-flash': {
-    input: 0.075,   // $0.075 por 1M tokens de entrada
-    output: 0.30    // $0.30 por 1M tokens de salida
-  }
+    input: 0.075, // $0.075 por 1M tokens de entrada
+    output: 0.3, // $0.30 por 1M tokens de salida
+  },
 };
 
 export class TokenMonitoringService {
@@ -72,7 +72,8 @@ export class TokenMonitoringService {
     model: string,
     requestId: string = this.generateRequestId()
   ): TokenUsage {
-    const pricing = GEMINI_PRICING[model as keyof typeof GEMINI_PRICING] || GEMINI_PRICING['gemini-1.5-flash'];
+    const pricing =
+      GEMINI_PRICING[model as keyof typeof GEMINI_PRICING] || GEMINI_PRICING['gemini-1.5-flash'];
 
     const inputCost = (inputTokens / 1000000) * pricing.input;
     const outputCost = (outputTokens / 1000000) * pricing.output;
@@ -85,7 +86,7 @@ export class TokenMonitoringService {
       cost: totalCost,
       timestamp: new Date(),
       model,
-      requestId
+      requestId,
     };
 
     this.usageHistory.push(usage);
@@ -98,7 +99,7 @@ export class TokenMonitoringService {
       inputTokens,
       outputTokens,
       totalCost: `$${totalCost.toFixed(6)}`,
-      requestId
+      requestId,
     });
 
     return usage;
@@ -109,13 +110,15 @@ export class TokenMonitoringService {
    */
   getTodayUsage(): DailyUsage {
     const today = new Date().toISOString().split('T')[0];
-    return this.dailyUsage.get(today) || {
-      date: today,
-      totalInputTokens: 0,
-      totalOutputTokens: 0,
-      totalCost: 0,
-      requestCount: 0
-    };
+    return (
+      this.dailyUsage.get(today) || {
+        date: today,
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+        totalCost: 0,
+        requestCount: 0,
+      }
+    );
   }
 
   /**
@@ -125,14 +128,16 @@ export class TokenMonitoringService {
     const now = new Date();
     const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-    return this.monthlyUsage.get(monthKey) || {
-      month: monthKey,
-      totalInputTokens: 0,
-      totalOutputTokens: 0,
-      totalCost: 0,
-      requestCount: 0,
-      dailyBreakdown: []
-    };
+    return (
+      this.monthlyUsage.get(monthKey) || {
+        month: monthKey,
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+        totalCost: 0,
+        requestCount: 0,
+        dailyBreakdown: [],
+      }
+    );
   }
 
   /**
@@ -152,7 +157,7 @@ export class TokenMonitoringService {
         totalInputTokens: 0,
         totalOutputTokens: 0,
         totalCost: 0,
-        requestCount: 0
+        requestCount: 0,
       };
 
       history.unshift(dailyUsage);
@@ -164,10 +169,16 @@ export class TokenMonitoringService {
   /**
    * Obtiene estadísticas de uso por modelo
    */
-  getUsageByModel(): Record<string, { totalTokens: number; totalCost: number; requestCount: number }> {
-    const modelStats: Record<string, { totalTokens: number; totalCost: number; requestCount: number }> = {};
+  getUsageByModel(): Record<
+    string,
+    { totalTokens: number; totalCost: number; requestCount: number }
+  > {
+    const modelStats: Record<
+      string,
+      { totalTokens: number; totalCost: number; requestCount: number }
+    > = {};
 
-    this.usageHistory.forEach(usage => {
+    this.usageHistory.forEach((usage) => {
       if (!modelStats[usage.model]) {
         modelStats[usage.model] = { totalTokens: 0, totalCost: 0, requestCount: 0 };
       }
@@ -183,12 +194,16 @@ export class TokenMonitoringService {
   /**
    * Estima el costo de una consulta antes de enviarla
    */
-  estimateCost(inputText: string, model: string = 'gemini-1.5-flash'): {
+  estimateCost(
+    inputText: string,
+    model: string = 'gemini-1.5-flash'
+  ): {
     estimatedInputTokens: number;
     estimatedCost: number;
     pricing: { input: number; output: number };
   } {
-    const pricing = GEMINI_PRICING[model as keyof typeof GEMINI_PRICING] || GEMINI_PRICING['gemini-1.5-flash'];
+    const pricing =
+      GEMINI_PRICING[model as keyof typeof GEMINI_PRICING] || GEMINI_PRICING['gemini-1.5-flash'];
 
     // Estimación aproximada: 1 token ≈ 4 caracteres en español
     const estimatedInputTokens = Math.ceil(inputText.length / 4);
@@ -201,34 +216,44 @@ export class TokenMonitoringService {
     return {
       estimatedInputTokens,
       estimatedCost,
-      pricing
+      pricing,
     };
   }
 
   /**
    * Obtiene alertas de uso excesivo
    */
-  getUsageAlerts(): Array<{ type: 'daily' | 'monthly'; message: string; severity: 'warning' | 'critical' }> {
-    const alerts: Array<{ type: 'daily' | 'monthly'; message: string; severity: 'warning' | 'critical' }> = [];
+  getUsageAlerts(): Array<{
+    type: 'daily' | 'monthly';
+    message: string;
+    severity: 'warning' | 'critical';
+  }> {
+    const alerts: Array<{
+      type: 'daily' | 'monthly';
+      message: string;
+      severity: 'warning' | 'critical';
+    }> = [];
 
     const todayUsage = this.getTodayUsage();
     const monthUsage = this.getCurrentMonthUsage();
 
     // Alertas diarias
-    if (todayUsage.totalCost > 5) { // $5 por día
+    if (todayUsage.totalCost > 5) {
+      // $5 por día
       alerts.push({
         type: 'daily',
         message: `Uso diario alto: $${todayUsage.totalCost.toFixed(2)} (${todayUsage.requestCount} consultas)`,
-        severity: todayUsage.totalCost > 10 ? 'critical' : 'warning'
+        severity: todayUsage.totalCost > 10 ? 'critical' : 'warning',
       });
     }
 
     // Alertas mensuales
-    if (monthUsage.totalCost > 100) { // $100 por mes
+    if (monthUsage.totalCost > 100) {
+      // $100 por mes
       alerts.push({
         type: 'monthly',
         message: `Uso mensual alto: $${monthUsage.totalCost.toFixed(2)} (${monthUsage.requestCount} consultas)`,
-        severity: monthUsage.totalCost > 200 ? 'critical' : 'warning'
+        severity: monthUsage.totalCost > 200 ? 'critical' : 'warning',
       });
     }
 
@@ -242,7 +267,7 @@ export class TokenMonitoringService {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - 90);
 
-    this.usageHistory = this.usageHistory.filter(usage => usage.timestamp > cutoffDate);
+    this.usageHistory = this.usageHistory.filter((usage) => usage.timestamp > cutoffDate);
 
     // Limpiar datos diarios antiguos
     for (const [dateKey, _] of this.dailyUsage) {
@@ -263,7 +288,7 @@ export class TokenMonitoringService {
       usageHistory: this.usageHistory,
       dailyUsage: Object.fromEntries(this.dailyUsage),
       monthlyUsage: Object.fromEntries(this.monthlyUsage),
-      exportDate: new Date().toISOString()
+      exportDate: new Date().toISOString(),
     };
 
     return JSON.stringify(data, null, 2);
@@ -278,7 +303,7 @@ export class TokenMonitoringService {
       totalInputTokens: 0,
       totalOutputTokens: 0,
       totalCost: 0,
-      requestCount: 0
+      requestCount: 0,
     };
 
     existing.totalInputTokens += usage.inputTokens;
@@ -297,7 +322,7 @@ export class TokenMonitoringService {
       totalOutputTokens: 0,
       totalCost: 0,
       requestCount: 0,
-      dailyBreakdown: []
+      dailyBreakdown: [],
     };
 
     existing.totalInputTokens += usage.inputTokens;
@@ -331,7 +356,7 @@ export class TokenMonitoringService {
       const data = {
         usageHistory: this.usageHistory,
         dailyUsage: Array.from(this.dailyUsage.entries()),
-        monthlyUsage: Array.from(this.monthlyUsage.entries())
+        monthlyUsage: Array.from(this.monthlyUsage.entries()),
       };
       localStorage.setItem('eduspark_token_usage', JSON.stringify(data));
     } catch (error) {

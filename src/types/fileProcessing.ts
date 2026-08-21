@@ -9,7 +9,7 @@ export type MaterialCategory = 'book' | 'bibliography' | 'syllabus' | 'exam' | '
 /**
  * Tipo de procesamiento RAG para materiales
  */
-export type RAGProcessingType = 'full' | 'readonly' | 'pending';
+export type RAGProcessingType = 'full' | 'readonly' | 'pending' | 'desktop';
 
 /**
  * Estimación de costos de procesamiento
@@ -17,6 +17,7 @@ export type RAGProcessingType = 'full' | 'readonly' | 'pending';
 export interface CostEstimate {
   totalPages: number;
   pdfType: PdfType;
+  total?: number;
   estimatedCosts: {
     ocr: number; // USD
     embeddings: number; // USD
@@ -45,6 +46,8 @@ export interface FileProcessingJob {
   pageEnd?: number; // Solo para jobType: 'process_chunk'
   totalPages?: number; // Solo para jobType: 'split'
   chunksCreated?: number; // Solo para jobType: 'split'
+  chunksProcessed?: number;
+  chunksTotal?: number;
   pdfType?: PdfType; // Detectado en análisis
   createdAt: Date | string; // Timestamp
   updatedAt: Date | string; // Timestamp
@@ -63,6 +66,13 @@ export interface FileProcessingJob {
     sessionId?: string; // ID de la sesión (opcional)
     source?: 'bucket' | 'google_drive'; // Fuente del archivo
     driveFileId?: string; // ID del archivo en Google Drive
+    phase?: string;
+    chunksProcessed?: number;
+    chunksTotal?: number;
+    ragProcessingType?: RAGProcessingType;
+    subJobIds?: string[];
+    subJobsTotal?: number;
+    subJobsCompleted?: number;
   };
 }
 
@@ -118,4 +128,3 @@ export interface CreateJobResponse {
   jobId?: string;
   error?: string;
 }
-

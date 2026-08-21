@@ -48,19 +48,19 @@ export const bulkUserImportService = {
 
     // Mapeo de nombres comunes a nombres correctos
     const roleMap: Record<string, string> = {
-      'administrador': 'admin',
-      'admin': 'admin',
+      administrador: 'admin',
+      admin: 'admin',
       'admin-campos': 'admin-campus',
       'admin-campus': 'admin-campus',
-      'admincampus': 'admin-campus',
-      'coordinador': 'coordinator',
-      'coordinator': 'coordinator',
-      'docente': 'teacher',
-      'teacher': 'teacher',
-      'profesor': 'teacher',
-      'estudiante': 'student',
-      'student': 'student',
-      'alumno': 'student'
+      admincampus: 'admin-campus',
+      coordinador: 'coordinator',
+      coordinator: 'coordinator',
+      docente: 'teacher',
+      teacher: 'teacher',
+      profesor: 'teacher',
+      estudiante: 'student',
+      student: 'student',
+      alumno: 'student',
     };
 
     return roleMap[normalized] || normalized;
@@ -92,7 +92,7 @@ export const bulkUserImportService = {
         p_subject_id: userData.subject_id || null,
         p_course_id: userData.course_id || null,
         p_position: userData.position || null,
-        p_skip_email_confirmation: userData.skip_email_confirmation !== false
+        p_skip_email_confirmation: userData.skip_email_confirmation !== false,
       });
 
       if (error) throw error;
@@ -102,7 +102,7 @@ export const bulkUserImportService = {
       return {
         success: false,
         email: userData.email,
-        error: error.message || 'Error desconocido'
+        error: error.message || 'Error desconocido',
       };
     }
   },
@@ -114,13 +114,15 @@ export const bulkUserImportService = {
   async createBulkUsers(users: BulkUserData[]): Promise<BulkImportResult> {
     try {
       // Obtener token de sesión
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('No hay sesión activa');
       }
 
       // Convertir array de usuarios a formato para Edge Function
-      const usersJson = users.map(user => ({
+      const usersJson = users.map((user) => ({
         email: user.email,
         password: user.password || this.generateRandomPassword(),
         first_name: user.first_name,
@@ -132,11 +134,12 @@ export const bulkUserImportService = {
         career_id: user.career_id || null,
         subject_id: user.subject_id || null,
         course_id: user.course_id || null,
-        position: user.position || null
+        position: user.position || null,
       }));
 
       // Obtener URL de Supabase desde las variables de entorno
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://mckfscukxcqwntpjagar.supabase.co';
+      const supabaseUrl =
+        import.meta.env.VITE_SUPABASE_URL || 'https://mckfscukxcqwntpjagar.supabase.co';
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
       const functionUrl = `${supabaseUrl}/functions/v1/createBulkUsers`;
 
@@ -145,10 +148,10 @@ export const bulkUserImportService = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          'apikey': supabaseAnonKey
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: supabaseAnonKey,
         },
-        body: JSON.stringify({ users: usersJson })
+        body: JSON.stringify({ users: usersJson }),
       });
 
       if (!response.ok) {
@@ -170,11 +173,11 @@ export const bulkUserImportService = {
         total: users.length,
         success_count: 0,
         failed_count: users.length,
-        results: users.map(u => ({
+        results: users.map((u) => ({
           success: false,
           email: u.email,
-          error: `Error al crear usuarios: ${error.message}. IMPORTANTE: La Edge Function 'createBulkUsers' debe estar desplegada en Supabase. Ejecuta: supabase functions deploy createBulkUsers`
-        }))
+          error: `Error al crear usuarios: ${error.message}. IMPORTANTE: La Edge Function 'createBulkUsers' debe estar desplegada en Supabase. Ejecuta: supabase functions deploy createBulkUsers`,
+        })),
       };
     }
   },
@@ -195,16 +198,16 @@ export const bulkUserImportService = {
    * Parsear CSV a array de usuarios
    */
   parseCSV(csvText: string): BulkUserData[] {
-    const lines = csvText.split('\n').filter(line => line.trim());
+    const lines = csvText.split('\n').filter((line) => line.trim());
     if (lines.length < 2) {
       throw new Error('El CSV debe tener al menos una fila de encabezados y una fila de datos');
     }
 
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
     const users: BulkUserData[] = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim());
+      const values = lines[i].split(',').map((v) => v.trim());
       if (values.length !== headers.length) continue;
 
       const user: any = {};
@@ -223,7 +226,12 @@ export const bulkUserImportService = {
       });
 
       // Validar campos requeridos (institución puede ser ID o nombre)
-      if (user.email && user.first_name && user.last_name && (user.institution_id || user.institution_name)) {
+      if (
+        user.email &&
+        user.first_name &&
+        user.last_name &&
+        (user.institution_id || user.institution_name)
+      ) {
         users.push({
           email: user.email,
           password: user.password,
@@ -241,7 +249,7 @@ export const bulkUserImportService = {
           course_id: user.course_id,
           course_name: user.course_name,
           position: user.position,
-          skip_email_confirmation: user.skip_email_confirmation !== false
+          skip_email_confirmation: user.skip_email_confirmation !== false,
         });
       }
     }
@@ -300,7 +308,12 @@ export const bulkUserImportService = {
         });
 
         // Validar campos requeridos (institución puede ser ID o nombre)
-        if (user.email && user.first_name && user.last_name && (user.institution_id || user.institution_name)) {
+        if (
+          user.email &&
+          user.first_name &&
+          user.last_name &&
+          (user.institution_id || user.institution_name)
+        ) {
           users.push({
             email: user.email,
             password: user.password,
@@ -318,7 +331,7 @@ export const bulkUserImportService = {
             course_id: user.course_id,
             course_name: user.course_name,
             position: user.position,
-            skip_email_confirmation: user.skip_email_confirmation !== false
+            skip_email_confirmation: user.skip_email_confirmation !== false,
           });
         }
       }
@@ -340,13 +353,13 @@ export const bulkUserImportService = {
     subjects: Array<{ id: number; name: string }>,
     courses: Array<{ id: number; title: string }>
   ): Promise<BulkUserData[]> {
-    return users.map(user => {
+    return users.map((user) => {
       const resolved: BulkUserData = { ...user };
 
       // Resolver institución por nombre
       if (!resolved.institution_id && resolved.institution_name) {
-        const inst = institutions.find(i =>
-          i.name.toLowerCase().trim() === resolved.institution_name!.toLowerCase().trim()
+        const inst = institutions.find(
+          (i) => i.name.toLowerCase().trim() === resolved.institution_name!.toLowerCase().trim()
         );
         if (inst) {
           resolved.institution_id = inst.id;
@@ -355,8 +368,8 @@ export const bulkUserImportService = {
 
       // Resolver carrera por nombre
       if (!resolved.career_id && resolved.career_name) {
-        const career = careers.find(c =>
-          c.name.toLowerCase().trim() === resolved.career_name!.toLowerCase().trim()
+        const career = careers.find(
+          (c) => c.name.toLowerCase().trim() === resolved.career_name!.toLowerCase().trim()
         );
         if (career) {
           resolved.career_id = career.id;
@@ -365,8 +378,8 @@ export const bulkUserImportService = {
 
       // Resolver materia por nombre
       if (!resolved.subject_id && resolved.subject_name) {
-        const subject = subjects.find(s =>
-          s.name.toLowerCase().trim() === resolved.subject_name!.toLowerCase().trim()
+        const subject = subjects.find(
+          (s) => s.name.toLowerCase().trim() === resolved.subject_name!.toLowerCase().trim()
         );
         if (subject) {
           resolved.subject_id = subject.id;
@@ -375,8 +388,8 @@ export const bulkUserImportService = {
 
       // Resolver curso por nombre
       if (!resolved.course_id && resolved.course_name) {
-        const course = courses.find(c =>
-          c.title.toLowerCase().trim() === resolved.course_name!.toLowerCase().trim()
+        const course = courses.find(
+          (c) => c.title.toLowerCase().trim() === resolved.course_name!.toLowerCase().trim()
         );
         if (course) {
           resolved.course_id = course.id;
@@ -418,7 +431,9 @@ export const bulkUserImportService = {
     const validRoles = ['student', 'teacher', 'admin-campus', 'coordinator', 'admin'];
 
     if (user.role && !validRoles.includes(normalizedRole)) {
-      errors.push(`Rol inválido: "${user.role}". Los roles válidos son: student, teacher, admin, admin-campus, coordinator, administrador, admin-campos`);
+      errors.push(
+        `Rol inválido: "${user.role}". Los roles válidos son: student, teacher, admin, admin-campus, coordinator, administrador, admin-campos`
+      );
     }
 
     // Validar documento de identidad si se proporciona
@@ -434,7 +449,7 @@ export const bulkUserImportService = {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   },
 
@@ -456,7 +471,7 @@ export const bulkUserImportService = {
     // Si se proporciona curso, obtener su subject_id
     let courseSubjectId: number | undefined;
     if (user.course_id) {
-      const course = courses.find(c => c.id === user.course_id);
+      const course = courses.find((c) => c.id === user.course_id);
       if (!course) {
         errors.push(`Curso con ID ${user.course_id} no encontrado`);
       } else {
@@ -467,7 +482,7 @@ export const bulkUserImportService = {
     // Si se proporciona materia, obtener su career_id
     let subjectCareerId: number | undefined;
     if (user.subject_id) {
-      const subject = subjects.find(s => s.id === user.subject_id);
+      const subject = subjects.find((s) => s.id === user.subject_id);
       if (!subject) {
         errors.push(`Materia con ID ${user.subject_id} no encontrada`);
       } else {
@@ -478,29 +493,34 @@ export const bulkUserImportService = {
     // Validar: Si se proporciona curso y materia, el curso debe pertenecer a esa materia
     if (user.course_id && user.subject_id && courseSubjectId !== undefined) {
       if (courseSubjectId !== user.subject_id) {
-        errors.push(`El curso ${user.course_id} no pertenece a la materia ${user.subject_id}. El curso pertenece a la materia ${courseSubjectId}`);
+        errors.push(
+          `El curso ${user.course_id} no pertenece a la materia ${user.subject_id}. El curso pertenece a la materia ${courseSubjectId}`
+        );
       }
     }
 
     // Validar: Si se proporciona materia y carrera, la materia debe pertenecer a esa carrera
     if (user.subject_id && user.career_id && subjectCareerId !== undefined) {
       if (subjectCareerId !== user.career_id) {
-        errors.push(`La materia ${user.subject_id} no pertenece a la carrera ${user.career_id}. La materia pertenece a la carrera ${subjectCareerId}`);
+        errors.push(
+          `La materia ${user.subject_id} no pertenece a la carrera ${user.career_id}. La materia pertenece a la carrera ${subjectCareerId}`
+        );
       }
     }
 
     // Validar: Si se proporciona curso y carrera (sin materia), el curso debe pertenecer a una materia de esa carrera
     if (user.course_id && user.career_id && !user.subject_id && courseSubjectId !== undefined) {
-      const subject = subjects.find(s => s.id === courseSubjectId);
+      const subject = subjects.find((s) => s.id === courseSubjectId);
       if (subject && subject.career_id !== user.career_id) {
-        errors.push(`El curso ${user.course_id} pertenece a una materia de la carrera ${subject.career_id}, no a la carrera ${user.career_id} especificada`);
+        errors.push(
+          `El curso ${user.course_id} pertenece a una materia de la carrera ${subject.career_id}, no a la carrera ${user.career_id} especificada`
+        );
       }
     }
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
-  }
+  },
 };
-

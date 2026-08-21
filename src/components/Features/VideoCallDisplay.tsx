@@ -2,8 +2,8 @@
 // Componente para mostrar el enlace de videollamada en la vista de sesión
 
 import React from 'react';
-import { IconVideoCamera, IconExternalLink } from "@/components/Common/Icons";
-import Card from "@/components/Common/Card";
+import { IconVideoCamera, IconExternalLink } from '@/components/Common/Icons';
+import Card from '@/components/Common/Card';
 
 interface VideoCallDisplayProps {
   meetLink: string;
@@ -29,9 +29,7 @@ const VideoCallDisplay: React.FC<VideoCallDisplayProps> = ({
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <IconVideoCamera className="w-6 h-6 text-blue-600" />
-            <h3 className="text-lg font-semibold text-blue-900">
-              Videollamada Sincrónica
-            </h3>
+            <h3 className="text-lg font-semibold text-blue-900">Videollamada Sincrónica</h3>
             {isLive && (
               <span className="px-2 py-1 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
                 EN VIVO
@@ -43,7 +41,7 @@ const VideoCallDisplay: React.FC<VideoCallDisplayProps> = ({
               </span>
             )}
           </div>
-          
+
           <p className="text-sm text-blue-700 mb-4">
             Únete a la videollamada de esta sesión usando Google Meet.
           </p>

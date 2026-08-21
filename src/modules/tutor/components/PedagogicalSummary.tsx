@@ -17,45 +17,65 @@ export const PedagogicalSummary: React.FC<PedagogicalSummaryProps> = ({
   settings,
   gradingScale,
   courseName,
-  className = ''
+  className = '',
 }) => {
   const getStyleIcon = (style: string) => {
     switch (style) {
-      case 'socratico': return '🤔';
-      case 'directo': return '📚';
-      case 'colaborativo': return '👥';
-      case 'constructivista': return '🏗️';
-      default: return '🎓';
+      case 'socratico':
+        return '🤔';
+      case 'directo':
+        return '📚';
+      case 'colaborativo':
+        return '👥';
+      case 'constructivista':
+        return '🏗️';
+      default:
+        return '🎓';
     }
   };
 
   const getToneIcon = (tone: string) => {
     switch (tone) {
-      case 'amigable': return '😊';
-      case 'formal': return '🎩';
-      case 'motivador': return '💪';
-      case 'neutro': return '😐';
-      default: return '🎭';
+      case 'amigable':
+        return '😊';
+      case 'formal':
+        return '🎩';
+      case 'motivador':
+        return '💪';
+      case 'neutro':
+        return '😐';
+      default:
+        return '🎭';
     }
   };
 
   const getDetailIcon = (detail: string) => {
     switch (detail) {
-      case 'basico': return '📖';
-      case 'medio': return '📚';
-      case 'avanzado': return '📖';
-      default: return '📄';
+      case 'basico':
+        return '📖';
+      case 'medio':
+        return '📚';
+      case 'avanzado':
+        return '📖';
+      default:
+        return '📄';
     }
   };
 
   const getVoiceIcon = (voice: string) => {
     switch (voice) {
-      case 'Kore': return '👩';
-      case 'Charon': return '👨';
-      case 'Fenrir': return '👨';
-      case 'Aoede': return '👩';
-      case 'Puck': return '🤖';
-      default: return '🎤';
+      case 'Kore':
+        return '👩';
+      case 'Charon':
+        return '👨';
+      case 'Fenrir':
+        return '👨';
+      case 'Aoede':
+        return '👩';
+      case 'Puck':
+        return '🤖';
+      default:
+        return '🎤';
     }
   };
 
@@ -63,9 +83,7 @@ export const PedagogicalSummary: React.FC<PedagogicalSummaryProps> = ({
     <div className={`bg-slate-800 rounded-lg p-6 ${className}`}>
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-xl font-semibold text-white">Resumen de Configuración</h3>
-        {courseName && (
-          <span className="text-slate-400 text-sm">Curso: {courseName}</span>
-        )}
+        {courseName && <span className="text-slate-400 text-sm">Curso: {courseName}</span>}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -120,9 +138,7 @@ export const PedagogicalSummary: React.FC<PedagogicalSummaryProps> = ({
             <h4 className="font-medium text-white">Voz</h4>
           </div>
           <p className="text-slate-300 text-sm">{settings.voiceName}</p>
-          <p className="text-slate-400 text-xs mt-1">
-            {settings.voiceSpeed}x velocidad
-          </p>
+          <p className="text-slate-400 text-xs mt-1">{settings.voiceSpeed}x velocidad</p>
         </div>
       </div>
 
@@ -132,13 +148,17 @@ export const PedagogicalSummary: React.FC<PedagogicalSummaryProps> = ({
           <h4 className="font-medium text-white mb-3">Características</h4>
           <div className="space-y-2">
             <div className="flex items-center">
-              <span className={`w-2 h-2 rounded-full mr-3 ${settings.useExamples ? 'bg-green-500' : 'bg-slate-500'}`}></span>
+              <span
+                className={`w-2 h-2 rounded-full mr-3 ${settings.useExamples ? 'bg-green-500' : 'bg-slate-500'}`}
+              ></span>
               <span className="text-slate-300 text-sm">
                 {settings.useExamples ? 'Incluye ejemplos' : 'Sin ejemplos'}
               </span>
             </div>
             <div className="flex items-center">
-              <span className={`w-2 h-2 rounded-full mr-3 ${settings.encourageQuestions ? 'bg-green-500' : 'bg-slate-500'}`}></span>
+              <span
+                className={`w-2 h-2 rounded-full mr-3 ${settings.encourageQuestions ? 'bg-green-500' : 'bg-slate-500'}`}
+              ></span>
               <span className="text-slate-300 text-sm">
                 {settings.encourageQuestions ? 'Fomenta preguntas' : 'No fomenta preguntas'}
               </span>
@@ -155,7 +175,9 @@ export const PedagogicalSummary: React.FC<PedagogicalSummaryProps> = ({
               {gradingScale.scale?.slice(0, 3).map((grade, index) => (
                 <div key={index} className="flex justify-between text-xs">
                   <span className="text-slate-400">{grade.grade}</span>
-                  <span className="text-slate-300">{grade.minScore}-{grade.maxScore}</span>
+                  <span className="text-slate-300">
+                    {grade.minScore}-{grade.maxScore}
+                  </span>
                 </div>
               ))}
               {gradingScale.scale && gradingScale.scale.length > 3 && (
@@ -172,9 +194,7 @@ export const PedagogicalSummary: React.FC<PedagogicalSummaryProps> = ({
       {settings.systemPromptOverride && (
         <div className="mt-6 bg-slate-700 p-4 rounded-lg">
           <h4 className="font-medium text-white mb-2">Prompt Personalizado</h4>
-          <p className="text-slate-400 text-sm">
-            Configuración personalizada activa
-          </p>
+          <p className="text-slate-400 text-sm">Configuración personalizada activa</p>
           <div className="mt-2 bg-slate-900 p-3 rounded text-xs text-slate-300 max-h-20 overflow-y-auto">
             {settings.systemPromptOverride.substring(0, 200)}
             {settings.systemPromptOverride.length > 200 && '...'}

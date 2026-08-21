@@ -3,20 +3,25 @@
  * Cliente de Supabase para el frontend unificado
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
 
 // Configuración de Supabase - usar las mismas variables del sistema de admin
-export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://mckfscukxcqwntpjagar.supabase.co'
-export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZzY3VreGNxd250cGphZ2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3NDU0MzQsImV4cCI6MjA3NjMyMTQzNH0.-5HFEuphwYhfa8HBW3FddQfu5b-JOCb6FLElKFwezBg'
+export const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL || 'https://mckfscukxcqwntpjagar.supabase.co';
+export const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ja2ZzY3VreGNxd250cGphZ2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3NDU0MzQsImV4cCI6MjA3NjMyMTQzNH0.-5HFEuphwYhfa8HBW3FddQfu5b-JOCb6FLElKFwezBg';
 
 console.log('🔌 Inicializando Supabase:', {
   url: supabaseUrl,
   keyLength: supabaseAnonKey?.length,
-  keyPrefix: supabaseAnonKey?.substring(0, 10) + '...'
+  keyPrefix: supabaseAnonKey?.substring(0, 10) + '...',
 });
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Faltan las variables de entorno de Supabase: VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY')
+  throw new Error(
+    'Faltan las variables de entorno de Supabase: VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY'
+  );
 }
 
 /**
@@ -34,7 +39,7 @@ const fetchWithTimeout: typeof fetch = async (input: RequestInfo | URL, init?: R
       console.error('❌ Error en fetch nativo:', {
         url: url.substring(0, 100),
         error: error.message,
-        name: error.name
+        name: error.name,
       });
       throw error;
     }
@@ -68,8 +73,13 @@ const fetchWithTimeout: typeof fetch = async (input: RequestInfo | URL, init?: R
     });
 
     // Si la respuesta indica un error de servidor (522, 503, etc.), lanzar un error más descriptivo
-    if (!response.ok && (response.status === 522 || response.status === 503 || response.status === 504)) {
-      throw new Error(`El servidor de Supabase no está respondiendo (código: ${response.status}). Por favor, intenta nuevamente en unos momentos.`);
+    if (
+      !response.ok &&
+      (response.status === 522 || response.status === 503 || response.status === 504)
+    ) {
+      throw new Error(
+        `El servidor de Supabase no está respondiendo (código: ${response.status}). Por favor, intenta nuevamente en unos momentos.`
+      );
     }
 
     return response;
@@ -81,29 +91,37 @@ const fetchWithTimeout: typeof fetch = async (input: RequestInfo | URL, init?: R
       url: url.substring(0, 100),
       errorName: error.name,
       errorMessage: error.message,
-      errorStack: error.stack?.substring(0, 200)
+      errorStack: error.stack?.substring(0, 200),
     });
 
     // Manejar errores de red de forma más específica
     if (error.name === 'TypeError' && error.message?.includes('Failed to fetch')) {
-      const networkError = new Error('Error de conexión con Supabase. Verifica tu conexión a internet o si el servidor está disponible.');
+      const networkError = new Error(
+        'Error de conexión con Supabase. Verifica tu conexión a internet o si el servidor está disponible.'
+      );
       networkError.name = 'NetworkError';
       throw networkError;
     }
 
     // Manejar errores de CORS (incluyendo cuando el servidor no responde)
-    if (error.message?.includes('CORS') ||
+    if (
+      error.message?.includes('CORS') ||
       error.message?.includes('Access-Control-Allow-Origin') ||
       error.message?.includes('ERR_FAILED 522') ||
-      error.message?.includes('net::ERR_FAILED')) {
-      const corsError = new Error('El servidor de Supabase no está respondiendo correctamente. Esto puede ser un problema temporal del servidor. Por favor, verifica el estado de Supabase o intenta nuevamente en unos momentos.');
+      error.message?.includes('net::ERR_FAILED')
+    ) {
+      const corsError = new Error(
+        'El servidor de Supabase no está respondiendo correctamente. Esto puede ser un problema temporal del servidor. Por favor, verifica el estado de Supabase o intenta nuevamente en unos momentos.'
+      );
       corsError.name = 'CORSError';
       throw corsError;
     }
 
     // Manejar errores de timeout
     if (error.name === 'AbortError' || error.message?.includes('aborted')) {
-      const abortError = new Error(`La solicitud tardó demasiado tiempo (timeout: ${timeoutMs}ms). Esto puede deberse a una conexión lenta o problemas temporales del servidor.`);
+      const abortError = new Error(
+        `La solicitud tardó demasiado tiempo (timeout: ${timeoutMs}ms). Esto puede deberse a una conexión lenta o problemas temporales del servidor.`
+      );
       abortError.name = 'TimeoutError';
       throw abortError;
     }
@@ -124,7 +142,7 @@ console.log('🔧 Configuración de Supabase:', {
   useCustomFetch,
   timeoutEnv: timeoutEnvValue,
   mode: import.meta.env.MODE,
-  allSupabaseEnvKeys: Object.keys(import.meta.env).filter(k => k.includes('SUPABASE'))
+  allSupabaseEnvKeys: Object.keys(import.meta.env).filter((k) => k.includes('SUPABASE')),
 });
 
 // Cliente de Supabase para operaciones de usuario (con RLS)
@@ -133,50 +151,50 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   ...(useCustomFetch && {
     global: {
       fetch: fetchWithTimeout,
-    }
+    },
   }),
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    flowType: 'pkce'
-  }
-})
+    flowType: 'pkce',
+  },
+});
 
 // Tipos de usuario para el sistema unificado
 export type IdentityDocumentType = 'DNI' | 'CEDULA' | 'PASAPORTE' | 'LICENCIA' | 'OTRO' | null;
 
 export interface User {
-  id: string
-  email: string
-  first_name: string
-  last_name: string
-  identity_document?: string | null
-  identity_document_type?: IdentityDocumentType
-  avatar_url?: string | null
-  is_active?: boolean | null
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  identity_document?: string | null;
+  identity_document_type?: IdentityDocumentType;
+  avatar_url?: string | null;
+  is_active?: boolean | null;
   role: {
-    id: number
-    name: string
-  }
-  created_at: string
-  updated_at: string
+    id: number;
+    name: string;
+  };
+  created_at: string;
+  updated_at: string;
 }
 
 // Tipos para autenticación
 export interface AuthUser {
-  id: string
-  email: string
+  id: string;
+  email: string;
   user_metadata?: {
-    first_name?: string
-    last_name?: string
-  }
+    first_name?: string;
+    last_name?: string;
+  };
 }
 
 // Tipos para roles
 export interface Role {
-  id: number
-  name: string
-  description?: string
-  permissions?: string[]
+  id: number;
+  name: string;
+  description?: string;
+  permissions?: string[];
 }

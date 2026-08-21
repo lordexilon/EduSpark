@@ -1,206 +1,252 @@
-
 import React, { useState, useRef, useCallback } from 'react';
 import { Flashcard } from '@/services/flashcardService';
 import { IconRefreshCw, IconCheck, IconX, IconInfo } from '@/components/Common/Icons';
 
 interface PremiumFlashcardProps {
-    flashcard: Flashcard;
-    onFlip?: () => void;
-    onAnswer?: (quality: number) => void;
-    showAnswer?: boolean;
-    studyMode?: boolean;
-    onEdit?: (flashcard: Flashcard) => void;
+  flashcard: Flashcard;
+  onFlip?: () => void;
+  onAnswer?: (quality: number) => void;
+  showAnswer?: boolean;
+  studyMode?: boolean;
+  onEdit?: (flashcard: Flashcard) => void;
 }
 
 const PremiumFlashcard: React.FC<PremiumFlashcardProps> = ({
-    flashcard,
-    onFlip,
-    onAnswer,
-    showAnswer = false,
-    studyMode = false,
-    onEdit,
+  flashcard,
+  onFlip,
+  onAnswer,
+  showAnswer = false,
+  studyMode = false,
+  onEdit,
 }) => {
-    const [isFlipped, setIsFlipped] = useState(showAnswer);
-    const [isAnimating, setIsAnimating] = useState(false);
-    const [showFeedback, setShowFeedback] = useState(false);
-    const [selectedOption, setSelectedOption] = useState<number | null>(null);
-    const [imageError, setImageError] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(showAnswer);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [imageError, setImageError] = useState(false);
 
-    const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
-    const handleFlip = useCallback(() => {
-        if (isAnimating) return;
-        setIsAnimating(true);
-        setIsFlipped(!isFlipped);
-        if (onFlip) onFlip();
-        setTimeout(() => setIsAnimating(false), 500);
-    }, [isAnimating, isFlipped, onFlip]);
+  const handleFlip = useCallback(() => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setIsFlipped(!isFlipped);
+    if (onFlip) onFlip();
+    setTimeout(() => setIsAnimating(false), 500);
+  }, [isAnimating, isFlipped, onFlip]);
 
-    const handleTouchStart = useCallback((e: React.TouchEvent) => {
-        touchStartRef.current = {
-            x: e.touches[0].clientX,
-            y: e.touches[0].clientY,
-        };
-    }, []);
-
-    const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-        if (!touchStartRef.current) return;
-        const deltaX = e.changedTouches[0].clientX - touchStartRef.current.x;
-        const deltaY = e.changedTouches[0].clientY - touchStartRef.current.y;
-        if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
-            handleFlip();
-        }
-        touchStartRef.current = null;
-    }, [handleFlip]);
-
-    const handleOptionSelect = (index: number) => {
-        if (showFeedback) return;
-        setSelectedOption(index);
-        setShowFeedback(true);
-
-        const isCorrect = index === flashcard.correct_answer_index;
-
-        setTimeout(() => {
-            if (onAnswer) {
-                onAnswer(isCorrect ? 5 : 0);
-                setTimeout(() => {
-                    setShowFeedback(false);
-                    setSelectedOption(null);
-                }, 800);
-            }
-        }, 1500);
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
     };
+  }, []);
 
-    return (
-        <div className="pfc-container">
-            <div
-                className={`pfc-perspective ${isAnimating ? 'pfc-no-events' : ''}`}
-                onClick={studyMode && !flashcard.is_multiple_choice ? handleFlip : undefined}
-                onTouchStart={handleTouchStart}
-                onTouchEnd={handleTouchEnd}
-            >
-                <div className={`pfc-inner ${isFlipped ? 'pfc-flipped' : ''}`}>
-                    {/* ═══ Front ═══ */}
-                    <div className={`pfc-face pfc-front ${isFlipped ? 'pfc-hidden' : ''}`}>
-                        {/* Edit button */}
-                        {onEdit && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onEdit(flashcard);
-                                }}
-                                className="pfc-edit-btn"
-                                title="Editar tarjeta"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                            </button>
-                        )}
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      if (!touchStartRef.current) return;
+      const deltaX = e.changedTouches[0].clientX - touchStartRef.current.x;
+      const deltaY = e.changedTouches[0].clientY - touchStartRef.current.y;
+      if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+        handleFlip();
+      }
+      touchStartRef.current = null;
+    },
+    [handleFlip]
+  );
 
-                        {/* Decorative blobs */}
-                        <div className="pfc-blob pfc-blob-1" />
-                        <div className="pfc-blob pfc-blob-2" />
+  const handleOptionSelect = (index: number) => {
+    if (showFeedback) return;
+    setSelectedOption(index);
+    setShowFeedback(true);
 
-                        <div className="pfc-content">
-                            {flashcard.front_image_url && !imageError && (
-                                <img
-                                    src={flashcard.front_image_url}
-                                    alt="Front"
-                                    className="pfc-image"
-                                    onError={() => setImageError(true)}
-                                    loading="lazy"
-                                />
-                            )}
+    const isCorrect = index === flashcard.correct_answer_index;
 
-                            <h3 className="pfc-text-front">{flashcard.front_text}</h3>
+    setTimeout(() => {
+      if (onAnswer) {
+        onAnswer(isCorrect ? 5 : 0);
+        setTimeout(() => {
+          setShowFeedback(false);
+          setSelectedOption(null);
+        }, 800);
+      }
+    }, 1500);
+  };
 
-                            {flashcard.is_multiple_choice && studyMode && flashcard.answer_options && (
-                                <div className="pfc-options">
-                                    {flashcard.answer_options.map((opt, idx) => {
-                                        let cls = 'pfc-option';
-                                        if (showFeedback && idx === flashcard.correct_answer_index) cls += ' pfc-opt-correct';
-                                        else if (showFeedback && idx === selectedOption && idx !== flashcard.correct_answer_index) cls += ' pfc-opt-wrong';
+  return (
+    <div className="pfc-container">
+      <div
+        className={`pfc-perspective ${isAnimating ? 'pfc-no-events' : ''}`}
+        onClick={studyMode && !flashcard.is_multiple_choice ? handleFlip : undefined}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div className={`pfc-inner ${isFlipped ? 'pfc-flipped' : ''}`}>
+          {/* ═══ Front ═══ */}
+          <div className={`pfc-face pfc-front ${isFlipped ? 'pfc-hidden' : ''}`}>
+            {/* Edit button */}
+            {onEdit && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(flashcard);
+                }}
+                className="pfc-edit-btn"
+                title="Editar tarjeta"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
+            )}
 
-                                        return (
-                                            <button
-                                                key={idx}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleOptionSelect(idx);
-                                                }}
-                                                disabled={showFeedback}
-                                                className={cls}
-                                            >
-                                                <span className="pfc-opt-label">{opt.label}.</span> {opt.text}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
+            {/* Decorative blobs */}
+            <div className="pfc-blob pfc-blob-1" />
+            <div className="pfc-blob pfc-blob-2" />
 
-                        <div className="pfc-hint">
-                            <IconRefreshCw className="w-3.5 h-3.5" />
-                            {!flashcard.is_multiple_choice && <span>Toca para voltear</span>}
-                        </div>
-                    </div>
+            <div className="pfc-content">
+              {flashcard.front_image_url && !imageError && (
+                <img
+                  src={flashcard.front_image_url}
+                  alt="Front"
+                  className="pfc-image"
+                  onError={() => setImageError(true)}
+                  loading="lazy"
+                />
+              )}
 
-                    {/* ═══ Back ═══ */}
-                    <div className={`pfc-face pfc-back ${!isFlipped ? 'pfc-hidden' : ''}`}>
-                        {onEdit && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onEdit(flashcard);
-                                }}
-                                className="pfc-edit-btn pfc-edit-dark"
-                                title="Editar tarjeta"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                            </button>
-                        )}
+              <h3 className="pfc-text-front">{flashcard.front_text}</h3>
 
-                        <div className="pfc-blob pfc-blob-dark" />
+              {flashcard.is_multiple_choice && studyMode && flashcard.answer_options && (
+                <div className="pfc-options">
+                  {flashcard.answer_options.map((opt, idx) => {
+                    let cls = 'pfc-option';
+                    if (showFeedback && idx === flashcard.correct_answer_index)
+                      cls += ' pfc-opt-correct';
+                    else if (
+                      showFeedback &&
+                      idx === selectedOption &&
+                      idx !== flashcard.correct_answer_index
+                    )
+                      cls += ' pfc-opt-wrong';
 
-                        <div className="pfc-content pfc-content-dark">
-                            <h4 className="pfc-answer-label">Respuesta</h4>
-                            <h3 className="pfc-text-back">{flashcard.back_text}</h3>
-                            {flashcard.back_image_url && (
-                                <img
-                                    src={flashcard.back_image_url}
-                                    alt="Back"
-                                    className="pfc-image pfc-image-dark"
-                                    loading="lazy"
-                                />
-                            )}
-                        </div>
-
-                        {studyMode && !flashcard.is_multiple_choice && (
-                            <div className="pfc-rate-buttons">
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onAnswer?.(1); handleFlip(); }}
-                                    className="pfc-rate pfc-rate-hard"
-                                >
-                                    Difícil
-                                </button>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onAnswer?.(3); handleFlip(); }}
-                                    className="pfc-rate pfc-rate-good"
-                                >
-                                    Bien
-                                </button>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onAnswer?.(5); handleFlip(); }}
-                                    className="pfc-rate pfc-rate-easy"
-                                >
-                                    Fácil
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                    return (
+                      <button
+                        key={idx}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOptionSelect(idx);
+                        }}
+                        disabled={showFeedback}
+                        className={cls}
+                      >
+                        <span className="pfc-opt-label">{opt.label}.</span> {opt.text}
+                      </button>
+                    );
+                  })}
                 </div>
+              )}
             </div>
 
-            <style>{`
+            <div className="pfc-hint">
+              <IconRefreshCw className="w-3.5 h-3.5" />
+              {!flashcard.is_multiple_choice && <span>Toca para voltear</span>}
+            </div>
+          </div>
+
+          {/* ═══ Back ═══ */}
+          <div className={`pfc-face pfc-back ${!isFlipped ? 'pfc-hidden' : ''}`}>
+            {onEdit && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(flashcard);
+                }}
+                className="pfc-edit-btn pfc-edit-dark"
+                title="Editar tarjeta"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
+            )}
+
+            <div className="pfc-blob pfc-blob-dark" />
+
+            <div className="pfc-content pfc-content-dark">
+              <h4 className="pfc-answer-label">Respuesta</h4>
+              <h3 className="pfc-text-back">{flashcard.back_text}</h3>
+              {flashcard.back_image_url && (
+                <img
+                  src={flashcard.back_image_url}
+                  alt="Back"
+                  className="pfc-image pfc-image-dark"
+                  loading="lazy"
+                />
+              )}
+            </div>
+
+            {studyMode && !flashcard.is_multiple_choice && (
+              <div className="pfc-rate-buttons">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAnswer?.(1);
+                    handleFlip();
+                  }}
+                  className="pfc-rate pfc-rate-hard"
+                >
+                  Difícil
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAnswer?.(3);
+                    handleFlip();
+                  }}
+                  className="pfc-rate pfc-rate-good"
+                >
+                  Bien
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAnswer?.(5);
+                    handleFlip();
+                  }}
+                  className="pfc-rate pfc-rate-easy"
+                >
+                  Fácil
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <style>{`
                 .pfc-container {
                     position: relative;
                     width: 100%;
@@ -517,8 +563,8 @@ const PremiumFlashcard: React.FC<PremiumFlashcardProps> = ({
                     .pfc-image:hover { transform: none; }
                 }
             `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default PremiumFlashcard;

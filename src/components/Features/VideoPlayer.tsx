@@ -44,29 +44,29 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const progressService = new VideoProgressService();
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastUpdateRef = useRef<number>(0);
-  
+
   // Solo estudiantes pueden marcar videos como completados
   const isStudent = user?.role?.name === 'student';
-  
+
   useEffect(() => {
     if (!user?.id) {
       setIsLoading(false);
       return;
     }
-    
+
     // Cargar progreso guardado
     loadProgress();
-    
+
     return () => {
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
     };
   }, [user?.id, materialId]);
-  
+
   const loadProgress = async () => {
     if (!user?.id) return;
-    
+
     try {
       const savedProgress = await progressService.getProgress(user.id, materialId);
       if (savedProgress) {
@@ -78,20 +78,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       setIsLoading(false);
     }
   };
-  
+
   const handleTimeUpdate = async (currentTime: number, duration: number) => {
     if (!user?.id || duration <= 0) return;
-    
+
     // Actualizar solo cada 5 segundos para no saturar la BD
     const now = Date.now();
     if (now - lastUpdateRef.current < 5000) return;
     lastUpdateRef.current = now;
-    
+
     // Limpiar intervalo anterior si existe
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
     }
-    
+
     // Programar actualización
     progressIntervalRef.current = setTimeout(async () => {
       try {
@@ -100,19 +100,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           totalSeconds: duration,
           lastPosition: currentTime,
         };
-        
-        const updated = await progressService.updateProgress(
-          user.id,
-          materialId,
-          update
-        );
+
+        const updated = await progressService.updateProgress(user.id, materialId, update);
         setProgress(updated);
       } catch (error) {
         console.error('Error actualizando progreso:', error);
       }
     }, 100);
   };
-  
+
   const renderVideoPlayer = () => {
     if (platform === 'youtube' && videoId) {
       return (
@@ -128,7 +124,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       );
     }
-    
+
     if (platform === 'vimeo' && videoId) {
       return (
         <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
@@ -143,7 +139,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       );
     }
-    
+
     // Para otros tipos de video, usar reproductor HTML5
     return (
       <video
@@ -171,17 +167,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const handleMarkAsCompleted = async () => {
     if (!user?.id || markingCompleted) return;
-    
+
     try {
       setMarkingCompleted(true);
       const updatedProgress = await progressService.markAsCompleted(user.id, materialId);
       setProgress(updatedProgress);
-      
+
       // Mensaje más informativo
-      const message = updatedProgress.total_seconds > 0
-        ? `✅ Video marcado como completado.\n\nTiempo de estudio agregado: ${Math.ceil(updatedProgress.total_seconds / 60)} minutos`
-        : '✅ Video marcado como completado.\n\nNota: No se pudo calcular el tiempo de estudio porque no hay información de duración del video.';
-      
+      const message =
+        updatedProgress.total_seconds > 0
+          ? `✅ Video marcado como completado.\n\nTiempo de estudio agregado: ${Math.ceil(updatedProgress.total_seconds / 60)} minutos`
+          : '✅ Video marcado como completado.\n\nNota: No se pudo calcular el tiempo de estudio porque no hay información de duración del video.';
+
       alert(message);
     } catch (error: any) {
       console.error('Error marcando video como completado:', error);
@@ -214,7 +211,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       );
     }
-    
+
     if (transcriptionStatus === 'processing') {
       return (
         <div className="mt-4 border-t border-gray-200 pt-4">
@@ -225,7 +222,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       );
     }
-    
+
     if (transcriptionStatus === 'failed') {
       return (
         <div className="mt-4 border-t border-gray-200 pt-4">
@@ -233,14 +230,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       );
     }
-    
+
     return null;
   };
 
   return (
     <div className="w-full">
       {renderVideoPlayer()}
-      
+
       {showProgress && user?.id && isStudent && (
         <div className="mt-4 border-t border-gray-200 pt-4">
           {progress && (
@@ -248,7 +245,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               <div className="flex items-center justify-between">
                 <span>Progreso: {Math.round(progress.completion_percentage)}% completado</span>
                 {progress.is_completed && (
-                  <span className="text-green-600 dark:text-green-400 font-medium">✓ Completado</span>
+                  <span className="text-green-600 dark:text-green-400 font-medium">
+                    ✓ Completado
+                  </span>
                 )}
               </div>
               {progress.last_position > 0 && (
@@ -258,15 +257,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               )}
             </div>
           )}
-          
+
           {/* Botón "He visto el video" */}
           {(!progress || !progress.is_completed) && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-blue-900">
-                    ¿Ya viste todo el video?
-                  </p>
+                  <p className="text-sm font-medium text-blue-900">¿Ya viste todo el video?</p>
                   <p className="text-xs text-blue-700 mt-1">
                     Marca como completado para actualizar tu tiempo de estudio
                   </p>
@@ -291,23 +288,22 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               </div>
             </div>
           )}
-          
+
           {progress?.is_completed && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
               <div className="flex items-center gap-2">
                 <span className="text-green-600 text-lg">✓</span>
                 <div>
-                  <p className="text-sm font-medium text-green-900">
-                    Video completado
-                  </p>
+                  <p className="text-sm font-medium text-green-900">Video completado</p>
                   {progress.completed_at && (
                     <p className="text-xs text-green-700 mt-1">
-                      Completado el {new Date(progress.completed_at).toLocaleDateString('es-ES', {
+                      Completado el{' '}
+                      {new Date(progress.completed_at).toLocaleDateString('es-ES', {
                         day: 'numeric',
                         month: 'long',
                         year: 'numeric',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
                       })}
                     </p>
                   )}
@@ -317,11 +313,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           )}
         </div>
       )}
-      
+
       {renderTranscript()}
     </div>
   );
-  
 };
 
 // =====================================================
@@ -332,10 +327,9 @@ function formatTime(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
-  
+
   if (hours > 0) {
     return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
   return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
-

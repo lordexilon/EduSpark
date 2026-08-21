@@ -3,15 +3,9 @@
 // Reemplaza n8n para consultas RAG en Audio-Tutor
 // =====================================================
 
-import type {
-  ConversationContext,
-  SupabaseResponse
-} from '../types/agents';
-import type {
-  PedagogicalSettings,
-  StudentProfile
-} from '../types/pedagogical';
-import { supabase } from "../lib/supabase-shared";
+import type { ConversationContext, SupabaseResponse } from '../types/agents';
+import type { PedagogicalSettings, StudentProfile } from '../types/pedagogical';
+import { supabase } from '../lib/supabase-shared';
 import { resolveGeminiApiKey } from '../utils/env';
 import { tokenMonitoring } from './tokenMonitoringService';
 import { aiUsageService } from '../../../services/aiUsageService';
@@ -89,7 +83,7 @@ const PRIORITY_MATERIALS: Record<number, string[]> = {
     'Williams Obstetricia 25a Edicion.pdf',
     'Harrison Principios de Medicina Interna',
     'Harrison Principios de Medicina',
-    'Nelson'
+    'Nelson',
   ],
 };
 
@@ -147,7 +141,7 @@ export class RAGService {
         const estimatedCost = tokenMonitoring.estimateCost(query, this.model);
         const { data: limitsCheck } = await supabase.rpc('check_user_query_limits', {
           p_user_id: context.studentId,
-          p_estimated_cost: estimatedCost.estimatedCost
+          p_estimated_cost: estimatedCost.estimatedCost,
         });
         if (limitsCheck && !limitsCheck.can_proceed) {
           return { success: false, error: limitsCheck.message || 'Límite alcanzado', data: null };
@@ -188,13 +182,17 @@ export class RAGService {
       // Obtener estructura básica del curso (siempre útil)
       const [{ data: courseInfo }, { data: courseUnits }] = await Promise.all([
         supabase.from('courses').select('title, description').eq('id', courseIdInt).single(),
-        supabase.from('course_units').select('number, title').eq('course_id', courseIdInt).order('number', { ascending: true })
+        supabase
+          .from('course_units')
+          .select('number, title')
+          .eq('course_id', courseIdInt)
+          .order('number', { ascending: true }),
       ]);
 
       const courseSummary = {
         title: courseInfo?.title || 'Curso',
         description: courseInfo?.description || '',
-        units: (courseUnits || []).map(u => `Unidad ${u.number}: ${u.title}`)
+        units: (courseUnits || []).map((u) => `Unidad ${u.number}: ${u.title}`),
       };
 
       const relevantContent = await this.getRelevantContent(
@@ -205,13 +203,18 @@ export class RAGService {
       );
 
       // 4. Prompt y Respuesta
-      const personalizedPrompt = this.buildPersonalizedPrompt(query, context, relevantContent, !!pageRange, courseSummary);
+      const personalizedPrompt = this.buildPersonalizedPrompt(
+        query,
+        context,
+        relevantContent,
+        !!pageRange,
+        courseSummary
+      );
       const response = await this.generateResponse(personalizedPrompt);
       const ragResponse = this.formatRAGResponse(response, relevantContent);
 
       this.saveToCache(cacheKey, { data: ragResponse, error: null, success: true });
       return { data: ragResponse, error: null, success: true };
-
     } catch (error) {
       console.error('RAG Error:', error);
       return { data: null, error: String(error), success: false };
@@ -231,28 +234,39 @@ export class RAGService {
       const courseIdInt = parseInt(courseId, 10);
       const pageRange = this.detectPageRange(query);
       const startTime = Date.now();
-      
+
       const promises = [
         this.searchChunksByText(query, courseIdInt, moduleId),
         this.searchChunksByVector(query, courseIdInt, moduleId), // Nueva búsqueda semántica
         supabase.from('courses').select('id, title, description').eq('id', courseIdInt).single(),
-        supabase.from('course_units').select('id, number, title, description, content_html').eq('course_id', courseIdInt),
+        supabase
+          .from('course_units')
+          .select('id, number, title, description, content_html')
+          .eq('course_id', courseIdInt),
         this.fetchSessionsWithFilter(courseIdInt, moduleId),
         this.fetchMaterialsWithFilter(courseIdInt, moduleId),
-        this.fetchCourseMaterialsWithFilter(courseIdInt, moduleId)
+        this.fetchCourseMaterialsWithFilter(courseIdInt, moduleId),
       ];
 
-      const [textSearchData, vectorSearchData, courseRes, unitsRes, sessionsRes, materialsRes, courseMaterialsRes] = await Promise.all(promises);
-      
+      const [
+        textSearchData,
+        vectorSearchData,
+        courseRes,
+        unitsRes,
+        sessionsRes,
+        materialsRes,
+        courseMaterialsRes,
+      ] = await Promise.all(promises);
+
       const { chunks: textChunks = [], error: textError } = textSearchData as any;
       const { chunks: vectorChunks = [], error: vectorError } = vectorSearchData as any;
-      
+
       console.log('📊 [RAG_AUDIT] Resultados de Supabase:', {
         query,
         courseId: courseIdInt,
         textCount: textChunks.length,
         vectorCount: vectorChunks.length,
-        errors: { text: textError, vector: vectorError }
+        errors: { text: textError, vector: vectorError },
       });
 
       if (!vectorError && vectorChunks.length === 0 && textChunks.length > 0) {
@@ -262,11 +276,11 @@ export class RAGService {
             'Diagnóstico SQL: `sql_scripts/4_diagnostics/176_diagnostic_embedding_por_curso.sql`.'
         );
       }
-      
+
       // Combinar resultados (Deduplicar por ID)
       let combinedChunks = [...textChunks];
       vectorChunks.forEach((vc: any) => {
-        if (!combinedChunks.find(tc => tc.id === vc.id)) {
+        if (!combinedChunks.find((tc) => tc.id === vc.id)) {
           combinedChunks.push(vc);
         }
       });
@@ -274,26 +288,40 @@ export class RAGService {
         textCount: textChunks.length,
         vectorCount: vectorChunks.length,
         combinedCount: combinedChunks.length,
-        courseId: courseIdInt
+        courseId: courseIdInt,
       };
 
       if (combinedChunks.length > 0) {
         // Boost Prioritarios
-        const priorityChunks = combinedChunks.filter(c => this.isPriorityMaterial(c, courseIdInt));
-        const otherChunks = combinedChunks.filter(c => !this.isPriorityMaterial(c, courseIdInt));
+        const priorityChunks = combinedChunks.filter((c) =>
+          this.isPriorityMaterial(c, courseIdInt)
+        );
+        const otherChunks = combinedChunks.filter((c) => !this.isPriorityMaterial(c, courseIdInt));
         combinedChunks = [...priorityChunks, ...otherChunks].slice(0, 20); // Aumentamos a 20 chunks para mayor contexto
 
         // Fetch material titles
-        const materialIds = [...new Set(combinedChunks.map(c => c.metadata?.material_id).filter(Boolean))];
+        const materialIds = [
+          ...new Set(combinedChunks.map((c) => c.metadata?.material_id).filter(Boolean)),
+        ];
         let materialTitles: Record<string, string> = {};
         if (materialIds.length > 0) {
-          const { data: materials } = await supabase.from('materials').select('id, title').in('id', materialIds);
-          if (materials) materialTitles = materials.reduce((acc: any, m: any) => ({ ...acc, [m.id]: m.title }), {});
+          const { data: materials } = await supabase
+            .from('materials')
+            .select('id, title')
+            .in('id', materialIds);
+          if (materials)
+            materialTitles = materials.reduce(
+              (acc: any, m: any) => ({ ...acc, [m.id]: m.title }),
+              {}
+            );
         }
 
-        const finalChunks: CourseContent[] = combinedChunks.map(chunk => ({
+        const finalChunks: CourseContent[] = combinedChunks.map((chunk) => ({
           id: `chunk-${chunk.id}`,
-          title: materialTitles[chunk.metadata?.material_id] || chunk.metadata?.sourceFileName || 'Documento',
+          title:
+            materialTitles[chunk.metadata?.material_id] ||
+            chunk.metadata?.sourceFileName ||
+            'Documento',
           content: chunk.content,
           type: 'material',
           difficulty: 'intermediate',
@@ -302,22 +330,26 @@ export class RAGService {
           courseId,
           metadata: {
             ...chunk.metadata,
-            material_title: materialTitles[chunk.metadata?.material_id]
-          }
+            material_title: materialTitles[chunk.metadata?.material_id],
+          },
         }));
 
         // Búsqueda expandida por páginas (si aplica)
         if (pageRange) {
-          const expanded = await this.searchChunksInPageRange(query, courseIdInt, pageRange.start, pageRange.end);
-          const existingIds = new Set(finalChunks.map(c => c.originalId));
-          finalChunks.push(...expanded.filter(c => !existingIds.has(c.originalId)));
+          const expanded = await this.searchChunksInPageRange(
+            query,
+            courseIdInt,
+            pageRange.start,
+            pageRange.end
+          );
+          const existingIds = new Set(finalChunks.map((c) => c.originalId));
+          finalChunks.push(...expanded.filter((c) => !existingIds.has(c.originalId)));
         }
 
         return finalChunks;
       }
 
       return [];
-
     } catch (error) {
       console.error('getRelevantContent error:', error);
       return [];
@@ -327,7 +359,7 @@ export class RAGService {
   private isPriorityMaterial(chunk: any, courseId: number): boolean {
     const priority = PRIORITY_MATERIALS[courseId] || [];
     const text = (chunk.metadata?.sourceFileName || '' + chunk.title || '').toLowerCase();
-    return priority.some(p => text.includes(p.toLowerCase()));
+    return priority.some((p) => text.includes(p.toLowerCase()));
   }
 
   private detectPageRange(query: string) {
@@ -338,8 +370,18 @@ export class RAGService {
     return { start, end };
   }
 
-  private async searchChunksInPageRange(query: string, courseId: number, start: number, end: number): Promise<CourseContent[]> {
-    const { data } = await supabase.rpc('get_chunks_in_page_range', { p_course_id: courseId, p_page_start: start, p_page_end: end, p_limit: 10 });
+  private async searchChunksInPageRange(
+    query: string,
+    courseId: number,
+    start: number,
+    end: number
+  ): Promise<CourseContent[]> {
+    const { data } = await supabase.rpc('get_chunks_in_page_range', {
+      p_course_id: courseId,
+      p_page_start: start,
+      p_page_end: end,
+      p_limit: 10,
+    });
     return (data || []).map((c: any) => ({
       id: `chunk-p-${c.id}`,
       title: c.metadata?.sourceFileName || 'Documento',
@@ -348,7 +390,7 @@ export class RAGService {
       difficulty: 'intermediate',
       topics: [],
       originalId: c.id,
-      metadata: c.metadata
+      metadata: c.metadata,
     }));
   }
 
@@ -358,63 +400,89 @@ export class RAGService {
 
     try {
       console.log('🧪 Iniciando embedding de Google...', query.substring(0, 30));
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:embedContent?key=${key}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          model: 'models/gemini-embedding-2-preview', 
-          content: { parts: [{ text: query }] }, 
-          taskType: 'RETRIEVAL_QUERY',
-          outputDimensionality: 512
-        })
-      });
-      
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:embedContent?key=${key}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'models/gemini-embedding-2-preview',
+            content: { parts: [{ text: query }] },
+            taskType: 'RETRIEVAL_QUERY',
+            outputDimensionality: 512,
+          }),
+        }
+      );
+
       if (!res.ok) {
         const err = await res.json();
         console.error('❌ [EMBEDDING_ERROR]', {
           status: res.status,
           statusText: res.statusText,
-          error: err
+          error: err,
         });
         return null;
       }
-      
+
       const data = await res.json();
       const embedding = data.embedding.values;
       console.log('✅ Embedding generado exitosamente (dim: 512)');
       this.embeddingCache.set(cacheKey, { embedding, timestamp: Date.now() });
       return embedding;
-    } catch (e) { 
+    } catch (e) {
       console.error('❌ [EMBEDDING_FATAL_ERROR]', e);
-      return null; 
+      return null;
     }
   }
 
   private filterRelevantContent(query: string, content: CourseContent[]): CourseContent[] {
-    const words = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-    return content.map(item => {
-      let score = 0;
-      const text = `${item.title} ${item.content}`.toLowerCase();
-      words.forEach(w => { if (text.includes(w)) score += 1; if (item.title.toLowerCase().includes(w)) score += 2; });
-      if (item.id.startsWith('chunk-')) score += 0.5;
-      return { ...item, score };
-    }).filter(i => i.score > 0).sort((a, b) => b.score - a.score).map(({ score, ...item }: any) => item);
+    const words = query
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 2);
+    return content
+      .map((item) => {
+        let score = 0;
+        const text = `${item.title} ${item.content}`.toLowerCase();
+        words.forEach((w) => {
+          if (text.includes(w)) score += 1;
+          if (item.title.toLowerCase().includes(w)) score += 2;
+        });
+        if (item.id.startsWith('chunk-')) score += 0.5;
+        return { ...item, score };
+      })
+      .filter((i) => i.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(({ score, ...item }: any) => item);
   }
 
   private extractTopics(content: string): string[] {
-    return content.toLowerCase().match(/\b\w{5,}\b/g)?.slice(0, 5) || [];
+    return (
+      content
+        .toLowerCase()
+        .match(/\b\w{5,}\b/g)
+        ?.slice(0, 5) || []
+    );
   }
 
-  private buildPersonalizedPrompt(query: string, context: ConversationContext, content: CourseContent[], isComplex: boolean, courseSummary?: any): string {
-    // 1. Enriquecer los chunks con metadata pedagógica 
-    const contentText = content.map(c => {
-      let header = `[Material: ${c.title}`;
-      if (c.metadata?.pageStart) header += ` | pág. ${c.metadata.pageStart}`;
-      if (c.type === 'unit') header = `[Estructura del Curso: Unidad - ${c.title}`;
-      if (c.type === 'session') header = `[Estructura del Curso: Sesión - ${c.title}`;
-      header += `]`;
-      return `${header}\n${c.content.substring(0, 5000)}`;
-    }).join('\n\n');
+  private buildPersonalizedPrompt(
+    query: string,
+    context: ConversationContext,
+    content: CourseContent[],
+    isComplex: boolean,
+    courseSummary?: any
+  ): string {
+    // 1. Enriquecer los chunks con metadata pedagógica
+    const contentText = content
+      .map((c) => {
+        let header = `[Material: ${c.title}`;
+        if (c.metadata?.pageStart) header += ` | pág. ${c.metadata.pageStart}`;
+        if (c.type === 'unit') header = `[Estructura del Curso: Unidad - ${c.title}`;
+        if (c.type === 'session') header = `[Estructura del Curso: Sesión - ${c.title}`;
+        header += `]`;
+        return `${header}\n${c.content.substring(0, 5000)}`;
+      })
+      .join('\n\n');
 
     let summaryText = '';
     if (courseSummary) {
@@ -467,7 +535,7 @@ Instrucciones de respuesta:
             cachedContentName = cached.name;
             // Si usamos caché, solo enviamos la parte "nueva" del prompt (la pregunta)
             // Asumimos que el prompt tiene estructura: Contexto + Pregunta
-            // Por simplicidad en esta iteración, enviamos el prompt completo pero referenciando el caché 
+            // Por simplicidad en esta iteración, enviamos el prompt completo pero referenciando el caché
             // (Gemini optimizará internamente si coincide, o creará uno nuevo si lo estructuramos así)
             console.log('✨ Usando Contexto en Caché:', cachedContentName);
           } else {
@@ -478,22 +546,25 @@ Instrucciones de respuesta:
         // Si no existe, intentar crear
         if (!cachedContentName) {
           try {
-            const createCacheRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/cachedContents?key=${key}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                model: `models/${this.model}`,
-                contents: [{ parts: [{ text: prompt }] }],
-                ttl: '3600s' // 1 hora de vida
-              })
-            });
+            const createCacheRes = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/cachedContents?key=${key}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  model: `models/${this.model}`,
+                  contents: [{ parts: [{ text: prompt }] }],
+                  ttl: '3600s', // 1 hora de vida
+                }),
+              }
+            );
 
             if (createCacheRes.ok) {
               const cacheData = await createCacheRes.json();
               cachedContentName = cacheData.name;
               this.contextCache.set(cacheKey, {
                 name: cacheData.name,
-                expiration: cacheData.expireTime
+                expiration: cacheData.expireTime,
               });
               console.log('💾 Contexto cacheado creado:', cachedContentName);
             }
@@ -509,15 +580,23 @@ Instrucciones de respuesta:
       const requestBody: any = {
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: this.maxOutputTokens
-        }
+          maxOutputTokens: this.maxOutputTokens,
+        },
       };
 
       if (cachedContentName) {
         requestBody.cachedContent = cachedContentName;
         // Si usamos caché, el contenido ya está "dentro". Solo enviamos un prompt vacío o la continuación.
         // En este caso, como cacheamos TODO el prompt, enviamos un mensaje de "Proceder"
-        requestBody.contents = [{ parts: [{ text: "Por favor responde a la pregunta basada en el contexto proporcionado anteriormente." }] }];
+        requestBody.contents = [
+          {
+            parts: [
+              {
+                text: 'Por favor responde a la pregunta basada en el contexto proporcionado anteriormente.',
+              },
+            ],
+          },
+        ];
       } else {
         requestBody.contents = [{ parts: [{ text: prompt }] }];
       }
@@ -525,7 +604,7 @@ Instrucciones de respuesta:
       const res = await fetch(generateUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
       });
 
       const data = await res.json();
@@ -542,7 +621,7 @@ Instrucciones de respuesta:
       if (finishReason && finishReason !== 'STOP' && import.meta.env.DEV) {
         console.warn('⚠️ [RAG_GEMINI] finishReason:', finishReason, {
           parts: parts.length,
-          textLength: text.length
+          textLength: text.length,
         });
       }
       if (!candidate && import.meta.env.DEV && data.promptFeedback) {
@@ -552,20 +631,29 @@ Instrucciones de respuesta:
       // Token logging
       if (this.currentContext?.studentId) {
         const usage = data.usageMetadata || { promptTokenCount: 0, candidatesTokenCount: 0 };
-        tokenMonitoring.recordTokenUsage(usage.promptTokenCount, usage.candidatesTokenCount, this.model, `rag_${Date.now()}`);
+        tokenMonitoring.recordTokenUsage(
+          usage.promptTokenCount,
+          usage.candidatesTokenCount,
+          this.model,
+          `rag_${Date.now()}`
+        );
         await aiUsageService.recordUsage({
           userId: this.currentContext.studentId,
-          courseId: this.currentContext.courseId ? parseInt(this.currentContext.courseId) : undefined,
+          courseId: this.currentContext.courseId
+            ? parseInt(this.currentContext.courseId)
+            : undefined,
           model: this.model,
           requestType: 'chat',
           conversationId: this.currentContext.conversationId,
           inputTokens: usage.promptTokenCount,
           outputTokens: usage.candidatesTokenCount,
-          requestId: `rag_${Date.now()}`
+          requestId: `rag_${Date.now()}`,
         });
       }
       return text;
-    } catch { return 'Error de conexión con IA.'; }
+    } catch {
+      return 'Error de conexión con IA.';
+    }
   }
 
   private hashString(str: string): string {
@@ -573,7 +661,7 @@ Instrucciones de respuesta:
     if (str.length === 0) return hash.toString();
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32bit integer
     }
     return hash.toString();
@@ -588,7 +676,7 @@ Instrucciones de respuesta:
         sourceFileName: s.metadata?.sourceFileName || s.title,
         materialId: s.metadata?.material_id || s.originalId || null,
         pageStart: pageStart ?? null,
-        pageEnd: pageEnd ?? null
+        pageEnd: pageEnd ?? null,
       };
     });
 
@@ -612,8 +700,8 @@ Instrucciones de respuesta:
         timestamp: new Date().toISOString(),
         sources: sourceLabels,
         sourceMetadata,
-        retrievalAudit: this.lastRetrievalAudit
-      }
+        retrievalAudit: this.lastRetrievalAudit,
+      },
     };
   }
 
@@ -628,14 +716,21 @@ Instrucciones de respuesta:
   }
 
   private saveToCache(key: string, data: any) {
-    if (this.responseCache.size > this.MAX_CACHE_SIZE) this.responseCache.delete(this.responseCache.keys().next().value);
+    if (this.responseCache.size > this.MAX_CACHE_SIZE)
+      this.responseCache.delete(this.responseCache.keys().next().value);
     this.responseCache.set(key, { data, timestamp: Date.now() });
   }
 
   private async searchChunksByText(query: string, courseId: number, moduleId?: string) {
-    const isUuid = moduleId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(moduleId);
+    const isUuid =
+      moduleId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(moduleId);
     const cleanSearchQuery = this.buildSearchQuery(query);
-    const rpcParams: any = { search_query: cleanSearchQuery, course_id_param: courseId, result_limit: 30, min_relevance: 0.001 };
+    const rpcParams: any = {
+      search_query: cleanSearchQuery,
+      course_id_param: courseId,
+      result_limit: 30,
+      min_relevance: 0.001,
+    };
     if (isUuid) rpcParams.p_module_id = moduleId;
 
     // 1) Ruta principal (RPC limpia)
@@ -644,16 +739,25 @@ Instrucciones de respuesta:
       return { chunks: primary.data || [], error: null };
     }
 
-    console.warn('⚠️ [RAG_TEXT_RPC_ERROR] search_course_content_chunks_text_clean falló:', primary.error);
+    console.warn(
+      '⚠️ [RAG_TEXT_RPC_ERROR] search_course_content_chunks_text_clean falló:',
+      primary.error
+    );
 
     const isStatementTimeout =
       primary.error && String((primary.error as any).code || '') === '57014';
 
     // 2) Fallback por firmas antiguas — omitir si ya hubo timeout (misma consulta pesada en BD)
     if (isStatementTimeout) {
-      console.warn('⚠️ [RAG_TEXT_SKIP_LEGACY_RPC] Timeout 57014: se omite segunda llamada a text_clean.');
+      console.warn(
+        '⚠️ [RAG_TEXT_SKIP_LEGACY_RPC] Timeout 57014: se omite segunda llamada a text_clean.'
+      );
     }
-    const fallbackParams = { search_query: cleanSearchQuery, course_id_param: courseId, result_limit: 30 };
+    const fallbackParams = {
+      search_query: cleanSearchQuery,
+      course_id_param: courseId,
+      result_limit: 30,
+    };
     const secondary = !isStatementTimeout
       ? await supabase.rpc('search_course_content_chunks_text_clean', fallbackParams as any)
       : { data: null, error: { message: 'skipped after timeout' } as any };
@@ -702,7 +806,7 @@ Instrucciones de respuesta:
       console.warn('⚠️ [RAG_TEXT_FALLBACK] Usando query directa + filtro local por fallo RPC.', {
         pulled: directRows.length,
         filtered: locallyFiltered.length,
-        keywords
+        keywords,
       });
       return { chunks: locallyFiltered.slice(0, 30), error: null };
     }
@@ -729,9 +833,7 @@ Instrucciones de respuesta:
     if (keywords.length === 0) return rows;
     const normalizedKeys = keywords.map((k) => this.normalizeTextForMatch(k));
     return rows.filter((row) => {
-      const text = this.normalizeTextForMatch(
-        `${row.content || ''} ${row.metadata?.title || ''}`
-      );
+      const text = this.normalizeTextForMatch(`${row.content || ''} ${row.metadata?.title || ''}`);
       return normalizedKeys.some((k) => text.includes(k));
     });
   }
@@ -746,14 +848,35 @@ Instrucciones de respuesta:
       .trim();
 
     const stopwords = new Set([
-      'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'de', 'del', 'al',
-      'y', 'o', 'u', 'que', 'segun', 'sobre', 'para', 'con', 'sin', 'por',
-      'explicame', 'explica', 'curso', 'material', 'materiales'
+      'el',
+      'la',
+      'los',
+      'las',
+      'un',
+      'una',
+      'unos',
+      'unas',
+      'de',
+      'del',
+      'al',
+      'y',
+      'o',
+      'u',
+      'que',
+      'segun',
+      'sobre',
+      'para',
+      'con',
+      'sin',
+      'por',
+      'explicame',
+      'explica',
+      'curso',
+      'material',
+      'materiales',
     ]);
 
-    const tokens = normalized
-      .split(' ')
-      .filter((t) => t.length >= 4 && !stopwords.has(t));
+    const tokens = normalized.split(' ').filter((t) => t.length >= 4 && !stopwords.has(t));
 
     if (tokens.length === 0) return normalized || query.trim();
     return tokens.slice(0, 3).join(' ');
@@ -766,12 +889,13 @@ Instrucciones de respuesta:
     const embedding = await this.getQueryEmbedding(query, key);
     if (!embedding) return { chunks: [], error: 'Failed to generate embedding' };
 
-    const isUuid = moduleId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(moduleId);
-    const rpcParams: any = { 
-      query_embedding: `[${embedding.join(',')}]`, 
-      course_id_param: courseId, 
+    const isUuid =
+      moduleId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(moduleId);
+    const rpcParams: any = {
+      query_embedding: `[${embedding.join(',')}]`,
+      course_id_param: courseId,
       match_threshold: -1.0,
-      match_count: 30 
+      match_count: 30,
     };
     if (isUuid) rpcParams.p_module_id = moduleId;
 
@@ -780,16 +904,23 @@ Instrucciones de respuesta:
   }
 
   private async fetchSessionsWithFilter(courseId: number, moduleId?: string) {
-    let q = supabase.from('sessions').select('id, title, description, content_html, unit_id').eq('course_id', courseId);
+    let q = supabase
+      .from('sessions')
+      .select('id, title, description, content_html, unit_id')
+      .eq('course_id', courseId);
     if (moduleId) {
-      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(moduleId)) q = q.eq('id', moduleId);
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(moduleId))
+        q = q.eq('id', moduleId);
       else q = q.eq('unit_id', moduleId);
     }
     return q;
   }
 
   private async fetchMaterialsWithFilter(courseId: number, moduleId?: string) {
-    let q = supabase.from('materials').select('id, title, kind, url, unit_id, session_id').eq('course_id', courseId);
+    let q = supabase
+      .from('materials')
+      .select('id, title, kind, url, unit_id, session_id')
+      .eq('course_id', courseId);
     if (moduleId) {
       // Incluir materiales de la unidad específica Y materiales globales (sin unit_id)
       // Los materiales globales son libros de referencia como Harrison que aplican a todo el curso
@@ -826,7 +957,7 @@ Instrucciones de respuesta:
       /de\s+qu[eé]\s+trata\s+(el\s+curso|este\s+curso)/i,
       /qu[eé]\s+vamos\s+a\s+(estudiar|ver|revisar|aprender)/i,
     ];
-    return metaPatterns.some(pattern => pattern.test(q));
+    return metaPatterns.some((pattern) => pattern.test(q));
   }
 
   /**
@@ -841,9 +972,19 @@ Instrucciones de respuesta:
       // Consultar datos reales de la estructura del curso
       const [courseRes, unitsRes, sessionsRes, materialsRes] = await Promise.all([
         supabase.from('courses').select('title, description').eq('id', courseId).single(),
-        supabase.from('course_units').select('id, number, title, description').eq('course_id', courseId).order('number', { ascending: true }),
-        supabase.from('sessions').select('id, title, description, unit_id').eq('course_id', courseId),
-        supabase.from('materials').select('id, title, kind, url, unit_id, session_id').eq('course_id', courseId)
+        supabase
+          .from('course_units')
+          .select('id, number, title, description')
+          .eq('course_id', courseId)
+          .order('number', { ascending: true }),
+        supabase
+          .from('sessions')
+          .select('id, title, description, unit_id')
+          .eq('course_id', courseId),
+        supabase
+          .from('materials')
+          .select('id, title, kind, url, unit_id, session_id')
+          .eq('course_id', courseId),
       ]);
 
       const course = courseRes.data;
@@ -858,17 +999,17 @@ Instrucciones de respuesta:
 
       if (units.length > 0) {
         structureText += `UNIDADES DEL CURSO (${units.length} unidades):\n`;
-        units.forEach(u => {
+        units.forEach((u) => {
           structureText += `  - Unidad ${u.number}: ${u.title}\n`;
-          const unitSessions = sessions.filter(s => s.unit_id === u.id);
+          const unitSessions = sessions.filter((s) => s.unit_id === u.id);
           if (unitSessions.length > 0) {
-            unitSessions.forEach(s => {
+            unitSessions.forEach((s) => {
               structureText += `    • Sesión: ${s.title}\n`;
             });
           }
-          const unitMaterials = materials.filter(m => m.unit_id === u.id);
+          const unitMaterials = materials.filter((m) => m.unit_id === u.id);
           if (unitMaterials.length > 0) {
-            unitMaterials.forEach(m => {
+            unitMaterials.forEach((m) => {
               structureText += `    📄 Material: ${m.title} (${m.kind || 'documento'})\n`;
             });
           }
@@ -876,10 +1017,10 @@ Instrucciones de respuesta:
       }
 
       // Materiales sin unidad asignada
-      const unassignedMaterials = materials.filter(m => !m.unit_id);
+      const unassignedMaterials = materials.filter((m) => !m.unit_id);
       if (unassignedMaterials.length > 0) {
         structureText += `\nMATERIALES GENERALES DEL CURSO:\n`;
-        unassignedMaterials.forEach(m => {
+        unassignedMaterials.forEach((m) => {
           structureText += `  📄 ${m.title} (${m.kind || 'documento'})\n`;
         });
       }
@@ -888,7 +1029,7 @@ Instrucciones de respuesta:
         structureText += `\nNOTA: No hay materiales (PDFs, documentos) cargados en este curso todavía.\n`;
       } else {
         structureText += `\nTOTAL DE MATERIALES: ${materials.length}\n`;
-        const pdfMaterials = materials.filter(m => m.kind === 'pdf' || m.url?.endsWith('.pdf'));
+        const pdfMaterials = materials.filter((m) => m.kind === 'pdf' || m.url?.endsWith('.pdf'));
         if (pdfMaterials.length > 0) {
           structureText += `PDFs disponibles: ${pdfMaterials.length}\n`;
         }
@@ -914,7 +1055,6 @@ Instrucciones:
       const response = await this.generateResponse(metaPrompt);
       const ragResponse = this.formatRAGResponse(response, []);
       return { data: ragResponse, error: null, success: true };
-
     } catch (error) {
       console.error('Error handling meta-query:', error);
       return null; // Fallback al flujo normal
@@ -922,7 +1062,11 @@ Instrucciones:
   }
 
   async healthCheck() {
-    try { return !!resolveGeminiApiKey().key; } catch { return false; }
+    try {
+      return !!resolveGeminiApiKey().key;
+    } catch {
+      return false;
+    }
   }
 }
 
@@ -941,7 +1085,14 @@ export const createRAGContext = (
   conversationId,
   pedagogicalSettings,
   studentProfile,
-  recentMessages: recentMessages.map(m => ({ id: m.id || String(Date.now()), role: m.role, text: m.text || m.content, timestamp: new Date(), metadata: {} }))
+  recentMessages: recentMessages.map((m) => ({
+    id: m.id || String(Date.now()),
+    role: m.role,
+    text: m.text || m.content,
+    timestamp: new Date(),
+    metadata: {},
+  })),
 });
 
-export const isValidRAGResponse = (res: any): res is RAGResponse => !!(res && res.success && res.message);
+export const isValidRAGResponse = (res: any): res is RAGResponse =>
+  !!(res && res.success && res.message);

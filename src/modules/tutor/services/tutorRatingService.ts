@@ -1,8 +1,8 @@
 // services/tutorRatingService.ts
 // Servicio para gestionar las calificaciones de los estudiantes hacia el tutor IA
 
-import { supabase } from './supabaseService';
-import { PedagogicalSettings } from '../types/pedagogical';
+import { supabase } from '../lib/supabase-shared';
+import type { PedagogicalSettings } from '../types/pedagogical';
 
 export interface TutorRating {
   id?: string;
@@ -31,7 +31,7 @@ export const tutorRatingService = {
     if (rating < min || rating > max) {
       return {
         isValid: false,
-        error: `La calificación debe estar entre ${min} y ${max}.`
+        error: `La calificación debe estar entre ${min} y ${max}.`,
       };
     }
 
@@ -41,7 +41,10 @@ export const tutorRatingService = {
   /**
    * Registra una nueva calificación en la tabla tutor_ratings
    */
-  async submitRating(ratingData: TutorRating, settings: PedagogicalSettings): Promise<{ success: boolean; error?: string }> {
+  async submitRating(
+    ratingData: TutorRating,
+    settings: PedagogicalSettings
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       // 1. Validar la calificación contra la escala del curso
       const validation = this.validateRating(ratingData.rating, settings);
@@ -50,14 +53,12 @@ export const tutorRatingService = {
       }
 
       // 2. Insertar en la base de datos
-      const { error } = await supabase
-        .from('tutor_ratings')
-        .insert({
-          conversation_id: ratingData.conversation_id,
-          student_id: ratingData.student_id,
-          rating: ratingData.rating,
-          comment: ratingData.comment
-        });
+      const { error } = await supabase.from('tutor_ratings').insert({
+        conversation_id: ratingData.conversation_id,
+        student_id: ratingData.student_id,
+        rating: ratingData.rating,
+        comment: ratingData.comment,
+      });
 
       if (error) {
         console.error('Error insertando tutor_rating:', error);
@@ -87,7 +88,7 @@ export const tutorRatingService = {
 
       if (convError || !conversations || conversations.length === 0) return 0;
 
-      const conversationIds = conversations.map(c => c.id);
+      const conversationIds = conversations.map((c) => c.id);
 
       const { data: ratings, error: ratError } = await supabase
         .from('tutor_ratings')
@@ -102,5 +103,5 @@ export const tutorRatingService = {
       console.error('Error obteniendo promedio de ratings:', error);
       return 0;
     }
-  }
+  },
 };

@@ -22,9 +22,10 @@ const DEFAULT_OPTIONS: Required<Omit<OptimizeImageOptions, 'signal'>> = {
   returnOriginalIfSmaller: true,
 };
 
-const WEBP_SUPPORTED = typeof document !== 'undefined'
-  ? document.createElement('canvas').toDataURL('image/webp').startsWith('data:image/webp')
-  : true;
+const WEBP_SUPPORTED =
+  typeof document !== 'undefined'
+    ? document.createElement('canvas').toDataURL('image/webp').startsWith('data:image/webp')
+    : true;
 
 const MAX_CANVAS_PIXELS = 4096 * 4096; // ~16MP
 
@@ -109,28 +110,23 @@ const toBlob = (canvas: HTMLCanvasElement, type: string, quality: number): Promi
         resolve(blob);
       },
       type,
-      quality,
+      quality
     );
   });
 };
 
 export const optimizeImage = async (
   file: File,
-  options: OptimizeImageOptions = {},
+  options: OptimizeImageOptions = {}
 ): Promise<{ file: File; optimized: boolean; info: string }> => {
   if (!file.type.startsWith('image/')) {
     throw new ImageOptimizationError('El archivo no es una imagen válida');
   }
 
-  const {
-    maxWidth,
-    maxHeight,
-    quality,
-    format,
-    force,
-    returnOriginalIfSmaller,
-    signal,
-  } = { ...DEFAULT_OPTIONS, ...options };
+  const { maxWidth, maxHeight, quality, format, force, returnOriginalIfSmaller, signal } = {
+    ...DEFAULT_OPTIONS,
+    ...options,
+  };
 
   const targetFormat = format === 'image/webp' && !WEBP_SUPPORTED ? 'image/jpeg' : format;
 
@@ -139,7 +135,7 @@ export const optimizeImage = async (
 
     if (image.naturalWidth * image.naturalHeight > MAX_CANVAS_PIXELS) {
       throw new ImageOptimizationError(
-        'La imagen es demasiado grande para procesarla en el navegador',
+        'La imagen es demasiado grande para procesarla en el navegador'
       );
     }
 
@@ -147,7 +143,7 @@ export const optimizeImage = async (
       image.naturalWidth,
       image.naturalHeight,
       maxWidth,
-      maxHeight,
+      maxHeight
     );
 
     const shouldConvertFormat = file.type !== targetFormat;
@@ -188,7 +184,7 @@ export const optimizeImage = async (
       {
         type: targetFormat,
         lastModified: Date.now(),
-      },
+      }
     );
 
     return {
@@ -201,7 +197,10 @@ export const optimizeImage = async (
       throw error;
     }
 
-    console.warn('[optimizeImage] No se pudo optimizar la imagen. Se usará el archivo original.', error);
+    console.warn(
+      '[optimizeImage] No se pudo optimizar la imagen. Se usará el archivo original.',
+      error
+    );
 
     return {
       file,
@@ -215,4 +214,3 @@ export const shouldOptimizeInFrontend = (file: File, maxBytes = 1.5 * 1024 * 102
   if (!file.type.startsWith('image/')) return false;
   return file.size >= maxBytes;
 };
-

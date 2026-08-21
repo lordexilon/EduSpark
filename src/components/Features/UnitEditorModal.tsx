@@ -4,8 +4,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CourseUnit } from '@/services/teacherCourses';
 import { RichTextEditor } from '@/components/RichTextEditor';
-import Card from "@/components/Common/Card";
-import Button from "@/components/Common/Button";
+import Card from '@/components/Common/Card';
+import Button from '@/components/Common/Button';
 import { uploadCourseMedia } from '@/services/storageService';
 
 interface UnitEditorModalProps {
@@ -19,7 +19,7 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
   unit,
   courseId,
   onClose,
-  onSave
+  onSave,
 }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -183,7 +183,7 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
         throw error;
       }
     },
-    [courseId],
+    [courseId]
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -197,7 +197,9 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
     // Validar tamaño del contenido HTML (límite razonable: 1MB)
     const maxHtmlLength = 1000000; // 1MB
     if (contentHtml && contentHtml.length > maxHtmlLength) {
-      alert(`El contenido HTML es demasiado grande (${(contentHtml.length / 1024).toFixed(0)}KB). Máximo permitido: ${(maxHtmlLength / 1024).toFixed(0)}KB`);
+      alert(
+        `El contenido HTML es demasiado grande (${(contentHtml.length / 1024).toFixed(0)}KB). Máximo permitido: ${(maxHtmlLength / 1024).toFixed(0)}KB`
+      );
       return;
     }
 
@@ -220,18 +222,21 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
         ends_at: endsAt ? new Date(endsAt).toISOString() : undefined,
         // Campos de disponibilidad
         available_from: availableFrom ? new Date(availableFrom).toISOString() : undefined,
-        available_until: availableUntil ? new Date(availableUntil).toISOString() : undefined
+        available_until: availableUntil ? new Date(availableUntil).toISOString() : undefined,
       };
 
       console.log('Guardando unidad:', {
         ...unitData,
-        content_html_length: unitData.content_html?.length || 0
+        content_html_length: unitData.content_html?.length || 0,
       });
 
       // Timeout de 30 segundos para operaciones largas
       const savePromise = onSave(unitData);
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout: La operación tomó demasiado tiempo (30s)')), 30000)
+        setTimeout(
+          () => reject(new Error('Timeout: La operación tomó demasiado tiempo (30s)')),
+          30000
+        )
       );
 
       await Promise.race([savePromise, timeoutPromise]);
@@ -268,13 +273,8 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
       <Card className="w-full max-w-6xl max-h-[95vh] overflow-y-auto">
         <div className="p-8">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">
-              {unit ? 'Editar Unidad' : 'Nueva Unidad'}
-            </h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl"
-            >
+            <h2 className="text-2xl font-bold">{unit ? 'Editar Unidad' : 'Nueva Unidad'}</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">
               ×
             </button>
           </div>
@@ -315,7 +315,8 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
                 Contenido Didáctico *
               </label>
               <p className="text-xs text-gray-500 mb-2">
-                Puedes agregar imágenes, videos, formato, listas, etc. Usa la barra de herramientas para formatear el texto.
+                Puedes agregar imágenes, videos, formato, listas, etc. Usa la barra de herramientas
+                para formatear el texto.
               </p>
               <div className="border border-gray-300 rounded-md overflow-hidden">
                 <div style={{ minHeight: '500px' }}>
@@ -328,9 +329,7 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
                 </div>
               </div>
               {contentUploadMessage && (
-                <p className="text-xs text-gray-500 mt-1">
-                  {contentUploadMessage}
-                </p>
+                <p className="text-xs text-gray-500 mt-1">{contentUploadMessage}</p>
               )}
               {contentHtml && (
                 <p className="text-xs text-green-600 mt-1">
@@ -363,7 +362,9 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
                   type="text"
                   value={newObjective}
                   onChange={(e) => setNewObjective(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddObjective())}
+                  onKeyPress={(e) =>
+                    e.key === 'Enter' && (e.preventDefault(), handleAddObjective())
+                  }
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Agregar objetivo..."
                 />
@@ -384,20 +385,22 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
                   step="0.5"
                   min="0"
                   value={durationHours || ''}
-                  onChange={(e) => setDurationHours(e.target.value ? parseFloat(e.target.value) : undefined)}
+                  onChange={(e) =>
+                    setDurationHours(e.target.value ? parseFloat(e.target.value) : undefined)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Orden
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Orden</label>
                 <input
                   type="number"
                   min="1"
                   value={orderIndex || ''}
-                  onChange={(e) => setOrderIndex(e.target.value ? parseInt(e.target.value) : undefined)}
+                  onChange={(e) =>
+                    setOrderIndex(e.target.value ? parseInt(e.target.value) : undefined)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -405,9 +408,7 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
 
             {/* Período de la Unidad */}
             <div className="border-t pt-4">
-              <h3 className="text-sm font-semibold text-gray-800 mb-3">
-                📆 Período de la Unidad
-              </h3>
+              <h3 className="text-sm font-semibold text-gray-800 mb-3">📆 Período de la Unidad</h3>
               <p className="text-xs text-gray-600 mb-3">
                 Define cuándo empieza y termina esta unidad en el cronograma del curso
               </p>
@@ -422,9 +423,7 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
                     onChange={(e) => setStartsAt(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Cuándo empieza esta unidad
-                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Cuándo empieza esta unidad</p>
                 </div>
 
                 <div>
@@ -437,9 +436,7 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
                     onChange={(e) => setEndsAt(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Cuándo termina esta unidad
-                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Cuándo termina esta unidad</p>
                 </div>
               </div>
             </div>
@@ -506,9 +503,7 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
                 >
                   {uploadingThumbnail ? 'Subiendo...' : 'Subir imagen'}
                 </Button>
-                <span className="text-xs text-gray-500">
-                  JPG/PNG/WebP · máx. 5MB
-                </span>
+                <span className="text-xs text-gray-500">JPG/PNG/WebP · máx. 5MB</span>
               </div>
               <input
                 type="url"
@@ -518,14 +513,17 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
                 placeholder="https://..."
               />
               {thumbnailUploadInfo && (
-                <p className="text-xs text-gray-500 mt-1">
-                  {thumbnailUploadInfo}
-                </p>
+                <p className="text-xs text-gray-500 mt-1">{thumbnailUploadInfo}</p>
               )}
               {thumbnailUrl && (
-                <img src={thumbnailUrl} alt="Preview" className="mt-2 max-w-xs rounded border" onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }} />
+                <img
+                  src={thumbnailUrl}
+                  alt="Preview"
+                  className="mt-2 max-w-xs rounded border"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
               )}
             </div>
 
@@ -544,4 +542,3 @@ export const UnitEditorModal: React.FC<UnitEditorModalProps> = ({
     </div>
   );
 };
-

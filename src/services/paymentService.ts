@@ -74,8 +74,9 @@ export const paymentService = {
 
   // Obtener estado de pago de un estudiante por ID
   async getStudentPaymentStatus(studentId: string): Promise<PaymentStatus> {
-    const { data, error } = await supabase
-      .rpc('get_student_payment_status', { p_student_id: studentId });
+    const { data, error } = await supabase.rpc('get_student_payment_status', {
+      p_student_id: studentId,
+    });
 
     if (error) throw error;
     return data as PaymentStatus;
@@ -83,10 +84,9 @@ export const paymentService = {
 
   // Obtener estado de pago por documento de identidad
   async getPaymentStatusByIdentityDocument(identityDocument: string): Promise<PaymentStatus> {
-    const { data, error } = await supabase
-      .rpc('get_payment_status_by_identity_document', { 
-        p_identity_document: identityDocument 
-      });
+    const { data, error } = await supabase.rpc('get_payment_status_by_identity_document', {
+      p_identity_document: identityDocument,
+    });
 
     if (error) throw error;
     return data as PaymentStatus;
@@ -96,10 +96,12 @@ export const paymentService = {
   async getStudentSubscription(studentId: string): Promise<StudentSubscription | null> {
     const { data, error } = await supabase
       .from('student_subscriptions')
-      .select(`
+      .select(
+        `
         *,
         plan:payment_plans(*)
-      `)
+      `
+      )
       .eq('student_id', studentId)
       .in('status', ['active', 'suspended'])
       .order('created_at', { ascending: false })
@@ -134,11 +136,13 @@ export const paymentService = {
   async getOverduePayments(studentId?: string): Promise<Payment[]> {
     let query = supabase
       .from('payments')
-      .select(`
+      .select(
+        `
         *,
         subscription:student_subscriptions(*),
         student:users(id, first_name, last_name, email, identity_document)
-      `)
+      `
+      )
       .eq('status', 'pending')
       .lt('due_date', new Date().toISOString().split('T')[0])
       .order('due_date', { ascending: true });
@@ -159,7 +163,7 @@ export const paymentService = {
     startDate?: string
   ): Promise<StudentSubscription> {
     const start = startDate || new Date().toISOString().split('T')[0];
-    
+
     // Calcular fecha de próximo pago según el ciclo
     const { data: plan } = await supabase
       .from('payment_plans')
@@ -189,12 +193,14 @@ export const paymentService = {
         payment_plan_id: paymentPlanId,
         start_date: start,
         next_payment_date: nextPaymentDate.toISOString().split('T')[0],
-        status: 'active'
+        status: 'active',
       })
-      .select(`
+      .select(
+        `
         *,
         plan:payment_plans(*)
-      `)
+      `
+      )
       .single();
 
     if (error) throw error;
@@ -220,7 +226,7 @@ export const paymentService = {
         paid_at: new Date().toISOString(),
         status: 'paid',
         payment_method: paymentMethod,
-        transaction_id: transactionId
+        transaction_id: transactionId,
       })
       .select()
       .single();
@@ -236,7 +242,8 @@ export const paymentService = {
 
     if (subscription?.plan) {
       const nextPayment = new Date(paymentDate);
-      switch (subscription.plan.billing_cycle) {
+      const plan = subscription.plan as unknown as { billing_cycle: string };
+      switch (plan.billing_cycle) {
         case 'monthly':
           nextPayment.setMonth(nextPayment.getMonth() + 1);
           break;
@@ -258,17 +265,21 @@ export const paymentService = {
   },
 
   // Obtener todos los estudiantes con información de pagos
-  async getAllStudentsWithPaymentInfo(): Promise<Array<{
-    student: any;
-    payment_status: PaymentStatus;
-  }>> {
+  async getAllStudentsWithPaymentInfo(): Promise<
+    Array<{
+      student: any;
+      payment_status: PaymentStatus;
+    }>
+  > {
     // Obtener todos los estudiantes con suscripciones
     const { data: subscriptions, error: subError } = await supabase
       .from('student_subscriptions')
-      .select(`
+      .select(
+        `
         student_id,
         student:users(id, first_name, last_name, email, identity_document, is_active)
-      `)
+      `
+      )
       .in('status', ['active', 'suspended']);
 
     if (subError) throw subError;
@@ -279,12 +290,11 @@ export const paymentService = {
         const paymentStatus = await this.getStudentPaymentStatus(sub.student_id);
         return {
           student: sub.student,
-          payment_status: paymentStatus
+          payment_status: paymentStatus,
         };
       })
     );
 
     return results;
-  }
+  },
 };
-

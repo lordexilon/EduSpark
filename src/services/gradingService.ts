@@ -79,16 +79,18 @@ export const gradingService = {
     // Si no existe, crear con valores por defecto
     const { data: newWeights, error: createError } = await supabase
       .from('subject_grading_weights')
-      .insert([{
-        subject_id: subjectId,
-        quizzes_weight: 30.00,
-        exam1_weight: 20.00,
-        exam2_weight: 20.00,
-        exam3_weight: 0.00,
-        final_exam_weight: 30.00,
-        practicals_weight: 0.00,
-        allow_custom_weights: true
-      }])
+      .insert([
+        {
+          subject_id: subjectId,
+          quizzes_weight: 30.0,
+          exam1_weight: 20.0,
+          exam2_weight: 20.0,
+          exam3_weight: 0.0,
+          final_exam_weight: 30.0,
+          practicals_weight: 0.0,
+          allow_custom_weights: true,
+        },
+      ])
       .select()
       .single();
 
@@ -135,7 +137,8 @@ export const gradingService = {
     weights: Partial<Omit<SubjectGradingWeights, 'id' | 'subject_id' | 'created_at' | 'updated_at'>>
   ): Promise<SubjectGradingWeights> {
     // Validar que la suma sea 100%
-    const total = (weights.quizzes_weight || 0) +
+    const total =
+      (weights.quizzes_weight || 0) +
       (weights.exam1_weight || 0) +
       (weights.exam2_weight || 0) +
       (weights.exam3_weight || 0) +
@@ -156,7 +159,7 @@ export const gradingService = {
       .from('subject_grading_weights')
       .update({
         ...weights,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('subject_id', subjectId)
       .select()
@@ -184,39 +187,52 @@ export const gradingService = {
   ): Promise<StudentFinalGrade> {
     if (!subjectId || !weights) {
       return {
-        studentId, courseId, subjectId: null, quizzesAverage: null, exam1Score: null,
-        exam2Score: null, exam3Score: null, finalExamScore: null, practicalsScore: null,
-        flashcardsScore: null, finalGrade: null, weights: null,
+        studentId,
+        courseId,
+        subjectId: null,
+        quizzesAverage: null,
+        exam1Score: null,
+        exam2Score: null,
+        exam3Score: null,
+        finalExamScore: null,
+        practicalsScore: null,
+        flashcardsScore: null,
+        finalGrade: null,
+        weights: null,
         breakdown: {
-          quizzesContribution: 0, exam1Contribution: 0, exam2Contribution: 0,
-          exam3Contribution: 0, finalExamContribution: 0, practicalsContribution: 0,
-          flashcardsContribution: 0
-        }
+          quizzesContribution: 0,
+          exam1Contribution: 0,
+          exam2Contribution: 0,
+          exam3Contribution: 0,
+          finalExamContribution: 0,
+          practicalsContribution: 0,
+          flashcardsContribution: 0,
+        },
       };
     }
 
     // Filtrar intentos por los assessments publicados del curso
-    const assessmentIds = courseAssessments.map(a => a.id);
-    const validAttempts = studentAttempts.filter(a => assessmentIds.includes(a.assessments?.id));
+    const assessmentIds = courseAssessments.map((a) => a.id);
+    const validAttempts = studentAttempts.filter((a) => assessmentIds.includes(a.assessments?.id));
 
     // Separar por tipo
     const quizzes = validAttempts.filter((a: any) =>
       ['quiz', 'trivia'].includes(a.assessments?.assessment_type)
     );
 
-    const assessmentsAssignments = validAttempts.filter((a: any) =>
-      a.assessments?.assessment_type === 'assignment'
+    const assessmentsAssignments = validAttempts.filter(
+      (a: any) => a.assessments?.assessment_type === 'assignment'
     );
 
-    const exams = validAttempts.filter((a: any) =>
-      a.assessments?.assessment_type === 'exam'
-    );
+    const exams = validAttempts.filter((a: any) => a.assessments?.assessment_type === 'exam');
 
     // Calcular notas de tareas (assignment_submissions)
     let assignmentsGrades: number[] = [];
     if (courseAssignments.length > 0 && studentSubmissions.length > 0) {
-      const assignmentIds = courseAssignments.map(a => a.id);
-      const validSubmissions = studentSubmissions.filter(s => assignmentIds.includes(s.assignment_id));
+      const assignmentIds = courseAssignments.map((a) => a.id);
+      const validSubmissions = studentSubmissions.filter((s) =>
+        assignmentIds.includes(s.assignment_id)
+      );
 
       const maxPointsMap = new Map<string, number>();
       courseAssignments.forEach((a: any) => maxPointsMap.set(a.id, a.max_points || 100));
@@ -229,12 +245,19 @@ export const gradingService = {
 
     // Promedio de Quizzes y Tareas
     const quizzesPercentages = quizzes.map((q: any) => q.percentage || 0);
-    const assessmentsAssignmentsPercentages = assessmentsAssignments.map((a: any) => a.percentage || 0);
-    const allQuizzesAndAssignments = [...quizzesPercentages, ...assessmentsAssignmentsPercentages, ...assignmentsGrades];
+    const assessmentsAssignmentsPercentages = assessmentsAssignments.map(
+      (a: any) => a.percentage || 0
+    );
+    const allQuizzesAndAssignments = [
+      ...quizzesPercentages,
+      ...assessmentsAssignmentsPercentages,
+      ...assignmentsGrades,
+    ];
 
-    const quizzesAverage = allQuizzesAndAssignments.length > 0
-      ? allQuizzesAndAssignments.reduce((sum, p) => sum + p, 0) / allQuizzesAndAssignments.length
-      : null;
+    const quizzesAverage =
+      allQuizzesAndAssignments.length > 0
+        ? allQuizzesAndAssignments.reduce((sum, p) => sum + p, 0) / allQuizzesAndAssignments.length
+        : null;
 
     // Identificar Parciales y Final
     const sortedExams = exams.sort((a, b) => {
@@ -243,8 +266,12 @@ export const gradingService = {
       return new Date(dateA).getTime() - new Date(dateB).getTime();
     });
 
-    const finalExams = sortedExams.filter(e => e.assessments?.title?.toLowerCase().includes('final'));
-    const regularExams = sortedExams.filter(e => !e.assessments?.title?.toLowerCase().includes('final'));
+    const finalExams = sortedExams.filter((e) =>
+      e.assessments?.title?.toLowerCase().includes('final')
+    );
+    const regularExams = sortedExams.filter(
+      (e) => !e.assessments?.title?.toLowerCase().includes('final')
+    );
 
     const exam1Score = regularExams[0]?.percentage || null;
     const exam2Score = regularExams[1]?.percentage || null;
@@ -252,12 +279,16 @@ export const gradingService = {
     const finalExamScore = finalExams[0]?.percentage || null;
 
     // Practicals
-    const practicalAttempts = validAttempts.filter(a =>
-      ['práctico', 'lab', 'taller'].some(term => a.assessments?.title?.toLowerCase().includes(term))
+    const practicalAttempts = validAttempts.filter((a) =>
+      ['práctico', 'lab', 'taller'].some((term) =>
+        a.assessments?.title?.toLowerCase().includes(term)
+      )
     );
-    const practicalsScore = practicalAttempts.length > 0
-      ? practicalAttempts.reduce((sum, a) => sum + (a.percentage || 0), 0) / practicalAttempts.length
-      : null;
+    const practicalsScore =
+      practicalAttempts.length > 0
+        ? practicalAttempts.reduce((sum, a) => sum + (a.percentage || 0), 0) /
+          practicalAttempts.length
+        : null;
 
     // Flashcards (sólo si tiene peso)
     let flashcardsScore: number | null = null;
@@ -272,28 +303,51 @@ export const gradingService = {
     // Cálculo final ponderado
     let finalGrade: number | null = null;
     const breakdown = {
-      quizzesContribution: 0, exam1Contribution: 0, exam2Contribution: 0,
-      exam3Contribution: 0, finalExamContribution: 0, practicalsContribution: 0,
-      flashcardsContribution: 0
+      quizzesContribution: 0,
+      exam1Contribution: 0,
+      exam2Contribution: 0,
+      exam3Contribution: 0,
+      finalExamContribution: 0,
+      practicalsContribution: 0,
+      flashcardsContribution: 0,
     };
 
-    if (quizzesAverage !== null || exam1Score !== null || exam2Score !== null || exam3Score !== null || finalExamScore !== null || practicalsScore !== null || flashcardsScore !== null) {
+    if (
+      quizzesAverage !== null ||
+      exam1Score !== null ||
+      exam2Score !== null ||
+      exam3Score !== null ||
+      finalExamScore !== null ||
+      practicalsScore !== null ||
+      flashcardsScore !== null
+    ) {
       breakdown.quizzesContribution = (quizzesAverage || 0) * (weights.quizzes_weight / 100);
       breakdown.exam1Contribution = (exam1Score || 0) * (weights.exam1_weight / 100);
       breakdown.exam2Contribution = (exam2Score || 0) * (weights.exam2_weight / 100);
       breakdown.exam3Contribution = (exam3Score || 0) * (weights.exam3_weight / 100);
       breakdown.finalExamContribution = (finalExamScore || 0) * (weights.final_exam_weight / 100);
       breakdown.practicalsContribution = (practicalsScore || 0) * (weights.practicals_weight / 100);
-      breakdown.flashcardsContribution = (flashcardsScore || 0) * ((weights.flashcards_weight || 0) / 100);
+      breakdown.flashcardsContribution =
+        (flashcardsScore || 0) * ((weights.flashcards_weight || 0) / 100);
 
       finalGrade = Object.values(breakdown).reduce((sum, v) => sum + v, 0);
       finalGrade = Math.round(finalGrade * 100) / 100;
     }
 
     return {
-      studentId, courseId, subjectId, quizzesAverage, exam1Score,
-      exam2Score, exam3Score, finalExamScore, practicalsScore,
-      flashcardsScore, finalGrade, weights, breakdown
+      studentId,
+      courseId,
+      subjectId,
+      quizzesAverage,
+      exam1Score,
+      exam2Score,
+      exam3Score,
+      finalExamScore,
+      practicalsScore,
+      flashcardsScore,
+      finalGrade,
+      weights,
+      breakdown,
     };
   },
 
@@ -303,18 +357,45 @@ export const gradingService = {
   async calculateFinalGrade(studentId: string, courseId: number): Promise<StudentFinalGrade> {
     // Versión individual optimizada (fetches necesarios para un solo estudiante)
     const subjectId = await this.getCourseSubjectId(courseId);
-    if (!subjectId) return this._calculateFinalGradeInternal(studentId, courseId, null, null, [], [], [], []);
+    if (!subjectId)
+      return this._calculateFinalGradeInternal(studentId, courseId, null, null, [], [], [], []);
 
     const weights = await this.getOrCreateGradingWeights(subjectId);
 
-    const { data: assessments } = await supabase.from('assessments').select('id, assessment_type, title').eq('course_id', courseId).eq('is_published', true);
-    const { data: attempts } = await supabase.from('assessment_attempts').select('*, assessments!inner(id, assessment_type, title)').eq('student_id', studentId).eq('assessments.course_id', courseId).in('status', ['submitted', 'graded']);
-    const { data: assignments } = await supabase.from('assignments').select('id, max_points').eq('course_id', courseId);
-    const { data: submissions } = await supabase.from('assignment_submissions').select('assignment_id, grade, assignments!inner(max_points)').eq('student_id', studentId).in('assignment_id', (assignments || []).map(a => a.id)).not('grade', 'is', null);
+    const { data: assessments } = await supabase
+      .from('assessments')
+      .select('id, assessment_type, title')
+      .eq('course_id', courseId)
+      .eq('is_published', true);
+    const { data: attempts } = await supabase
+      .from('assessment_attempts')
+      .select('*, assessments!inner(id, assessment_type, title)')
+      .eq('student_id', studentId)
+      .eq('assessments.course_id', courseId)
+      .in('status', ['submitted', 'graded']);
+    const { data: assignments } = await supabase
+      .from('assignments')
+      .select('id, max_points')
+      .eq('course_id', courseId);
+    const { data: submissions } = await supabase
+      .from('assignment_submissions')
+      .select('assignment_id, grade, assignments!inner(max_points)')
+      .eq('student_id', studentId)
+      .in(
+        'assignment_id',
+        (assignments || []).map((a) => a.id)
+      )
+      .not('grade', 'is', null);
 
     return this._calculateFinalGradeInternal(
-      studentId, courseId, subjectId, weights,
-      assessments || [], attempts || [], assignments || [], submissions || []
+      studentId,
+      courseId,
+      subjectId,
+      weights,
+      assessments || [],
+      attempts || [],
+      assignments || [],
+      submissions || []
     );
   },
 
@@ -335,37 +416,56 @@ export const gradingService = {
       .eq('status', 'active');
 
     if (enrollmentsError || !enrollments || enrollments.length === 0) return [];
-    const studentIds = enrollments.map(e => e.student_id);
+    const studentIds = enrollments.map((e) => e.student_id);
 
     // 3. Batch FETCH de todos los datos relevantes del curso para todos los estudiantes
     const [
       { data: assessments },
       { data: allAttempts },
       { data: assignments },
-      { data: allSubmissions }
+      { data: allSubmissions },
     ] = await Promise.all([
-      supabase.from('assessments').select('id, assessment_type, title').eq('course_id', courseId).eq('is_published', true),
-      supabase.from('assessment_attempts').select('*, assessments!inner(id, assessment_type, title)').in('student_id', studentIds).eq('assessments.course_id', courseId).in('status', ['submitted', 'graded']),
+      supabase
+        .from('assessments')
+        .select('id, assessment_type, title')
+        .eq('course_id', courseId)
+        .eq('is_published', true),
+      supabase
+        .from('assessment_attempts')
+        .select('*, assessments!inner(id, assessment_type, title)')
+        .in('student_id', studentIds)
+        .eq('assessments.course_id', courseId)
+        .in('status', ['submitted', 'graded']),
       supabase.from('assignments').select('id, max_points').eq('course_id', courseId),
-      supabase.from('assignment_submissions').select('student_id, assignment_id, grade, assignments!inner(max_points)').in('student_id', studentIds).in('assignment_id', (await supabase.from('assignments').select('id').eq('course_id', courseId)).data?.map(a => a.id) || []).not('grade', 'is', null)
+      supabase
+        .from('assignment_submissions')
+        .select('student_id, assignment_id, grade, assignments!inner(max_points)')
+        .in('student_id', studentIds)
+        .in(
+          'assignment_id',
+          (await supabase.from('assignments').select('id').eq('course_id', courseId)).data?.map(
+            (a) => a.id
+          ) || []
+        )
+        .not('grade', 'is', null),
     ]);
 
     // 4. Organizar datos por estudiante en memoria
     const attemptsMap = new Map<string, any[]>();
-    allAttempts?.forEach(a => {
+    allAttempts?.forEach((a) => {
       if (!attemptsMap.has(a.student_id)) attemptsMap.set(a.student_id, []);
       attemptsMap.get(a.student_id)?.push(a);
     });
 
     const submissionsMap = new Map<string, any[]>();
-    allSubmissions?.forEach(s => {
+    allSubmissions?.forEach((s) => {
       if (!submissionsMap.has(s.student_id)) submissionsMap.set(s.student_id, []);
       submissionsMap.get(s.student_id)?.push(s);
     });
 
     // 5. Procesar cada estudiante en paralelo (uso de memoria vs red)
     const finalGrades = await Promise.all(
-      studentIds.map(studentId =>
+      studentIds.map((studentId) =>
         this._calculateFinalGradeInternal(
           studentId,
           courseId,
@@ -380,6 +480,5 @@ export const gradingService = {
     );
 
     return finalGrades;
-  }
+  },
 };
-

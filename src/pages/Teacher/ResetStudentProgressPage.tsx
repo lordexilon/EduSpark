@@ -4,11 +4,24 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { courseService, Course } from '@/services/teacherCourses';
-import { courseEnrollmentService, CourseEnrollment, studentProgressResetService, ResetProgressResult, ResetMultipleProgressResult } from '@/services/academicService';
+import {
+  courseEnrollmentService,
+  CourseEnrollment,
+  studentProgressResetService,
+  ResetProgressResult,
+  ResetMultipleProgressResult,
+} from '@/services/academicService';
 import { useAuth } from '@/hooks/useAuth';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
-import { IconRefreshCw, IconAlertTriangle, IconCheckCircle, IconX, IconUsers, IconTrash } from '@/components/Common/Icons';
+import {
+  IconRefreshCw,
+  IconAlertTriangle,
+  IconCheckCircle,
+  IconX,
+  IconUsers,
+  IconTrash,
+} from '@/components/Common/Icons';
 
 export const ResetStudentProgressPage: React.FC = () => {
   const { user } = useAuth();
@@ -19,7 +32,10 @@ export const ResetStudentProgressPage: React.FC = () => {
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [resetting, setResetting] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: 'success' | 'error' | 'info';
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     loadCourses();
@@ -39,11 +55,11 @@ export const ResetStudentProgressPage: React.FC = () => {
       setLoading(true);
       const userRole = user?.role?.name;
       const isAdminOrCoordinator = userRole === 'admin' || userRole === 'coordinator';
-      
+
       const coursesData = isAdminOrCoordinator
         ? await courseService.getAllCourses()
         : await courseService.getMyCourses(user!.id);
-      
+
       setCourses(coursesData);
       if (coursesData.length > 0 && !selectedCourseId) {
         setSelectedCourseId(coursesData[0].id);
@@ -58,12 +74,12 @@ export const ResetStudentProgressPage: React.FC = () => {
 
   const loadStudents = async () => {
     if (!selectedCourseId) return;
-    
+
     try {
       setLoading(true);
       const studentsData = await courseEnrollmentService.getCourseStudents(selectedCourseId);
       // Filtrar solo estudiantes activos
-      const activeStudents = studentsData.filter(s => s.status === 'active');
+      const activeStudents = studentsData.filter((s) => s.status === 'active');
       setStudents(activeStudents);
       setSelectedStudentIds(new Set());
     } catch (error) {
@@ -88,46 +104,48 @@ export const ResetStudentProgressPage: React.FC = () => {
     if (selectedStudentIds.size === students.length) {
       setSelectedStudentIds(new Set());
     } else {
-      setSelectedStudentIds(new Set(students.map(s => s.student_id)));
+      setSelectedStudentIds(new Set(students.map((s) => s.student_id)));
     }
   };
 
   const handleResetStudent = async (studentId: string) => {
     if (!selectedCourseId) return;
-    
-    if (!confirm(`¿Estás seguro de que deseas resetear el progreso de este estudiante?\n\nEsta acción eliminará:\n- Progreso de unidades\n- Progreso de sesiones\n- Progreso de flashcards\n- Intentos de quizzes/trivias\n- Entregas de tareas\n- Conversaciones con el Tutor AI\n- Mensajes del Tutor AI\n- Interacciones con el Tutor AI\n- Métricas de rendimiento del Tutor AI\n\nEsta acción NO se puede deshacer.`)) {
+
+    if (
+      !confirm(
+        `¿Estás seguro de que deseas resetear el progreso de este estudiante?\n\nEsta acción eliminará:\n- Progreso de unidades\n- Progreso de sesiones\n- Progreso de flashcards\n- Intentos de quizzes/trivias\n- Entregas de tareas\n- Conversaciones con el Tutor AI\n- Mensajes del Tutor AI\n- Interacciones con el Tutor AI\n- Métricas de rendimiento del Tutor AI\n\nEsta acción NO se puede deshacer.`
+      )
+    ) {
       return;
     }
 
     try {
       setResetting(true);
       setMessage(null);
-      
-      const result: ResetProgressResult = await studentProgressResetService.resetStudentCourseProgress(
-        studentId,
-        selectedCourseId
-      );
+
+      const result: ResetProgressResult =
+        await studentProgressResetService.resetStudentCourseProgress(studentId, selectedCourseId);
 
       if (result.success) {
-        const deleted = result.deleted || {};
+        const deleted = (result.deleted || {}) as Record<string, number>;
         const tutorCount = (deleted.tutor_conversations || 0) + (deleted.tutor_interactions || 0);
         setMessage({
           type: 'success',
-          text: `Progreso reseteado exitosamente. Eliminados: ${deleted.unit_progress || 0} unidades, ${deleted.session_progress || 0} sesiones, ${deleted.flashcard_progress || 0} flashcards, ${deleted.assessment_attempts || 0} intentos de quizzes, ${deleted.assignment_submissions || 0} entregas de tareas, ${tutorCount} registros del Tutor AI.`
+          text: `Progreso reseteado exitosamente. Eliminados: ${deleted.unit_progress || 0} unidades, ${deleted.session_progress || 0} sesiones, ${deleted.flashcard_progress || 0} flashcards, ${deleted.assessment_attempts || 0} intentos de quizzes, ${deleted.assignment_submissions || 0} entregas de tareas, ${tutorCount} registros del Tutor AI.`,
         });
         // Recargar estudiantes para actualizar datos
         await loadStudents();
       } else {
         setMessage({
           type: 'error',
-          text: result.error || 'Error al resetear el progreso del estudiante'
+          text: result.error || 'Error al resetear el progreso del estudiante',
         });
       }
     } catch (error: any) {
       console.error('Error resetting student progress:', error);
       setMessage({
         type: 'error',
-        text: error.message || 'Error al resetear el progreso del estudiante'
+        text: error.message || 'Error al resetear el progreso del estudiante',
       });
     } finally {
       setResetting(false);
@@ -136,40 +154,45 @@ export const ResetStudentProgressPage: React.FC = () => {
 
   const handleResetSelected = async () => {
     if (!selectedCourseId || selectedStudentIds.size === 0) return;
-    
+
     const count = selectedStudentIds.size;
-    if (!confirm(`¿Estás seguro de que deseas resetear el progreso de ${count} estudiante${count > 1 ? 's' : ''}?\n\nEsta acción eliminará todo el progreso de los estudiantes seleccionados y NO se puede deshacer.`)) {
+    if (
+      !confirm(
+        `¿Estás seguro de que deseas resetear el progreso de ${count} estudiante${count > 1 ? 's' : ''}?\n\nEsta acción eliminará todo el progreso de los estudiantes seleccionados y NO se puede deshacer.`
+      )
+    ) {
       return;
     }
 
     try {
       setResetting(true);
       setMessage(null);
-      
+
       const studentIdsArray = Array.from(selectedStudentIds);
-      const result: ResetMultipleProgressResult = await studentProgressResetService.resetMultipleStudentsProgress(
-        studentIdsArray,
-        selectedCourseId
-      );
+      const result: ResetMultipleProgressResult =
+        await studentProgressResetService.resetMultipleStudentsProgress(
+          studentIdsArray,
+          selectedCourseId
+        );
 
       if (result.success) {
         setMessage({
           type: 'success',
-          text: `Progreso reseteado para ${result.successful_resets} de ${result.total_students} estudiantes. ${result.failed_resets > 0 ? `${result.failed_resets} fallaron.` : ''}`
+          text: `Progreso reseteado para ${result.successful_resets} de ${result.total_students} estudiantes. ${result.failed_resets > 0 ? `${result.failed_resets} fallaron.` : ''}`,
         });
         // Recargar estudiantes
         await loadStudents();
       } else {
         setMessage({
           type: 'error',
-          text: 'Error al resetear el progreso de los estudiantes'
+          text: 'Error al resetear el progreso de los estudiantes',
         });
       }
     } catch (error: any) {
       console.error('Error resetting multiple students progress:', error);
       setMessage({
         type: 'error',
-        text: error.message || 'Error al resetear el progreso de los estudiantes'
+        text: error.message || 'Error al resetear el progreso de los estudiantes',
       });
     } finally {
       setResetting(false);
@@ -178,37 +201,40 @@ export const ResetStudentProgressPage: React.FC = () => {
 
   const handleResetAll = async () => {
     if (!selectedCourseId) return;
-    
-    if (!confirm(`¿Estás seguro de que deseas resetear el progreso de TODOS los estudiantes en este curso?\n\nEsta acción eliminará todo el progreso de ${students.length} estudiantes y NO se puede deshacer.`)) {
+
+    if (
+      !confirm(
+        `¿Estás seguro de que deseas resetear el progreso de TODOS los estudiantes en este curso?\n\nEsta acción eliminará todo el progreso de ${students.length} estudiantes y NO se puede deshacer.`
+      )
+    ) {
       return;
     }
 
     try {
       setResetting(true);
       setMessage(null);
-      
-      const result: ResetMultipleProgressResult = await studentProgressResetService.resetAllStudentsProgress(
-        selectedCourseId
-      );
+
+      const result: ResetMultipleProgressResult =
+        await studentProgressResetService.resetAllStudentsProgress(selectedCourseId);
 
       if (result.success) {
         setMessage({
           type: 'success',
-          text: `Progreso reseteado para ${result.successful_resets} de ${result.total_students} estudiantes. ${result.failed_resets > 0 ? `${result.failed_resets} fallaron.` : ''}`
+          text: `Progreso reseteado para ${result.successful_resets} de ${result.total_students} estudiantes. ${result.failed_resets > 0 ? `${result.failed_resets} fallaron.` : ''}`,
         });
         // Recargar estudiantes
         await loadStudents();
       } else {
         setMessage({
           type: 'error',
-          text: 'Error al resetear el progreso de todos los estudiantes'
+          text: 'Error al resetear el progreso de todos los estudiantes',
         });
       }
     } catch (error: any) {
       console.error('Error resetting all students progress:', error);
       setMessage({
         type: 'error',
-        text: error.message || 'Error al resetear el progreso de todos los estudiantes'
+        text: error.message || 'Error al resetear el progreso de todos los estudiantes',
       });
     } finally {
       setResetting(false);
@@ -236,11 +262,15 @@ export const ResetStudentProgressPage: React.FC = () => {
 
       {/* Mensaje de resultado */}
       {message && (
-        <Card className={`p-4 ${
-          message.type === 'success' ? 'bg-green-50 border-green-200' :
-          message.type === 'error' ? 'bg-red-50 border-red-200' :
-          'bg-blue-50 border-blue-200'
-        }`}>
+        <Card
+          className={`p-4 ${
+            message.type === 'success'
+              ? 'bg-green-50 border-green-200'
+              : message.type === 'error'
+                ? 'bg-red-50 border-red-200'
+                : 'bg-blue-50 border-blue-200'
+          }`}
+        >
           <div className="flex items-center gap-2">
             {message.type === 'success' ? (
               <IconCheckCircle className="w-5 h-5 text-green-600" />
@@ -249,17 +279,18 @@ export const ResetStudentProgressPage: React.FC = () => {
             ) : (
               <IconAlertTriangle className="w-5 h-5 text-blue-600" />
             )}
-            <p className={`text-sm ${
-              message.type === 'success' ? 'text-green-800' :
-              message.type === 'error' ? 'text-red-800' :
-              'text-blue-800'
-            }`}>
+            <p
+              className={`text-sm ${
+                message.type === 'success'
+                  ? 'text-green-800'
+                  : message.type === 'error'
+                    ? 'text-red-800'
+                    : 'text-blue-800'
+              }`}
+            >
               {message.text}
             </p>
-            <button
-              onClick={() => setMessage(null)}
-              className="ml-auto"
-            >
+            <button onClick={() => setMessage(null)} className="ml-auto">
               <IconX className="w-4 h-4 text-gray-400 hover:text-gray-600" />
             </button>
           </div>
@@ -294,9 +325,7 @@ export const ResetStudentProgressPage: React.FC = () => {
       {/* Selector de curso */}
       <Card>
         <div className="p-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Seleccionar Curso
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Seleccionar Curso</label>
           <select
             value={selectedCourseId || ''}
             onChange={(e) => setSelectedCourseId(parseInt(e.target.value))}
@@ -402,7 +431,10 @@ export const ResetStudentProgressPage: React.FC = () => {
                             <span className="text-gray-600">{enrollment.student_email}</span>
                           )}
                           <span>Progreso: {enrollment.completion_percentage.toFixed(1)}%</span>
-                          <span>Tiempo: {Math.round(enrollment.time_spent_minutes / 60)}h {enrollment.time_spent_minutes % 60}m</span>
+                          <span>
+                            Tiempo: {Math.round(enrollment.time_spent_minutes / 60)}h{' '}
+                            {enrollment.time_spent_minutes % 60}m
+                          </span>
                           {enrollment.final_grade !== null && (
                             <span>Calificación: {enrollment.final_grade.toFixed(1)}</span>
                           )}
@@ -430,4 +462,3 @@ export const ResetStudentProgressPage: React.FC = () => {
 };
 
 export default ResetStudentProgressPage;
-

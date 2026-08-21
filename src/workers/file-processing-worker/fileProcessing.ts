@@ -92,4 +92,3 @@ export interface CreateJobResponse {
   jobId?: string;
   error?: string;
 }
-

@@ -23,7 +23,9 @@ export function formatDate(date: Date | string | null | undefined): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(d.getTime())) return 'Fecha inválida';
   return d.toLocaleDateString(LOCALE_ES_PY, {
-    day: '2-digit', month: 'short', year: 'numeric',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
     timeZone: TZ,
   });
 }
@@ -34,7 +36,8 @@ export function formatDateShort(date: Date | string | null | undefined): string 
   const d = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(d.getTime())) return '—';
   return d.toLocaleDateString(LOCALE_ES_PY, {
-    day: '2-digit', month: 'short',
+    day: '2-digit',
+    month: 'short',
     timeZone: TZ,
   });
 }
@@ -45,7 +48,9 @@ export function formatDateLong(date: Date | string | null | undefined): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(d.getTime())) return 'Fecha inválida';
   return d.toLocaleDateString(LOCALE_ES_PY, {
-    day: 'numeric', month: 'long', year: 'numeric',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
     timeZone: TZ,
   });
 }
@@ -58,7 +63,8 @@ export function formatTime(date: Date | string | null | undefined): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(d.getTime())) return '—';
   return d.toLocaleTimeString(LOCALE_ES_PY, {
-    hour: '2-digit', minute: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
     timeZone: TZ,
   });
 }
@@ -69,8 +75,10 @@ export function formatDateTime(date: Date | string | null | undefined): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(d.getTime())) return '—';
   return d.toLocaleString(LOCALE_ES_PY, {
-    day: '2-digit', month: 'short',
-    hour: '2-digit', minute: '2-digit',
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
     timeZone: TZ,
   });
 }
@@ -104,7 +112,7 @@ export function toParaguayMidnight(date: Date | string): Date {
  */
 export function isNowInRange(
   from: string | null | undefined,
-  until: string | null | undefined,
+  until: string | null | undefined
 ): boolean {
   const now = new Date();
   if (from && until) {
@@ -120,6 +128,6 @@ export function isNowInRange(
 /** Obtiene el offset en ms de America/Asuncion para una fecha dada (maneja DST). */
 function getParaguayOffsetMs(date: Date): number {
   const utcStr = date.toLocaleString('en-US', { timeZone: 'UTC' });
-  const pyStr  = date.toLocaleString('en-US', { timeZone: TZ });
+  const pyStr = date.toLocaleString('en-US', { timeZone: TZ });
   return new Date(pyStr).getTime() - new Date(utcStr).getTime();
 }

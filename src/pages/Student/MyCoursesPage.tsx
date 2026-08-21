@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { getAdminCourseOverview, getEnrollmentsByStudent, AdminCourseOverview } from '@/services/adminCourses';
+import {
+  getAdminCourseOverview,
+  getEnrollmentsByStudent,
+  AdminCourseOverview,
+} from '@/services/adminCourses';
 import ProgressIndicator from '@/components/Common/ProgressIndicator';
 import Card from '@/components/Common/Card';
 
@@ -9,7 +13,7 @@ const MyCoursesPage: React.FC = () => {
   const { user } = useAuth();
   const [overview, setOverview] = useState<AdminCourseOverview[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string|undefined>();
+  const [error, setError] = useState<string | undefined>();
 
   const userId = user?.id as string | undefined;
   const [enrollments, setEnrollments] = useState<any[]>([]);
@@ -24,20 +28,22 @@ const MyCoursesPage: React.FC = () => {
           getEnrollmentsByStudent(userId),
           getAdminCourseOverview(),
         ]);
-        
+
         // Guardar enrollments para obtener progreso
         setEnrollments(enrs || []);
-        
-        const enrolledCourseIds = new Set<number>(enrs.map((e:any)=> e.course_id));
-        const filtered = courses.filter(c => enrolledCourseIds.has(c.course_id));
+
+        const enrolledCourseIds = new Set<number>(enrs.map((e: any) => e.course_id));
+        const filtered = courses.filter((c) => enrolledCourseIds.has(c.course_id));
         if (mounted) setOverview(filtered);
-      } catch (e:any) {
+      } catch (e: any) {
         setError(e.message || 'Error cargando cursos');
       } finally {
         if (mounted) setLoading(false);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [userId]);
 
   // Función helper para obtener el progreso de un curso
@@ -58,7 +64,7 @@ const MyCoursesPage: React.FC = () => {
               <p className="text-gray-500">No estás inscrito en ningún curso aún.</p>
             </div>
           )}
-          {overview.map(c => {
+          {overview.map((c) => {
             const progress = getCourseProgress(c.course_id);
             return (
               <Card key={c.course_id} className="hover:shadow-md transition-shadow">
@@ -75,7 +81,7 @@ const MyCoursesPage: React.FC = () => {
                       )}
                       <span className="text-gray-500">{c.module_count} módulos</span>
                     </div>
-                    
+
                     {/* Indicador de Progreso */}
                     <ProgressIndicator
                       value={progress}
@@ -86,7 +92,7 @@ const MyCoursesPage: React.FC = () => {
                       className="mb-4"
                     />
                   </div>
-                  
+
                   <div className="flex gap-2 pt-4 border-t border-gray-200">
                     <Link
                       to={`/courses/${c.course_id}`}
@@ -112,5 +118,3 @@ const MyCoursesPage: React.FC = () => {
 };
 
 export default MyCoursesPage;
-
-

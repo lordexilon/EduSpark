@@ -4,7 +4,17 @@
 // =====================================================
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { X, Loader2, AlertCircle, Eye, FileText, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
+import {
+  X,
+  Loader2,
+  AlertCircle,
+  Eye,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Document, Page, pdfjs } from 'react-pdf';
 
@@ -28,7 +38,7 @@ const SecurePDFViewer: React.FC<SecurePDFViewerProps> = ({
   title,
   onClose,
   isOpen,
-  bucket = 'materials'
+  bucket = 'materials',
 }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState<number>(1);
@@ -121,7 +131,8 @@ const SecurePDFViewer: React.FC<SecurePDFViewerProps> = ({
     if (errorMsg.includes('403') || errorMsg.includes('Forbidden')) {
       userMessage = 'No tienes permiso para ver este documento (403).';
     } else if (errorMsg.includes('500') || errorMsg.includes('Internal Server Error')) {
-      userMessage = 'Error interno del servidor al procesar el PDF (500). Por favor intente más tarde.';
+      userMessage =
+        'Error interno del servidor al procesar el PDF (500). Por favor intente más tarde.';
     } else if (errorMsg.includes('404') || errorMsg.includes('Not Found')) {
       userMessage = 'Documento no encontrado (404).';
     } else {
@@ -136,11 +147,11 @@ const SecurePDFViewer: React.FC<SecurePDFViewerProps> = ({
   // CONTROLES
   // ==================================================
   const changePage = (offset: number) => {
-    setPageNumber(prev => Math.min(Math.max(1, prev + offset), numPages || 1));
+    setPageNumber((prev) => Math.min(Math.max(1, prev + offset), numPages || 1));
   };
 
   const changeScale = (delta: number) => {
-    setScale(prev => Math.min(Math.max(0.5, prev + delta), 3.0));
+    setScale((prev) => Math.min(Math.max(0.5, prev + delta), 3.0));
   };
 
   // ==================================================
@@ -175,7 +186,6 @@ const SecurePDFViewer: React.FC<SecurePDFViewerProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <div className="bg-white w-[95%] max-w-6xl h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden">
-
         {/* HEADER */}
         <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
           <div className="flex items-center gap-3">
@@ -190,27 +200,39 @@ const SecurePDFViewer: React.FC<SecurePDFViewerProps> = ({
           <div className="flex items-center gap-4">
             {/* Controles de Zoom */}
             <div className="flex items-center bg-white border rounded-lg overflow-hidden">
-              <button onClick={() => changeScale(-0.25)} className="p-2 hover:bg-gray-100" title="Reducir">
+              <button
+                onClick={() => changeScale(-0.25)}
+                className="p-2 hover:bg-gray-100"
+                title="Reducir"
+              >
                 <ZoomOut size={18} />
               </button>
               <span className="px-2 text-sm font-medium w-12 text-center">
                 {Math.round(scale * 100)}%
               </span>
-              <button onClick={() => changeScale(0.25)} className="p-2 hover:bg-gray-100" title="Aumentar">
+              <button
+                onClick={() => changeScale(0.25)}
+                className="p-2 hover:bg-gray-100"
+                title="Aumentar"
+              >
                 <ZoomIn size={18} />
               </button>
             </div>
 
-            <button onClick={onClose} className="p-2 hover:bg-red-100 text-gray-500 hover:text-red-600 rounded-lg transition-colors">
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-red-100 text-gray-500 hover:text-red-600 rounded-lg transition-colors"
+            >
               <X size={24} />
             </button>
           </div>
         </div>
 
         {/* CONTENIDO PDF */}
-        <div className="flex-1 bg-gray-100 overflow-auto flex justify-center p-8 relative select-none"
-          onContextMenu={(e) => e.preventDefault()}>
-
+        <div
+          className="flex-1 bg-gray-100 overflow-auto flex justify-center p-8 relative select-none"
+          onContextMenu={(e) => e.preventDefault()}
+        >
           {loading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/50 z-10">
               <Loader2 className="animate-spin text-blue-600 mb-2" size={48} />
@@ -222,7 +244,10 @@ const SecurePDFViewer: React.FC<SecurePDFViewerProps> = ({
             <div className="flex flex-col items-center justify-center text-red-600">
               <AlertCircle size={48} className="mb-4" />
               <p className="text-lg font-medium">{error}</p>
-              <button onClick={getSecureUrl} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              <button
+                onClick={getSecureUrl}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
                 Reintentar
               </button>
             </div>

@@ -1,7 +1,4 @@
-import type {
-  PedagogicalSettings,
-  StudentProfile
-} from './pedagogical';
+import type { PedagogicalSettings, StudentProfile } from './pedagogical';
 
 export interface ChatMessage {
   id: string;
@@ -10,7 +7,8 @@ export interface ChatMessage {
   audioUrl?: string;
   timestamp: Date;
   metadata?: Record<string, any>;
-}export type AgentMessage = ChatMessage;
+}
+export type AgentMessage = ChatMessage;
 
 export interface Conversation {
   id: string;
@@ -174,7 +172,6 @@ export interface AgentSystemConfig {
 // =====================================================
 // API Response Types
 // =====================================================
-
 
 export interface SupabaseResponse<T> {
   data: T | null;

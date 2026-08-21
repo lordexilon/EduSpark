@@ -9,7 +9,21 @@ import { careerService, Career } from '@/services/academicService';
 import { subjectService, Subject } from '@/services/academicService';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
-import { IconPlus, IconEdit, IconCheck, IconX, IconUserGroup, IconUpload, IconSearch, IconUsers, IconTrash, IconStar, IconGraduationCap, IconBookOpen, IconSettings } from '@/components/Common/Icons';
+import {
+  IconPlus,
+  IconEdit,
+  IconCheck,
+  IconX,
+  IconUserGroup,
+  IconUpload,
+  IconSearch,
+  IconUsers,
+  IconTrash,
+  IconStar,
+  IconGraduationCap,
+  IconBookOpen,
+  IconSettings,
+} from '@/components/Common/Icons';
 
 const InstitutionManagementPage: React.FC = () => {
   const { user } = useAuth();
@@ -24,7 +38,7 @@ const InstitutionManagementPage: React.FC = () => {
     website: '',
     email: '',
     address: '',
-    slug: ''
+    slug: '',
   });
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -32,30 +46,35 @@ const InstitutionManagementPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Estados para gestión de usuarios
-  const [selectedInstitutionForUsers, setSelectedInstitutionForUsers] = useState<Institution | null>(null);
-  const [institutionUsers, setInstitutionUsers] = useState<Array<{
-    user_id: string;
-    is_primary: boolean;
-    position?: string;
-    joined_at: string;
-    user?: {
+  const [selectedInstitutionForUsers, setSelectedInstitutionForUsers] =
+    useState<Institution | null>(null);
+  const [institutionUsers, setInstitutionUsers] = useState<
+    Array<{
+      user_id: string;
+      is_primary: boolean;
+      position?: string;
+      joined_at: string;
+      user?: {
+        id: string;
+        email: string;
+        first_name: string;
+        last_name: string;
+        role?: { id: number; name: string };
+      };
+    }>
+  >([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<
+    Array<{
       id: string;
       email: string;
       first_name: string;
       last_name: string;
       role?: { id: number; name: string };
-    };
-  }>>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
-  const [showUserModal, setShowUserModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Array<{
-    id: string;
-    email: string;
-    first_name: string;
-    last_name: string;
-    role?: { id: number; name: string };
-  }>>([]);
+    }>
+  >([]);
   const [searching, setSearching] = useState(false);
   const [assigningUser, setAssigningUser] = useState<string | null>(null);
   const [positionInput, setPositionInput] = useState<Record<string, string>>({});
@@ -67,7 +86,8 @@ const InstitutionManagementPage: React.FC = () => {
 
   // Estados para gestión de recursos
   const [showResourcesModal, setShowResourcesModal] = useState(false);
-  const [selectedInstitutionForResources, setSelectedInstitutionForResources] = useState<Institution | null>(null);
+  const [selectedInstitutionForResources, setSelectedInstitutionForResources] =
+    useState<Institution | null>(null);
   const [availableCareers, setAvailableCareers] = useState<Career[]>([]);
   const [availableSubjects, setAvailableSubjects] = useState<Subject[]>([]);
   const [assignedCareers, setAssignedCareers] = useState<number[]>([]);
@@ -83,7 +103,11 @@ const InstitutionManagementPage: React.FC = () => {
       setLoading(true);
 
       // Si es admin-campus, coordinator o supervisor, solo cargar su institución
-      if (user?.role?.name === 'admin-campus' || user?.role?.name === 'coordinator' || user?.role?.name === 'supervisor') {
+      if (
+        user?.role?.name === 'admin-campus' ||
+        user?.role?.name === 'coordinator' ||
+        user?.role?.name === 'supervisor'
+      ) {
         if (user?.id) {
           const userInstitution = await institutionService.getUserInstitution(user.id);
           if (userInstitution) {
@@ -162,8 +186,13 @@ const InstitutionManagementPage: React.FC = () => {
     try {
       // Prevenir que coordinator o supervisor creen nuevas instituciones
       // Admin-campus puede editar su institución pero no crear nuevas
-      if (!selectedInstitution && (user?.role?.name === 'coordinator' || user?.role?.name === 'supervisor')) {
-        alert('No tienes permisos para crear nuevas instituciones. Solo puedes editar tu institución.');
+      if (
+        !selectedInstitution &&
+        (user?.role?.name === 'coordinator' || user?.role?.name === 'supervisor')
+      ) {
+        alert(
+          'No tienes permisos para crear nuevas instituciones. Solo puedes editar tu institución.'
+        );
         return;
       }
 
@@ -173,7 +202,9 @@ const InstitutionManagementPage: React.FC = () => {
         if ((user?.role?.name === 'coordinator' || user?.role?.name === 'supervisor') && user?.id) {
           const userInstitution = await institutionService.getUserInstitution(user.id);
           if (!userInstitution || userInstitution.id !== selectedInstitution.id) {
-            alert('No tienes permisos para editar esta institución. Solo puedes editar tu propia institución.');
+            alert(
+              'No tienes permisos para editar esta institución. Solo puedes editar tu propia institución.'
+            );
             return;
           }
         }
@@ -181,7 +212,9 @@ const InstitutionManagementPage: React.FC = () => {
         if (user?.role?.name === 'admin-campus' && user?.id) {
           const userInstitution = await institutionService.getUserInstitution(user.id);
           if (!userInstitution || userInstitution.id !== selectedInstitution.id) {
-            alert('No tienes permisos para editar esta institución. Solo puedes editar tu propia institución.');
+            alert(
+              'No tienes permisos para editar esta institución. Solo puedes editar tu propia institución.'
+            );
             return;
           }
         }
@@ -197,7 +230,7 @@ const InstitutionManagementPage: React.FC = () => {
 
         const newInstitution = await institutionService.createInstitution({
           ...formData,
-          is_active: true
+          is_active: true,
         });
 
         // Si hay un logo pendiente, subirlo ahora con el ID real
@@ -206,9 +239,14 @@ const InstitutionManagementPage: React.FC = () => {
           try {
             const result = await uploadInstitutionLogo(newInstitution.id, pendingLogoFile);
             if (result.success && result.url) {
-              await institutionService.updateInstitution(newInstitution.id, { logo_url: result.url });
+              await institutionService.updateInstitution(newInstitution.id, {
+                logo_url: result.url,
+              });
             } else {
-              console.warn('No se pudo subir el logo después de crear la institución:', result.error);
+              console.warn(
+                'No se pudo subir el logo después de crear la institución:',
+                result.error
+              );
             }
           } catch (error: any) {
             console.error('Error subiendo logo después de crear institución:', error);
@@ -229,7 +267,7 @@ const InstitutionManagementPage: React.FC = () => {
         website: '',
         email: '',
         address: '',
-        slug: ''
+        slug: '',
       });
       setLogoPreview(null);
       setPendingLogoFile(null);
@@ -249,7 +287,7 @@ const InstitutionManagementPage: React.FC = () => {
       website: institution.website || '',
       email: institution.email || '',
       address: institution.address || '',
-      slug: institution.slug || ''
+      slug: institution.slug || '',
     });
     setLogoPreview(institution.logo_url || null);
     setShowForm(true);
@@ -273,8 +311,8 @@ const InstitutionManagementPage: React.FC = () => {
       // Obtener todos los estudiantes (RLS filtrará por institución)
       const allStudents = await studentService.getAllStudents();
       // Filtrar estudiantes que están asignados a esta institución
-      const institutionUserIds = institutionUsers.map(u => u.user_id);
-      const students = allStudents.filter(s => institutionUserIds.includes(s.id));
+      const institutionUserIds = institutionUsers.map((u) => u.user_id);
+      const students = allStudents.filter((s) => institutionUserIds.includes(s.id));
       setInstitutionStudents(students);
     } catch (error: any) {
       console.error('Error cargando estudiantes de la institución:', error);
@@ -303,7 +341,7 @@ const InstitutionManagementPage: React.FC = () => {
       // Cargar todas las carreras y materias (admin puede ver todas)
       const [careersData, subjectsData] = await Promise.all([
         careerService.getAllCareers().catch(() => []),
-        subjectService.getAllSubjects().catch(() => [])
+        subjectService.getAllSubjects().catch(() => []),
       ]);
 
       setAvailableCareers(careersData);
@@ -311,8 +349,10 @@ const InstitutionManagementPage: React.FC = () => {
 
       // Obtener recursos asignados a la institución usando RPC
       try {
-        const { data: careersAssigned, error: careersError } = await supabase
-          .rpc('get_careers_for_institution', { p_institution_id: institutionId });
+        const { data: careersAssigned, error: careersError } = await supabase.rpc(
+          'get_careers_for_institution',
+          { p_institution_id: institutionId }
+        );
 
         if (!careersError && careersAssigned) {
           const assigned = careersAssigned
@@ -321,8 +361,10 @@ const InstitutionManagementPage: React.FC = () => {
           setAssignedCareers(assigned);
         }
 
-        const { data: subjectsAssigned, error: subjectsError } = await supabase
-          .rpc('get_subjects_for_institution', { p_institution_id: institutionId });
+        const { data: subjectsAssigned, error: subjectsError } = await supabase.rpc(
+          'get_subjects_for_institution',
+          { p_institution_id: institutionId }
+        );
 
         if (!subjectsError && subjectsAssigned) {
           const assigned = subjectsAssigned
@@ -333,10 +375,14 @@ const InstitutionManagementPage: React.FC = () => {
       } catch (rpcError) {
         console.warn('Error obteniendo recursos asignados (RPC no disponible):', rpcError);
         // Si RPC no está disponible, usar institution_id directo
-        const careersWithInstitution = careersData.filter(c => (c as any).institution_id === institutionId);
-        const subjectsWithInstitution = subjectsData.filter(s => (s as any).institution_id === institutionId);
-        setAssignedCareers(careersWithInstitution.map(c => c.id));
-        setAssignedSubjects(subjectsWithInstitution.map(s => s.id));
+        const careersWithInstitution = careersData.filter(
+          (c) => (c as any).institution_id === institutionId
+        );
+        const subjectsWithInstitution = subjectsData.filter(
+          (s) => (s as any).institution_id === institutionId
+        );
+        setAssignedCareers(careersWithInstitution.map((c) => c.id));
+        setAssignedSubjects(subjectsWithInstitution.map((s) => s.id));
       }
     } catch (error: any) {
       console.error('Error cargando recursos:', error);
@@ -350,11 +396,10 @@ const InstitutionManagementPage: React.FC = () => {
     if (!selectedInstitutionForResources) return;
 
     try {
-      const { error } = await supabase
-        .rpc('assign_career_to_institution', {
-          p_career_id: careerId,
-          p_institution_id: selectedInstitutionForResources.id
-        });
+      const { error } = await supabase.rpc('assign_career_to_institution', {
+        p_career_id: careerId,
+        p_institution_id: selectedInstitutionForResources.id,
+      });
 
       if (error) throw error;
 
@@ -370,11 +415,10 @@ const InstitutionManagementPage: React.FC = () => {
     if (!selectedInstitutionForResources) return;
 
     try {
-      const { error } = await supabase
-        .rpc('assign_subject_to_institution', {
-          p_subject_id: subjectId,
-          p_institution_id: selectedInstitutionForResources.id
-        });
+      const { error } = await supabase.rpc('assign_subject_to_institution', {
+        p_subject_id: subjectId,
+        p_institution_id: selectedInstitutionForResources.id,
+      });
 
       if (error) throw error;
 
@@ -406,8 +450,8 @@ const InstitutionManagementPage: React.FC = () => {
         setSearching(true);
         const results = await institutionService.searchUsers('', 20);
         // Filtrar usuarios que ya están asignados
-        const assignedUserIds = new Set(institutionUsers.map(u => u.user_id));
-        const filteredResults = results.filter(u => !assignedUserIds.has(u.id));
+        const assignedUserIds = new Set(institutionUsers.map((u) => u.user_id));
+        const filteredResults = results.filter((u) => !assignedUserIds.has(u.id));
         setSearchResults(filteredResults);
       } catch (error: any) {
         console.error('Error cargando usuarios:', error);
@@ -428,8 +472,8 @@ const InstitutionManagementPage: React.FC = () => {
       setSearching(true);
       const results = await institutionService.searchUsers(query);
       // Filtrar usuarios que ya están asignados
-      const assignedUserIds = new Set(institutionUsers.map(u => u.user_id));
-      const filteredResults = results.filter(u => !assignedUserIds.has(u.id));
+      const assignedUserIds = new Set(institutionUsers.map((u) => u.user_id));
+      const filteredResults = results.filter((u) => !assignedUserIds.has(u.id));
       setSearchResults(filteredResults);
     } catch (error: any) {
       console.error('Error buscando usuarios:', error);
@@ -461,7 +505,7 @@ const InstitutionManagementPage: React.FC = () => {
       setPositionInput({ ...positionInput, [userId]: '' });
 
       // Opcional: Mostrar mensaje de éxito
-      // alert('Usuario asignado exitosamente'); 
+      // alert('Usuario asignado exitosamente');
     } catch (error: any) {
       console.error('Error asignando usuario:', error);
       alert('Error al asignar usuario: ' + error.message);
@@ -503,21 +547,25 @@ const InstitutionManagementPage: React.FC = () => {
 
   const handleToggleActive = async (institution: Institution) => {
     const action = institution.is_active ? 'desactivar' : 'activar';
-    if (!confirm(`¿Estás seguro de que quieres ${action} la institución "${institution.name}"?\n\n${!institution.is_active ? 'Al activarla, aparecerá en la landing page pública.' : 'Al desactivarla, dejará de aparecer en la landing page pública.'}`)) {
+    if (
+      !confirm(
+        `¿Estás seguro de que quieres ${action} la institución "${institution.name}"?\n\n${!institution.is_active ? 'Al activarla, aparecerá en la landing page pública.' : 'Al desactivarla, dejará de aparecer en la landing page pública.'}`
+      )
+    ) {
       return;
     }
 
     try {
       await institutionService.updateInstitution(institution.id, {
-        is_active: !institution.is_active
+        is_active: !institution.is_active,
       });
 
       // Actualizar localmente
-      setInstitutions(prev => prev.map(inst =>
-        inst.id === institution.id
-          ? { ...inst, is_active: !inst.is_active }
-          : inst
-      ));
+      setInstitutions((prev) =>
+        prev.map((inst) =>
+          inst.id === institution.id ? { ...inst, is_active: !inst.is_active } : inst
+        )
+      );
 
       alert(`Institución ${action === 'activar' ? 'activada' : 'desactivada'} exitosamente`);
     } catch (error: any) {
@@ -539,8 +587,12 @@ const InstitutionManagementPage: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Gestión de Instituciones</h1>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">Administra instituciones y asigna usuarios</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Gestión de Instituciones
+            </h1>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
+              Administra instituciones y asigna usuarios
+            </p>
           </div>
           {/* Solo admin global puede crear nuevas instituciones */}
           {user?.role?.name === 'admin' && (
@@ -553,7 +605,8 @@ const InstitutionManagementPage: React.FC = () => {
                   logo_url: '',
                   website: '',
                   email: '',
-                  address: ''
+                  address: '',
+                  slug: '',
                 });
                 setLogoPreview(null);
                 setPendingLogoFile(null);
@@ -597,12 +650,22 @@ const InstitutionManagementPage: React.FC = () => {
                   <input
                     type="text"
                     value={formData.slug || ''}
-                    onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        slug: e.target.value
+                          .toLowerCase()
+                          .replace(/\s+/g, '-')
+                          .replace(/[^a-z0-9-]/g, ''),
+                      })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-r-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
                     placeholder="cec"
                   />
                 </div>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Usado para la landing page: eduspark.com/{formData.slug || 'slug'}</p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Usado para la landing page: eduspark.com/{formData.slug || 'slug'}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -632,8 +695,9 @@ const InstitutionManagementPage: React.FC = () => {
                     />
                     <label
                       htmlFor="logo-upload"
-                      className={`flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm ${uploadingLogo ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
+                      className={`flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm ${
+                        uploadingLogo ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                     >
                       <IconUpload className="w-4 h-4" />
                       {uploadingLogo ? 'Subiendo...' : 'Subir Logo'}
@@ -812,31 +876,34 @@ const InstitutionManagementPage: React.FC = () => {
                     </a>
                   )}
                   {institution.email && (
-                    <a
-                      href={`mailto:${institution.email}`}
-                      className="hover:text-blue-600"
-                    >
+                    <a href={`mailto:${institution.email}`} className="hover:text-blue-600">
                       {institution.email}
                     </a>
                   )}
                 </div>
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
                   <div className="flex items-center justify-between">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${institution.is_active
-                      ? 'text-green-600 bg-green-100 dark:text-green-300 dark:bg-green-900/40'
-                      : 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-800'
-                      }`}>
+                    <span
+                      className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        institution.is_active
+                          ? 'text-green-600 bg-green-100 dark:text-green-300 dark:bg-green-900/40'
+                          : 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-800'
+                      }`}
+                    >
                       {institution.is_active ? 'Activa' : 'Inactiva'}
                     </span>
                     {/* Solo admin puede activar/desactivar */}
                     {user?.role?.name === 'admin' && (
                       <button
                         onClick={() => handleToggleActive(institution)}
-                        className={`px-3 py-1 text-xs font-medium rounded transition-colors ${institution.is_active
-                          ? 'text-orange-600 bg-orange-50 hover:bg-orange-100 dark:text-orange-400 dark:bg-orange-900/20 dark:hover:bg-orange-900/40'
-                          : 'text-green-600 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/40'
-                          }`}
-                        title={institution.is_active ? 'Desactivar institución' : 'Activar institución'}
+                        className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                          institution.is_active
+                            ? 'text-orange-600 bg-orange-50 hover:bg-orange-100 dark:text-orange-400 dark:bg-orange-900/20 dark:hover:bg-orange-900/40'
+                            : 'text-green-600 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/40'
+                        }`}
+                        title={
+                          institution.is_active ? 'Desactivar institución' : 'Activar institución'
+                        }
                       >
                         {institution.is_active ? 'Desactivar' : 'Activar'}
                       </button>
@@ -910,7 +977,8 @@ const InstitutionManagementPage: React.FC = () => {
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {searchQuery.length === 0 && (
                         <div className="text-xs text-gray-500 mb-2 px-2">
-                          Mostrando últimos usuarios registrados. Escribe para buscar específicamente.
+                          Mostrando últimos usuarios registrados. Escribe para buscar
+                          específicamente.
                         </div>
                       )}
                       {searchResults.map((user) => (
@@ -922,7 +990,9 @@ const InstitutionManagementPage: React.FC = () => {
                             <div className="font-medium text-gray-900 dark:text-white">
                               {user.first_name} {user.last_name}
                             </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">{user.email}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              {user.email}
+                            </div>
                             {user.role && (
                               <span className="text-xs text-gray-400 capitalize">
                                 {user.role.name}
@@ -963,10 +1033,11 @@ const InstitutionManagementPage: React.FC = () => {
                 <div className="flex gap-4">
                   <button
                     onClick={() => setShowStudentsTab(false)}
-                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-all duration-200 ${!showStudentsTab
-                      ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                      }`}
+                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-all duration-200 ${
+                      !showStudentsTab
+                        ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                    }`}
                   >
                     <IconUsers className="w-4 h-4 inline mr-2" />
                     Usuarios ({institutionUsers.length})
@@ -978,10 +1049,11 @@ const InstitutionManagementPage: React.FC = () => {
                         loadInstitutionStudents(selectedInstitutionForUsers.id);
                       }
                     }}
-                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-all duration-200 ${showStudentsTab
-                      ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                      }`}
+                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-all duration-200 ${
+                      showStudentsTab
+                        ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                    }`}
                   >
                     <IconGraduationCap className="w-4 h-4 inline mr-2" />
                     Estudiantes ({institutionStudents.length})
@@ -1023,7 +1095,9 @@ const InstitutionManagementPage: React.FC = () => {
                                 </span>
                               )}
                             </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{item.user?.email}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                              {item.user?.email}
+                            </div>
                             {item.user?.role && (
                               <span className="text-xs text-gray-400 capitalize">
                                 {item.user.role.name}
@@ -1072,7 +1146,9 @@ const InstitutionManagementPage: React.FC = () => {
                     <div className="text-center py-12 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-black/20 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-800">
                       <IconGraduationCap className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-3" />
                       <p className="font-medium">No hay estudiantes asignados</p>
-                      <p className="text-xs mt-1 max-w-xs mx-auto">Asigna usuarios con rol "student" a esta institución para que aparezcan aquí</p>
+                      <p className="text-xs mt-1 max-w-xs mx-auto">
+                        Asigna usuarios con rol "student" a esta institución para que aparezcan aquí
+                      </p>
                     </div>
                   ) : (
                     <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
@@ -1085,7 +1161,9 @@ const InstitutionManagementPage: React.FC = () => {
                             <div className="font-semibold text-gray-900 dark:text-white">
                               {student.first_name} {student.last_name}
                             </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{student.email}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                              {student.email}
+                            </div>
                             <div className="flex items-center gap-2 mt-2">
                               {student.is_active ? (
                                 <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 rounded">
@@ -1150,7 +1228,8 @@ const InstitutionManagementPage: React.FC = () => {
                     </h3>
                     {availableCareers.length === 0 ? (
                       <div className="text-center py-4 text-gray-500">
-                        No hay carreras disponibles. Crea carreras primero en la sección de administración.
+                        No hay carreras disponibles. Crea carreras primero en la sección de
+                        administración.
                       </div>
                     ) : (
                       <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -1159,10 +1238,11 @@ const InstitutionManagementPage: React.FC = () => {
                           return (
                             <div
                               key={career.id}
-                              className={`flex items-center justify-between p-4 rounded-xl border transition-all ${isAssigned
-                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/50'
-                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-                                }`}
+                              className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                                isAssigned
+                                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/50'
+                                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                              }`}
                             >
                               <div className="flex-1">
                                 <div className="font-semibold text-gray-900 dark:text-white">
@@ -1203,7 +1283,8 @@ const InstitutionManagementPage: React.FC = () => {
                     </h3>
                     {availableSubjects.length === 0 ? (
                       <div className="text-center py-4 text-gray-500">
-                        No hay materias disponibles. Crea materias primero en la sección de administración.
+                        No hay materias disponibles. Crea materias primero en la sección de
+                        administración.
                       </div>
                     ) : (
                       <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -1212,10 +1293,11 @@ const InstitutionManagementPage: React.FC = () => {
                           return (
                             <div
                               key={subject.id}
-                              className={`flex items-center justify-between p-4 rounded-xl border transition-all ${isAssigned
-                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/50'
-                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-                                }`}
+                              className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                                isAssigned
+                                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/50'
+                                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                              }`}
                             >
                               <div className="flex-1">
                                 <div className="font-semibold text-gray-900 dark:text-white">
@@ -1258,4 +1340,3 @@ const InstitutionManagementPage: React.FC = () => {
 };
 
 export default InstitutionManagementPage;
-

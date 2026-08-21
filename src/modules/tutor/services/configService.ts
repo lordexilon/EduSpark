@@ -68,52 +68,52 @@ const DEFAULT_CONFIG: SystemConfig = {
   supabase: {
     url: import.meta.env.VITE_SUPABASE_URL || '',
     anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
-    timeout: 30000
+    timeout: 30000,
   },
   gemini: {
     apiKey: import.meta.env.VITE_GEMINI_API_KEY || '',
     model: 'gemini-2.5-flash',
     maxTokens: 2048,
-    temperature: 0.7
+    temperature: 0.7,
   },
   memory: {
     maxLocalMessages: 50,
     contextWindowSize: 10,
     enableLongTermMemory: true,
-    autoSummarizeThreshold: 20
+    autoSummarizeThreshold: 20,
   },
   agents: {
     voice: {
       enabled: true,
       defaultVoice: 'Kore',
-      defaultSpeed: 1.0
+      defaultSpeed: 1.0,
     },
     rag: {
       enabled: true,
       searchLimit: 5,
-      similarityThreshold: 0.7
+      similarityThreshold: 0.7,
     },
     context: {
       enabled: true,
       maxContextLength: 4000,
-      includeStudentProfile: true
+      includeStudentProfile: true,
     },
     coordinator: {
       enabled: true,
       maxIterations: 3,
-      timeout: 30000
-    }
+      timeout: 30000,
+    },
   },
   ui: {
     theme: 'dark',
     language: 'es',
-    animations: true
+    animations: true,
   },
   debug: {
     enabled: import.meta.env.DEV,
     logLevel: 'info',
-    saveLogs: false
-  }
+    saveLogs: false,
+  },
 };
 
 // =====================================================
@@ -146,10 +146,7 @@ export class ConfigService {
   /**
    * Actualiza una sección de la configuración
    */
-  updateSection<K extends keyof SystemConfig>(
-    section: K,
-    updates: Partial<SystemConfig[K]>
-  ): void {
+  updateSection<K extends keyof SystemConfig>(section: K, updates: Partial<SystemConfig[K]>): void {
     this.config[section] = { ...this.config[section], ...updates };
     this.saveToStorage();
     this.notifyListeners();
@@ -196,7 +193,6 @@ export class ConfigService {
       errors.push('Supabase Anon Key no configurada');
     }
 
-
     // Validar Gemini
     if (!this.config.gemini.apiKey) {
       errors.push('Gemini API Key no configurada');
@@ -207,7 +203,6 @@ export class ConfigService {
       warnings.push('Número alto de mensajes locales puede afectar el rendimiento');
     }
 
-
     if (this.config.gemini.temperature > 1.0) {
       warnings.push('Temperatura de Gemini muy alta puede generar respuestas inconsistentes');
     }
@@ -215,7 +210,7 @@ export class ConfigService {
     return {
       valid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -313,14 +308,21 @@ export class ConfigService {
   /**
    * Combina configuraciones de forma recursiva
    */
-  private mergeConfig(defaultConfig: SystemConfig, userConfig: Partial<SystemConfig>): SystemConfig {
+  private mergeConfig(
+    defaultConfig: SystemConfig,
+    userConfig: Partial<SystemConfig>
+  ): SystemConfig {
     const result = { ...defaultConfig };
 
     for (const key in userConfig) {
-      if (userConfig[key] && typeof userConfig[key] === 'object' && !Array.isArray(userConfig[key])) {
+      if (
+        userConfig[key] &&
+        typeof userConfig[key] === 'object' &&
+        !Array.isArray(userConfig[key])
+      ) {
         result[key as keyof SystemConfig] = {
           ...(result[key as keyof SystemConfig] as any),
-          ...(userConfig[key] as any)
+          ...(userConfig[key] as any),
         };
       } else {
         result[key as keyof SystemConfig] = userConfig[key] as any;
@@ -360,8 +362,8 @@ export class ConfigService {
    * Notifica a los listeners sobre cambios
    */
   private notifyListeners(): void {
-    this.listeners.forEach(listeners => {
-      listeners.forEach(listener => listener(this.config));
+    this.listeners.forEach((listeners) => {
+      listeners.forEach((listener) => listener(this.config));
     });
   }
 }
@@ -414,8 +416,10 @@ export const isAgentEnabled = (agentType: 'voice' | 'rag' | 'context' | 'coordin
 /**
  * Habilita o deshabilita un agente
  */
-export const setAgentEnabled = (agentType: 'voice' | 'rag' | 'context' | 'coordinator', enabled: boolean): void =>
-  configService.setAgentEnabled(agentType, enabled);
+export const setAgentEnabled = (
+  agentType: 'voice' | 'rag' | 'context' | 'coordinator',
+  enabled: boolean
+): void => configService.setAgentEnabled(agentType, enabled);
 
 // =====================================================
 // Configuraciones Específicas por Entorno
@@ -430,14 +434,14 @@ export const getEnvironmentConfig = (): Partial<SystemConfig> => {
         debug: {
           enabled: true,
           logLevel: 'debug',
-          saveLogs: true
+          saveLogs: true,
         },
         memory: {
           maxLocalMessages: 20,
           contextWindowSize: 5,
           enableLongTermMemory: true,
-          autoSummarizeThreshold: 10
-        }
+          autoSummarizeThreshold: 10,
+        },
       };
 
     case 'production':
@@ -445,14 +449,14 @@ export const getEnvironmentConfig = (): Partial<SystemConfig> => {
         debug: {
           enabled: false,
           logLevel: 'error',
-          saveLogs: false
+          saveLogs: false,
         },
         memory: {
           maxLocalMessages: 100,
           contextWindowSize: 20,
           enableLongTermMemory: true,
-          autoSummarizeThreshold: 50
-        }
+          autoSummarizeThreshold: 50,
+        },
       };
 
     case 'test':
@@ -460,14 +464,14 @@ export const getEnvironmentConfig = (): Partial<SystemConfig> => {
         debug: {
           enabled: true,
           logLevel: 'warn',
-          saveLogs: false
+          saveLogs: false,
         },
         memory: {
           maxLocalMessages: 10,
           contextWindowSize: 3,
           enableLongTermMemory: false,
-          autoSummarizeThreshold: 5
-        }
+          autoSummarizeThreshold: 5,
+        },
       };
 
     default:
@@ -477,6 +481,9 @@ export const getEnvironmentConfig = (): Partial<SystemConfig> => {
 
 // Aplicar configuración del entorno
 const envConfig = getEnvironmentConfig();
-Object.keys(envConfig).forEach(section => {
-  configService.updateSection(section as keyof SystemConfig, envConfig[section as keyof SystemConfig] as any);
+Object.keys(envConfig).forEach((section) => {
+  configService.updateSection(
+    section as keyof SystemConfig,
+    envConfig[section as keyof SystemConfig] as any
+  );
 });

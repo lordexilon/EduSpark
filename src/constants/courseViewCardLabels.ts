@@ -59,46 +59,45 @@ export const courseViewCardText = {
     } as Record<Assessment['assessment_type'], string>,
   },
   gn: {
-    cardTitle: 'Marandu ha ñe\'ẽme (mba\'ekuaa ha ñembohovái)',
-    schedule: 'Aravo\'apy',
+    cardTitle: "Marandu ha ñe'ẽme (mba'ekuaa ha ñembohovái)",
+    schedule: "Aravo'apy",
     scheduleEmpty:
-      'Aravo\'apy ikatu oje\'e kurso ombo\'ávo; ehecha avei sílabo térã aviso profésor rupi.',
-    syllabus: 'Mba\'epu / sílabo',
+      "Aravo'apy ikatu oje'e kurso ombo'ávo; ehecha avei sílabo térã aviso profésor rupi.",
+    syllabus: "Mba'epu / sílabo",
     syllabusHint:
-      'Profesor ikatu omoĩ tembiapo térã guía «sílabo» térã «programa» rupi; opa\'ãmo\'ãva.',
-    objectives: 'Mbo\'ehao reko (peteĩ peteĩ yvoty rupi)',
-    objectivesNote: 'Yvoty peteĩ peteĩ rupi oje\'e kurso ñembohekópe.',
+      "Profesor ikatu omoĩ tembiapo térã guía «sílabo» térã «programa» rupi; opa'ãmo'ãva.",
+    objectives: "Mbo'ehao reko (peteĩ peteĩ yvoty rupi)",
+    objectivesNote: "Yvoty peteĩ peteĩ rupi oje'e kurso ñembohekópe.",
     objectivesEmpty:
-      'Ndaipóri gueteri mbo\'ehao yvoty rupi. Profesor ikatu ombosako\'i kurso ñembohekópe.',
+      "Ndaipóri gueteri mbo'ehao yvoty rupi. Profesor ikatu ombosako'i kurso ñembohekópe.",
     evaluation: 'Ombopora ha ohechauka',
     evaluationNote:
-      'Kurso ombopora opa\'ãva re\'ã. Jeike ikatu odepender aravo\'apy ha ne rembiapo porã.',
+      "Kurso ombopora opa'ãva re'ã. Jeike ikatu odepender aravo'apy ha ne rembiapo porã.",
     evaluationEmpty: 'Ndaipóri gueteri ombopora ko kurso rupi.',
-    rubricMaterials: 'Rúbrica térã mba\'epu (marandu)',
-    rubricMaterialsEmpty:
-      'Ikatu emoĩ rúbrica «rúbrica» térã «criterios» rupi.',
-    communication: 'Ñe\'ẽ kurso rupi',
-    linkAnnouncements: 'Je\'e',
+    rubricMaterials: "Rúbrica térã mba'epu (marandu)",
+    rubricMaterialsEmpty: 'Ikatu emoĩ rúbrica «rúbrica» térã «criterios» rupi.',
+    communication: "Ñe'ẽ kurso rupi",
+    linkAnnouncements: "Je'e",
     linkForums: 'Foro',
-    linkMessages: 'Ñe\'ẽ',
+    linkMessages: "Ñe'ẽ",
     unitLabel: 'Yvoty',
     contextCourse: 'Opaite kurso',
-    contextFinal: 'Opa\'ã porã',
+    contextFinal: "Opa'ã porã",
     pointsAbbr: 'mb.',
-    minPass: 'Mín. oñeme\'ẽ hag̃ua',
-    loSectionTitle: 'Mba\'epu reko (mba\'ehao)',
+    minPass: "Mín. oñeme'ẽ hag̃ua",
+    loSectionTitle: "Mba'epu reko (mba'ehao)",
     loSectionNote:
-      'RA peteĩ peteĩ ojehechauka eme\'ẽ vorentã ombopora opa\'ãva profésor ojuaju hague ko mba\'epurã.',
+      "RA peteĩ peteĩ ojehechauka eme'ẽ vorentã ombopora opa'ãva profésor ojuaju hague ko mba'epurã.",
     loEvident: 'Ojehecha',
-    loPending: 'O\'u hína',
+    loPending: "O'u hína",
     loTeacherHint:
-      'Profesor térã admin rupi, ehecha RA kurso rupi; mba\'e ojehecha opo\'ytyrã ohecha estudiante oje\'e\'áva.',
+      "Profesor térã admin rupi, ehecha RA kurso rupi; mba'e ojehecha opo'ytyrã ohecha estudiante oje'e'áva.",
     typeLabels: {
       quiz: 'Porandu',
       trivia: 'Trivia',
-      exam: 'Opa\'ã',
+      exam: "Opa'ã",
       project: 'Tembiapo',
-      assignment: 'Me\'ẽ',
+      assignment: "Me'ẽ",
     } as Record<Assessment['assessment_type'], string>,
   },
 } as const;
@@ -107,16 +106,14 @@ export const courseViewCardText = {
 export const dashboardStudentText = {
   es: {
     loDashboardTitle: 'Resultados de aprendizaje',
-    loDashboardSubtitle:
-      'Progreso por curso según evaluaciones vinculadas por tu docente.',
+    loDashboardSubtitle: 'Progreso por curso según evaluaciones vinculadas por tu docente.',
     loDashboardEvidencedSuffix: 'evidenciados',
     loDashboardLink: 'Ver detalle en el curso',
     courseFallback: 'Curso',
   },
   gn: {
-    loDashboardTitle: 'Mba\'epu reko (mba\'ehao)',
-    loDashboardSubtitle:
-      'Kurso peteĩ peteĩ rembiapo ombopora profésor ojuaju hague.',
+    loDashboardTitle: "Mba'epu reko (mba'ehao)",
+    loDashboardSubtitle: 'Kurso peteĩ peteĩ rembiapo ombopora profésor ojuaju hague.',
     loDashboardEvidencedSuffix: 'ojehecháva',
     loDashboardLink: 'Ehecha kurso rupi',
     courseFallback: 'Kurso',

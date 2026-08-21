@@ -14,7 +14,13 @@ import {
   CourseMetrics,
   AnalyticsFilters,
 } from '@/services/tutorAnalyticsService';
-import { getCostMetrics, getUserCostStats, getCourseBudgetLimit, setUsageLimit, getCourseUsageStats } from '@/services/tutorCostService';
+import {
+  getCostMetrics,
+  getUserCostStats,
+  getCourseBudgetLimit,
+  setUsageLimit,
+  getCourseUsageStats,
+} from '@/services/tutorCostService';
 import { analyzeCoursePerformance, AdvisorAnalysis } from '@/services/teacherAdvisorAgent';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
@@ -38,7 +44,13 @@ import {
   IconChevronDown,
   IconSettings,
 } from '@/components/Common/Icons';
-import { exportToPDF, exportToExcel, formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '@/utils/exportService';
+import {
+  exportToPDF,
+  exportToExcel,
+  formatCurrency as formatCurrencyUtil,
+  formatDate as formatDateUtil,
+  ExcelExportOptions,
+} from '@/utils/exportService';
 
 const TeacherTutorAnalyticsPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -78,7 +90,10 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
-    console.log('📊 Tutor Analytics: Componente montado o usuario cambió', { userId: user?.id, userRole: user?.role?.name });
+    console.log('📊 Tutor Analytics: Componente montado o usuario cambió', {
+      userId: user?.id,
+      userRole: user?.role?.name,
+    });
     if (user?.id) {
       loadCourses();
     }
@@ -93,7 +108,10 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
 
   const loadCourses = async () => {
     try {
-      console.log('📊 Tutor Analytics: Cargando cursos...', { userId: user?.id, userRole: user?.role?.name });
+      console.log('📊 Tutor Analytics: Cargando cursos...', {
+        userId: user?.id,
+        userRole: user?.role?.name,
+      });
       // Verificar si es admin o coordinador para ver todos los cursos
       const userRole = user?.role?.name;
       const isAdminOrCoordinator = userRole === 'admin' || userRole === 'coordinator';
@@ -102,7 +120,10 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
         ? await courseService.getAllCourses()
         : await courseService.getMyCourses(user!.id);
 
-      console.log('📊 Tutor Analytics: Cursos cargados:', { count: coursesData.length, courses: coursesData.map(c => ({ id: c.id, title: c.title })) });
+      console.log('📊 Tutor Analytics: Cursos cargados:', {
+        count: coursesData.length,
+        courses: coursesData.map((c) => ({ id: c.id, title: c.title })),
+      });
 
       setCourses(coursesData);
       if (coursesData.length > 0 && !selectedCourseId) {
@@ -152,15 +173,19 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
 
       console.log('📊 Tutor Analytics: Datos cargados:', {
         studentsCount: students.length,
-        courseMetrics: course ? {
-          courseId: course.courseId,
-          courseTitle: course.courseTitle,
-          totalStudents: course.totalStudents,
-          activeStudents: course.activeStudents,
-          totalInteractions: course.totalInteractions,
-          totalCost: course.totalCost,
-        } : null,
-        costsMetrics: costs ? { totalCost: costs.totalCost, totalInteractions: costs.totalInteractions } : null,
+        courseMetrics: course
+          ? {
+              courseId: course.courseId,
+              courseTitle: course.courseTitle,
+              totalStudents: course.totalStudents,
+              activeStudents: course.activeStudents,
+              totalInteractions: course.totalInteractions,
+              totalCost: course.totalCost,
+            }
+          : null,
+        costsMetrics: costs
+          ? { totalCost: costs.total, totalInteractions: costs.byUser.length }
+          : null,
         attentionCount: attention.length,
       });
 
@@ -191,7 +216,7 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
           } else {
             // 3. Fallback: usar el total de límites de estudiantes o valor por defecto
             const monthlyCost = courseUsage?.monthlyCost || costs?.thisMonth || 0;
-            const defaultLimit = 50.00;
+            const defaultLimit = 50.0;
             const estimatedLimit = students.length * defaultLimit;
 
             setBudgetStats({
@@ -226,7 +251,9 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
         } catch (error: any) {
           // Si es un error de cuota (429), no inundar la consola, analyzeCoursePerformance ya retorna un fallback
           if (error?.status === 429 || error?.message?.includes('429')) {
-            console.warn('🤖 Tutor Analytics: Cuota de Gemini excedida, usando análisis de respaldo.');
+            console.warn(
+              '🤖 Tutor Analytics: Cuota de Gemini excedida, usando análisis de respaldo.'
+            );
           } else {
             console.error('❌ Tutor Analytics: Error generating advisor analysis:', error);
           }
@@ -249,7 +276,7 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
   };
 
   const isAdmin = user?.role?.name === 'admin' || user?.role?.name === 'admin_campus';
-  const currentCourse = courses.find(c => String(c.id) === selectedCourseId);
+  const currentCourse = courses.find((c) => String(c.id) === selectedCourseId);
   const isInstructor = currentCourse?.teacher_id === user?.id;
   const canManageBudget = isAdmin || isInstructor;
 
@@ -268,7 +295,7 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
         course_id: String(selectedCourseId),
         limit_type: 'monthly_cost',
         limit_value: limitValue,
-        is_active: true
+        is_active: true,
       });
       setIsBudgetModalOpen(false);
       // Recargar analytics para reflejar el nuevo límite
@@ -377,12 +404,10 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
           <span>{children}</span>
           <div className="flex flex-col">
             <IconChevronUp
-              className={`w-3 h-3 ${isSorted && isAsc ? 'text-blue-600' : 'text-gray-300'
-                }`}
+              className={`w-3 h-3 ${isSorted && isAsc ? 'text-blue-600' : 'text-gray-300'}`}
             />
             <IconChevronDown
-              className={`w-3 h-3 -mt-1 ${isSorted && !isAsc ? 'text-blue-600' : 'text-gray-300'
-                }`}
+              className={`w-3 h-3 -mt-1 ${isSorted && !isAsc ? 'text-blue-600' : 'text-gray-300'}`}
             />
           </div>
         </div>
@@ -402,10 +427,16 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
         { label: 'Total Estudiantes', value: courseMetrics.totalStudents },
         { label: 'Estudiantes Activos', value: courseMetrics.activeStudents },
         { label: 'Tasa de Participación', value: `${courseMetrics.participationRate.toFixed(1)}%` },
-        { label: 'Total Interacciones', value: courseMetrics.totalInteractions.toLocaleString('es-ES') },
+        {
+          label: 'Total Interacciones',
+          value: courseMetrics.totalInteractions.toLocaleString('es-ES'),
+        },
         { label: 'Total Tokens', value: courseMetrics.totalTokens.toLocaleString('es-ES') },
         { label: 'Costo Total', value: formatCurrency(courseMetrics.totalCost) },
-        { label: 'Promedio Interacciones por Estudiante', value: courseMetrics.averageInteractionsPerStudent.toFixed(1) },
+        {
+          label: 'Promedio Interacciones por Estudiante',
+          value: courseMetrics.averageInteractionsPerStudent.toFixed(1),
+        },
       ];
 
       const studentsTableData = studentMetrics.map((student, index) => [
@@ -418,27 +449,34 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
         student.lastInteractionDate ? formatDateUtil(student.lastInteractionDate) : 'Nunca',
         student.performanceImprovement !== null
           ? `${student.performanceImprovement > 0 ? '+' : ''}${student.performanceImprovement.toFixed(1)}%`
-          : 'N/A'
+          : 'N/A',
       ]);
 
       const tables = [
         {
           title: 'Métricas por Estudiante',
-          headers: ['#', 'Estudiante', 'Email', 'Interacciones', 'Tokens', 'Costo', 'Última Interacción', 'Desempeño'],
-          rows: studentsTableData
-        }
+          headers: [
+            '#',
+            'Estudiante',
+            'Email',
+            'Interacciones',
+            'Tokens',
+            'Costo',
+            'Última Interacción',
+            'Desempeño',
+          ],
+          rows: studentsTableData,
+        },
       ];
 
       if (courseMetrics.topTopics.length > 0) {
-        const topicsData = courseMetrics.topTopics.slice(0, 10).map((topic, index) => [
-          index + 1,
-          topic.topic,
-          topic.count
-        ]);
+        const topicsData = courseMetrics.topTopics
+          .slice(0, 10)
+          .map((topic, index) => [index + 1, topic.topic, topic.count]);
         tables.push({
           title: 'Temas Más Consultados',
           headers: ['#', 'Tema', 'Consultas'],
-          rows: topicsData
+          rows: topicsData,
         });
       }
 
@@ -449,7 +487,7 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
         summaries,
         tables,
         fileName: `Analisis_Tutor_${courseMetrics.courseTitle.replace(/[^a-z0-9]/gi, '_')}`,
-        showDate: true
+        showDate: true,
       });
     } catch (error) {
       console.error('Error exportando a PDF:', error);
@@ -465,53 +503,61 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
 
     try {
       const summaryData = [
-        { 'Métrica': 'Curso', 'Valor': courseMetrics.courseTitle },
-        { 'Métrica': 'Total Estudiantes', 'Valor': courseMetrics.totalStudents },
-        { 'Métrica': 'Estudiantes Activos', 'Valor': courseMetrics.activeStudents },
-        { 'Métrica': 'Tasa de Participación (%)', 'Valor': courseMetrics.participationRate.toFixed(1) },
-        { 'Métrica': 'Total Interacciones', 'Valor': courseMetrics.totalInteractions },
-        { 'Métrica': 'Total Tokens', 'Valor': courseMetrics.totalTokens },
-        { 'Métrica': 'Costo Total', 'Valor': formatCurrency(courseMetrics.totalCost) },
-        { 'Métrica': 'Promedio Interacciones por Estudiante', 'Valor': courseMetrics.averageInteractionsPerStudent.toFixed(1) },
+        { Métrica: 'Curso', Valor: courseMetrics.courseTitle },
+        { Métrica: 'Total Estudiantes', Valor: courseMetrics.totalStudents },
+        { Métrica: 'Estudiantes Activos', Valor: courseMetrics.activeStudents },
+        { Métrica: 'Tasa de Participación (%)', Valor: courseMetrics.participationRate.toFixed(1) },
+        { Métrica: 'Total Interacciones', Valor: courseMetrics.totalInteractions },
+        { Métrica: 'Total Tokens', Valor: courseMetrics.totalTokens },
+        { Métrica: 'Costo Total', Valor: formatCurrency(courseMetrics.totalCost) },
+        {
+          Métrica: 'Promedio Interacciones por Estudiante',
+          Valor: courseMetrics.averageInteractionsPerStudent.toFixed(1),
+        },
       ];
 
       const studentsData = studentMetrics.map((student, index) => ({
         '#': index + 1,
-        'Estudiante': student.studentName,
-        'Email': student.studentEmail || '',
-        'Interacciones': student.totalInteractions,
-        'Tokens': student.totalTokens,
-        'Costo': student.totalCost,
-        'Última Interacción': student.lastInteractionDate ? formatDateUtil(student.lastInteractionDate) : 'Nunca',
-        'Desempeño (%)': student.performanceImprovement !== null ? student.performanceImprovement.toFixed(1) : 'N/A'
+        Estudiante: student.studentName,
+        Email: student.studentEmail || '',
+        Interacciones: student.totalInteractions,
+        Tokens: student.totalTokens,
+        Costo: student.totalCost,
+        'Última Interacción': student.lastInteractionDate
+          ? formatDateUtil(student.lastInteractionDate)
+          : 'Nunca',
+        'Desempeño (%)':
+          student.performanceImprovement !== null
+            ? student.performanceImprovement.toFixed(1)
+            : 'N/A',
       }));
 
-      const sheets = [
+      const sheets: ExcelExportOptions['sheets'] = [
         {
           name: 'Resumen',
-          data: summaryData
+          data: summaryData,
         },
         {
           name: 'Estudiantes',
-          data: studentsData
-        }
+          data: studentsData,
+        },
       ];
 
       if (courseMetrics.topTopics.length > 0) {
         const topicsData = courseMetrics.topTopics.slice(0, 10).map((topic, index) => ({
           '#': index + 1,
-          'Tema': topic.topic,
-          'Consultas': topic.count
+          Tema: topic.topic,
+          Consultas: topic.count,
         }));
         sheets.push({
           name: 'Temas Más Consultados',
-          data: topicsData
+          data: topicsData,
         });
       }
 
       await exportToExcel({
         sheets,
-        fileName: `Analisis_Tutor_${courseMetrics.courseTitle.replace(/[^a-z0-9]/gi, '_')}`
+        fileName: `Analisis_Tutor_${courseMetrics.courseTitle.replace(/[^a-z0-9]/gi, '_')}`,
       });
     } catch (error) {
       console.error('Error exportando a Excel:', error);
@@ -608,9 +654,7 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
               </>
             )}
             {filtersApplied && (
-              <span className="text-sm text-blue-600 font-medium ml-2">
-                ✓ Filtros aplicados
-              </span>
+              <span className="text-sm text-blue-600 font-medium ml-2">✓ Filtros aplicados</span>
             )}
           </div>
         </div>
@@ -690,8 +734,8 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
                       <dd className="text-xs text-text-light">
                         {courseMetrics.totalInteractions > 0
                           ? formatCurrency(
-                            courseMetrics.totalCost / courseMetrics.totalInteractions
-                          )
+                              courseMetrics.totalCost / courseMetrics.totalInteractions
+                            )
                           : '$0.00'}{' '}
                         por interacción
                       </dd>
@@ -725,7 +769,12 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
               <Card className="p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <svg className="h-8 w-8 text-green-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <svg
+                      className="h-8 w-8 text-green-600"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
                       <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.834a1 1 0 001.364.972l4-.902a1 1 0 00.636-.972V11.333a1 1 0 00-.636-.972l-4-.902a1 1 0 00-1.364.972zm7.5-4.762a1.5 1.5 0 00-2.992-.077l-.825 4.348a1 1 0 01-.992.826H8.5a1 1 0 000 2h1.255a3 3 0 002.973-2.481l.826-4.348a.5.5 0 01.496-.392z" />
                     </svg>
                   </div>
@@ -738,7 +787,9 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
                       <dd className="text-xs text-text-light">
                         👍 {courseMetrics.thumbsUpCount} / 👎 {courseMetrics.thumbsDownCount}
                         {courseMetrics.totalRatings > 0 && (
-                          <span className="ml-1">({Math.round(courseMetrics.averageRating)}% positivas)</span>
+                          <span className="ml-1">
+                            ({Math.round(courseMetrics.averageRating)}% positivas)
+                          </span>
                         )}
                       </dd>
                     </dl>
@@ -748,16 +799,30 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
 
               {/* Tarjeta de Presupuesto Mensual */}
               {budgetStats && (
-                <Card className={`p-6 ${budgetStats.remainingBudget <= budgetStats.monthlyLimit * 0.1
-                  ? 'border-2 border-red-300 bg-red-50'
-                  : budgetStats.remainingBudget <= budgetStats.monthlyLimit * 0.3
-                    ? 'border-2 border-yellow-300 bg-yellow-50'
-                    : 'border-2 border-green-300 bg-green-50'
-                  }`}>
+                <Card
+                  className={`p-6 ${
+                    budgetStats.remainingBudget <= budgetStats.monthlyLimit * 0.1
+                      ? 'border-2 border-red-300 bg-red-50'
+                      : budgetStats.remainingBudget <= budgetStats.monthlyLimit * 0.3
+                        ? 'border-2 border-yellow-300 bg-yellow-50'
+                        : 'border-2 border-green-300 bg-green-50'
+                  }`}
+                >
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <svg className="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <svg
+                        className="h-8 w-8 text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
                     </div>
                     <div className="ml-5 w-0 flex-1">
@@ -775,14 +840,18 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
                           )}
                         </dt>
                         <dd className="text-lg font-medium text-text-dark">
-                          {formatCurrency(budgetStats.monthlyCost)} / {formatCurrency(budgetStats.monthlyLimit)}
+                          {formatCurrency(budgetStats.monthlyCost)} /{' '}
+                          {formatCurrency(budgetStats.monthlyLimit)}
                         </dd>
-                        <dd className={`text-xs font-medium ${budgetStats.remainingBudget <= budgetStats.monthlyLimit * 0.1
-                          ? 'text-red-600'
-                          : budgetStats.remainingBudget <= budgetStats.monthlyLimit * 0.3
-                            ? 'text-yellow-600'
-                            : 'text-green-600'
-                          }`}>
+                        <dd
+                          className={`text-xs font-medium ${
+                            budgetStats.remainingBudget <= budgetStats.monthlyLimit * 0.1
+                              ? 'text-red-600'
+                              : budgetStats.remainingBudget <= budgetStats.monthlyLimit * 0.3
+                                ? 'text-yellow-600'
+                                : 'text-green-600'
+                          }`}
+                        >
                           Restante: {formatCurrency(budgetStats.remainingBudget)}
                         </dd>
                         <dd className="text-xs text-text-light mt-1">
@@ -814,7 +883,9 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
               {/* Resumen Ejecutivo */}
               <div className="mb-6">
                 <h3 className="text-md font-semibold text-text-dark mb-2">Resumen Ejecutivo</h3>
-                <p className="text-sm text-text-light whitespace-pre-line">{advisorAnalysis.summary}</p>
+                <p className="text-sm text-text-light whitespace-pre-line">
+                  {advisorAnalysis.summary}
+                </p>
               </div>
 
               {/* Insights Clave */}
@@ -823,7 +894,9 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
                   <h3 className="text-md font-semibold text-text-dark mb-2">Insights Clave</h3>
                   <ul className="list-disc list-inside space-y-1">
                     {advisorAnalysis.keyInsights.map((insight, index) => (
-                      <li key={index} className="text-sm text-text-light">{insight}</li>
+                      <li key={index} className="text-sm text-text-light">
+                        {insight}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -858,12 +931,13 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
                                 <span>{priorityIcons[rec.priority]}</span>
                                 <h4 className="font-semibold text-text-dark">{rec.title}</h4>
                                 <span
-                                  className={`text-xs px-2 py-1 rounded ${rec.priority === 'high'
-                                    ? 'bg-red-200 text-red-800'
-                                    : rec.priority === 'medium'
-                                      ? 'bg-orange-200 text-orange-800'
-                                      : 'bg-yellow-200 text-yellow-800'
-                                    }`}
+                                  className={`text-xs px-2 py-1 rounded ${
+                                    rec.priority === 'high'
+                                      ? 'bg-red-200 text-red-800'
+                                      : rec.priority === 'medium'
+                                        ? 'bg-orange-200 text-orange-800'
+                                        : 'bg-yellow-200 text-yellow-800'
+                                  }`}
                                 >
                                   {rec.priority === 'high'
                                     ? 'Alta'
@@ -929,12 +1003,13 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
                           <p className="text-sm opacity-75">{item.reason}</p>
                         </div>
                         <span
-                          className={`text-xs px-2 py-1 rounded ${item.priority === 'high'
-                            ? 'bg-red-200'
-                            : item.priority === 'medium'
-                              ? 'bg-orange-200'
-                              : 'bg-yellow-200'
-                            }`}
+                          className={`text-xs px-2 py-1 rounded ${
+                            item.priority === 'high'
+                              ? 'bg-red-200'
+                              : item.priority === 'medium'
+                                ? 'bg-orange-200'
+                                : 'bg-yellow-200'
+                          }`}
                         >
                           {item.priority === 'high'
                             ? 'Alta'
@@ -952,9 +1027,7 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
 
           {/* Lista de Estudiantes con Métricas */}
           <Card className="p-6">
-            <h2 className="text-lg font-semibold text-text-dark mb-4">
-              Desempeño por Estudiante
-            </h2>
+            <h2 className="text-lg font-semibold text-text-dark mb-4">Desempeño por Estudiante</h2>
             {studentMetrics.length === 0 ? (
               <div className="text-center py-8">
                 <IconStudent className="mx-auto h-12 w-12 text-gray-400" />
@@ -970,27 +1043,19 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <SortableTableHeader field="studentName">
-                        Estudiante
-                      </SortableTableHeader>
+                      <SortableTableHeader field="studentName">Estudiante</SortableTableHeader>
                       <SortableTableHeader field="totalInteractions">
                         Interacciones
                       </SortableTableHeader>
-                      <SortableTableHeader field="totalTokens">
-                        Tokens
-                      </SortableTableHeader>
-                      <SortableTableHeader field="totalCost">
-                        Costo
-                      </SortableTableHeader>
+                      <SortableTableHeader field="totalTokens">Tokens</SortableTableHeader>
+                      <SortableTableHeader field="totalCost">Costo</SortableTableHeader>
                       <SortableTableHeader field="lastInteractionDate">
                         Última Interacción
                       </SortableTableHeader>
                       <SortableTableHeader field="performanceImprovement">
                         Desempeño
                       </SortableTableHeader>
-                      <SortableTableHeader field="averageRating">
-                        Evaluación
-                      </SortableTableHeader>
+                      <SortableTableHeader field="averageRating">Evaluación</SortableTableHeader>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -1063,9 +1128,7 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
           {/* Temas Más Consultados */}
           {courseMetrics && courseMetrics.topTopics.length > 0 && (
             <Card className="p-6">
-              <h2 className="text-lg font-semibold text-text-dark mb-4">
-                Temas Más Consultados
-              </h2>
+              <h2 className="text-lg font-semibold text-text-dark mb-4">Temas Más Consultados</h2>
               <div className="space-y-2">
                 {courseMetrics.topTopics.slice(0, 10).map((topic, index) => (
                   <div
@@ -1088,15 +1151,19 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
           <Card className="w-full max-w-md p-6 bg-white shadow-xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold text-text-dark">Configurar Presupuesto IA</h3>
-              <button onClick={() => setIsBudgetModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <button
+                onClick={() => setIsBudgetModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
                 <IconX className="w-6 h-6" />
               </button>
             </div>
 
             <div className="space-y-4">
               <p className="text-sm text-text-light">
-                Define el presupuesto máximo mensual en USD para el Tutor IA en este curso.
-                Este límite se aplicará a nivel de curso y reemplazará los cálculos basados en promedios por estudiante.
+                Define el presupuesto máximo mensual en USD para el Tutor IA en este curso. Este
+                límite se aplicará a nivel de curso y reemplazará los cálculos basados en promedios
+                por estudiante.
               </p>
 
               <div>
@@ -1144,4 +1211,3 @@ const TeacherTutorAnalyticsPage: React.FC = () => {
 };
 
 export default TeacherTutorAnalyticsPage;
-

@@ -2,7 +2,15 @@
 // Componente que muestra progreso académico + métricas del Tutor IA combinadas
 
 import React from 'react';
-import { IconBookOpen, IconClipboardCheck, IconRobot, IconTrendingUp, IconTrendingDown, IconAlertCircle, IconCheckCircle } from "@/components/Common/Icons";
+import {
+  IconBookOpen,
+  IconClipboardCheck,
+  IconRobot,
+  IconTrendingUp,
+  IconTrendingDown,
+  IconAlertCircle,
+  IconCheckCircle,
+} from '@/components/Common/Icons';
 import ProgressBar from '@/components/Common/ProgressBar';
 import type { ComprehensiveStudentData } from '@/services/comprehensiveReportService';
 
@@ -21,7 +29,7 @@ const ComprehensiveStudentCard: React.FC<ComprehensiveStudentCardProps> = ({
   data,
   showDetails = true,
   showCosts = true, // Por defecto mostrar costos
-  className = ''
+  className = '',
 }) => {
   const { academicProgress, tutorMetrics, insights } = data;
 
@@ -33,7 +41,7 @@ const ComprehensiveStudentCard: React.FC<ComprehensiveStudentCardProps> = ({
       bg: 'bg-green-50',
       border: 'border-green-200',
       label: '✅ Correlación Positiva',
-      description: 'Alto progreso con buen uso del tutor'
+      description: 'Alto progreso con buen uso del tutor',
     },
     'high-usage-low-progress': {
       icon: IconAlertCircle,
@@ -41,7 +49,7 @@ const ComprehensiveStudentCard: React.FC<ComprehensiveStudentCardProps> = ({
       bg: 'bg-red-50',
       border: 'border-red-200',
       label: '❌ Necesita Atención',
-      description: 'Mucho uso del tutor pero bajo progreso'
+      description: 'Mucho uso del tutor pero bajo progreso',
     },
     'low-usage-high-progress': {
       icon: IconTrendingUp,
@@ -49,7 +57,7 @@ const ComprehensiveStudentCard: React.FC<ComprehensiveStudentCardProps> = ({
       bg: 'bg-blue-50',
       border: 'border-blue-200',
       label: '⚠️ Sin Tutor',
-      description: 'Buen progreso sin usar el tutor'
+      description: 'Buen progreso sin usar el tutor',
     },
     'low-usage-low-progress': {
       icon: IconTrendingDown,
@@ -57,8 +65,8 @@ const ComprehensiveStudentCard: React.FC<ComprehensiveStudentCardProps> = ({
       bg: 'bg-orange-50',
       border: 'border-orange-200',
       label: '🔴 Bajo Rendimiento',
-      description: 'Bajo progreso y poco uso del tutor'
-    }
+      description: 'Bajo progreso y poco uso del tutor',
+    },
   };
 
   const config = correlationConfig[insights.tutorUsageVsProgress];
@@ -81,7 +89,7 @@ const ComprehensiveStudentCard: React.FC<ComprehensiveStudentCardProps> = ({
     return date.toLocaleDateString('es-ES', {
       day: 'numeric',
       month: 'short',
-      year: 'numeric'
+      year: 'numeric',
     });
   };
 
@@ -89,16 +97,18 @@ const ComprehensiveStudentCard: React.FC<ComprehensiveStudentCardProps> = ({
   const minutes = academicProgress.timeSpentMinutes % 60;
 
   return (
-    <div className={`bg-white border-2 ${config.border} rounded-lg p-5 shadow-md hover:shadow-lg transition-shadow ${className}`}>
+    <div
+      className={`bg-white border-2 ${config.border} rounded-lg p-5 shadow-md hover:shadow-lg transition-shadow ${className}`}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-gray-900">{data.studentName}</h3>
-          {data.studentEmail && (
-            <p className="text-sm text-gray-600">{data.studentEmail}</p>
-          )}
+          {data.studentEmail && <p className="text-sm text-gray-600">{data.studentEmail}</p>}
         </div>
-        <div className={`px-3 py-1 rounded-full text-xs font-semibold ${config.bg} ${config.color} border ${config.border}`}>
+        <div
+          className={`px-3 py-1 rounded-full text-xs font-semibold ${config.bg} ${config.color} border ${config.border}`}
+        >
           <div className="flex items-center gap-1">
             <CorrelationIcon className="w-4 h-4" />
             {config.label}
@@ -114,8 +124,8 @@ const ComprehensiveStudentCard: React.FC<ComprehensiveStudentCardProps> = ({
             {Math.round(academicProgress.completionPercentage)}%
           </span>
         </div>
-        <ProgressBar 
-          value={academicProgress.completionPercentage} 
+        <ProgressBar
+          value={academicProgress.completionPercentage}
           color="var(--primary)"
           height="h-3"
         />
@@ -129,7 +139,7 @@ const ComprehensiveStudentCard: React.FC<ComprehensiveStudentCardProps> = ({
             <IconBookOpen className="w-5 h-5 text-blue-600" />
             <h4 className="text-sm font-semibold text-gray-900">Progreso Académico</h4>
           </div>
-          
+
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-600">Unidades:</span>
@@ -152,7 +162,8 @@ const ComprehensiveStudentCard: React.FC<ComprehensiveStudentCardProps> = ({
             <div className="flex justify-between pt-2 border-t border-gray-200">
               <span className="text-gray-600">Tiempo:</span>
               <span className="font-semibold text-gray-900">
-                {hours > 0 ? `${hours}h ` : ''}{minutes}m
+                {hours > 0 ? `${hours}h ` : ''}
+                {minutes}m
               </span>
             </div>
           </div>
@@ -164,13 +175,11 @@ const ComprehensiveStudentCard: React.FC<ComprehensiveStudentCardProps> = ({
             <IconRobot className="w-5 h-5 text-purple-600" />
             <h4 className="text-sm font-semibold text-gray-900">Tutor IA</h4>
           </div>
-          
+
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-600">Interacciones:</span>
-              <span className="font-semibold text-gray-900">
-                {tutorMetrics.totalInteractions}
-              </span>
+              <span className="font-semibold text-gray-900">{tutorMetrics.totalInteractions}</span>
             </div>
             {showCosts && (
               <>
@@ -188,7 +197,9 @@ const ComprehensiveStudentCard: React.FC<ComprehensiveStudentCardProps> = ({
                 </div>
               </>
             )}
-            <div className={`flex justify-between ${showCosts ? 'pt-2 border-t border-gray-200' : ''}`}>
+            <div
+              className={`flex justify-between ${showCosts ? 'pt-2 border-t border-gray-200' : ''}`}
+            >
               <span className="text-gray-600">Última:</span>
               <span className="font-semibold text-gray-900 text-xs">
                 {formatDate(tutorMetrics.lastInteractionDate)}
@@ -207,12 +218,11 @@ const ComprehensiveStudentCard: React.FC<ComprehensiveStudentCardProps> = ({
           </span>
         </div>
         <div className="text-xs text-gray-500 mt-1">
-          {insights.efficiency > 5 
+          {insights.efficiency > 5
             ? 'Excelente uso del tutor'
             : insights.efficiency > 2
-            ? 'Uso moderado del tutor'
-            : 'Baja eficiencia - revisar estrategia'
-          }
+              ? 'Uso moderado del tutor'
+              : 'Baja eficiencia - revisar estrategia'}
         </div>
       </div>
 
@@ -222,16 +232,12 @@ const ComprehensiveStudentCard: React.FC<ComprehensiveStudentCardProps> = ({
           <div className="flex items-start gap-2 mb-2">
             <CorrelationIcon className={`w-5 h-5 ${config.color} flex-shrink-0 mt-0.5`} />
             <div className="flex-1">
-              <h4 className="text-sm font-semibold text-gray-900 mb-1">
-                {config.label}
-              </h4>
+              <h4 className="text-sm font-semibold text-gray-900 mb-1">{config.label}</h4>
               <p className="text-xs text-gray-700 mb-3">{config.description}</p>
-              
+
               {insights.recommendedActions.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-900 mb-2">
-                    Recomendaciones:
-                  </p>
+                  <p className="text-xs font-semibold text-gray-900 mb-2">Recomendaciones:</p>
                   <ul className="space-y-1">
                     {insights.recommendedActions.map((action, index) => (
                       <li key={index} className="text-xs text-gray-700 flex items-start gap-2">
@@ -249,11 +255,13 @@ const ComprehensiveStudentCard: React.FC<ComprehensiveStudentCardProps> = ({
 
       {/* Nivel de Riesgo */}
       {insights.riskLevel !== 'low' && (
-        <div className={`mt-3 p-2 rounded text-xs font-medium text-center ${
-          insights.riskLevel === 'high'
-            ? 'bg-red-100 text-red-800'
-            : 'bg-orange-100 text-orange-800'
-        }`}>
+        <div
+          className={`mt-3 p-2 rounded text-xs font-medium text-center ${
+            insights.riskLevel === 'high'
+              ? 'bg-red-100 text-red-800'
+              : 'bg-orange-100 text-orange-800'
+          }`}
+        >
           Nivel de Riesgo: {insights.riskLevel === 'high' ? 'Alto' : 'Medio'}
         </div>
       )}
@@ -262,4 +270,3 @@ const ComprehensiveStudentCard: React.FC<ComprehensiveStudentCardProps> = ({
 };
 
 export default ComprehensiveStudentCard;
-

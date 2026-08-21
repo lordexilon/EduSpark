@@ -47,11 +47,7 @@ export const institutionService = {
    * Obtener institución por ID
    */
   async getInstitution(id: number): Promise<Institution | null> {
-    const { data, error } = await supabase
-      .from('institutions')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { data, error } = await supabase.from('institutions').select('*').eq('id', id).single();
 
     if (error) {
       if (error.code === 'PGRST116') return null;
@@ -69,10 +65,12 @@ export const institutionService = {
 
       const { data, error } = await supabase
         .from('user_institutions')
-        .select(`
+        .select(
+          `
           institution_id,
           institutions (*)
-        `)
+        `
+        )
         .eq('user_id', userId)
         .eq('is_primary', true)
         .maybeSingle();
@@ -87,8 +85,10 @@ export const institutionService = {
         return null;
       }
 
-      const institution = data.institutions as Institution;
-      console.log(`✅ [institutionService] Usuario ${userId} pertenece a institución: ${institution.name} (ID: ${institution.id})`);
+      const institution = data.institutions as unknown as Institution;
+      console.log(
+        `✅ [institutionService] Usuario ${userId} pertenece a institución: ${institution.name} (ID: ${institution.id})`
+      );
       return institution;
     } catch (error) {
       console.error('❌ [institutionService] Error obteniendo institución del usuario:', error);
@@ -102,22 +102,24 @@ export const institutionService = {
   async getUserInstitutions(userId: string): Promise<UserInstitution[]> {
     const { data, error } = await supabase
       .from('user_institutions')
-      .select(`
+      .select(
+        `
         *,
         institutions (*)
-      `)
+      `
+      )
       .eq('user_id', userId)
       .order('is_primary', { ascending: false });
 
     if (error) throw error;
-    return (data || []).map(item => ({
+    return (data || []).map((item) => ({
       id: item.id,
       user_id: item.user_id,
       institution_id: item.institution_id,
       is_primary: item.is_primary,
       position: item.position,
       joined_at: item.joined_at,
-      institution: item.institutions as Institution
+      institution: item.institutions as Institution,
     }));
   },
 
@@ -132,26 +134,28 @@ export const institutionService = {
   ): Promise<UserInstitution> {
     // Si es primaria, desmarcar otras como primarias
     if (isPrimary) {
-      await supabase
-        .from('user_institutions')
-        .update({ is_primary: false })
-        .eq('user_id', userId);
+      await supabase.from('user_institutions').update({ is_primary: false }).eq('user_id', userId);
     }
 
     const { data, error } = await supabase
       .from('user_institutions')
-      .upsert({
-        user_id: userId,
-        institution_id: institutionId,
-        is_primary: isPrimary,
-        position: position || null
-      }, {
-        onConflict: 'user_id,institution_id'
-      })
-      .select(`
+      .upsert(
+        {
+          user_id: userId,
+          institution_id: institutionId,
+          is_primary: isPrimary,
+          position: position || null,
+        },
+        {
+          onConflict: 'user_id,institution_id',
+        }
+      )
+      .select(
+        `
         *,
         institutions (*)
-      `)
+      `
+      )
       .single();
 
     if (error) throw error;
@@ -162,7 +166,7 @@ export const institutionService = {
       is_primary: data.is_primary,
       position: data.position,
       joined_at: data.joined_at,
-      institution: data.institutions as Institution
+      institution: data.institutions as Institution,
     };
   },
 
@@ -182,7 +186,9 @@ export const institutionService = {
   /**
    * Crear nueva institución
    */
-  async createInstitution(institution: Omit<Institution, 'id' | 'created_at' | 'updated_at'>): Promise<Institution> {
+  async createInstitution(
+    institution: Omit<Institution, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Institution> {
     const { data, error } = await supabase
       .from('institutions')
       .insert([institution])
@@ -211,31 +217,35 @@ export const institutionService = {
   /**
    * Obtener usuarios de una institución
    */
-  async getInstitutionUsers(institutionId: number): Promise<Array<{
-    user_id: string;
-    is_primary: boolean;
-    position?: string;
-    joined_at: string;
-    user?: {
-      id: string;
-      email: string;
-      first_name: string;
-      last_name: string;
-      role?: {
-        id: number;
-        name: string;
+  async getInstitutionUsers(institutionId: number): Promise<
+    Array<{
+      user_id: string;
+      is_primary: boolean;
+      position?: string;
+      joined_at: string;
+      user?: {
+        id: string;
+        email: string;
+        first_name: string;
+        last_name: string;
+        role?: {
+          id: number;
+          name: string;
+        };
       };
-    };
-  }>> {
+    }>
+  > {
     // Primero obtener los user_institutions
     const { data: userInstitutions, error: uiError } = await supabase
       .from('user_institutions')
-      .select(`
+      .select(
+        `
         user_id,
         is_primary,
         position,
         joined_at
-      `)
+      `
+      )
       .eq('institution_id', institutionId)
       .order('is_primary', { ascending: false })
       .order('joined_at', { ascending: false });
@@ -244,12 +254,13 @@ export const institutionService = {
     if (!userInstitutions || userInstitutions.length === 0) return [];
 
     // Obtener los IDs de usuarios
-    const userIds = userInstitutions.map(ui => ui.user_id);
+    const userIds = userInstitutions.map((ui) => ui.user_id);
 
     // Obtener los usuarios con sus roles
     const { data: users, error: usersError } = await supabase
       .from('users')
-      .select(`
+      .select(
+        `
         id,
         email,
         first_name,
@@ -259,29 +270,32 @@ export const institutionService = {
           id,
           name
         )
-      `)
+      `
+      )
       .in('id', userIds);
 
     if (usersError) throw usersError;
 
     // Crear un mapa de usuarios por ID
-    const usersMap = new Map((users || []).map(user => [user.id, user]));
+    const usersMap = new Map((users || []).map((user) => [user.id, user]));
 
     // Combinar los datos
-    return userInstitutions.map(item => {
+    return userInstitutions.map((item) => {
       const user = usersMap.get(item.user_id);
       return {
         user_id: item.user_id,
         is_primary: item.is_primary,
         position: item.position,
         joined_at: item.joined_at,
-        user: user ? {
-          id: user.id,
-          email: user.email,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          role: (user as any).roles
-        } : undefined
+        user: user
+          ? {
+              id: user.id,
+              email: user.email,
+              first_name: user.first_name,
+              last_name: user.last_name,
+              role: (user as any).roles,
+            }
+          : undefined,
       };
     });
   },
@@ -289,19 +303,25 @@ export const institutionService = {
   /**
    * Buscar usuarios para asignar a instituciones
    */
-  async searchUsers(query: string, limit: number = 20): Promise<Array<{
-    id: string;
-    email: string;
-    first_name: string;
-    last_name: string;
-    role?: {
-      id: number;
-      name: string;
-    };
-  }>> {
+  async searchUsers(
+    query: string,
+    limit: number = 20
+  ): Promise<
+    Array<{
+      id: string;
+      email: string;
+      first_name: string;
+      last_name: string;
+      role?: {
+        id: number;
+        name: string;
+      };
+    }>
+  > {
     let queryBuilder = supabase
       .from('users')
-      .select(`
+      .select(
+        `
         id,
         email,
         first_name,
@@ -310,14 +330,15 @@ export const institutionService = {
           id,
           name
         )
-      `)
+      `
+      )
       .limit(limit);
 
     // Si hay query, buscar por email, nombre o apellido
     if (query && query.trim().length > 0) {
-      queryBuilder = queryBuilder.or(
-        `email.ilike.%${query}%,first_name.ilike.%${query}%,last_name.ilike.%${query}%`
-      ).order('created_at', { ascending: false });
+      queryBuilder = queryBuilder
+        .or(`email.ilike.%${query}%,first_name.ilike.%${query}%,last_name.ilike.%${query}%`)
+        .order('created_at', { ascending: false });
     }
     // Si no hay query, obtener los últimos usuarios registrados
     else {
@@ -327,12 +348,12 @@ export const institutionService = {
     const { data, error } = await queryBuilder;
 
     if (error) throw error;
-    return (data || []).map(user => ({
+    return (data || []).map((user) => ({
       id: user.id,
       email: user.email,
       first_name: user.first_name,
       last_name: user.last_name,
-      role: (user as any).roles
+      role: (user as any).roles,
     }));
   },
 
@@ -351,6 +372,5 @@ export const institutionService = {
       throw error;
     }
     return data;
-  }
+  },
 };
-

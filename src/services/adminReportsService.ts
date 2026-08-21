@@ -2,9 +2,10 @@
 // Servicio para reportes administrativos globales (solo para admin)
 
 import { supabase } from '@/lib/supabase';
-import { comprehensiveReportService, CourseComprehensiveReport } from './comprehensiveReportService';
-import { costService } from './costService';
-import { aiUsageService } from './aiUsageService';
+import {
+  comprehensiveReportService,
+  CourseComprehensiveReport,
+} from './comprehensiveReportService';
 import { costService } from './costService';
 import { aiUsageService } from './aiUsageService';
 
@@ -99,7 +100,7 @@ async function getUserInstitutionId(userId: string): Promise<number | null> {
 async function getCoursesByInstitution(institutionId?: number | null) {
   try {
     if (!institutionId) return [];
-    
+
     // Primero intentar por institution_id directo
     let query = supabase
       .from('courses')
@@ -107,40 +108,40 @@ async function getCoursesByInstitution(institutionId?: number | null) {
       .eq('institution_id', institutionId);
 
     const { data: coursesByInstitution, error: error1 } = await query;
-    
+
     if (error1) {
       console.warn(`Error obteniendo cursos por institution_id para ${institutionId}:`, error1);
     }
-    
+
     // También buscar por teacher_id -> user_institutions
     // Obtener usuarios de la institución
     const { data: institutionUsers } = await supabase
       .from('user_institutions')
       .select('user_id')
       .eq('institution_id', institutionId);
-    
-    const userIds = institutionUsers?.map(u => u.user_id) || [];
-    
+
+    const userIds = institutionUsers?.map((u) => u.user_id) || [];
+
     let coursesByTeacher: any[] = [];
     if (userIds.length > 0) {
       const { data: coursesByTeacherData, error: error2 } = await supabase
         .from('courses')
         .select('id, title, institution_id, teacher_id')
         .in('teacher_id', userIds);
-      
+
       if (!error2 && coursesByTeacherData) {
         coursesByTeacher = coursesByTeacherData;
       }
     }
-    
+
     // Combinar y eliminar duplicados
     const allCourses = [...(coursesByInstitution || []), ...coursesByTeacher];
-    const uniqueCourses = Array.from(
-      new Map(allCourses.map(c => [c.id, c])).values()
+    const uniqueCourses = Array.from(new Map(allCourses.map((c) => [c.id, c])).values());
+
+    console.log(
+      `[Institución ${institutionId}] Cursos encontrados: ${uniqueCourses.length} (por institution_id: ${coursesByInstitution?.length || 0}, por teacher: ${coursesByTeacher.length})`
     );
-    
-    console.log(`[Institución ${institutionId}] Cursos encontrados: ${uniqueCourses.length} (por institution_id: ${coursesByInstitution?.length || 0}, por teacher: ${coursesByTeacher.length})`);
-    
+
     return uniqueCourses;
   } catch (error) {
     console.error('Error en getCoursesByInstitution:', error);
@@ -178,32 +179,32 @@ export const adminReportsService = {
       const institutionReports = await Promise.all(
         institutions.map(async (institution) => {
           const courses = await getCoursesByInstitution(institution.id);
-          
+
           // Declarar courseIds aquí para que esté disponible en todo el scope
-          const courseIds = courses.map(c => c.id);
-          
+          const courseIds = courses.map((c) => c.id);
+
           // Obtener estudiantes de la institución
           // Intentar con course_enrollments primero, luego con enrollments
           let totalStudents = 0;
-          
+
           if (courseIds.length > 0) {
             // Intentar course_enrollments
             const { data: enrollments1 } = await supabase
               .from('course_enrollments')
               .select('student_id, course_id')
               .in('course_id', courseIds);
-            
+
             if (enrollments1 && enrollments1.length > 0) {
-              totalStudents = new Set(enrollments1.map(e => e.student_id)).size;
+              totalStudents = new Set(enrollments1.map((e) => e.student_id)).size;
             } else {
               // Intentar enrollments (tabla alternativa)
               const { data: enrollments2 } = await supabase
                 .from('enrollments')
                 .select('student_id, course_id')
                 .in('course_id', courseIds);
-              
+
               if (enrollments2 && enrollments2.length > 0) {
-                totalStudents = new Set(enrollments2.map(e => e.student_id)).size;
+                totalStudents = new Set(enrollments2.map((e) => e.student_id)).size;
               }
             }
           } else {
@@ -213,30 +214,32 @@ export const adminReportsService = {
               .from('user_institutions')
               .select('user_id')
               .eq('institution_id', institution.id);
-            
-            const userIds = institutionUsers?.map(u => u.user_id) || [];
-            
+
+            const userIds = institutionUsers?.map((u) => u.user_id) || [];
+
             // Buscar usuarios con rol de estudiante
             if (userIds.length > 0) {
               const { data: students, error: studentsError } = await supabase
                 .from('users')
                 .select('id, role_id')
                 .in('id', userIds);
-              
+
               // Buscar el role_id de "student"
               const { data: studentRole } = await supabase
                 .from('roles')
                 .select('id')
                 .eq('name', 'student')
                 .single();
-              
+
               if (students && studentRole) {
-                totalStudents = students.filter(s => s.role_id === studentRole.id).length;
+                totalStudents = students.filter((s) => s.role_id === studentRole.id).length;
               }
             }
           }
-          
-          console.log(`[${institution.name}] Estudiantes: ${totalStudents}, Cursos: ${courses.length}`);
+
+          console.log(
+            `[${institution.name}] Estudiantes: ${totalStudents}, Cursos: ${courses.length}`
+          );
 
           // Obtener profesores de la institución
           const { data: teachers } = await supabase
@@ -244,7 +247,7 @@ export const adminReportsService = {
             .select('teacher_id')
             .eq('institution_id', institution.id);
 
-          const totalTeachers = new Set(teachers?.map(t => t.teacher_id) || []).size;
+          const totalTeachers = new Set(teachers?.map((t) => t.teacher_id) || []).size;
 
           // Obtener reportes de cursos
           const courseReports = await Promise.all(
@@ -262,22 +265,28 @@ export const adminReportsService = {
                 institutionName: institution.name,
                 totalStudents: report?.aggregated.totalStudents || 0,
                 averageProgress: report?.aggregated.averageProgress || 0,
-                totalTutorInteractions: report?.aggregated.averageTutorInteractions * (report?.aggregated.totalStudents || 0) || 0,
+                totalTutorInteractions:
+                  report?.aggregated.averageTutorInteractions *
+                    (report?.aggregated.totalStudents || 0) || 0,
                 totalCost: report?.aggregated.totalCost || 0,
                 totalTokens: report?.aggregated.totalTokens || 0,
-                comprehensiveReport: report || undefined
+                comprehensiveReport: report || undefined,
               } as CourseReport;
             })
           );
 
           // Calcular métricas agregadas
           const totalCourses = courses.length;
-          const totalTutorInteractions = courseReports.reduce((sum, c) => sum + c.totalTutorInteractions, 0);
+          const totalTutorInteractions = courseReports.reduce(
+            (sum, c) => sum + c.totalTutorInteractions,
+            0
+          );
           const totalCost = courseReports.reduce((sum, c) => sum + c.totalCost, 0);
           const totalTokens = courseReports.reduce((sum, c) => sum + c.totalTokens, 0);
-          const averageProgress = courseReports.length > 0
-            ? courseReports.reduce((sum, c) => sum + c.averageProgress, 0) / courseReports.length
-            : 0;
+          const averageProgress =
+            courseReports.length > 0
+              ? courseReports.reduce((sum, c) => sum + c.averageProgress, 0) / courseReports.length
+              : 0;
 
           // Obtener costos del tutor directamente desde tutor_interactions
           // Buscar por course_id Y por user_id (a través de user_institutions)
@@ -286,11 +295,11 @@ export const adminReportsService = {
             .from('user_institutions')
             .select('user_id')
             .eq('institution_id', institution.id);
-          
-          const userIds = institutionUsers?.map(u => u.user_id) || [];
-          
+
+          const userIds = institutionUsers?.map((u) => u.user_id) || [];
+
           let tutorCost = 0; // Empezar desde 0 y sumar todo
-          
+
           try {
             // Buscar costos por course_id
             if (courseIds.length > 0) {
@@ -304,10 +313,12 @@ export const adminReportsService = {
                   const cost = parseFloat(interaction.cost) || 0;
                   return sum + cost;
                 }, 0);
-                console.log(`[${institution.name}] Tutor cost by course: ${tutorCost}, interactions: ${tutorInteractionsByCourse.length}`);
+                console.log(
+                  `[${institution.name}] Tutor cost by course: ${tutorCost}, interactions: ${tutorInteractionsByCourse.length}`
+                );
               }
             }
-            
+
             // Buscar costos por user_id (estudiantes de la institución) que NO estén en nuestros cursos
             if (userIds.length > 0) {
               const { data: tutorInteractionsByUser, error: tutorError2 } = await supabase
@@ -326,23 +337,26 @@ export const adminReportsService = {
                   const cost = parseFloat(interaction.cost) || 0;
                   return sum + cost;
                 }, 0);
-                
+
                 tutorCost += costByUser;
                 console.log(`[${institution.name}] Tutor cost by user (additional): ${costByUser}`);
               }
             }
-            
+
             // Si no encontramos costos directos, usar los de los reportes
             if (tutorCost === 0 && totalCost > 0) {
               tutorCost = totalCost;
               console.log(`[${institution.name}] Using tutor cost from reports: ${totalCost}`);
             }
           } catch (error) {
-            console.warn(`Error obteniendo costos del tutor para institución ${institution.id}:`, error);
+            console.warn(
+              `Error obteniendo costos del tutor para institución ${institution.id}:`,
+              error
+            );
             // Si hay error, usar el costo de los reportes
             tutorCost = totalCost;
           }
-          
+
           const finalTutorCost = tutorCost;
 
           // Obtener costos de procesamiento por institución
@@ -350,7 +364,6 @@ export const adminReportsService = {
           // Reutilizar userIds y courseIds ya obtenidos arriba
           let processingCost = 0;
           try {
-            
             // Buscar costos por course_id (incluyendo NULL para capturar todos)
             if (courseIds.length > 0) {
               const { data: processingCostsByCourse, error: processingError } = await supabase
@@ -364,7 +377,7 @@ export const adminReportsService = {
                 }, 0);
               }
             }
-            
+
             // Buscar costos por user_id (todos, no solo los sin course_id)
             // Esto captura costos que pueden no estar asociados a un curso específico
             if (userIds.length > 0) {
@@ -385,10 +398,15 @@ export const adminReportsService = {
                 }, 0);
               }
             }
-            
-            console.log(`[${institution.name}] Processing cost: ${processingCost}, courses: ${courseIds.length}, users: ${userIds.length}`);
+
+            console.log(
+              `[${institution.name}] Processing cost: ${processingCost}, courses: ${courseIds.length}, users: ${userIds.length}`
+            );
           } catch (error) {
-            console.warn(`Error obteniendo costos de procesamiento para institución ${institution.id}:`, error);
+            console.warn(
+              `Error obteniendo costos de procesamiento para institución ${institution.id}:`,
+              error
+            );
           }
 
           // Obtener costos de uso de IA por institución
@@ -396,7 +414,6 @@ export const adminReportsService = {
           // Reutilizar userIds y courseIds ya obtenidos arriba
           let aiUsageCost = 0;
           try {
-            
             // Buscar costos por course_id
             if (courseIds.length > 0) {
               const { data: aiUsageByCourse, error: aiError } = await supabase
@@ -410,7 +427,7 @@ export const adminReportsService = {
                 }, 0);
               }
             }
-            
+
             // Buscar costos por user_id (todos, no solo los sin course_id)
             if (userIds.length > 0) {
               const { data: aiUsageByUser, error: aiError2 } = await supabase
@@ -430,15 +447,22 @@ export const adminReportsService = {
                 }, 0);
               }
             }
-            
-            console.log(`[${institution.name}] AI usage cost: ${aiUsageCost}, courses: ${courseIds.length}, users: ${userIds.length}`);
+
+            console.log(
+              `[${institution.name}] AI usage cost: ${aiUsageCost}, courses: ${courseIds.length}, users: ${userIds.length}`
+            );
           } catch (error) {
-            console.warn(`Error obteniendo costos de IA para institución ${institution.id}:`, error);
+            console.warn(
+              `Error obteniendo costos de IA para institución ${institution.id}:`,
+              error
+            );
           }
 
           const totalAllCosts = finalTutorCost + processingCost + aiUsageCost;
-          
-          console.log(`[${institution.name}] Total costs - Tutor: ${finalTutorCost}, Processing: ${processingCost}, AI: ${aiUsageCost}, Total: ${totalAllCosts}`);
+
+          console.log(
+            `[${institution.name}] Total costs - Tutor: ${finalTutorCost}, Processing: ${processingCost}, AI: ${aiUsageCost}, Total: ${totalAllCosts}`
+          );
 
           return {
             institutionId: institution.id,
@@ -453,7 +477,7 @@ export const adminReportsService = {
             processingCost,
             aiUsageCost,
             totalAllCosts: finalTutorCost + processingCost + aiUsageCost, // Recalcular total
-            courses: courseReports
+            courses: courseReports,
           } as InstitutionReport;
         })
       );
@@ -468,10 +492,7 @@ export const adminReportsService = {
   /**
    * Obtiene métricas globales agregadas
    */
-  async getGlobalMetrics(
-    dateFrom?: string,
-    dateTo?: string
-  ): Promise<GlobalMetrics> {
+  async getGlobalMetrics(dateFrom?: string, dateTo?: string): Promise<GlobalMetrics> {
     try {
       const institutions = await this.getAllInstitutionsReports(dateFrom, dateTo);
 
@@ -479,14 +500,18 @@ export const adminReportsService = {
       const totalCourses = institutions.reduce((sum, i) => sum + i.totalCourses, 0);
       const totalStudents = institutions.reduce((sum, i) => sum + i.totalStudents, 0);
       const totalTeachers = institutions.reduce((sum, i) => sum + i.totalTeachers, 0);
-      const totalTutorInteractions = institutions.reduce((sum, i) => sum + i.totalTutorInteractions, 0);
+      const totalTutorInteractions = institutions.reduce(
+        (sum, i) => sum + i.totalTutorInteractions,
+        0
+      );
       const totalCost = institutions.reduce((sum, i) => sum + i.totalCost, 0); // Costo del tutor
       const totalTokens = institutions.reduce((sum, i) => sum + i.totalTokens, 0);
-      
-      const allProgress = institutions.map(i => i.averageProgress).filter(p => p > 0);
-      const averageProgress = allProgress.length > 0
-        ? allProgress.reduce((sum, p) => sum + p, 0) / allProgress.length
-        : 0;
+
+      const allProgress = institutions.map((i) => i.averageProgress).filter((p) => p > 0);
+      const averageProgress =
+        allProgress.length > 0
+          ? allProgress.reduce((sum, p) => sum + p, 0) / allProgress.length
+          : 0;
 
       // Obtener total de carreras
       const { data: careers, error: careersError } = await supabase
@@ -494,7 +519,7 @@ export const adminReportsService = {
         .select('id', { count: 'exact' })
         .eq('is_active', true);
 
-      const totalCareers = careersError ? 0 : (careers?.length || 0);
+      const totalCareers = careersError ? 0 : careers?.length || 0;
 
       // Obtener costos adicionales
       let processingCost = 0;
@@ -531,7 +556,7 @@ export const adminReportsService = {
         totalTokens,
         processingCost, // Costos de procesamiento
         aiUsageCost, // Costos de uso de IA
-        totalAllCosts // Total combinado
+        totalAllCosts, // Total combinado
       };
     } catch (error) {
       console.error('Error obteniendo métricas globales:', error);
@@ -547,9 +572,8 @@ export const adminReportsService = {
         totalTokens: 0,
         processingCost: 0,
         aiUsageCost: 0,
-        totalAllCosts: 0
+        totalAllCosts: 0,
       };
     }
-  }
+  },
 };
-

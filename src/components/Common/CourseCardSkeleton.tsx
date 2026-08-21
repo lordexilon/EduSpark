@@ -9,10 +9,15 @@ interface CourseCardSkeletonProps {
   type?: 'card' | 'progressRow';
 }
 
-export const CourseCardSkeleton: React.FC<CourseCardSkeletonProps> = ({ className = '', type = 'card' }) => {
+export const CourseCardSkeleton: React.FC<CourseCardSkeletonProps> = ({
+  className = '',
+  type = 'card',
+}) => {
   if (type === 'progressRow') {
     return (
-      <div className={`rounded-xl border border-border p-3 bg-background/40 flex flex-col gap-2 ${className}`}>
+      <div
+        className={`rounded-xl border border-border p-3 bg-background/40 flex flex-col gap-2 ${className}`}
+      >
         <div className="flex items-center justify-between gap-2">
           <Skeleton className="h-4 w-2/3" />
           <Skeleton className="h-4 w-16 rounded-full" />
@@ -28,7 +33,9 @@ export const CourseCardSkeleton: React.FC<CourseCardSkeletonProps> = ({ classNam
   }
 
   return (
-    <div className={`bg-surface rounded-2xl p-5 border-2 border-border flex flex-col h-full opacity-80 pointer-events-none ${className}`}>
+    <div
+      className={`bg-surface rounded-2xl p-5 border-2 border-border flex flex-col h-full opacity-80 pointer-events-none ${className}`}
+    >
       <Skeleton className="h-32 w-full rounded-xl mb-4" />
       <Skeleton className="h-5 w-3/4 mb-3" />
       <Skeleton className="h-3 w-full mb-1 sm" />

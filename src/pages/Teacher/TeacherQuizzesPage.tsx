@@ -8,7 +8,15 @@ import { courseService, Course } from '@/services/teacherCourses';
 import { useAuth } from '@/hooks/useAuth';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
-import { IconClipboardCheck, IconPlusCircle, IconEdit, IconChartBar, IconClock, IconCheckCircle, IconX } from '@/components/Common/Icons';
+import {
+  IconClipboardCheck,
+  IconPlusCircle,
+  IconEdit,
+  IconChartBar,
+  IconClock,
+  IconCheckCircle,
+  IconX,
+} from '@/components/Common/Icons';
 
 export const TeacherQuizzesPage: React.FC = () => {
   const { user } = useAuth();
@@ -53,10 +61,10 @@ export const TeacherQuizzesPage: React.FC = () => {
 
     try {
       setLoading(true);
-      const types = filterType 
+      const types = filterType
         ? [filterType as 'quiz' | 'trivia' | 'exam' | 'project' | 'assignment']
         : ['quiz', 'trivia', 'exam', 'project', 'assignment'];
-      
+
       const data = await quizService.getCourseAssessments(selectedCourse, types);
       setAssessments(data);
     } catch (err) {
@@ -82,22 +90,22 @@ export const TeacherQuizzesPage: React.FC = () => {
 
   const getTypeLabel = (type: string): string => {
     const labels: Record<string, string> = {
-      'quiz': 'Quiz',
-      'trivia': 'Trivia',
-      'exam': 'Examen',
-      'project': 'Proyecto',
-      'assignment': 'Tarea'
+      quiz: 'Quiz',
+      trivia: 'Trivia',
+      exam: 'Examen',
+      project: 'Proyecto',
+      assignment: 'Tarea',
     };
     return labels[type] || type;
   };
 
   const getTypeColor = (type: string): string => {
     const colors: Record<string, string> = {
-      'quiz': 'bg-blue-100 text-blue-700',
-      'trivia': 'bg-purple-100 text-purple-700',
-      'exam': 'bg-red-100 text-red-700',
-      'project': 'bg-green-100 text-green-700',
-      'assignment': 'bg-yellow-100 text-yellow-700'
+      quiz: 'bg-blue-100 text-blue-700',
+      trivia: 'bg-purple-100 text-purple-700',
+      exam: 'bg-red-100 text-red-700',
+      project: 'bg-green-100 text-green-700',
+      assignment: 'bg-yellow-100 text-yellow-700',
     };
     return colors[type] || 'bg-gray-100 text-gray-700';
   };
@@ -133,7 +141,7 @@ export const TeacherQuizzesPage: React.FC = () => {
     );
   }
 
-  const selectedCourseData = courses.find(c => c.id === selectedCourse);
+  const selectedCourseData = courses.find((c) => c.id === selectedCourse);
 
   return (
     <div className="space-y-6">
@@ -176,9 +184,7 @@ export const TeacherQuizzesPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          {error}
-        </div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">{error}</div>
       )}
 
       {loading ? (
@@ -193,7 +199,7 @@ export const TeacherQuizzesPage: React.FC = () => {
               {filterType ? `No hay ${getTypeLabel(filterType)}s` : 'No hay evaluaciones'}
             </h3>
             <p className="text-gray-600 mb-4">
-              {selectedCourseData 
+              {selectedCourseData
                 ? `Aún no has creado evaluaciones para "${selectedCourseData.title}"`
                 : 'Selecciona un curso para ver sus evaluaciones'}
             </p>
@@ -221,7 +227,9 @@ export const TeacherQuizzesPage: React.FC = () => {
                           {assessment.title}
                         </h3>
                       </div>
-                      <span className={`inline-block text-xs font-medium px-2 py-1 rounded ${getTypeColor(assessment.assessment_type)}`}>
+                      <span
+                        className={`inline-block text-xs font-medium px-2 py-1 rounded ${getTypeColor(assessment.assessment_type)}`}
+                      >
                         {getTypeLabel(assessment.assessment_type)}
                       </span>
                     </div>
@@ -242,7 +250,9 @@ export const TeacherQuizzesPage: React.FC = () => {
                     )}
                     {assessment.max_attempts && (
                       <div className="flex items-center gap-1">
-                        <span>{assessment.max_attempts} intento{assessment.max_attempts > 1 ? 's' : ''}</span>
+                        <span>
+                          {assessment.max_attempts} intento{assessment.max_attempts > 1 ? 's' : ''}
+                        </span>
                       </div>
                     )}
                     {assessment.passing_score && (
@@ -267,19 +277,13 @@ export const TeacherQuizzesPage: React.FC = () => {
                 </div>
 
                 <div className="flex gap-2 pt-4 mt-4 border-t border-gray-200">
-                  <Link
-                    to={`/teacher/quizzes/edit/${assessment.id}`}
-                    className="flex-1"
-                  >
+                  <Link to={`/teacher/quizzes/edit/${assessment.id}`} className="flex-1">
                     <Button variant="outline" size="sm" className="w-full">
                       <IconEdit className="w-4 h-4 mr-1" />
                       Editar
                     </Button>
                   </Link>
-                  <Link
-                    to={`/teacher/quizzes/${assessment.id}/analytics`}
-                    className="flex-1"
-                  >
+                  <Link to={`/teacher/quizzes/${assessment.id}/analytics`} className="flex-1">
                     <Button variant="secondary" size="sm" className="w-full">
                       <IconChartBar className="w-4 h-4 mr-1" />
                       Analytics
@@ -296,4 +300,3 @@ export const TeacherQuizzesPage: React.FC = () => {
 };
 
 export default TeacherQuizzesPage;
-

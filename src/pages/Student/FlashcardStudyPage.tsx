@@ -11,11 +11,25 @@ import {
   recordFlashcardStudy,
   getFlashcardProgressStats,
 } from '@/services/flashcardService';
-import { courseService, Course, unitService, sessionService, CourseUnit, Session } from '@/services/teacherCourses';
+import {
+  courseService,
+  Course,
+  unitService,
+  sessionService,
+  CourseUnit,
+  Session,
+} from '@/services/teacherCourses';
 import Button from '@/components/Common/Button';
 import Card from '@/components/Common/Card';
-import FlashcardCard from "@/components/Features/flashcards/FlashcardCard";
-import { IconArrowLeft, IconBookOpen, IconCheckCircle, IconClock, IconTrendingUp, IconX } from '@/components/Common/Icons';
+import FlashcardCard from '@/components/Features/flashcards/FlashcardCard';
+import {
+  IconArrowLeft,
+  IconBookOpen,
+  IconCheckCircle,
+  IconClock,
+  IconTrendingUp,
+  IconX,
+} from '@/components/Common/Icons';
 
 export const FlashcardStudyPage: React.FC = () => {
   const { courseId } = useParams<{ courseId?: string }>();
@@ -80,7 +94,7 @@ export const FlashcardStudyPage: React.FC = () => {
     const now = new Date();
 
     if (session.unit_id) {
-      const parentUnit = units.find(u => u.id === session.unit_id);
+      const parentUnit = units.find((u) => u.id === session.unit_id);
       if (parentUnit && !isUnitAvailable(parentUnit, course)) return false;
     }
 
@@ -107,17 +121,22 @@ export const FlashcardStudyPage: React.FC = () => {
     return true;
   };
 
-  const isFlashcardAvailable = (flashcard: FlashcardWithProgress, units: CourseUnit[], sessions: Session[], course: Course): boolean => {
+  const isFlashcardAvailable = (
+    flashcard: FlashcardWithProgress,
+    units: CourseUnit[],
+    sessions: Session[],
+    course: Course
+  ): boolean => {
     if (user?.role?.name !== 'student') return true;
     const now = new Date();
 
     if (flashcard.session_id) {
-      const parentSession = sessions.find(s => s.id === flashcard.session_id);
+      const parentSession = sessions.find((s) => s.id === flashcard.session_id);
       if (parentSession && !isSessionAvailable(parentSession, units, course)) return false;
     }
 
     if (flashcard.unit_id) {
-      const parentUnit = units.find(u => u.id === flashcard.unit_id);
+      const parentUnit = units.find((u) => u.id === flashcard.unit_id);
       if (parentUnit && !isUnitAvailable(parentUnit, course)) return false;
     }
 
@@ -142,7 +161,7 @@ export const FlashcardStudyPage: React.FC = () => {
       const [courseData, unitsData, sessionsData] = await Promise.all([
         courseService.getCourse(courseIdNum),
         unitService.getCourseUnits(courseIdNum),
-        sessionService.getCourseSessions(courseIdNum)
+        sessionService.getCourseSessions(courseIdNum),
       ]);
 
       setCourse(courseData);
@@ -154,7 +173,7 @@ export const FlashcardStudyPage: React.FC = () => {
         flashcardsData = await getFlashcardsWithProgress(courseIdNum, user.id);
       }
 
-      const visibleFlashcards = flashcardsData.filter(f =>
+      const visibleFlashcards = flashcardsData.filter((f) =>
         isFlashcardAvailable(f, unitsData, sessionsData, courseData)
       );
 
@@ -235,9 +254,7 @@ export const FlashcardStudyPage: React.FC = () => {
       <div className="fsp-page">
         <Card className="p-8 text-center max-w-lg mx-auto mt-20">
           <p className="text-gray-500 mb-6">Curso no encontrado</p>
-          <Button onClick={() => navigate('/my/courses')}>
-            Volver a Mis Cursos
-          </Button>
+          <Button onClick={() => navigate('/my/courses')}>Volver a Mis Cursos</Button>
         </Card>
       </div>
     );
@@ -245,7 +262,8 @@ export const FlashcardStudyPage: React.FC = () => {
 
   const currentFlashcard = flashcards[currentIndex];
   const hasMore = currentIndex < flashcards.length - 1;
-  const progressPercent = flashcards.length > 0 ? ((currentIndex + 1) / flashcards.length) * 100 : 0;
+  const progressPercent =
+    flashcards.length > 0 ? ((currentIndex + 1) / flashcards.length) * 100 : 0;
 
   return (
     <div className="fsp-page-v2">
@@ -265,24 +283,30 @@ export const FlashcardStudyPage: React.FC = () => {
 
       {/* ═══ Layout de Dos Columnas ═══ */}
       <div className="fsp-main-grid">
-
         {/* COLUMNA IZQUIERDA: Stats y Controles */}
         <aside className="fsp-sidebar">
           <div className="fsp-sticky-sidebar">
-
             {/* Selector de Modo */}
             <div className="fsp-widget p-1">
               <div className="fsp-mode-switcher">
                 <button
                   className={`fsp-mode-btn ${studyMode === 'review' ? 'active' : ''}`}
-                  onClick={() => { setStudyMode('review'); setCurrentIndex(0); setSessionComplete(false); }}
+                  onClick={() => {
+                    setStudyMode('review');
+                    setCurrentIndex(0);
+                    setSessionComplete(false);
+                  }}
                 >
                   <IconClock className="w-4 h-4" />
                   <span>Revisión ({stats.dueToday})</span>
                 </button>
                 <button
                   className={`fsp-mode-btn ${studyMode === 'all' ? 'active' : ''}`}
-                  onClick={() => { setStudyMode('all'); setCurrentIndex(0); setSessionComplete(false); }}
+                  onClick={() => {
+                    setStudyMode('all');
+                    setCurrentIndex(0);
+                    setSessionComplete(false);
+                  }}
                 >
                   <IconBookOpen className="w-4 h-4" />
                   <span>Todas ({stats.total})</span>
@@ -295,7 +319,9 @@ export const FlashcardStudyPage: React.FC = () => {
               <div className="fsp-progress-card">
                 <div className="fsp-pc-header">
                   <span className="lbl">Progreso sesión</span>
-                  <span className="val">{currentIndex + 1} / {flashcards.length}</span>
+                  <span className="val">
+                    {currentIndex + 1} / {flashcards.length}
+                  </span>
                 </div>
                 <div className="fsp-pc-bar">
                   <div className="fsp-pc-fill" style={{ width: `${progressPercent}%` }} />
@@ -331,8 +357,14 @@ export const FlashcardStudyPage: React.FC = () => {
                 <div className="fsp-activity-box">
                   <p className="title">Sesión actual</p>
                   <div className="stats">
-                    <span className="ok"><IconCheckCircle className="w-3.5 h-3.5" />{sessionStats.correct}</span>
-                    <span className="no"><IconX className="w-3.5 h-3.5" />{sessionStats.incorrect}</span>
+                    <span className="ok">
+                      <IconCheckCircle className="w-3.5 h-3.5" />
+                      {sessionStats.correct}
+                    </span>
+                    <span className="no">
+                      <IconX className="w-3.5 h-3.5" />
+                      {sessionStats.incorrect}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -344,7 +376,9 @@ export const FlashcardStudyPage: React.FC = () => {
         <main className="fsp-content-area">
           {sessionComplete ? (
             <div className="fsp-complete-box">
-              <div className="icon"><IconCheckCircle className="w-16 h-16 text-green-500" /></div>
+              <div className="icon">
+                <IconCheckCircle className="w-16 h-16 text-green-500" />
+              </div>
               <h2 className="title">¡Excelente sesión!</h2>
               <p className="desc">Has terminado de estudiar las flashcards seleccionadas.</p>
 
@@ -363,7 +397,11 @@ export const FlashcardStudyPage: React.FC = () => {
                 <Button variant="primary" onClick={handleRestart} className="w-full sm:w-auto">
                   Estudiar Otra Vez
                 </Button>
-                <Button variant="secondary" onClick={() => navigate(`/courses/${courseId}`)} className="w-full sm:w-auto">
+                <Button
+                  variant="secondary"
+                  onClick={() => navigate(`/courses/${courseId}`)}
+                  className="w-full sm:w-auto"
+                >
                   Volver al Curso
                 </Button>
               </div>

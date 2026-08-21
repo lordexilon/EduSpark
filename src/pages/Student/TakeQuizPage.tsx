@@ -8,7 +8,15 @@ import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/Common/Button';
 import Card from '@/components/Common/Card';
 import Breadcrumbs from '@/components/Common/Breadcrumbs';
-import { IconCheck, IconX, IconClock, IconBookOpen, IconArrowLeft, IconCheckCircle, IconAlertTriangle } from '@/components/Common/Icons';
+import {
+  IconCheck,
+  IconX,
+  IconClock,
+  IconBookOpen,
+  IconArrowLeft,
+  IconCheckCircle,
+  IconAlertTriangle,
+} from '@/components/Common/Icons';
 
 export const TakeQuizPage: React.FC = () => {
   const { quizId } = useParams<{ quizId: string }>();
@@ -36,12 +44,18 @@ export const TakeQuizPage: React.FC = () => {
 
   useEffect(() => {
     // Timer para límite de tiempo
-    if (timeRemaining !== null && timeRemaining > 0 && attempt && attempt.status === 'in_progress') {
+    if (
+      timeRemaining !== null &&
+      timeRemaining > 0 &&
+      attempt &&
+      attempt.status === 'in_progress'
+    ) {
       const timer = setInterval(() => {
-        setTimeRemaining(prev => {
+        setTimeRemaining((prev) => {
           if (prev !== null && prev > 0) {
             // Activar advertencia a los 10 segundos
-            if (prev === 11) { // Será 10 en el siguiente render
+            if (prev === 11) {
+              // Será 10 en el siguiente render
               setShowTimeWarning(true);
             }
             return prev - 1;
@@ -92,7 +106,7 @@ export const TakeQuizPage: React.FC = () => {
           student_id: user.id,
           assessment_id: quizId,
           current_question_index: 0,
-          started_at: new Date().toISOString()
+          started_at: new Date().toISOString(),
         });
 
         // Inicializar timer
@@ -107,7 +121,10 @@ export const TakeQuizPage: React.FC = () => {
       const existingAttempts = await quizService.getExistingAttempts(user.id, quizId);
 
       // Verificar límite de intentos
-      if (loadedAssessment.max_attempts && existingAttempts.length >= loadedAssessment.max_attempts) {
+      if (
+        loadedAssessment.max_attempts &&
+        existingAttempts.length >= loadedAssessment.max_attempts
+      ) {
         alert('Has alcanzado el límite de intentos para este quiz');
         navigate(-1);
         return;
@@ -120,7 +137,9 @@ export const TakeQuizPage: React.FC = () => {
         setAttempt(activeAttempt);
         // Cargar respuestas existentes
         try {
-          const { responses: existingResponses } = await quizService.getAttemptResults(activeAttempt.id);
+          const { responses: existingResponses } = await quizService.getAttemptResults(
+            activeAttempt.id
+          );
           const responsesMap: Record<string, any> = {};
           existingResponses.forEach((r: any) => {
             responsesMap[r.question_id] = r.response_data;
@@ -138,13 +157,19 @@ export const TakeQuizPage: React.FC = () => {
           setAttempt(newAttempt);
         } catch (err: any) {
           // Si hay error 409 (conflicto), intentar recuperar el intento activo nuevamente
-          if (err.code === '23505' || err.message?.includes('409') || err.message?.includes('duplicate')) {
+          if (
+            err.code === '23505' ||
+            err.message?.includes('409') ||
+            err.message?.includes('duplicate')
+          ) {
             console.log('Intento duplicado detectado, recuperando intento activo...');
             activeAttempt = await quizService.getActiveAttempt(user.id, quizId);
             if (activeAttempt) {
               setAttempt(activeAttempt);
               try {
-                const { responses: existingResponses } = await quizService.getAttemptResults(activeAttempt.id);
+                const { responses: existingResponses } = await quizService.getAttemptResults(
+                  activeAttempt.id
+                );
                 const responsesMap: Record<string, any> = {};
                 existingResponses.forEach((r: any) => {
                   responsesMap[r.question_id] = r.response_data;
@@ -175,7 +200,10 @@ export const TakeQuizPage: React.FC = () => {
     }
   };
 
-  const calculateGrade = (question: Question, answer: any): { isCorrect: boolean | undefined, pointsEarned: number } => {
+  const calculateGrade = (
+    question: Question,
+    answer: any
+  ): { isCorrect: boolean | undefined; pointsEarned: number } => {
     let isCorrect: boolean | undefined;
     let pointsEarned = 0;
 
@@ -191,7 +219,7 @@ export const TakeQuizPage: React.FC = () => {
           if (typeof parsed === 'string') {
             correctAnswerValue = parsed;
           }
-        } catch (e) { }
+        } catch (e) {}
       } else if (typeof correctAnswerValue === 'object' && correctAnswerValue !== null) {
         correctAnswerValue = String(correctAnswerValue);
       }
@@ -213,7 +241,7 @@ export const TakeQuizPage: React.FC = () => {
           if (typeof parsed === 'string' || typeof parsed === 'boolean') {
             correctAnswerValue = parsed;
           }
-        } catch (e) { }
+        } catch (e) {}
       }
 
       const normalizedAnswer = String(answer).toLowerCase().trim();
@@ -231,7 +259,7 @@ export const TakeQuizPage: React.FC = () => {
           }
 
           if (Array.isArray(correctAnswerParsed)) {
-            acceptableAnswers = correctAnswerParsed.map(a => String(a).toLowerCase().trim());
+            acceptableAnswers = correctAnswerParsed.map((a) => String(a).toLowerCase().trim());
           } else if (typeof correctAnswerParsed === 'string') {
             acceptableAnswers = [correctAnswerParsed.toLowerCase().trim()];
           }
@@ -242,17 +270,18 @@ export const TakeQuizPage: React.FC = () => {
 
       const normalizedAnswer = String(answer).toLowerCase().trim();
 
-      isCorrect = acceptableAnswers.some(acceptable => {
+      isCorrect = acceptableAnswers.some((acceptable) => {
         if (normalizedAnswer === acceptable) return true;
 
-        const answerWords = normalizedAnswer.split(/\s+/).filter(w => w.length > 2);
-        const acceptableWords = acceptable.split(/\s+/).filter(w => w.length > 2);
+        const answerWords = normalizedAnswer.split(/\s+/).filter((w) => w.length > 2);
+        const acceptableWords = acceptable.split(/\s+/).filter((w) => w.length > 2);
 
         if (answerWords.length > 0 && acceptableWords.length > 0) {
-          const matchingWords = answerWords.filter(w =>
-            acceptableWords.some(aw => aw.includes(w) || w.includes(aw))
+          const matchingWords = answerWords.filter((w) =>
+            acceptableWords.some((aw) => aw.includes(w) || w.includes(aw))
           );
-          const similarity = matchingWords.length / Math.max(answerWords.length, acceptableWords.length);
+          const similarity =
+            matchingWords.length / Math.max(answerWords.length, acceptableWords.length);
           return similarity >= 0.7;
         }
 
@@ -271,10 +300,10 @@ export const TakeQuizPage: React.FC = () => {
 
     if (!attempt || !user?.id) return;
 
-    setSaving(prev => ({ ...prev, [questionId]: true }));
+    setSaving((prev) => ({ ...prev, [questionId]: true }));
 
     try {
-      const question = questions.find(q => q.id === questionId);
+      const question = questions.find((q) => q.id === questionId);
       if (!question) return;
 
       const { isCorrect, pointsEarned } = calculateGrade(question, answer);
@@ -285,7 +314,7 @@ export const TakeQuizPage: React.FC = () => {
         student_id: user.id,
         response_data: answer,
         is_correct: isCorrect,
-        points_earned: pointsEarned
+        points_earned: pointsEarned,
       });
 
       console.log(`✅ Respuesta guardada para ${questionId}`);
@@ -293,16 +322,16 @@ export const TakeQuizPage: React.FC = () => {
       console.error(`❌ Error guardando respuesta para ${questionId}:`, err);
       // Opcional: mostrar error al usuario
     } finally {
-      setSaving(prev => ({ ...prev, [questionId]: false }));
+      setSaving((prev) => ({ ...prev, [questionId]: false }));
     }
   };
 
   const handleAnswer = (questionId: string, answer: any, autoSave: boolean = true) => {
     console.log('📝 handleAnswer llamado', { questionId, answer, autoSave });
-    setResponses(prev => {
+    setResponses((prev) => {
       const newResponses = {
         ...prev,
-        [questionId]: answer
+        [questionId]: answer,
       };
       return newResponses;
     });
@@ -326,7 +355,7 @@ export const TakeQuizPage: React.FC = () => {
       let totalPoints = 0;
       let earnedPoints = 0;
 
-      questions.forEach(q => {
+      questions.forEach((q) => {
         totalPoints += q.points;
         const ans = responses[q.id];
         if (ans) {
@@ -337,13 +366,18 @@ export const TakeQuizPage: React.FC = () => {
 
       const score = totalPoints > 0 ? (earnedPoints / totalPoints) * 100 : 0;
 
-      alert(`🎯 Práctica terminada.\nTu puntuación: ${earnedPoints} de ${totalPoints} puntos (${Math.round(score)}%)\n\n¡Sigue practicando para dominar el tema!`);
+      alert(
+        `🎯 Práctica terminada.\nTu puntuación: ${earnedPoints} de ${totalPoints} puntos (${Math.round(score)}%)\n\n¡Sigue practicando para dominar el tema!`
+      );
       navigate(-1);
       return;
     }
 
     if (!attempt || !user?.id) {
-      console.error('❌ No se puede enviar: attempt o user no disponible', { attempt: !!attempt, user: !!user });
+      console.error('❌ No se puede enviar: attempt o user no disponible', {
+        attempt: !!attempt,
+        user: !!user,
+      });
       return;
     }
 
@@ -351,7 +385,7 @@ export const TakeQuizPage: React.FC = () => {
       console.log('📤 Iniciando envío del quiz...', {
         attemptId: attempt.id,
         responsesCount: Object.keys(responses).length,
-        questionsCount: questions.length
+        questionsCount: questions.length,
       });
 
       setSubmitting(true);
@@ -392,7 +426,7 @@ export const TakeQuizPage: React.FC = () => {
         message: error.message,
         code: error.code,
         details: error.details,
-        hint: error.hint
+        hint: error.hint,
       });
       alert(error.message || 'Error enviando el quiz. Por favor intenta de nuevo.');
       setSubmitting(false);
@@ -416,7 +450,9 @@ export const TakeQuizPage: React.FC = () => {
           <IconAlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h3 className="text-lg font-bold text-red-700 mb-2">Error al cargar el Quiz</h3>
           <p className="text-red-600 mb-6">{error}</p>
-          <Button onClick={() => navigate(-1)} variant="secondary">Volver</Button>
+          <Button onClick={() => navigate(-1)} variant="secondary">
+            Volver
+          </Button>
         </div>
       </div>
     );
@@ -440,7 +476,9 @@ export const TakeQuizPage: React.FC = () => {
           <IconAlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
           <h3 className="text-lg font-bold text-yellow-700 mb-2">Quiz sin preguntas</h3>
           <p className="text-yellow-600 mb-6">Este quiz aún no tiene preguntas configuradas.</p>
-          <Button onClick={() => navigate(-1)} variant="secondary">Volver</Button>
+          <Button onClick={() => navigate(-1)} variant="secondary">
+            Volver
+          </Button>
         </div>
       </div>
     );
@@ -453,7 +491,7 @@ export const TakeQuizPage: React.FC = () => {
         items={[
           { label: 'Dashboard', path: '/dashboard' },
           { label: 'Mis Cursos', path: '/my/courses' },
-          { label: assessment.title }
+          { label: assessment.title },
         ]}
       />
 
@@ -461,13 +499,14 @@ export const TakeQuizPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{assessment.title}</h1>
-          {assessment.description && (
-            <p className="text-gray-600 mt-1">{assessment.description}</p>
-          )}
+          {assessment.description && <p className="text-gray-600 mt-1">{assessment.description}</p>}
         </div>
         {timeRemaining !== null && (
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-lg ${timeRemaining < 300 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-            }`}>
+          <div
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-lg ${
+              timeRemaining < 300 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+            }`}
+          >
             <IconClock className="w-6 h-6" />
             <span>
               {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
@@ -514,119 +553,126 @@ export const TakeQuizPage: React.FC = () => {
 
           <div className="space-y-4">
             {/* Texto de la pregunta */}
-            <h3 className="text-xl font-semibold text-gray-900">
-              {currentQuestion.question_text}
-            </h3>
+            <h3 className="text-xl font-semibold text-gray-900">{currentQuestion.question_text}</h3>
 
             {/* Opciones según tipo */}
-            {currentQuestion.question_type === 'multiple_choice' && currentQuestion.options && (() => {
-              // Convertir options a array si es un objeto JSON
-              let optionsArray: Array<{ id: string, text: string }> = [];
+            {currentQuestion.question_type === 'multiple_choice' &&
+              currentQuestion.options &&
+              (() => {
+                // Convertir options a array si es un objeto JSON
+                let optionsArray: Array<{ id: string; text: string }> = [];
 
-              if (Array.isArray(currentQuestion.options)) {
-                // Si ya es un array, usarlo directamente
-                optionsArray = currentQuestion.options;
-              } else if (typeof currentQuestion.options === 'object' && currentQuestion.options !== null) {
-                // Si es un objeto JSON como {"A": "texto", "B": "texto"}, convertirlo a array
-                optionsArray = Object.entries(currentQuestion.options).map(([key, value]) => ({
-                  id: key,
-                  text: String(value)
-                }));
-              }
+                if (Array.isArray(currentQuestion.options)) {
+                  // Si ya es un array, usarlo directamente
+                  optionsArray = currentQuestion.options;
+                } else if (
+                  typeof currentQuestion.options === 'object' &&
+                  currentQuestion.options !== null
+                ) {
+                  // Si es un objeto JSON como {"A": "texto", "B": "texto"}, convertirlo a array
+                  optionsArray = Object.entries(currentQuestion.options).map(([key, value]) => ({
+                    id: key,
+                    text: String(value),
+                  }));
+                }
 
-              if (optionsArray.length === 0) return null;
+                if (optionsArray.length === 0) return null;
 
-              const savedAnswer = responses[currentQuestion.id];
+                const savedAnswer = responses[currentQuestion.id];
 
-              return (
-                <div className="space-y-2">
-                  {optionsArray.map((option) => {
-                    const isSelected = savedAnswer === option.id || savedAnswer === option.text;
-                    return (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          console.log('🖱️ Click en opción:', option.id);
-                          handleAnswer(currentQuestion.id, option.id);
-                        }}
-                        className={`w-full text-left p-4 rounded-lg border-2 transition-all cursor-pointer ${isSelected
-                          ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                          : 'border-gray-200 hover:border-primary/50 hover:bg-gray-50'
+                return (
+                  <div className="space-y-2">
+                    {optionsArray.map((option) => {
+                      const isSelected = savedAnswer === option.id || savedAnswer === option.text;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('🖱️ Click en opción:', option.id);
+                            handleAnswer(currentQuestion.id, option.id);
+                          }}
+                          className={`w-full text-left p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                            isSelected
+                              ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                              : 'border-gray-200 hover:border-primary/50 hover:bg-gray-50'
                           }`}
-                        style={{
-                          backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.05)' : undefined,
-                          borderColor: isSelected ? '#3b82f6' : undefined
-                        }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-gray-300'
+                          style={{
+                            backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.05)' : undefined,
+                            borderColor: isSelected ? '#3b82f6' : undefined,
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                                isSelected ? 'border-primary bg-primary' : 'border-gray-300'
                               }`}
-                            style={{
-                              borderColor: isSelected ? '#3b82f6' : undefined,
-                              backgroundColor: isSelected ? '#3b82f6' : undefined
-                            }}
-                          >
-                            {isSelected && <IconCheck className="w-4 h-4 text-white" />}
+                              style={{
+                                borderColor: isSelected ? '#3b82f6' : undefined,
+                                backgroundColor: isSelected ? '#3b82f6' : undefined,
+                              }}
+                            >
+                              {isSelected && <IconCheck className="w-4 h-4 text-white" />}
+                            </div>
+                            <span className="text-gray-900">{option.text}</span>
                           </div>
-                          <span className="text-gray-900">{option.text}</span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })()}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
 
-            {currentQuestion.question_type === 'true_false' && (() => {
-              const savedAnswer = responses[currentQuestion.id];
+            {currentQuestion.question_type === 'true_false' &&
+              (() => {
+                const savedAnswer = responses[currentQuestion.id];
 
-              return (
-                <div className="grid grid-cols-2 gap-4">
-                  {['Verdadero', 'Falso'].map((label, idx) => {
-                    const value = idx === 0 ? 'true' : 'false';
-                    const isSelected = String(savedAnswer) === String(value);
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          console.log('🖱️ Click en true/false:', value);
-                          handleAnswer(currentQuestion.id, value);
-                        }}
-                        className={`p-6 rounded-lg border-2 transition-all text-center cursor-pointer ${isSelected
-                          ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                          : 'border-gray-200 hover:border-primary/50 hover:bg-gray-50'
+                return (
+                  <div className="grid grid-cols-2 gap-4">
+                    {['Verdadero', 'Falso'].map((label, idx) => {
+                      const value = idx === 0 ? 'true' : 'false';
+                      const isSelected = String(savedAnswer) === String(value);
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('🖱️ Click en true/false:', value);
+                            handleAnswer(currentQuestion.id, value);
+                          }}
+                          className={`p-6 rounded-lg border-2 transition-all text-center cursor-pointer ${
+                            isSelected
+                              ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                              : 'border-gray-200 hover:border-primary/50 hover:bg-gray-50'
                           }`}
-                        style={{
-                          backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.05)' : undefined,
-                          borderColor: isSelected ? '#3b82f6' : undefined
-                        }}
-                      >
-                        <span className="font-semibold text-gray-900">{label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })()}
+                          style={{
+                            backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.05)' : undefined,
+                            borderColor: isSelected ? '#3b82f6' : undefined,
+                          }}
+                        >
+                          <span className="font-semibold text-gray-900">{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
 
             {(currentQuestion.question_type === 'short_answer' ||
               currentQuestion.question_type === 'essay') && (
-                <textarea
-                  value={responses[currentQuestion.id] || ''}
-                  onChange={(e) => handleAnswer(currentQuestion.id, e.target.value, false)}
-                  onBlur={(e) => saveAnswer(currentQuestion.id, e.target.value)}
-                  placeholder="Escribe tu respuesta aquí..."
-                  rows={currentQuestion.question_type === 'essay' ? 8 : 4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                />
-              )}
+              <textarea
+                value={responses[currentQuestion.id] || ''}
+                onChange={(e) => handleAnswer(currentQuestion.id, e.target.value, false)}
+                onBlur={(e) => saveAnswer(currentQuestion.id, e.target.value)}
+                placeholder="Escribe tu respuesta aquí..."
+                rows={currentQuestion.question_type === 'essay' ? 8 : 4}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+              />
+            )}
           </div>
         </Card>
       )}
@@ -635,7 +681,7 @@ export const TakeQuizPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <Button
           variant="secondary"
-          onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+          onClick={() => setCurrentQuestionIndex((prev) => Math.max(0, prev - 1))}
           disabled={currentQuestionIndex === 0}
         >
           ← Anterior
@@ -643,10 +689,7 @@ export const TakeQuizPage: React.FC = () => {
 
         <div className="flex gap-2">
           {currentQuestionIndex < questions.length - 1 ? (
-            <Button
-              variant="primary"
-              onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
-            >
+            <Button variant="primary" onClick={() => setCurrentQuestionIndex((prev) => prev + 1)}>
               Siguiente →
             </Button>
           ) : (
@@ -692,7 +735,8 @@ export const TakeQuizPage: React.FC = () => {
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Tiempo Agotado!</h2>
             <p className="text-gray-600 mb-6">
-              El tiempo para realizar este quiz ha finalizado. Estamos enviando tus respuestas guardadas hasta el momento.
+              El tiempo para realizar este quiz ha finalizado. Estamos enviando tus respuestas
+              guardadas hasta el momento.
             </p>
             <div className="flex justify-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -708,7 +752,9 @@ export const TakeQuizPage: React.FC = () => {
             onClick={() => {
               const q = questions[currentQuestionIndex];
               // Aquí iría la llamada real al agente
-              alert(`🤖 EduSpark Coach:\n\nPara responder sobre "${q.question_text.substring(0, 40)}...", intenta recordar los conceptos clave de la unidad. ¡Tú puedes hacerlo!`);
+              alert(
+                `🤖 EduSpark Coach:\n\nPara responder sobre "${q.question_text.substring(0, 40)}...", intenta recordar los conceptos clave de la unidad. ¡Tú puedes hacerlo!`
+              );
             }}
             className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-full shadow-lg flex items-center gap-2 transition-all transform hover:scale-105 hover:shadow-xl border-2 border-indigo-400"
           >

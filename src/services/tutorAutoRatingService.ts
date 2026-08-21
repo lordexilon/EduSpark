@@ -88,7 +88,9 @@ IMPORTANTE: Responde SOLO con el JSON, sin texto adicional antes o después.`;
     // Extraer JSON de la respuesta
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.warn('⚠️ No se pudo extraer JSON de la respuesta de Gemini, usando calificación por defecto');
+      console.warn(
+        '⚠️ No se pudo extraer JSON de la respuesta de Gemini, usando calificación por defecto'
+      );
       return getDefaultRating(answer);
     }
 
@@ -96,14 +98,30 @@ IMPORTANTE: Responde SOLO con el JSON, sin texto adicional antes o después.`;
 
     // Validar y normalizar
     rating.score = Math.max(0, Math.min(100, Math.round(rating.score || 70)));
-    rating.criteria.relevance = Math.max(0, Math.min(100, Math.round(rating.criteria.relevance || 70)));
-    rating.criteria.completeness = Math.max(0, Math.min(100, Math.round(rating.criteria.completeness || 70)));
+    rating.criteria.relevance = Math.max(
+      0,
+      Math.min(100, Math.round(rating.criteria.relevance || 70))
+    );
+    rating.criteria.completeness = Math.max(
+      0,
+      Math.min(100, Math.round(rating.criteria.completeness || 70))
+    );
     rating.criteria.clarity = Math.max(0, Math.min(100, Math.round(rating.criteria.clarity || 70)));
-    rating.criteria.accuracy = Math.max(0, Math.min(100, Math.round(rating.criteria.accuracy || 70)));
+    rating.criteria.accuracy = Math.max(
+      0,
+      Math.min(100, Math.round(rating.criteria.accuracy || 70))
+    );
 
     // Asegurar que quality sea válido
     if (!['excellent', 'good', 'fair', 'poor'].includes(rating.quality)) {
-      rating.quality = rating.score >= 85 ? 'excellent' : rating.score >= 70 ? 'good' : rating.score >= 50 ? 'fair' : 'poor';
+      rating.quality =
+        rating.score >= 85
+          ? 'excellent'
+          : rating.score >= 70
+            ? 'good'
+            : rating.score >= 50
+              ? 'fair'
+              : 'poor';
     }
 
     console.log('✅ Respuesta calificada automáticamente:', {

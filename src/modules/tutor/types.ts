@@ -1,4 +1,3 @@
-
 export interface AudioCapabilities {
   hasMicrophone: boolean;
   hasSpeakers: boolean; // We assume speakers are present if AudioContext is.

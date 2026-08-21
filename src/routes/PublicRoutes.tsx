@@ -6,25 +6,25 @@ import TermsPage from '@/pages/Common/TermsPage';
 import GoogleOAuthCallbackPage from '@/pages/Common/GoogleOAuthCallbackPage';
 import InstitutionLandingPage from '@/pages/Common/InstitutionLandingPage';
 import LandingPage from '@/pages/Common/LandingPage';
+import CorporateDashboard from '@/pages/B2B/CorporateDashboard';
 
 const PublicRoutes: React.FC = () => {
-    const isCacavelos = window.location.hostname === 'cacavelos.com.py' ||
-        window.location.hostname.includes('cacavelos');
+  const isCacavelos =
+    window.location.hostname === 'cacavelos.com.py' ||
+    window.location.hostname.includes('cacavelos');
 
-    return (
-        <Routes>
-            <Route
-                path="/"
-                element={isCacavelos ? <Navigate to="/cec" replace /> : <LandingPage />}
-            />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/auth/google/callback" element={<GoogleOAuthCallbackPage />} />
-            <Route path="/:slug" element={<InstitutionLandingPage />} />
-            <Route path="*" element={<Navigate to={isCacavelos ? "/cec" : "/"} replace />} />
-        </Routes>
-    );
+  return (
+    <Routes>
+      <Route path="/" element={isCacavelos ? <Navigate to="/cec" replace /> : <LandingPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/auth/google/callback" element={<GoogleOAuthCallbackPage />} />
+      <Route path="/invest" element={<CorporateDashboard />} />
+      <Route path="/:slug" element={<InstitutionLandingPage />} />
+      <Route path="*" element={<Navigate to={isCacavelos ? '/cec' : '/'} replace />} />
+    </Routes>
+  );
 };
 
 export default PublicRoutes;

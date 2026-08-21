@@ -10,32 +10,29 @@ import { CourseUnit, Session } from './teacherCourses';
  * @param checkTime Fecha/hora a verificar (por defecto: ahora)
  * @returns true si está disponible, false si no
  */
-export function isUnitAvailable(
-    unit: CourseUnit,
-    checkTime: Date = new Date()
-): boolean {
-    // Si no hay fechas configuradas, la unidad está disponible
-    if (!unit.available_from && !unit.available_until) {
-        return true;
-    }
-
-    // Verificar si ya comenzó (available_from)
-    if (unit.available_from) {
-        const startDate = new Date(unit.available_from);
-        if (checkTime < startDate) {
-            return false; // Aún no ha comenzado
-        }
-    }
-
-    // Verificar si ya terminó (available_until)
-    if (unit.available_until) {
-        const endDate = new Date(unit.available_until);
-        if (checkTime > endDate) {
-            return false; // Ya terminó
-        }
-    }
-
+export function isUnitAvailable(unit: CourseUnit, checkTime: Date = new Date()): boolean {
+  // Si no hay fechas configuradas, la unidad está disponible
+  if (!unit.available_from && !unit.available_until) {
     return true;
+  }
+
+  // Verificar si ya comenzó (available_from)
+  if (unit.available_from) {
+    const startDate = new Date(unit.available_from);
+    if (checkTime < startDate) {
+      return false; // Aún no ha comenzado
+    }
+  }
+
+  // Verificar si ya terminó (available_until)
+  if (unit.available_until) {
+    const endDate = new Date(unit.available_until);
+    if (checkTime > endDate) {
+      return false; // Ya terminó
+    }
+  }
+
+  return true;
 }
 
 /**
@@ -46,37 +43,37 @@ export function isUnitAvailable(
  * @returns true si está disponible, false si no
  */
 export function isSessionAvailable(
-    session: Session,
-    parentUnit?: CourseUnit,
-    checkTime: Date = new Date()
+  session: Session,
+  parentUnit?: CourseUnit,
+  checkTime: Date = new Date()
 ): boolean {
-    // Primero verificar disponibilidad de la unidad padre si existe
-    if (parentUnit && !isUnitAvailable(parentUnit, checkTime)) {
-        return false;
-    }
+  // Primero verificar disponibilidad de la unidad padre si existe
+  if (parentUnit && !isUnitAvailable(parentUnit, checkTime)) {
+    return false;
+  }
 
-    // Si no hay fechas configuradas en la sesión, heredar disponibilidad de la unidad
-    if (!session.available_from && !session.available_until) {
-        return true; // La unidad ya fue verificada arriba
-    }
+  // Si no hay fechas configuradas en la sesión, heredar disponibilidad de la unidad
+  if (!session.available_from && !session.available_until) {
+    return true; // La unidad ya fue verificada arriba
+  }
 
-    // Verificar si ya comenzó (available_from)
-    if (session.available_from) {
-        const startDate = new Date(session.available_from);
-        if (checkTime < startDate) {
-            return false; // Aún no ha comenzado
-        }
+  // Verificar si ya comenzó (available_from)
+  if (session.available_from) {
+    const startDate = new Date(session.available_from);
+    if (checkTime < startDate) {
+      return false; // Aún no ha comenzado
     }
+  }
 
-    // Verificar si ya terminó (available_until)
-    if (session.available_until) {
-        const endDate = new Date(session.available_until);
-        if (checkTime > endDate) {
-            return false; // Ya terminó
-        }
+  // Verificar si ya terminó (available_until)
+  if (session.available_until) {
+    const endDate = new Date(session.available_until);
+    if (checkTime > endDate) {
+      return false; // Ya terminó
     }
+  }
 
-    return true;
+  return true;
 }
 
 /**
@@ -86,34 +83,34 @@ export function isSessionAvailable(
  * @returns Mensaje descriptivo o null si está disponible
  */
 export function getUnitAvailabilityMessage(
-    unit: CourseUnit,
-    checkTime: Date = new Date()
+  unit: CourseUnit,
+  checkTime: Date = new Date()
 ): string | null {
-    if (isUnitAvailable(unit, checkTime)) {
-        return null;
-    }
+  if (isUnitAvailable(unit, checkTime)) {
+    return null;
+  }
 
-    if (unit.available_from) {
-        const startDate = new Date(unit.available_from);
-        if (checkTime < startDate) {
-            return `Esta unidad estará disponible desde ${startDate.toLocaleString('es-ES', {
-                dateStyle: 'short',
-                timeStyle: 'short'
-            })}`;
-        }
+  if (unit.available_from) {
+    const startDate = new Date(unit.available_from);
+    if (checkTime < startDate) {
+      return `Esta unidad estará disponible desde ${startDate.toLocaleString('es-ES', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      })}`;
     }
+  }
 
-    if (unit.available_until) {
-        const endDate = new Date(unit.available_until);
-        if (checkTime > endDate) {
-            return `Esta unidad ya no está disponible (finalizó el ${endDate.toLocaleString('es-ES', {
-                dateStyle: 'short',
-                timeStyle: 'short'
-            })})`;
-        }
+  if (unit.available_until) {
+    const endDate = new Date(unit.available_until);
+    if (checkTime > endDate) {
+      return `Esta unidad ya no está disponible (finalizó el ${endDate.toLocaleString('es-ES', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      })})`;
     }
+  }
 
-    return 'Esta unidad no está disponible en este momento';
+  return 'Esta unidad no está disponible en este momento';
 }
 
 /**
@@ -124,43 +121,43 @@ export function getUnitAvailabilityMessage(
  * @returns Mensaje descriptivo o null si está disponible
  */
 export function getSessionAvailabilityMessage(
-    session: Session,
-    parentUnit?: CourseUnit,
-    checkTime: Date = new Date()
+  session: Session,
+  parentUnit?: CourseUnit,
+  checkTime: Date = new Date()
 ): string | null {
-    // Verificar disponibilidad de la unidad padre primero
-    if (parentUnit) {
-        const unitMessage = getUnitAvailabilityMessage(parentUnit, checkTime);
-        if (unitMessage) {
-            return unitMessage;
-        }
+  // Verificar disponibilidad de la unidad padre primero
+  if (parentUnit) {
+    const unitMessage = getUnitAvailabilityMessage(parentUnit, checkTime);
+    if (unitMessage) {
+      return unitMessage;
     }
+  }
 
-    if (isSessionAvailable(session, parentUnit, checkTime)) {
-        return null;
+  if (isSessionAvailable(session, parentUnit, checkTime)) {
+    return null;
+  }
+
+  if (session.available_from) {
+    const startDate = new Date(session.available_from);
+    if (checkTime < startDate) {
+      return `Esta sesión estará disponible desde ${startDate.toLocaleString('es-ES', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      })}`;
     }
+  }
 
-    if (session.available_from) {
-        const startDate = new Date(session.available_from);
-        if (checkTime < startDate) {
-            return `Esta sesión estará disponible desde ${startDate.toLocaleString('es-ES', {
-                dateStyle: 'short',
-                timeStyle: 'short'
-            })}`;
-        }
+  if (session.available_until) {
+    const endDate = new Date(session.available_until);
+    if (checkTime > endDate) {
+      return `Esta sesión ya no está disponible (finalizó el ${endDate.toLocaleString('es-ES', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      })})`;
     }
+  }
 
-    if (session.available_until) {
-        const endDate = new Date(session.available_until);
-        if (checkTime > endDate) {
-            return `Esta sesión ya no está disponible (finalizó el ${endDate.toLocaleString('es-ES', {
-                dateStyle: 'short',
-                timeStyle: 'short'
-            })})`;
-        }
-    }
-
-    return 'Esta sesión no está disponible en este momento';
+  return 'Esta sesión no está disponible en este momento';
 }
 
 /**
@@ -170,10 +167,10 @@ export function getSessionAvailabilityMessage(
  * @returns Lista de unidades disponibles
  */
 export function filterAvailableUnits(
-    units: CourseUnit[],
-    checkTime: Date = new Date()
+  units: CourseUnit[],
+  checkTime: Date = new Date()
 ): CourseUnit[] {
-    return units.filter(unit => isUnitAvailable(unit, checkTime));
+  return units.filter((unit) => isUnitAvailable(unit, checkTime));
 }
 
 /**
@@ -184,12 +181,12 @@ export function filterAvailableUnits(
  * @returns Lista de sesiones disponibles
  */
 export function filterAvailableSessions(
-    sessions: Session[],
-    unitMap?: Map<string, CourseUnit>,
-    checkTime: Date = new Date()
+  sessions: Session[],
+  unitMap?: Map<string, CourseUnit>,
+  checkTime: Date = new Date()
 ): Session[] {
-    return sessions.filter(session => {
-        const parentUnit = session.unit_id && unitMap ? unitMap.get(session.unit_id) : undefined;
-        return isSessionAvailable(session, parentUnit, checkTime);
-    });
+  return sessions.filter((session) => {
+    const parentUnit = session.unit_id && unitMap ? unitMap.get(session.unit_id) : undefined;
+    return isSessionAvailable(session, parentUnit, checkTime);
+  });
 }

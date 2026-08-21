@@ -13,7 +13,11 @@ let pickerReady = false;
 export async function initDrive(): Promise<void> {
   await loadScript('https://apis.google.com/js/api.js');
   await new Promise<void>((res) => (window as any).gapi.load('client:auth2', () => res()));
-  await (window as any).gapi.client.init({ apiKey: API_KEY, clientId: CLIENT_ID, scope: SCOPES.join(' ') });
+  await (window as any).gapi.client.init({
+    apiKey: API_KEY,
+    clientId: CLIENT_ID,
+    scope: SCOPES.join(' '),
+  });
   gapiReady = true;
 
   await loadScript('https://apis.google.com/js/api.js?onload=__pickerLoaded');
@@ -38,9 +42,11 @@ export async function openDrivePicker(
   try {
     // Obtener token de acceso OAuth persistente
     const accessToken = await googleOAuthService.getAccessToken(userId, 'drive');
-    
+
     if (!accessToken) {
-      throw new Error('No hay token de acceso de Google Drive. Por favor, conecta tu cuenta en el perfil primero.');
+      throw new Error(
+        'No hay token de acceso de Google Drive. Por favor, conecta tu cuenta en el perfil primero.'
+      );
     }
 
     // Inicializar Google Picker si no está listo
@@ -79,7 +85,10 @@ export async function openDrivePicker(
     picker.setVisible(true);
   } catch (error: any) {
     console.error('Error abriendo Google Drive Picker:', error);
-    alert(error.message || 'Error al abrir Google Drive. Por favor, verifica que tengas tu cuenta conectada.');
+    alert(
+      error.message ||
+        'Error al abrir Google Drive. Por favor, verifica que tengas tu cuenta conectada.'
+    );
   }
 }
 
@@ -94,5 +103,3 @@ function loadScript(src: string) {
     document.head.appendChild(s);
   });
 }
-
-

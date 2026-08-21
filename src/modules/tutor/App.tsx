@@ -9,7 +9,16 @@ import type { ChatMessage, AudioCapabilities } from './types';
 import { useAudioCapabilities } from './hooks/useAudioCapabilities';
 import { useAgentSystem } from './hooks/useAgentSystem';
 import { useCourseContext } from './hooks/useCourseContext';
-import { AttachmentIcon, LoadingSpinner, MicrophoneIcon, PauseIcon, PlayIcon, SendIcon, TrashIcon, ExportIcon } from './components/icons';
+import {
+  AttachmentIcon,
+  LoadingSpinner,
+  MicrophoneIcon,
+  PauseIcon,
+  PlayIcon,
+  SendIcon,
+  TrashIcon,
+  ExportIcon,
+} from './components/icons';
 import { CourseSelector } from './components/CourseSelector';
 import { PedagogicalSettings } from './components/PedagogicalSettings';
 
@@ -27,10 +36,7 @@ const decodeBase64 = (base64: string) => {
   return bytes;
 };
 
-const decodeAudioData = async (
-  data: Uint8Array,
-  ctx: AudioContext
-): Promise<AudioBuffer> => {
+const decodeAudioData = async (data: Uint8Array, ctx: AudioContext): Promise<AudioBuffer> => {
   const dataInt16 = new Int16Array(data.buffer);
   const frameCount = dataInt16.length;
   const buffer = ctx.createBuffer(1, frameCount, 24000);
@@ -58,7 +64,9 @@ export default function App() {
   const [inputValue, setInputValue] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isProcessingFile, setIsProcessingFile] = useState(false);
-  const [documentPreview, setDocumentPreview] = useState<{ content: string, id: string } | null>(null);
+  const [documentPreview, setDocumentPreview] = useState<{ content: string; id: string } | null>(
+    null
+  );
   const [interactionMode, setInteractionMode] = useState<InteractionMode>(InteractionMode.SILENT);
   const [browserWarning, setBrowserWarning] = useState<string | null>(null);
 
@@ -73,7 +81,7 @@ export default function App() {
       id: 'user-123',
       first_name: 'Estudiante',
       last_name: 'Demo',
-      role: { name: 'student' }
+      role: { name: 'student' },
     });
   }, []);
 
@@ -93,7 +101,9 @@ export default function App() {
     // Detectar Brave (aproximado)
     const isBrave = (navigator as any).brave !== undefined || navigator.userAgent.includes('Brave');
     if (isBrave) {
-      setBrowserWarning('Estás usando Brave. Algunas funciones de audio y reconocimiento de voz podrían estar bloqueadas por el navegador.');
+      setBrowserWarning(
+        'Estás usando Brave. Algunas funciones de audio y reconocimiento de voz podrían estar bloqueadas por el navegador.'
+      );
     }
   }, []);
 
@@ -101,7 +111,9 @@ export default function App() {
   useEffect(() => {
     const isMuted = interactionMode === InteractionMode.SILENT;
     agentSystem.setAudioMuted(isMuted);
-    console.log(`🔇 Modo de audio actualizado: ${isMuted ? 'Silenciado' : 'Activado'} (${interactionMode})`);
+    console.log(
+      `🔇 Modo de audio actualizado: ${isMuted ? 'Silenciado' : 'Activado'} (${interactionMode})`
+    );
   }, [interactionMode, agentSystem.setAudioMuted]);
 
   // Auto-scroll del chat
@@ -118,14 +130,17 @@ export default function App() {
   }, []);
 
   // Manejar envío de mensaje
-  const handleSubmit = useCallback(async (e: React.FormEvent, directInput?: string) => {
-    e.preventDefault();
-    const userInput = directInput || inputValue;
-    if (!userInput.trim() || agentSystem.isProcessing) return;
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent, directInput?: string) => {
+      e.preventDefault();
+      const userInput = directInput || inputValue;
+      if (!userInput.trim() || agentSystem.isProcessing) return;
 
-    setInputValue('');
-    await agentSystem.sendMessage(userInput);
-  }, [inputValue, agentSystem.isProcessing, agentSystem.sendMessage]);
+      setInputValue('');
+      await agentSystem.sendMessage(userInput);
+    },
+    [inputValue, agentSystem.isProcessing, agentSystem.sendMessage]
+  );
 
   // Manejar mensaje de voz
   const handleVoiceMessage = useCallback(async () => {
@@ -146,7 +161,7 @@ export default function App() {
 
     const MAX_FILE_SIZE = 35 * 1024 * 1024; // 35MB
     if (file.size > MAX_FILE_SIZE) {
-      const errorMsg = "El archivo es demasiado grande. El tamaño máximo es de 35 MB.";
+      const errorMsg = 'El archivo es demasiado grande. El tamaño máximo es de 35 MB.';
       // En un sistema real, esto se manejaría a través del sistema de agentes
       console.error(errorMsg);
       return;
@@ -162,9 +177,12 @@ export default function App() {
   };
 
   // Manejar configuración pedagógica
-  const handlePedagogicalSettingsSave = useCallback(async (settings: any) => {
-    return await courseContext.updatePedagogicalSettings(settings);
-  }, [courseContext.updatePedagogicalSettings]);
+  const handlePedagogicalSettingsSave = useCallback(
+    async (settings: any) => {
+      return await courseContext.updatePedagogicalSettings(settings);
+    },
+    [courseContext.updatePedagogicalSettings]
+  );
 
   // Renderizar selector de curso
   if (showCourseSelector) {
@@ -172,9 +190,7 @@ export default function App() {
       <div className="flex flex-col h-screen max-w-4xl mx-auto p-4 font-sans">
         <header className="flex items-center justify-between p-4 border-b border-slate-700">
           <h1 className="text-2xl font-bold text-sky-400">EduSpark Tutor</h1>
-          <div className="text-slate-400">
-            Selecciona un curso para comenzar
-          </div>
+          <div className="text-slate-400">Selecciona un curso para comenzar</div>
         </header>
 
         <main className="flex-1 overflow-y-auto p-4">
@@ -211,10 +227,16 @@ export default function App() {
               aria-label="Seleccionar modo de interacción"
             >
               <option value={InteractionMode.SILENT}>Silencioso</option>
-              <option value={InteractionMode.HYBRID} disabled={!capabilities.hasMicrophone || !capabilities.hasSpeakers}>
+              <option
+                value={InteractionMode.HYBRID}
+                disabled={!capabilities.hasMicrophone || !capabilities.hasSpeakers}
+              >
                 Híbrido
               </option>
-              <option value={InteractionMode.AUDIO} disabled={!capabilities.hasMicrophone || !capabilities.hasSpeakers}>
+              <option
+                value={InteractionMode.AUDIO}
+                disabled={!capabilities.hasMicrophone || !capabilities.hasSpeakers}
+              >
                 Audio
               </option>
             </select>
@@ -294,34 +316,46 @@ export default function App() {
         {/* Mensajes del chat */}
         <div ref={chatContainerRef} className="space-y-4">
           {agentSystem.messages.map((message) => (
-            <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-xl p-4 rounded-2xl ${message.role === 'user'
-                  ? 'bg-sky-600 rounded-br-none shadow-md shadow-sky-900/20'
-                  : 'bg-slate-700 rounded-bl-none shadow-md shadow-slate-900/20'
-                }`}>
+            <div
+              key={message.id}
+              className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-xl p-4 rounded-2xl ${
+                  message.role === 'user'
+                    ? 'bg-sky-600 rounded-br-none shadow-md shadow-sky-900/20'
+                    : 'bg-slate-700 rounded-bl-none shadow-md shadow-slate-900/20'
+                }`}
+              >
                 <p className="whitespace-pre-wrap">{message.text}</p>
 
                 {/* Controles de audio para mensajes del asistente */}
-                {message.role === 'assistant' && capabilities?.hasSpeakers && interactionMode !== InteractionMode.SILENT && (
-                  <div className="flex gap-2 mt-3 pt-2 border-t border-slate-600/50">
-                    <button
-                      className="p-1.5 bg-slate-600/50 hover:bg-slate-500/50 rounded-md text-slate-300 hover:text-white transition-all"
-                      aria-label="Reproducir audio"
-                      onClick={() => agentSystem.sendMessage(`Explícame esto de nuevo por audio: ${message.text.substring(0, 50)}...`)}
-                    >
-                      <PlayIcon className="w-4 h-4" />
-                    </button>
-                    <button
-                      className="p-1.5 bg-slate-600/50 hover:bg-slate-500/50 rounded-md text-slate-300 hover:text-white transition-all"
-                      aria-label="Detener audio"
-                      onClick={() => agentSystem.cancelCurrentResponse()}
-                    >
-                      <div className="w-4 h-4 flex items-center justify-center">
-                        <div className="w-2.5 h-2.5 bg-current rounded-sm"></div>
-                      </div>
-                    </button>
-                  </div>
-                )}
+                {message.role === 'assistant' &&
+                  capabilities?.hasSpeakers &&
+                  interactionMode !== InteractionMode.SILENT && (
+                    <div className="flex gap-2 mt-3 pt-2 border-t border-slate-600/50">
+                      <button
+                        className="p-1.5 bg-slate-600/50 hover:bg-slate-500/50 rounded-md text-slate-300 hover:text-white transition-all"
+                        aria-label="Reproducir audio"
+                        onClick={() =>
+                          agentSystem.sendMessage(
+                            `Explícame esto de nuevo por audio: ${message.text.substring(0, 50)}...`
+                          )
+                        }
+                      >
+                        <PlayIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        className="p-1.5 bg-slate-600/50 hover:bg-slate-500/50 rounded-md text-slate-300 hover:text-white transition-all"
+                        aria-label="Detener audio"
+                        onClick={() => agentSystem.cancelCurrentResponse()}
+                      >
+                        <div className="w-4 h-4 flex items-center justify-center">
+                          <div className="w-2.5 h-2.5 bg-current rounded-sm"></div>
+                        </div>
+                      </button>
+                    </div>
+                  )}
 
                 {/* Metadatos de confianza */}
                 {message.metadata?.confidence && (
@@ -333,10 +367,15 @@ export default function App() {
                 {/* Fuentes */}
                 {message.metadata?.sources && message.metadata.sources.length > 0 && (
                   <div className="mt-2 pt-2 border-t border-slate-600/30">
-                    <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">Fuentes:</p>
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">
+                      Fuentes:
+                    </p>
                     <div className="flex flex-wrap gap-1">
                       {message.metadata.sources.map((source: string, idx: number) => (
-                        <span key={idx} className="text-[10px] bg-slate-800/50 px-1.5 py-0.5 rounded text-slate-400 border border-slate-600/30">
+                        <span
+                          key={idx}
+                          className="text-[10px] bg-slate-800/50 px-1.5 py-0.5 rounded text-slate-400 border border-slate-600/30"
+                        >
                           {source}
                         </span>
                       ))}
@@ -377,7 +416,10 @@ export default function App() {
       </main>
 
       <footer className="p-4 bg-slate-900/50 backdrop-blur-md border-t border-slate-800">
-        <form onSubmit={handleSubmit} className="flex items-center gap-2 bg-slate-800 rounded-full p-2 border border-slate-700 focus-within:ring-2 focus-within:ring-sky-500 shadow-xl transition-all">
+        <form
+          onSubmit={handleSubmit}
+          className="flex items-center gap-2 bg-slate-800 rounded-full p-2 border border-slate-700 focus-within:ring-2 focus-within:ring-sky-500 shadow-xl transition-all"
+        >
           <input
             type="text"
             value={inputValue}
@@ -410,10 +452,11 @@ export default function App() {
             <button
               type="button"
               onClick={handleVoiceMessage}
-              className={`p-3 rounded-full transition-all shadow-lg ${isListening
+              className={`p-3 rounded-full transition-all shadow-lg ${
+                isListening
                   ? 'bg-red-500 text-white animate-pulse scale-110 shadow-red-900/40'
                   : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                }`}
+              }`}
               aria-label={isListening ? 'Dejar de escuchar' : 'Empezar a escuchar'}
               disabled={agentSystem.isProcessing}
             >

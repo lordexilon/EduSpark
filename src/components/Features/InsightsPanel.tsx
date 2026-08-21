@@ -2,7 +2,12 @@
 // Panel de insights y recomendaciones generadas automáticamente
 
 import React from 'react';
-import { IconRobot, IconAlertTriangle, IconCheckCircle, IconTrendingUp } from "@/components/Common/Icons";
+import {
+  IconRobot,
+  IconAlertTriangle,
+  IconCheckCircle,
+  IconTrendingUp,
+} from '@/components/Common/Icons';
 import type { AggregatedMetrics, CorrelationAnalysis } from '@/services/comprehensiveReportService';
 
 interface InsightsPanelProps {
@@ -20,7 +25,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
   aggregated,
   correlation,
   courseTitle,
-  className = ''
+  className = '',
 }) => {
   // Generar insights automáticos
   const generateInsights = () => {
@@ -39,7 +44,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
         icon: IconCheckCircle,
         title: 'Excelente Correlación',
         description: `${correlation.positiveCorrelation.toFixed(0)}% de los estudiantes muestran correlación positiva entre uso del tutor y progreso académico. El tutor está siendo efectivo.`,
-        priority: 'low'
+        priority: 'low',
       });
     } else if (correlation.positiveCorrelation < 30) {
       insights.push({
@@ -47,7 +52,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
         icon: IconAlertTriangle,
         title: 'Baja Correlación Positiva',
         description: `Solo ${correlation.positiveCorrelation.toFixed(0)}% de los estudiantes muestran correlación positiva. Revisar efectividad del tutor o contenido del curso.`,
-        priority: 'high'
+        priority: 'high',
       });
     }
 
@@ -59,7 +64,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
         icon: IconAlertTriangle,
         title: 'Estudiantes que Necesitan Atención',
         description: `${aggregated.studentsNeedingAttention} estudiantes (${percentage.toFixed(0)}%) requieren intervención. Revisar progreso y uso del tutor.`,
-        priority: percentage > 30 ? 'high' : 'medium'
+        priority: percentage > 30 ? 'high' : 'medium',
       });
     }
 
@@ -70,7 +75,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
         icon: IconTrendingUp,
         title: 'Bajo Uso del Tutor',
         description: `El promedio de interacciones con el tutor es ${correlation.averageTutorUsage.toFixed(1)}. Considerar fomentar más el uso del tutor entre los estudiantes.`,
-        priority: 'medium'
+        priority: 'medium',
       });
     } else if (correlation.averageTutorUsage > 15) {
       insights.push({
@@ -78,7 +83,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
         icon: IconRobot,
         title: 'Alto Uso del Tutor',
         description: `Los estudiantes están usando activamente el tutor (promedio: ${correlation.averageTutorUsage.toFixed(1)} interacciones). Esto indica buen engagement.`,
-        priority: 'low'
+        priority: 'low',
       });
     }
 
@@ -89,7 +94,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
         icon: IconCheckCircle,
         title: 'Alta Eficiencia del Tutor',
         description: `El tutor está siendo muy eficiente (${correlation.efficiencyScore.toFixed(1)}% de progreso por interacción). Los estudiantes están obteniendo buenos resultados.`,
-        priority: 'low'
+        priority: 'low',
       });
     } else if (correlation.efficiencyScore < 2) {
       insights.push({
@@ -97,7 +102,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
         icon: IconAlertTriangle,
         title: 'Baja Eficiencia del Tutor',
         description: `La eficiencia del tutor es baja (${correlation.efficiencyScore.toFixed(1)}% por interacción). Revisar calidad de respuestas o contenido del curso.`,
-        priority: 'high'
+        priority: 'high',
       });
     }
 
@@ -108,7 +113,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
         icon: IconCheckCircle,
         title: 'Excelente Progreso del Curso',
         description: `El progreso promedio del curso es ${aggregated.averageProgress.toFixed(0)}%. Los estudiantes están avanzando bien.`,
-        priority: 'low'
+        priority: 'low',
       });
     } else if (aggregated.averageProgress < 50) {
       insights.push({
@@ -116,7 +121,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
         icon: IconAlertTriangle,
         title: 'Progreso Bajo del Curso',
         description: `El progreso promedio es solo ${aggregated.averageProgress.toFixed(0)}%. Considerar revisar el contenido o proporcionar más apoyo.`,
-        priority: 'high'
+        priority: 'high',
       });
     }
 
@@ -136,7 +141,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
           bg: 'bg-green-50',
           iconColor: 'text-green-600',
           textColor: 'text-green-900',
-          titleColor: 'text-green-800'
+          titleColor: 'text-green-800',
         };
       case 'warning':
         return {
@@ -144,7 +149,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
           bg: 'bg-orange-50',
           iconColor: 'text-orange-600',
           textColor: 'text-orange-900',
-          titleColor: 'text-orange-800'
+          titleColor: 'text-orange-800',
         };
       case 'danger':
         return {
@@ -152,7 +157,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
           bg: 'bg-red-50',
           iconColor: 'text-red-600',
           textColor: 'text-red-900',
-          titleColor: 'text-red-800'
+          titleColor: 'text-red-800',
         };
       default:
         return {
@@ -160,7 +165,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
           bg: 'bg-blue-50',
           iconColor: 'text-blue-600',
           textColor: 'text-blue-900',
-          titleColor: 'text-blue-800'
+          titleColor: 'text-blue-800',
         };
     }
   };
@@ -170,32 +175,31 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
       {insights.map((insight, index) => {
         const styles = getTypeStyles(insight.type);
         const Icon = insight.icon;
-        
+
         return (
-          <div
-            key={index}
-            className={`p-4 rounded-lg border ${styles.border} ${styles.bg}`}
-          >
+          <div key={index} className={`p-4 rounded-lg border ${styles.border} ${styles.bg}`}>
             <div className="flex items-start gap-3">
               <Icon className={`w-5 h-5 ${styles.iconColor} flex-shrink-0 mt-0.5`} />
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <h4 className={`text-sm font-semibold ${styles.titleColor}`}>
-                    {insight.title}
-                  </h4>
-                  <span className={`text-xs px-2 py-0.5 rounded ${
-                    insight.priority === 'high'
-                      ? 'bg-red-200 text-red-800'
+                  <h4 className={`text-sm font-semibold ${styles.titleColor}`}>{insight.title}</h4>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded ${
+                      insight.priority === 'high'
+                        ? 'bg-red-200 text-red-800'
+                        : insight.priority === 'medium'
+                          ? 'bg-orange-200 text-orange-800'
+                          : 'bg-green-200 text-green-800'
+                    }`}
+                  >
+                    {insight.priority === 'high'
+                      ? 'Alta'
                       : insight.priority === 'medium'
-                      ? 'bg-orange-200 text-orange-800'
-                      : 'bg-green-200 text-green-800'
-                  }`}>
-                    {insight.priority === 'high' ? 'Alta' : insight.priority === 'medium' ? 'Media' : 'Baja'}
+                        ? 'Media'
+                        : 'Baja'}
                   </span>
                 </div>
-                <p className={`text-sm ${styles.textColor}`}>
-                  {insight.description}
-                </p>
+                <p className={`text-sm ${styles.textColor}`}>{insight.description}</p>
               </div>
             </div>
           </div>
@@ -214,4 +218,3 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({
 };
 
 export default InsightsPanel;
-

@@ -77,7 +77,7 @@ const TeacherDashboardPage: React.FC = () => {
         : await courseService.getMyCourses(user!.id);
 
       // Obtener IDs de los cursos
-      const courseIds = coursesData.map(c => c.id);
+      const courseIds = coursesData.map((c) => c.id);
 
       // Calcular total de estudiantes (para admin podría ser total del sistema, para profe solo sus alumnos)
       let totalStudents = 0;
@@ -85,9 +85,12 @@ const TeacherDashboardPage: React.FC = () => {
       if (isAdmin) {
         // Para admin, intentar obtener conteo total si es posible, o sumar inscripciones únicas
         const { count, error } = await supabase
-          .from('profiles')
+          .from('users')
           .select('*', { count: 'exact', head: true })
-          .eq('role_id', (await supabase.from('roles').select('id').eq('name', 'student').single()).data?.id);
+          .eq(
+            'role_id',
+            (await supabase.from('roles').select('id').eq('name', 'student').single()).data?.id
+          );
 
         if (!error && count !== null) {
           totalStudents = count;
@@ -100,7 +103,7 @@ const TeacherDashboardPage: React.FC = () => {
             .in('course_id', courseIds);
 
           if (!enrollmentsError && enrollments) {
-            const uniqueStudents = new Set(enrollments.map(e => e.student_id));
+            const uniqueStudents = new Set(enrollments.map((e) => e.student_id));
             totalStudents = uniqueStudents.size;
           }
         }
@@ -113,12 +116,14 @@ const TeacherDashboardPage: React.FC = () => {
         const targetCourseIds = isAdmin ? courseIds.slice(0, 10) : courseIds;
 
         const allAssignments = await Promise.all(
-          targetCourseIds.map(courseId => assignmentService.getAssignmentsWithSubmissions(courseId))
+          targetCourseIds.map((courseId) =>
+            assignmentService.getAssignmentsWithSubmissions(courseId)
+          )
         );
 
-        allAssignments.flat().forEach(assignment => {
+        allAssignments.flat().forEach((assignment) => {
           if (assignment.submissions) {
-            const ungraded = assignment.submissions.filter(s => s.grade === null);
+            const ungraded = assignment.submissions.filter((s) => s.grade === null);
             pendingAssignments += ungraded.length;
           }
         });
@@ -134,7 +139,7 @@ const TeacherDashboardPage: React.FC = () => {
       }
 
       const { data: forumsData } = await forumsQuery
-        .order('last_message_at', { ascending: false, nullsLast: false })
+        .order('last_message_at', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -199,10 +204,13 @@ const TeacherDashboardPage: React.FC = () => {
             <h1 className="text-3xl font-bold text-text-dark">
               {user?.role?.name === 'admin' ? 'Panel de Administración' : 'Panel de Docente'}
             </h1>
-            <span className={`text-sm font-semibold px-3 py-1 rounded-full ${user?.role?.name === 'admin'
-              ? 'bg-red-100 text-red-700'
-              : 'bg-blue-50 text-blue-700'
-              }`}>
+            <span
+              className={`text-sm font-semibold px-3 py-1 rounded-full ${
+                user?.role?.name === 'admin'
+                  ? 'bg-red-100 text-red-700'
+                  : 'bg-blue-50 text-blue-700'
+              }`}
+            >
               {user?.role?.name === 'admin' ? 'Admin' : 'Docente'}
             </span>
           </div>
@@ -212,21 +220,27 @@ const TeacherDashboardPage: React.FC = () => {
         <div className="flex gap-3">
           {user?.role?.name === 'admin' ? (
             <Link to="/admin/users">
-              <Button variant="outline" className="bg-surface text-text-dark border-border hover:bg-background">
+              <Button
+                variant="outline"
+                className="bg-surface text-text-dark border-border hover:bg-background"
+              >
                 <IconUserGroup className="w-4 h-4 mr-2" />
                 Usuarios
               </Button>
             </Link>
           ) : (
             <Link to="/teacher/forums">
-              <Button variant="outline" className="bg-surface border-border text-text-dark hover:bg-background">
+              <Button
+                variant="outline"
+                className="bg-surface border-border text-text-dark hover:bg-background"
+              >
                 <IconMessage className="w-4 h-4 mr-2" />
                 Gestionar Foros
               </Button>
             </Link>
           )}
 
-          <Link to={user?.role?.name === 'admin' ? "/admin/courses" : "/teacher/assignments/new"}>
+          <Link to={user?.role?.name === 'admin' ? '/admin/courses' : '/teacher/assignments/new'}>
             <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow">
               <IconPlusCircle className="w-4 h-4 mr-2" />
               {user?.role?.name === 'admin' ? 'Gestionar Cursos' : 'Crear Nueva Tarea'}
@@ -318,16 +332,29 @@ const TeacherDashboardPage: React.FC = () => {
                 : 'Accede rápidamente a tus cursos recientes, revisa las tareas pendientes y participa en los foros de discusión con tus estudiantes.'}
             </p>
             <div className="flex flex-wrap gap-4">
-              <Link to={user?.role?.name === 'admin' ? "/admin/courses" : "/teacher/courses"}>
+              <Link to={user?.role?.name === 'admin' ? '/admin/courses' : '/teacher/courses'}>
                 <Button className="bg-blue-600 hover:bg-blue-500 text-white border-none px-6 py-2.5 h-auto font-medium rounded-lg shadow-lg shadow-blue-900/20">
                   {user?.role?.name === 'admin' ? 'Ir a Cursos' : 'Ver Mis Cursos'}
-                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  <svg
+                    className="w-4 h-4 ml-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7l5 5m0 0l-5 5m5-5H6"
+                    />
                   </svg>
                 </Button>
               </Link>
-              <Link to={user?.role?.name === 'admin' ? "/admin/users" : "/teacher/students"}>
-                <Button variant="outline" className="bg-white/5 border-white/10 text-white hover:bg-white/10 px-6 py-2.5 h-auto font-medium rounded-lg backdrop-blur-sm">
+              <Link to={user?.role?.name === 'admin' ? '/admin/users' : '/teacher/students'}>
+                <Button
+                  variant="outline"
+                  className="bg-white/5 border-white/10 text-white hover:bg-white/10 px-6 py-2.5 h-auto font-medium rounded-lg backdrop-blur-sm"
+                >
                   {user?.role?.name === 'admin' ? 'Gestionar Usuarios' : 'Lista de Estudiantes'}
                 </Button>
               </Link>
@@ -343,13 +370,18 @@ const TeacherDashboardPage: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="text-white font-medium text-sm">Tareas Pendientes</h4>
-                  <p className="text-blue-200/60 text-xs">{stats.pendingAssignments} sin calificar</p>
+                  <p className="text-blue-200/60 text-xs">
+                    {stats.pendingAssignments} sin calificar
+                  </p>
                 </div>
               </div>
             </Link>
 
             <Link to="/teacher/forums">
-              <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-xl p-4 flex items-center gap-4 transition-transform hover:-translate-x-1 duration-300" style={{ marginLeft: '1.5rem' }}>
+              <div
+                className="bg-white/10 backdrop-blur-md border border-white/10 rounded-xl p-4 flex items-center gap-4 transition-transform hover:-translate-x-1 duration-300"
+                style={{ marginLeft: '1.5rem' }}
+              >
                 <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-400">
                   <IconMessage className="w-6 h-6" />
                 </div>
@@ -370,7 +402,9 @@ const TeacherDashboardPage: React.FC = () => {
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold text-text-dark">Mis Cursos Recientes</h2>
             <Link to="/teacher/courses">
-              <span className="text-sm font-medium text-blue-600 hover:text-blue-700 cursor-pointer">Ver todos</span>
+              <span className="text-sm font-medium text-blue-600 hover:text-blue-700 cursor-pointer">
+                Ver todos
+              </span>
             </Link>
           </div>
 
@@ -381,14 +415,19 @@ const TeacherDashboardPage: React.FC = () => {
                   <IconBookOpen className="w-6 h-6 text-gray-400" />
                 </div>
                 <h3 className="text-gray-900 font-medium">No hay cursos activos</h3>
-                <p className="text-gray-500 text-sm mt-1 mb-4">Comienza creando tu primer curso hoy mismo.</p>
+                <p className="text-gray-500 text-sm mt-1 mb-4">
+                  Comienza creando tu primer curso hoy mismo.
+                </p>
                 <Link to="/teacher/courses/new">
                   <Button>Crear Primer Curso</Button>
                 </Link>
               </Card>
             ) : (
               courses.slice(0, 3).map((course) => (
-                <div key={course.id} className="group bg-surface rounded-xl border border-border shadow-sm p-4 hover:shadow-md transition-all duration-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div
+                  key={course.id}
+                  className="group bg-surface rounded-xl border border-border shadow-sm p-4 hover:shadow-md transition-all duration-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+                >
                   <div className="flex items-center gap-4">
                     {course.thumbnail_url ? (
                       <img
@@ -402,9 +441,13 @@ const TeacherDashboardPage: React.FC = () => {
                       </div>
                     )}
                     <div>
-                      <h4 className="font-bold text-text-dark group-hover:text-primary transition-colors">{course.title}</h4>
+                      <h4 className="font-bold text-text-dark group-hover:text-primary transition-colors">
+                        {course.title}
+                      </h4>
                       <div className="flex items-center gap-3 mt-1 text-xs text-text-light">
-                        <span className={`px-2 py-0.5 rounded-full ${course.status === 'active' ? 'bg-success/10 text-success' : 'bg-background text-text-light'}`}>
+                        <span
+                          className={`px-2 py-0.5 rounded-full ${course.status === 'active' ? 'bg-success/10 text-success' : 'bg-background text-text-light'}`}
+                        >
                           {course.status === 'active' ? 'Activo' : 'Borrador'}
                         </span>
                         <span>•</span>
@@ -415,7 +458,9 @@ const TeacherDashboardPage: React.FC = () => {
 
                   <div className="flex gap-2 self-end sm:self-auto opacity-0 group-hover:opacity-100 transition-opacity">
                     <Link to={`/teacher/courses/${course.id}`}>
-                      <Button size="sm" variant="secondary">Gestionar</Button>
+                      <Button size="sm" variant="secondary">
+                        Gestionar
+                      </Button>
                     </Link>
                   </div>
                 </div>
@@ -429,7 +474,9 @@ const TeacherDashboardPage: React.FC = () => {
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold text-text-dark">Foros Recientes</h2>
             <Link to="/teacher/forums">
-              <span className="text-sm font-medium text-blue-600 hover:text-blue-700 cursor-pointer">Ver todos</span>
+              <span className="text-sm font-medium text-blue-600 hover:text-blue-700 cursor-pointer">
+                Ver todos
+              </span>
             </Link>
           </div>
 
@@ -440,7 +487,10 @@ const TeacherDashboardPage: React.FC = () => {
               </div>
             ) : (
               recentForums.map((topic) => (
-                <div key={topic.id} className="bg-surface p-4 rounded-xl border border-border shadow-sm hover:shadow-md transition-all duration-200">
+                <div
+                  key={topic.id}
+                  className="bg-surface p-4 rounded-xl border border-border shadow-sm hover:shadow-md transition-all duration-200"
+                >
                   <div className="flex items-start gap-3">
                     <div className="mt-1">
                       <div className="w-2 h-2 rounded-full bg-primary"></div>
@@ -456,7 +506,10 @@ const TeacherDashboardPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="mt-3 pt-3 border-t border-border flex justify-end">
-                    <Link to={`/forum/${topic.id}`} className="text-xs font-medium text-primary hover:underline">
+                    <Link
+                      to={`/forum/${topic.id}`}
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
                       Responder →
                     </Link>
                   </div>
@@ -470,7 +523,9 @@ const TeacherDashboardPage: React.FC = () => {
               <div className="flex flex-col items-center justify-center py-4 text-center">
                 <IconCalendar className="w-10 h-10 text-border mb-2" />
                 <p className="text-xs text-text-light">No tienes sesiones programadas hoy.</p>
-                <Button variant="ghost" size="sm" className="mt-2 text-primary">Ver Calendario</Button>
+                <Button variant="ghost" size="sm" className="mt-2 text-primary">
+                  Ver Calendario
+                </Button>
               </div>
             </div>
           </div>

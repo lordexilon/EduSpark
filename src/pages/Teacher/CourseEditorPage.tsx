@@ -3,7 +3,16 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { courseService, unitService, sessionService, materialService, Course, CourseUnit, Session, Material } from '@/services/teacherCourses';
+import {
+  courseService,
+  unitService,
+  sessionService,
+  materialService,
+  Course,
+  CourseUnit,
+  Session,
+  Material,
+} from '@/services/teacherCourses';
 import { subjectService, careerService, Subject, Career } from '@/services/academicService';
 import { courseEnrollmentService } from '@/services/academicService';
 import { gradingService } from '@/services/gradingService';
@@ -16,10 +25,24 @@ import { UnitEditorModal } from '@/components/Features/UnitEditorModal';
 import { SessionEditorModal } from '@/components/Features/SessionEditorModal';
 import { CourseEditModal } from '@/components/Features/CourseEditModal';
 import {
-  IconEye, IconCards, IconChevronDown, IconChevronUp, IconEdit,
-  IconChartBar, IconUserGroup, IconClipboardCheck, IconAlertCircle, IconSparkles,
-  IconBookOpen, IconVideo, IconFileText, IconPlus, IconRobot, IconStar,
-  IconGraduationCap, IconUsers
+  IconEye,
+  IconCards,
+  IconChevronDown,
+  IconChevronUp,
+  IconEdit,
+  IconChartBar,
+  IconUserGroup,
+  IconClipboardCheck,
+  IconAlertCircle,
+  IconSparkles,
+  IconBookOpen,
+  IconVideo,
+  IconFileText,
+  IconPlus,
+  IconRobot,
+  IconStar,
+  IconGraduationCap,
+  IconUsers,
 } from '@/components/Common/Icons';
 import { uploadCourseMedia, uploadCourseDocument, UploadResult } from '@/services/storageService';
 import { VideoPlayer } from '@/components/Features/VideoPlayer';
@@ -38,7 +61,9 @@ export const CourseEditorPage: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'assignments' | 'students'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'assignments' | 'students'>(
+    'overview'
+  );
   const [contentSubTab, setContentSubTab] = useState<'units' | 'sessions' | 'materials'>('units');
   const [subject, setSubject] = useState<Subject | null>(null);
   const [career, setCareer] = useState<Career | null>(null);
@@ -62,7 +87,7 @@ export const CourseEditorPage: React.FC = () => {
     atRisk: 0,
     topTopic: null as string | null,
     needingAttentionCount: 0,
-    aiHighlights: [] as string[]
+    aiHighlights: [] as string[],
   });
   const [showAIStatsMenu, setShowAIStatsMenu] = useState(false);
 
@@ -74,7 +99,7 @@ export const CourseEditorPage: React.FC = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (showAIStatsMenu && !((event.target as HTMLElement).closest('.relative'))) {
+      if (showAIStatsMenu && !(event.target as HTMLElement).closest('.relative')) {
         setShowAIStatsMenu(false);
       }
     };
@@ -106,12 +131,16 @@ export const CourseEditorPage: React.FC = () => {
         console.error('Error cargando curso con servicio:', error);
         // Si hay error y es admin/coordinator, intentar cargar directamente desde supabase
         if (isAdmin) {
-          console.warn('Error cargando curso con servicio, intentando acceso directo como admin...');
+          console.warn(
+            'Error cargando curso con servicio, intentando acceso directo como admin...'
+          );
           try {
             // Intentar con select específico sin thumbnail_url (puede no existir)
             const { data, error: supabaseError } = await supabase
               .from('courses')
-              .select('id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at')
+              .select(
+                'id, title, code, description, teacher_id, status, subject_id, academic_period, start_date, end_date, schedule, max_students, created_at, updated_at'
+              )
               .eq('id', courseId)
               .maybeSingle(); // Usar maybeSingle en lugar de single para evitar error si no existe
 
@@ -154,7 +183,9 @@ export const CourseEditorPage: React.FC = () => {
 
         if (!isOwner && !isAdmin) {
           // Si no es el dueño ni admin/coordinator, redirigir
-          console.warn('Acceso denegado: no eres el dueño del curso ni tienes permisos de administrador');
+          console.warn(
+            'Acceso denegado: no eres el dueño del curso ni tienes permisos de administrador'
+          );
           navigate('/teacher/dashboard');
           return;
         }
@@ -170,16 +201,18 @@ export const CourseEditorPage: React.FC = () => {
         [unitsData, sessionsData, materialsData] = await Promise.all([
           unitService.getCourseUnits(courseId),
           sessionService.getCourseSessions(courseId),
-          materialService.getCourseMaterials(courseId)
+          materialService.getCourseMaterials(courseId),
         ]);
       } catch (error: any) {
         // Si hay error y es admin/coordinator, intentar cargar directamente desde supabase
         if (isAdmin) {
-          console.warn('Error cargando datos del curso con servicio, intentando acceso directo como admin...');
+          console.warn(
+            'Error cargando datos del curso con servicio, intentando acceso directo como admin...'
+          );
           const [unitsResult, sessionsResult, materialsResult] = await Promise.all([
             supabase.from('course_units').select('*').eq('course_id', courseId),
             supabase.from('sessions').select('*').eq('course_id', courseId),
-            supabase.from('materials').select('*').eq('course_id', courseId)
+            supabase.from('materials').select('*').eq('course_id', courseId),
           ]);
 
           if (!unitsResult.error) unitsData = unitsResult.data as CourseUnit[];
@@ -227,7 +260,7 @@ export const CourseEditorPage: React.FC = () => {
 
         // Filtramos solo los que tienen nota final calculada
         const validGrades = allGrades
-          .map(g => g.finalGrade)
+          .map((g) => g.finalGrade)
           .filter((g): g is number => g !== null);
 
         let avgGrade = 0;
@@ -236,30 +269,30 @@ export const CourseEditorPage: React.FC = () => {
         if (validGrades.length > 0) {
           avgGrade = validGrades.reduce((sum, g) => sum + g, 0) / validGrades.length;
           // Consideramos en riesgo si el promedio es menor a 60
-          atRisk = validGrades.filter(g => g < 60).length;
+          atRisk = validGrades.filter((g) => g < 60).length;
         }
 
         // 2. Pendientes de Revisión (Assignments)
         const assignmentsWithSubs = await assignmentService.getAssignmentsWithSubmissions(courseId);
         let pendingReview = 0;
 
-        assignmentsWithSubs.forEach(assignment => {
+        assignmentsWithSubs.forEach((assignment) => {
           // Sumamos las entregas que no tienen calificación (grade === null)
-          const pendingCount = assignment.submissions.filter(s => s.grade === null).length;
+          const pendingCount = assignment.submissions.filter((s) => s.grade === null).length;
           pendingReview += pendingCount;
         });
-        setDashboardStats(prev => ({
+        setDashboardStats((prev) => ({
           ...prev,
           avgGrade: Math.round(avgGrade),
           pendingReview,
-          atRisk
+          atRisk,
         }));
 
         // --- 3. Tutor & AI Insights ---
         try {
           const [tutorMetrics, sMetrics] = await Promise.all([
             getCourseMetrics(courseId),
-            getStudentMetrics(courseId)
+            getStudentMetrics(courseId),
           ]);
 
           if (tutorMetrics) {
@@ -270,17 +303,16 @@ export const CourseEditorPage: React.FC = () => {
             // Análisis de IA (Advisor)
             const aiAnalysis = await analyzeCoursePerformance(tutorMetrics, sMetrics || []);
 
-            setDashboardStats(prev => ({
+            setDashboardStats((prev) => ({
               ...prev,
               topTopic,
               needingAttentionCount: needingAttention,
-              aiHighlights: aiAnalysis.keyInsights.slice(0, 2)
+              aiHighlights: aiAnalysis.keyInsights.slice(0, 2),
             }));
           }
         } catch (tutorError) {
           console.error('Error cargando métricas del tutor:', tutorError);
         }
-
       } catch (statsError) {
         console.error('Error loading dashboard stats:', statsError);
       }
@@ -314,14 +346,14 @@ export const CourseEditorPage: React.FC = () => {
         savedUnit = await unitService.updateUnit(editingUnit.id, unitData);
         console.log('Unidad actualizada:', savedUnit);
         // Actualizar la lista con la unidad actualizada
-        const updatedUnits = units.map(u => u.id === editingUnit.id ? savedUnit : u);
+        const updatedUnits = units.map((u) => (u.id === editingUnit.id ? savedUnit : u));
         setUnits(updatedUnits);
       } else {
         const unitNumber = units.length + 1;
         console.log('Creando nueva unidad con número:', unitNumber);
         savedUnit = await unitService.createUnit({
           ...unitData,
-          number: unitNumber
+          number: unitNumber,
         });
         console.log('Unidad creada:', savedUnit);
         setUnits([...units, savedUnit]);
@@ -329,14 +361,13 @@ export const CourseEditorPage: React.FC = () => {
 
       // Indexar contenido para RAG
       if (user?.id) {
-        indexUnitContent(savedUnit, user.id).catch(err =>
+        indexUnitContent(savedUnit, user.id).catch((err) =>
           console.error('Error indexando unidad:', err)
         );
       }
 
-
       // Cerrar modal después de una pequeña pausa para asegurar renderizado
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
       setShowUnitModal(false);
       setEditingUnit(null);
     } catch (error: any) {
@@ -345,7 +376,7 @@ export const CourseEditorPage: React.FC = () => {
         message: error?.message,
         code: error?.code,
         details: error?.details,
-        hint: error?.hint
+        hint: error?.hint,
       });
       throw error;
     }
@@ -356,7 +387,7 @@ export const CourseEditorPage: React.FC = () => {
 
     try {
       await unitService.deleteUnit(unitId);
-      setUnits(units.filter(u => u.id !== unitId));
+      setUnits(units.filter((u) => u.id !== unitId));
     } catch (error) {
       console.error('Error deleting unit:', error);
       alert('Error al eliminar la unidad');
@@ -388,7 +419,9 @@ export const CourseEditorPage: React.FC = () => {
         savedSession = await sessionService.updateSession(editingSession.id, sessionData);
         console.log('Sesión actualizada:', savedSession);
         // Actualizar la lista con la sesión actualizada
-        const updatedSessions = sessions.map(s => s.id === editingSession.id ? savedSession : s);
+        const updatedSessions = sessions.map((s) =>
+          s.id === editingSession.id ? savedSession : s
+        );
         setSessions(updatedSessions);
       } else {
         console.log('Creando nueva sesión');
@@ -401,7 +434,7 @@ export const CourseEditorPage: React.FC = () => {
       console.log('🔍 Verificando indexación - user:', user, 'user.id:', user?.id);
       if (user?.id) {
         console.log('✅ Llamando a indexSessionContent para sesión:', savedSession.id);
-        indexSessionContent(savedSession, user.id, savedSession.unit_id).catch(err =>
+        indexSessionContent(savedSession, user.id, savedSession.unit_id).catch((err) =>
           console.error('❌ Error indexando sesión:', err)
         );
       } else {
@@ -409,7 +442,7 @@ export const CourseEditorPage: React.FC = () => {
       }
 
       // Cerrar modal después de una pequeña pausa para asegurar renderizado
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
       setShowSessionModal(false);
       setEditingSession(null);
     } catch (error: any) {
@@ -418,7 +451,7 @@ export const CourseEditorPage: React.FC = () => {
         message: error?.message,
         code: error?.code,
         details: error?.details,
-        hint: error?.hint
+        hint: error?.hint,
       });
       throw error;
     }
@@ -429,7 +462,7 @@ export const CourseEditorPage: React.FC = () => {
 
     try {
       await sessionService.deleteSession(sessionId);
-      setSessions(sessions.filter(s => s.id !== sessionId));
+      setSessions(sessions.filter((s) => s.id !== sessionId));
     } catch (error) {
       console.error('Error deleting session:', error);
       alert('Error al eliminar la sesión');
@@ -442,14 +475,15 @@ export const CourseEditorPage: React.FC = () => {
     const title = prompt('Título del material:');
     if (!title) return;
 
-    const kind = prompt('Tipo de material (markdown/pdf/link/video/other):') as Material['kind'] || 'other';
+    const kind =
+      (prompt('Tipo de material (markdown/pdf/link/video/other):') as Material['kind']) || 'other';
 
     try {
       const newMaterial = await materialService.createMaterial({
         course_id: course.id,
         title,
         kind,
-        metadata: {}
+        metadata: {},
       });
       setMaterials([...materials, newMaterial]);
     } catch (error) {
@@ -491,7 +525,9 @@ export const CourseEditorPage: React.FC = () => {
       const isLargePDF = file.type === 'application/pdf' && fileSizeMB > 5 && fileSizeMB <= 50;
 
       if (isLargeFile) {
-        setMaterialUploadInfo(`Subiendo archivo grande (${fileSizeMB.toFixed(2)}MB). Esto puede tardar varios minutos...`);
+        setMaterialUploadInfo(
+          `Subiendo archivo grande (${fileSizeMB.toFixed(2)}MB). Esto puede tardar varios minutos...`
+        );
       } else if (isLargePDF) {
         setMaterialUploadInfo('Comprimiendo PDF para reducir tamaño...');
       } else {
@@ -576,7 +612,10 @@ export const CourseEditorPage: React.FC = () => {
 
     let newUrl = material.url;
     if (material.url) {
-      const urlPrompt = prompt('URL del material (deja igual si no quieres cambiarla):', material.url);
+      const urlPrompt = prompt(
+        'URL del material (deja igual si no quieres cambiarla):',
+        material.url
+      );
       if (urlPrompt === null) return;
       newUrl = urlPrompt.trim() || material.url;
     }
@@ -676,7 +715,8 @@ export const CourseEditorPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500">Fechas:</span>
                   <span className="font-medium">
-                    {new Date(course.start_date).toLocaleDateString()} - {new Date(course.end_date).toLocaleDateString()}
+                    {new Date(course.start_date).toLocaleDateString()} -{' '}
+                    {new Date(course.end_date).toLocaleDateString()}
                   </span>
                 </div>
               )}
@@ -698,9 +738,7 @@ export const CourseEditorPage: React.FC = () => {
           >
             Editar Curso
           </Button>
-          <Button onClick={() => navigate('/teacher/courses')}>
-            Volver a Cursos
-          </Button>
+          <Button onClick={() => navigate('/teacher/courses')}>Volver a Cursos</Button>
         </div>
       </div>
 
@@ -709,40 +747,44 @@ export const CourseEditorPage: React.FC = () => {
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'overview'
-              ? 'border-brand-primary text-brand-primary'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+              activeTab === 'overview'
+                ? 'border-brand-primary text-brand-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
           >
             <IconChartBar className="w-5 h-5" />
             Visión General
           </button>
           <button
             onClick={() => setActiveTab('content')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'content'
-              ? 'border-brand-primary text-brand-primary'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+              activeTab === 'content'
+                ? 'border-brand-primary text-brand-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
           >
             <IconBookOpen className="w-5 h-5" />
             Contenido del Curso
           </button>
           <button
             onClick={() => setActiveTab('assignments')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'assignments'
-              ? 'border-brand-primary text-brand-primary'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+              activeTab === 'assignments'
+                ? 'border-brand-primary text-brand-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
           >
             <IconClipboardCheck className="w-5 h-5" />
             Tareas y Calificaciones
           </button>
           <button
             onClick={() => setActiveTab('students')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'students'
-              ? 'border-brand-primary text-brand-primary'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+              activeTab === 'students'
+                ? 'border-brand-primary text-brand-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
           >
             <IconUserGroup className="w-5 h-5" />
             Estudiantes
@@ -789,8 +831,12 @@ export const CourseEditorPage: React.FC = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-500">Pendientes de Revisión</p>
                   <div className="flex items-baseline gap-2 mt-1">
-                    <h3 className="text-3xl font-bold text-gray-900">{dashboardStats.pendingReview}</h3>
-                    <span className="text-xs font-semibold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">Requiere acción</span>
+                    <h3 className="text-3xl font-bold text-gray-900">
+                      {dashboardStats.pendingReview}
+                    </h3>
+                    <span className="text-xs font-semibold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">
+                      Requiere acción
+                    </span>
                   </div>
                 </div>
                 <div className="p-3 bg-orange-50 rounded-full">
@@ -827,9 +873,13 @@ export const CourseEditorPage: React.FC = () => {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <IconSparkles className="w-5 h-5 text-yellow-300" />
-                  <span className="text-xs font-bold uppercase tracking-wider text-blue-200">AI Insights Ready</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-blue-200">
+                    AI Insights Ready
+                  </span>
                 </div>
-                <h2 className="text-2xl font-bold mb-2">EduSpark ha analizado el estado del curso</h2>
+                <h2 className="text-2xl font-bold mb-2">
+                  EduSpark ha analizado el estado del curso
+                </h2>
                 <div className="text-blue-100 max-w-2xl space-y-1">
                   {dashboardStats.aiHighlights.length > 0 ? (
                     dashboardStats.aiHighlights.map((insight, idx) => (
@@ -854,7 +904,11 @@ export const CourseEditorPage: React.FC = () => {
                 <Button
                   variant="secondary"
                   className="whitespace-nowrap bg-white text-blue-700 hover:bg-blue-50 border-none shadow-lg"
-                  rightIcon={<IconChevronDown className={`w-4 h-4 ml-2 transition-transform ${showAIStatsMenu ? 'rotate-180' : ''}`} />}
+                  rightIcon={
+                    <IconChevronDown
+                      className={`w-4 h-4 ml-2 transition-transform ${showAIStatsMenu ? 'rotate-180' : ''}`}
+                    />
+                  }
                   onClick={() => setShowAIStatsMenu(!showAIStatsMenu)}
                 >
                   Opciones de Análisis
@@ -863,7 +917,9 @@ export const CourseEditorPage: React.FC = () => {
                 {showAIStatsMenu && (
                   <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-blue-100 overflow-hidden z-20 animate-in fade-in slide-in-from-top-2">
                     <div className="p-2 border-b border-gray-100 bg-blue-50/50">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 px-2">Navegación Inteligente</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 px-2">
+                        Navegación Inteligente
+                      </span>
                     </div>
                     <button
                       onClick={() => navigate(`/teacher/tutor-analytics?courseId=${id}`)}
@@ -874,7 +930,9 @@ export const CourseEditorPage: React.FC = () => {
                       </div>
                       <div>
                         <div className="font-semibold">Análisis Tutora AI</div>
-                        <div className="text-[11px] text-gray-500 line-clamp-1">Insights y engagement del tutor</div>
+                        <div className="text-[11px] text-gray-500 line-clamp-1">
+                          Insights y engagement del tutor
+                        </div>
                       </div>
                     </button>
                     <button
@@ -886,7 +944,9 @@ export const CourseEditorPage: React.FC = () => {
                       </div>
                       <div>
                         <div className="font-semibold">Calificaciones</div>
-                        <div className="text-[11px] text-gray-500 line-clamp-1">Kardex y registro de notas</div>
+                        <div className="text-[11px] text-gray-500 line-clamp-1">
+                          Kardex y registro de notas
+                        </div>
                       </div>
                     </button>
                   </div>
@@ -907,7 +967,9 @@ export const CourseEditorPage: React.FC = () => {
                   <div>
                     <h4 className="font-bold text-orange-900">Alerta de Rendimiento</h4>
                     <p className="text-sm text-orange-700 mt-1">
-                      {dashboardStats.atRisk} {dashboardStats.atRisk === 1 ? 'estudiante está' : 'estudiantes están'} por debajo del promedio esperado (60%).
+                      {dashboardStats.atRisk}{' '}
+                      {dashboardStats.atRisk === 1 ? 'estudiante está' : 'estudiantes están'} por
+                      debajo del promedio esperado (60%).
                     </p>
                     <button
                       onClick={() => setActiveTab('students')}
@@ -940,9 +1002,12 @@ export const CourseEditorPage: React.FC = () => {
                     <IconSparkles className="w-6 h-6" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-blue-900">{dashboardStats.pendingReview} Entregas Pendientes</h4>
+                    <h4 className="font-bold text-blue-900">
+                      {dashboardStats.pendingReview} Entregas Pendientes
+                    </h4>
                     <p className="text-sm text-blue-700 mt-1">
-                      EduSpark puede ayudarte a generar borradores de feedback para agilizar tu revisión.
+                      EduSpark puede ayudarte a generar borradores de feedback para agilizar tu
+                      revisión.
                     </p>
                     <button
                       onClick={() => setActiveTab('assignments')}
@@ -977,28 +1042,35 @@ export const CourseEditorPage: React.FC = () => {
           <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-lg w-fit">
             <button
               onClick={() => setContentSubTab('units')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${contentSubTab === 'units' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                }`}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                contentSubTab === 'units'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
             >
               Unidades
             </button>
             <button
               onClick={() => setContentSubTab('sessions')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${contentSubTab === 'sessions' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                }`}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                contentSubTab === 'sessions'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
             >
               Sesiones
             </button>
             <button
               onClick={() => setContentSubTab('materials')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${contentSubTab === 'materials' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                }`}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                contentSubTab === 'materials'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
             >
               Materiales
             </button>
           </div>
-
-
 
           {/* Content */}
           {activeTab === 'content' && contentSubTab === 'units' && (
@@ -1006,8 +1078,18 @@ export const CourseEditorPage: React.FC = () => {
               <div className="flex justify-between items-center">
                 <h2 className="text-lg font-semibold">Unidades del Curso</h2>
                 <Button onClick={handleCreateUnit}>
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
                   </svg>
                   Nueva Unidad
                 </Button>
@@ -1024,7 +1106,7 @@ export const CourseEditorPage: React.FC = () => {
                   {units.map((unit) => {
                     const isExpanded = expandedUnits.has(unit.id);
                     const toggleUnit = () => {
-                      setExpandedUnits(prev => {
+                      setExpandedUnits((prev) => {
                         const newSet = new Set(prev);
                         if (newSet.has(unit.id)) {
                           newSet.delete(unit.id);
@@ -1044,17 +1126,23 @@ export const CourseEditorPage: React.FC = () => {
                                 <button
                                   onClick={toggleUnit}
                                   className="flex items-center gap-2 hover:bg-gray-100 rounded px-2 py-1 transition-colors"
-                                  title={isExpanded ? "Plegar unidad" : "Desplegar unidad"}
+                                  title={isExpanded ? 'Plegar unidad' : 'Desplegar unidad'}
                                 >
                                   {isExpanded ? (
                                     <IconChevronUp className="w-5 h-5 text-gray-600" />
                                   ) : (
                                     <IconChevronDown className="w-5 h-5 text-gray-600" />
                                   )}
-                                  <h3 className="font-semibold">Unidad {unit.number}: {unit.title}</h3>
+                                  <h3 className="font-semibold">
+                                    Unidad {unit.number}: {unit.title}
+                                  </h3>
                                 </button>
                                 {unit.thumbnail_url && (
-                                  <img src={unit.thumbnail_url} alt={unit.title} className="w-16 h-16 object-cover rounded" />
+                                  <img
+                                    src={unit.thumbnail_url}
+                                    alt={unit.title}
+                                    className="w-16 h-16 object-cover rounded"
+                                  />
                                 )}
                               </div>
                               {isExpanded && (
@@ -1067,16 +1155,19 @@ export const CourseEditorPage: React.FC = () => {
                                       <RichTextDisplay content={unit.content_html} />
                                     </div>
                                   )}
-                                  {unit.learning_objectives && unit.learning_objectives.length > 0 && (
-                                    <div className="mt-2">
-                                      <p className="text-xs font-medium text-gray-700 mb-1">Objetivos:</p>
-                                      <ul className="text-xs text-gray-600 list-disc list-inside">
-                                        {unit.learning_objectives.map((obj, idx) => (
-                                          <li key={idx}>{obj}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  )}
+                                  {unit.learning_objectives &&
+                                    unit.learning_objectives.length > 0 && (
+                                      <div className="mt-2">
+                                        <p className="text-xs font-medium text-gray-700 mb-1">
+                                          Objetivos:
+                                        </p>
+                                        <ul className="text-xs text-gray-600 list-disc list-inside">
+                                          {unit.learning_objectives.map((obj, idx) => (
+                                            <li key={idx}>{obj}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
                                   {unit.duration_hours && (
                                     <p className="text-xs text-gray-500 mt-1">
                                       Duración: {unit.duration_hours} horas
@@ -1092,17 +1183,27 @@ export const CourseEditorPage: React.FC = () => {
                               >
                                 🎥 Editar Unidad (con Videos)
                               </Link>
-                              <Link
-                                to={`/teacher/courses/${id}/flashcards?unitId=${unit.id}`}
-                              >
-                                <Button size="sm" variant="secondary" leftIcon={<IconCards className="w-4 h-4" />}>
+                              <Link to={`/teacher/courses/${id}/flashcards?unitId=${unit.id}`}>
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  leftIcon={<IconCards className="w-4 h-4" />}
+                                >
                                   Flashcards
                                 </Button>
                               </Link>
-                              <Button size="sm" variant="secondary" onClick={() => handleEditUnit(unit)}>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleEditUnit(unit)}
+                              >
                                 Editar
                               </Button>
-                              <Button size="sm" variant="danger" onClick={() => handleDeleteUnit(unit.id)}>
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                onClick={() => handleDeleteUnit(unit.id)}
+                              >
                                 Eliminar
                               </Button>
                             </div>
@@ -1121,8 +1222,18 @@ export const CourseEditorPage: React.FC = () => {
               <div className="flex justify-between items-center">
                 <h2 className="text-lg font-semibold">Sesiones del Curso</h2>
                 <Button onClick={handleCreateSession}>
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
                   </svg>
                   Nueva Sesión
                 </Button>
@@ -1137,7 +1248,7 @@ export const CourseEditorPage: React.FC = () => {
               ) : (
                 <div className="space-y-3">
                   {sessions.map((session) => {
-                    const sessionUnit = units.find(u => u.id === session.unit_id);
+                    const sessionUnit = units.find((u) => u.id === session.unit_id);
                     return (
                       <Card key={session.id}>
                         <div className="p-4">
@@ -1147,12 +1258,19 @@ export const CourseEditorPage: React.FC = () => {
                                 <h3 className="font-semibold">{session.title}</h3>
                                 {session.session_type && (
                                   <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
-                                    {session.session_type === 'lecture' ? 'Clase' :
-                                      session.session_type === 'practice' ? 'Práctica' :
-                                        session.session_type === 'lab' ? 'Lab' :
-                                          session.session_type === 'exam' ? 'Examen' :
-                                            session.session_type === 'discussion' ? 'Discusión' :
-                                              session.session_type === 'workshop' ? 'Taller' : 'Otro'}
+                                    {session.session_type === 'lecture'
+                                      ? 'Clase'
+                                      : session.session_type === 'practice'
+                                        ? 'Práctica'
+                                        : session.session_type === 'lab'
+                                          ? 'Lab'
+                                          : session.session_type === 'exam'
+                                            ? 'Examen'
+                                            : session.session_type === 'discussion'
+                                              ? 'Discusión'
+                                              : session.session_type === 'workshop'
+                                                ? 'Taller'
+                                                : 'Otro'}
                                   </span>
                                 )}
                               </div>
@@ -1169,19 +1287,24 @@ export const CourseEditorPage: React.FC = () => {
                                   <RichTextDisplay content={session.content_html} />
                                 </div>
                               )}
-                              {session.learning_objectives && session.learning_objectives.length > 0 && (
-                                <div className="mt-2">
-                                  <p className="text-xs font-medium text-gray-700 mb-1">Objetivos:</p>
-                                  <ul className="text-xs text-gray-600 list-disc list-inside">
-                                    {session.learning_objectives.map((obj, idx) => (
-                                      <li key={idx}>{obj}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
+                              {session.learning_objectives &&
+                                session.learning_objectives.length > 0 && (
+                                  <div className="mt-2">
+                                    <p className="text-xs font-medium text-gray-700 mb-1">
+                                      Objetivos:
+                                    </p>
+                                    <ul className="text-xs text-gray-600 list-disc list-inside">
+                                      {session.learning_objectives.map((obj, idx) => (
+                                        <li key={idx}>{obj}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
                               <div className="flex gap-4 mt-2 text-xs text-gray-500">
                                 {session.starts_at && (
-                                  <span>Inicio: {new Date(session.starts_at).toLocaleString()}</span>
+                                  <span>
+                                    Inicio: {new Date(session.starts_at).toLocaleString()}
+                                  </span>
                                 )}
                                 {session.duration_minutes && (
                                   <span>Duración: {session.duration_minutes} min</span>
@@ -1190,21 +1313,37 @@ export const CourseEditorPage: React.FC = () => {
                             </div>
                             <div className="flex space-x-2 ml-4">
                               <Link to={`/session/${session.id}`} target="_blank">
-                                <Button size="sm" variant="secondary" leftIcon={<IconEye className="w-4 h-4" />}>
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  leftIcon={<IconEye className="w-4 h-4" />}
+                                >
                                   Ver como Estudiante
                                 </Button>
                               </Link>
                               <Link
                                 to={`/teacher/courses/${id}/flashcards?sessionId=${session.id}${session.unit_id ? `&unitId=${session.unit_id}` : ''}`}
                               >
-                                <Button size="sm" variant="secondary" leftIcon={<IconCards className="w-4 h-4" />}>
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  leftIcon={<IconCards className="w-4 h-4" />}
+                                >
                                   Flashcards
                                 </Button>
                               </Link>
-                              <Button size="sm" variant="secondary" onClick={() => handleEditSession(session)}>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleEditSession(session)}
+                              >
                                 Editar
                               </Button>
-                              <Button size="sm" variant="danger" onClick={() => handleDeleteSession(session.id)}>
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                onClick={() => handleDeleteSession(session.id)}
+                              >
                                 Eliminar
                               </Button>
                             </div>
@@ -1237,8 +1376,18 @@ export const CourseEditorPage: React.FC = () => {
                     {uploadingMaterial ? 'Subiendo...' : 'Subir archivo'}
                   </Button>
                   <Button onClick={handleCreateMaterial}>
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
                     </svg>
                     Agregar enlace
                   </Button>
@@ -1256,12 +1405,18 @@ export const CourseEditorPage: React.FC = () => {
                   {materials.map((material) => {
                     const isVideo = material.kind === 'video';
                     const transcriptService = new VideoTranscriptService();
-                    const platform = isVideo && material.url
-                      ? (material.video_platform || transcriptService.detectPlatform(material.url)?.name || 'other')
-                      : null;
-                    const videoId = isVideo && material.url && platform
-                      ? (material.video_id || transcriptService.detectPlatform(material.url)?.extractId(material.url) || undefined)
-                      : undefined;
+                    const platform =
+                      isVideo && material.url
+                        ? material.video_platform ||
+                          transcriptService.detectPlatform(material.url)?.name ||
+                          'other'
+                        : null;
+                    const videoId =
+                      isVideo && material.url && platform
+                        ? material.video_id ||
+                          transcriptService.detectPlatform(material.url)?.extractId(material.url) ||
+                          undefined
+                        : undefined;
 
                     return (
                       <Card key={material.id}>
@@ -1272,12 +1427,16 @@ export const CourseEditorPage: React.FC = () => {
                               <p className="text-gray-600 text-sm mt-1">Tipo: {material.kind}</p>
                               {(material.url || material.metadata?.sourceFileId) && (
                                 <p className="text-blue-600 text-sm mt-1 break-all">
-                                  {material.url || `https://drive.google.com/file/d/${material.metadata?.sourceFileId}/view`}
+                                  {material.url ||
+                                    `https://drive.google.com/file/d/${material.metadata?.sourceFileId}/view`}
                                 </p>
                               )}
                               {material.mime_type && (
                                 <p className="text-xs text-gray-500 mt-1">
-                                  {material.mime_type} · {material.size_bytes ? `${(material.size_bytes / 1024).toFixed(1)} KB` : 'tamaño desconocido'}
+                                  {material.mime_type} ·{' '}
+                                  {material.size_bytes
+                                    ? `${(material.size_bytes / 1024).toFixed(1)} KB`
+                                    : 'tamaño desconocido'}
                                 </p>
                               )}
                               {material.metadata?.optimized && (
@@ -1306,7 +1465,11 @@ export const CourseEditorPage: React.FC = () => {
                               )}
                             </div>
                             <div className="flex space-x-2 ml-4">
-                              <Button size="sm" variant="secondary" onClick={() => handleEditMaterial(material)}>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleEditMaterial(material)}
+                              >
                                 Editar
                               </Button>
                               <Button
@@ -1322,7 +1485,9 @@ export const CourseEditorPage: React.FC = () => {
                           {/* Preview del video para el docente */}
                           {isVideo && material.url && (
                             <div className="mt-4 pt-4 border-t border-gray-200">
-                              <h4 className="text-sm font-semibold text-gray-700 mb-2">Vista Previa del Video:</h4>
+                              <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                                Vista Previa del Video:
+                              </h4>
                               <div className="bg-gray-50 p-3 rounded-lg">
                                 <VideoPlayer
                                   materialId={material.id}
@@ -1346,12 +1511,9 @@ export const CourseEditorPage: React.FC = () => {
                   })}
                 </div>
               )}
-              {materialUploadInfo && (
-                <p className="text-xs text-gray-500">{materialUploadInfo}</p>
-              )}
+              {materialUploadInfo && <p className="text-xs text-gray-500">{materialUploadInfo}</p>}
             </div>
           )}
-
         </div>
       )}
 
@@ -1371,7 +1533,8 @@ export const CourseEditorPage: React.FC = () => {
             </div>
             <h3 className="text-lg font-medium text-gray-900">Gestión de Tareas</h3>
             <p className="text-gray-500 max-w-md mx-auto mt-2">
-              Aquí podrás ver todas las tareas asignadas, gestionar entregas y calificar el progreso de tus estudiantes.
+              Aquí podrás ver todas las tareas asignadas, gestionar entregas y calificar el progreso
+              de tus estudiantes.
             </p>
             <div className="mt-6 flex justify-center gap-4">
               <Button variant="secondary" onClick={() => navigate('/teacher/assignments')}>
@@ -1386,7 +1549,9 @@ export const CourseEditorPage: React.FC = () => {
       {activeTab === 'students' && (
         <div className="space-y-6 animate-fade-in">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-900">Estudiantes Inscritos ({enrolledCount})</h2>
+            <h2 className="text-xl font-bold text-gray-900">
+              Estudiantes Inscritos ({enrolledCount})
+            </h2>
             <Button variant="outline" leftIcon={<IconUserGroup className="w-4 h-4" />}>
               Gestionar Lista
             </Button>
@@ -1398,7 +1563,8 @@ export const CourseEditorPage: React.FC = () => {
             </div>
             <h3 className="text-lg font-medium text-gray-900">Lista de Estudiantes</h3>
             <p className="text-gray-500 max-w-md mx-auto mt-2">
-              Visualiza el progreso individual, asistencia y rendimiento de cada estudiante inscrito en este curso.
+              Visualiza el progreso individual, asistencia y rendimiento de cada estudiante inscrito
+              en este curso.
             </p>
             <div className="mt-6 flex justify-center gap-4">
               <Button variant="secondary" onClick={() => navigate('/teacher/students')}>
@@ -1408,7 +1574,6 @@ export const CourseEditorPage: React.FC = () => {
           </Card>
         </div>
       )}
-
 
       {/* Modales de edición (Moved outside tabs) */}
       {showUnitModal && course && (

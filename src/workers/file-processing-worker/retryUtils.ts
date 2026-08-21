@@ -8,7 +8,7 @@ export class CircuitBreaker {
   private failures: number = 0;
   private lastFailureTime: number = 0;
   private state: 'closed' | 'open' | 'half-open' = 'closed';
-  
+
   constructor(
     private readonly failureThreshold: number = 5,
     private readonly resetTimeout: number = 60000, // 1 minuto
@@ -20,7 +20,7 @@ export class CircuitBreaker {
    */
   canAttempt(): boolean {
     const now = Date.now();
-    
+
     if (this.state === 'open') {
       // Si ha pasado el timeout, intentar half-open
       if (now - this.lastFailureTime >= this.resetTimeout) {
@@ -30,7 +30,7 @@ export class CircuitBreaker {
       }
       return false;
     }
-    
+
     return true;
   }
 
@@ -53,7 +53,7 @@ export class CircuitBreaker {
   recordFailure(): void {
     this.failures++;
     this.lastFailureTime = Date.now();
-    
+
     if (this.state === 'half-open') {
       // Si falla en half-open, volver a abrir
       this.state = 'open';
@@ -110,7 +110,7 @@ export async function withRetry<T>(
         return true;
       }
       return false;
-    }
+    },
   } = options;
 
   let lastError: any;
@@ -129,8 +129,8 @@ export async function withRetry<T>(
           `[Retry] Intento ${attempt + 1}/${maxRetries + 1} falló. Reintentando en ${waitTime}ms...`,
           error.message || error
         );
-        
-        await new Promise(resolve => setTimeout(resolve, waitTime));
+
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
         delay *= backoffMultiplier;
         continue;
       }
@@ -157,7 +157,7 @@ export async function withTimeout<T>(
       setTimeout(() => {
         reject(new Error(errorMessage || `Operación excedió el timeout de ${timeoutMs}ms`));
       }, timeoutMs);
-    })
+    }),
   ]);
 }
 
@@ -192,4 +192,3 @@ export function isNetworkError(error: any): boolean {
   }
   return false;
 }
-

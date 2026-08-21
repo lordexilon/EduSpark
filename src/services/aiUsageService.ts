@@ -64,20 +64,20 @@ export interface MonthlyUsageStats {
 const GEMINI_PRICING = {
   'gemini-1.5-flash': {
     input: 0.075,
-    output: 0.30
+    output: 0.3,
   },
   'gemini-1.5-pro': {
     input: 1.25,
-    output: 5.00
+    output: 5.0,
   },
   'gemini-2.5-flash': {
     input: 0.075,
-    output: 0.30
+    output: 0.3,
   },
   'gemini-2.5-pro': {
     input: 1.25,
-    output: 5.00
-  }
+    output: 5.0,
+  },
 };
 
 export const aiUsageService = {
@@ -97,7 +97,9 @@ export const aiUsageService = {
     metadata?: Record<string, any>;
   }): Promise<AIUsageRecord | null> {
     try {
-      const pricing = GEMINI_PRICING[data.model as keyof typeof GEMINI_PRICING] || GEMINI_PRICING['gemini-2.5-flash'];
+      const pricing =
+        GEMINI_PRICING[data.model as keyof typeof GEMINI_PRICING] ||
+        GEMINI_PRICING['gemini-2.5-flash'];
 
       const inputCost = (data.inputTokens / 1000000) * pricing.input;
       const outputCost = (data.outputTokens / 1000000) * pricing.output;
@@ -117,7 +119,7 @@ export const aiUsageService = {
         output_cost: outputCost,
         total_cost: totalCost,
         request_id: data.requestId || null,
-        metadata: data.metadata || {}
+        metadata: data.metadata || {},
       };
 
       const { data: inserted, error } = await supabase
@@ -143,9 +145,7 @@ export const aiUsageService = {
    */
   async getUserUsageStats(startDate?: Date, endDate?: Date): Promise<UserUsageStats[]> {
     try {
-      let query = supabase
-        .from('ai_usage_tracking')
-        .select(`
+      let query = supabase.from('ai_usage_tracking').select(`
           user_id,
           input_tokens,
           output_tokens,
@@ -182,7 +182,7 @@ export const aiUsageService = {
             total_tokens: 0,
             total_input_cost: 0,
             total_output_cost: 0,
-            total_cost: 0
+            total_cost: 0,
           });
         }
 
@@ -269,7 +269,7 @@ export const aiUsageService = {
             total_tokens: 0,
             total_input_cost: 0,
             total_output_cost: 0,
-            total_cost: 0
+            total_cost: 0,
           });
         }
 
@@ -283,8 +283,8 @@ export const aiUsageService = {
         stats.total_cost += parseFloat(record.total_cost || 0);
       });
 
-      return Array.from(dateStatsMap.values()).sort((a, b) =>
-        new Date(b.usage_date).getTime() - new Date(a.usage_date).getTime()
+      return Array.from(dateStatsMap.values()).sort(
+        (a, b) => new Date(b.usage_date).getTime() - new Date(a.usage_date).getTime()
       );
     } catch (error) {
       console.error('Error obteniendo estadísticas diarias:', error);
@@ -328,7 +328,7 @@ export const aiUsageService = {
             total_tokens: 0,
             total_input_cost: 0,
             total_output_cost: 0,
-            total_cost: 0
+            total_cost: 0,
           });
         }
 
@@ -342,8 +342,8 @@ export const aiUsageService = {
         stats.total_cost += parseFloat(record.total_cost || 0);
       });
 
-      return Array.from(monthStatsMap.values()).sort((a, b) =>
-        new Date(b.usage_month).getTime() - new Date(a.usage_month).getTime()
+      return Array.from(monthStatsMap.values()).sort(
+        (a, b) => new Date(b.usage_month).getTime() - new Date(a.usage_month).getTime()
       );
     } catch (error) {
       console.error('Error obteniendo estadísticas mensuales:', error);
@@ -367,7 +367,9 @@ export const aiUsageService = {
     try {
       const { data, error } = await supabase
         .from('ai_usage_tracking')
-        .select('input_tokens, output_tokens, total_tokens, input_cost, output_cost, total_cost, user_id');
+        .select(
+          'input_tokens, output_tokens, total_tokens, input_cost, output_cost, total_cost, user_id'
+        );
 
       if (error) throw error;
 
@@ -379,7 +381,7 @@ export const aiUsageService = {
         totalInputCost: 0,
         totalOutputCost: 0,
         totalCost: 0,
-        uniqueUsers: new Set<string>()
+        uniqueUsers: new Set<string>(),
       };
 
       data?.forEach((record: any) => {
@@ -395,7 +397,7 @@ export const aiUsageService = {
 
       return {
         ...totals,
-        uniqueUsers: totals.uniqueUsers.size
+        uniqueUsers: totals.uniqueUsers.size,
       };
     } catch (error) {
       console.error('Error obteniendo totales:', error);
@@ -407,9 +409,8 @@ export const aiUsageService = {
         totalInputCost: 0,
         totalOutputCost: 0,
         totalCost: 0,
-        uniqueUsers: 0
+        uniqueUsers: 0,
       };
     }
-  }
+  },
 };
-

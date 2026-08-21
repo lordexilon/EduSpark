@@ -6,7 +6,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserInstitution } from '@/hooks/useUserInstitution';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { IconUserGroup, IconBookOpen, IconCalendar, IconChartBar, IconAlertCircle } from '@/components/Common/Icons';
+import {
+  IconUserGroup,
+  IconBookOpen,
+  IconCalendar,
+  IconChartBar,
+  IconAlertCircle,
+} from '@/components/Common/Icons';
 
 interface Student {
   id: string;
@@ -46,13 +52,15 @@ const SupervisorDashboard: React.FC = () => {
   const { user } = useAuth();
   const { institution, loading: institutionLoading } = useUserInstitution();
   const navigate = useNavigate();
-  
+
   const [students, setStudents] = useState<Student[]>([]);
   const [careers, setCareers] = useState<Career[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'students' | 'careers' | 'subjects' | 'schedules'>('students');
+  const [activeTab, setActiveTab] = useState<'students' | 'careers' | 'subjects' | 'schedules'>(
+    'students'
+  );
 
   // Verificar que el usuario es supervisor y tiene institución
   useEffect(() => {
@@ -98,8 +106,10 @@ const SupervisorDashboard: React.FC = () => {
 
       // Cargar estudiantes de la institución del supervisor
       // Primero obtener los IDs de usuarios de la institución
-      console.log(`🔍 SupervisorDashboard: Buscando usuarios de la institución ${institution.name} (ID: ${institution.id})`);
-      
+      console.log(
+        `🔍 SupervisorDashboard: Buscando usuarios de la institución ${institution.name} (ID: ${institution.id})`
+      );
+
       const { data: userInstitutions, error: uiError } = await supabase
         .from('user_institutions')
         .select('user_id')
@@ -111,12 +121,16 @@ const SupervisorDashboard: React.FC = () => {
         return;
       }
 
-      console.log(`📊 SupervisorDashboard: Encontrados ${userInstitutions?.length || 0} usuarios en la institución ${institution.id}`);
-      
+      console.log(
+        `📊 SupervisorDashboard: Encontrados ${userInstitutions?.length || 0} usuarios en la institución ${institution.id}`
+      );
+
       const userIds = (userInstitutions || []).map((ui: any) => ui.user_id);
 
       if (userIds.length === 0) {
-        console.warn(`⚠️ SupervisorDashboard: No hay usuarios en la institución ${institution.name} (ID: ${institution.id})`);
+        console.warn(
+          `⚠️ SupervisorDashboard: No hay usuarios en la institución ${institution.name} (ID: ${institution.id})`
+        );
         setStudents([]);
         setLoading(false);
         return;
@@ -125,19 +139,23 @@ const SupervisorDashboard: React.FC = () => {
       console.log(`👥 SupervisorDashboard: IDs de usuarios encontrados:`, userIds);
 
       // Luego obtener los estudiantes de esos usuarios
-      console.log(`🔍 SupervisorDashboard: Buscando estudiantes con role_id=${studentRole.id} en ${userIds.length} usuarios`);
+      console.log(
+        `🔍 SupervisorDashboard: Buscando estudiantes con role_id=${studentRole.id} en ${userIds.length} usuarios`
+      );
       console.log(`👥 SupervisorDashboard: IDs de usuarios a buscar:`, userIds);
-      
+
       const { data: studentsData, error: studentsError } = await supabase
         .from('users')
-        .select(`
+        .select(
+          `
           id,
           first_name,
           last_name,
           email,
           created_at,
           role_id
-        `)
+        `
+        )
         .eq('role_id', studentRole.id)
         .in('id', userIds)
         .order('created_at', { ascending: false });
@@ -145,7 +163,7 @@ const SupervisorDashboard: React.FC = () => {
       console.log(`📊 SupervisorDashboard: Resultado de consulta de estudiantes:`, {
         error: studentsError,
         count: studentsData?.length || 0,
-        students: studentsData?.map((s: any) => ({ id: s.id, email: s.email, role_id: s.role_id }))
+        students: studentsData?.map((s: any) => ({ id: s.id, email: s.email, role_id: s.role_id })),
       });
 
       if (studentsError) {
@@ -157,17 +175,21 @@ const SupervisorDashboard: React.FC = () => {
           first_name: student.first_name,
           last_name: student.last_name,
           email: student.email,
-          enrollment_date: student.created_at
+          enrollment_date: student.created_at,
         }));
-        console.log(`✅ SupervisorDashboard: Cargados ${cleanedStudents.length} estudiantes de la institución ${institution.name} (ID: ${institution.id})`);
+        console.log(
+          `✅ SupervisorDashboard: Cargados ${cleanedStudents.length} estudiantes de la institución ${institution.name} (ID: ${institution.id})`
+        );
         setStudents(cleanedStudents);
       } else {
         setStudents([]);
       }
 
       // Cargar carreras de la institución directamente por institution_id
-      console.log(`🔍 SupervisorDashboard: Buscando carreras activas de la institución ${institution.id}`);
-      
+      console.log(
+        `🔍 SupervisorDashboard: Buscando carreras activas de la institución ${institution.id}`
+      );
+
       const { data: careersData, error: careersError } = await supabase
         .from('careers')
         .select('*')
@@ -178,7 +200,9 @@ const SupervisorDashboard: React.FC = () => {
       if (careersError) {
         console.error('❌ Error obteniendo carreras:', careersError);
       } else {
-        console.log(`📚 SupervisorDashboard: Encontradas ${careersData?.length || 0} carreras activas de la institución`);
+        console.log(
+          `📚 SupervisorDashboard: Encontradas ${careersData?.length || 0} carreras activas de la institución`
+        );
       }
 
       if (careersData && careersData.length > 0) {
@@ -198,20 +222,27 @@ const SupervisorDashboard: React.FC = () => {
                 .in('student_id', userIds);
 
               if (countError) {
-                console.error(`❌ Error contando estudiantes para carrera ${career.id}:`, countError);
+                console.error(
+                  `❌ Error contando estudiantes para carrera ${career.id}:`,
+                  countError
+                );
               }
 
-              console.log(`📊 Carrera ${career.name} (ID: ${career.id}): ${count || 0} estudiantes inscritos`);
+              console.log(
+                `📊 Carrera ${career.name} (ID: ${career.id}): ${count || 0} estudiantes inscritos`
+              );
 
               return {
                 id: career.id,
                 name: career.name,
                 description: career.description,
-                total_students: count || 0
+                total_students: count || 0,
               };
             })
           );
-          console.log(`✅ SupervisorDashboard: Cargadas ${careersWithCounts.length} carreras de la institución ${institution.name}`);
+          console.log(
+            `✅ SupervisorDashboard: Cargadas ${careersWithCounts.length} carreras de la institución ${institution.name}`
+          );
           setCareers(careersWithCounts);
 
           // Cargar materias de las carreras de la institución
@@ -220,7 +251,7 @@ const SupervisorDashboard: React.FC = () => {
             .from('subjects')
             .select('*')
             .in('career_id', uniqueCareerIds);
-          
+
           // Si subjects tiene institution_id, filtrar también por eso
           const { data: subjectsData, error: subjectsError } = await subjectsQuery
             .order('career_id', { ascending: true })
@@ -232,16 +263,20 @@ const SupervisorDashboard: React.FC = () => {
               name: s.name,
               code: s.code,
               career_id: s.career_id,
-              semester: s.semester
+              semester: s.semester,
             }));
-            console.log(`✅ SupervisorDashboard: Cargadas ${cleanedSubjects.length} materias de la institución ${institution.name}`);
+            console.log(
+              `✅ SupervisorDashboard: Cargadas ${cleanedSubjects.length} materias de la institución ${institution.name}`
+            );
             setSubjects(cleanedSubjects);
 
             // Cargar cronogramas (horarios de cursos) de la institución
-            const subjectIds = cleanedSubjects.map(s => s.id);
-            console.log(`🔍 SupervisorDashboard: Buscando cursos activos para ${subjectIds.length} materias de la institución ${institution.id}`);
+            const subjectIds = cleanedSubjects.map((s) => s.id);
+            console.log(
+              `🔍 SupervisorDashboard: Buscando cursos activos para ${subjectIds.length} materias de la institución ${institution.id}`
+            );
             console.log(`📚 IDs de materias:`, subjectIds);
-            
+
             // Buscar cursos que estén vinculados a las materias de la institución
             // Buscar todos los cursos activos de estas materias (con o sin institution_id)
             const { data: coursesData, error: coursesError } = await supabase
@@ -249,82 +284,104 @@ const SupervisorDashboard: React.FC = () => {
               .select('id, title, schedule, subject_id, teacher_id, institution_id')
               .in('subject_id', subjectIds)
               .eq('status', 'active');
-            
+
             // Filtrar cursos que pertenezcan a la institución o que no tengan institution_id asignado
-            const filteredCourses = coursesData?.filter((c: any) => 
-              !c.institution_id || c.institution_id === institution.id
-            ) || [];
-            
-            console.log(`📖 SupervisorDashboard: ${filteredCourses.length} cursos después de filtrar por institución (de ${coursesData?.length || 0} totales)`);
+            const filteredCourses =
+              coursesData?.filter(
+                (c: any) => !c.institution_id || c.institution_id === institution.id
+              ) || [];
+
+            console.log(
+              `📖 SupervisorDashboard: ${filteredCourses.length} cursos después de filtrar por institución (de ${coursesData?.length || 0} totales)`
+            );
 
             if (coursesError) {
               console.error('❌ Error obteniendo cursos:', coursesError);
             } else {
               if (filteredCourses.length > 0) {
-                console.log('📖 Detalles de cursos:', filteredCourses.map((c: any) => ({
-                  id: c.id,
-                  title: c.title,
-                  subject_id: c.subject_id,
-                  institution_id: c.institution_id,
-                  has_schedule: !!c.schedule,
-                  schedule_length: Array.isArray(c.schedule) ? c.schedule.length : 0
-                })));
+                console.log(
+                  '📖 Detalles de cursos:',
+                  filteredCourses.map((c: any) => ({
+                    id: c.id,
+                    title: c.title,
+                    subject_id: c.subject_id,
+                    institution_id: c.institution_id,
+                    has_schedule: !!c.schedule,
+                    schedule_length: Array.isArray(c.schedule) ? c.schedule.length : 0,
+                  }))
+                );
               }
             }
 
             if (!coursesError && filteredCourses.length > 0) {
               // Obtener nombres de docentes
-              const teacherIds = [...new Set(coursesData.map((c: any) => c.teacher_id).filter(Boolean))];
+              const teacherIds = [
+                ...new Set(coursesData.map((c: any) => c.teacher_id).filter(Boolean)),
+              ];
               const { data: teachersData } = await supabase
                 .from('users')
                 .select('id, first_name, last_name')
                 .in('id', teacherIds);
 
-              const teachersMap = new Map((teachersData || []).map((t: any) => [t.id, `${t.first_name} ${t.last_name}`]));
+              const teachersMap = new Map(
+                (teachersData || []).map((t: any) => [t.id, `${t.first_name} ${t.last_name}`])
+              );
 
               // Procesar cronogramas desde el campo schedule (JSONB)
               const schedulesList: Schedule[] = [];
               filteredCourses.forEach((course: any) => {
-                if (course.schedule && Array.isArray(course.schedule) && course.schedule.length > 0) {
+                if (
+                  course.schedule &&
+                  Array.isArray(course.schedule) &&
+                  course.schedule.length > 0
+                ) {
                   course.schedule.forEach((scheduleItem: any, index: number) => {
                     schedulesList.push({
                       id: schedulesList.length + 1,
-                      subject_name: cleanedSubjects.find(s => s.id === course.subject_id)?.name || course.title,
+                      subject_name:
+                        cleanedSubjects.find((s) => s.id === course.subject_id)?.name ||
+                        course.title,
                       teacher_name: teachersMap.get(course.teacher_id) || 'Docente',
                       day_of_week: scheduleItem.day || scheduleItem.day_of_week || 'N/A',
                       start_time: scheduleItem.start_time || scheduleItem.start || 'N/A',
                       end_time: scheduleItem.end_time || scheduleItem.end || 'N/A',
-                      classroom: scheduleItem.classroom || scheduleItem.room || undefined
+                      classroom: scheduleItem.classroom || scheduleItem.room || undefined,
                     });
                   });
                 } else {
                   // Si el curso no tiene schedule pero está activo, crear un cronograma básico
                   schedulesList.push({
                     id: schedulesList.length + 1,
-                    subject_name: cleanedSubjects.find(s => s.id === course.subject_id)?.name || course.title,
+                    subject_name:
+                      cleanedSubjects.find((s) => s.id === course.subject_id)?.name || course.title,
                     teacher_name: teachersMap.get(course.teacher_id) || 'Docente',
                     day_of_week: 'Sin horario definido',
                     start_time: 'N/A',
                     end_time: 'N/A',
-                    classroom: undefined
+                    classroom: undefined,
                   });
                 }
               });
-              console.log(`✅ SupervisorDashboard: Cargados ${schedulesList.length} cronogramas de la institución ${institution.name}`);
+              console.log(
+                `✅ SupervisorDashboard: Cargados ${schedulesList.length} cronogramas de la institución ${institution.name}`
+              );
               setSchedules(schedulesList);
             } else if (!coursesError && (!coursesData || coursesData.length === 0)) {
-              console.log(`ℹ️ SupervisorDashboard: No hay cursos activos para las materias de la institución ${institution.name}`);
+              console.log(
+                `ℹ️ SupervisorDashboard: No hay cursos activos para las materias de la institución ${institution.name}`
+              );
               setSchedules([]);
             }
           }
         }
       } else {
-        console.log(`ℹ️ SupervisorDashboard: No hay carreras con estudiantes de la institución ${institution.name}`);
+        console.log(
+          `ℹ️ SupervisorDashboard: No hay carreras con estudiantes de la institución ${institution.name}`
+        );
         setCareers([]);
         setSubjects([]);
         setSchedules([]);
       }
-
     } catch (error) {
       console.error('Error cargando datos:', error);
     } finally {
@@ -353,7 +410,8 @@ const SupervisorDashboard: React.FC = () => {
             <div>
               <h3 className="text-lg font-semibold text-red-800 mb-2">Institución no asignada</h3>
               <p className="text-red-700">
-                No tienes una institución asignada. Por favor, contacta al administrador para que te asigne a una institución.
+                No tienes una institución asignada. Por favor, contacta al administrador para que te
+                asigne a una institución.
               </p>
             </div>
           </div>
@@ -482,9 +540,15 @@ const SupervisorDashboard: React.FC = () => {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha Registro</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Nombre
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Email
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Fecha Registro
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -495,10 +559,9 @@ const SupervisorDashboard: React.FC = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">{student.email}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {student.enrollment_date 
+                            {student.enrollment_date
                               ? new Date(student.enrollment_date).toLocaleDateString('es-ES')
-                              : '-'
-                            }
+                              : '-'}
                           </td>
                         </tr>
                       ))}
@@ -513,18 +576,27 @@ const SupervisorDashboard: React.FC = () => {
             <div>
               <h3 className="text-lg font-semibold mb-4">Carreras Disponibles</h3>
               {careers.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No hay carreras activas en esta institución</p>
+                <p className="text-gray-500 text-center py-8">
+                  No hay carreras activas en esta institución
+                </p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {careers.map((career) => (
-                    <div key={career.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div
+                      key={career.id}
+                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                    >
                       <h4 className="font-semibold text-gray-900 mb-2">{career.name}</h4>
                       {career.description && (
-                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{career.description}</p>
+                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                          {career.description}
+                        </p>
                       )}
                       <div className="flex items-center text-sm text-gray-500">
                         <IconUserGroup className="w-4 h-4 mr-2" />
-                        <span>{career.total_students} estudiante{career.total_students !== 1 ? 's' : ''}</span>
+                        <span>
+                          {career.total_students} estudiante{career.total_students !== 1 ? 's' : ''}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -537,13 +609,15 @@ const SupervisorDashboard: React.FC = () => {
             <div>
               <h3 className="text-lg font-semibold mb-4">Materias por Carrera</h3>
               {subjects.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No hay materias en las carreras de esta institución</p>
+                <p className="text-gray-500 text-center py-8">
+                  No hay materias en las carreras de esta institución
+                </p>
               ) : (
                 <div className="space-y-4">
                   {careers.map((career) => {
-                    const careerSubjects = subjects.filter(s => s.career_id === career.id);
+                    const careerSubjects = subjects.filter((s) => s.career_id === career.id);
                     if (careerSubjects.length === 0) return null;
-                    
+
                     return (
                       <div key={career.id} className="border border-gray-200 rounded-lg p-4">
                         <h4 className="font-semibold text-gray-900 mb-3">{career.name}</h4>
@@ -559,7 +633,9 @@ const SupervisorDashboard: React.FC = () => {
                                 )}
                               </div>
                               {subject.semester && (
-                                <p className="text-xs text-gray-600">Semestre: {subject.semester}</p>
+                                <p className="text-xs text-gray-600">
+                                  Semestre: {subject.semester}
+                                </p>
                               )}
                             </div>
                           ))}
@@ -576,17 +652,29 @@ const SupervisorDashboard: React.FC = () => {
             <div>
               <h3 className="text-lg font-semibold mb-4">Cronogramas y Horarios</h3>
               {schedules.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No hay cronogramas definidos para los cursos activos</p>
+                <p className="text-gray-500 text-center py-8">
+                  No hay cronogramas definidos para los cursos activos
+                </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Materia</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Docente</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Día</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Horario</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aula</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Materia
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Docente
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Día
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Horario
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Aula
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -602,10 +690,9 @@ const SupervisorDashboard: React.FC = () => {
                             {schedule.day_of_week}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                            {schedule.start_time !== 'N/A' && schedule.end_time !== 'N/A' 
+                            {schedule.start_time !== 'N/A' && schedule.end_time !== 'N/A'
                               ? `${schedule.start_time} - ${schedule.end_time}`
-                              : schedule.start_time
-                            }
+                              : schedule.start_time}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-gray-600">
                             {schedule.classroom || '-'}
@@ -625,4 +712,3 @@ const SupervisorDashboard: React.FC = () => {
 };
 
 export default SupervisorDashboard;
-

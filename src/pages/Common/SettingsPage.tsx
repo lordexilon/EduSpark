@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import Card from '@/components/Common/Card';
-import { IconCog, IconPalette, IconCheck, IconSave, IconBuilding, IconMail, IconPhone, IconMapPin, IconGlobe } from '@/components/Common/Icons';
+import {
+  IconCog,
+  IconPalette,
+  IconCheck,
+  IconSave,
+  IconBuilding,
+  IconMail,
+  IconPhone,
+  IconMapPin,
+  IconGlobe,
+} from '@/components/Common/Icons';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, Theme } from '@/context/ThemeContext';
 import { IconCode } from '@/components/Common/Icons';
@@ -9,11 +19,25 @@ import { institutionService } from '@/services/institutionService';
 
 const SettingsPage: React.FC = () => {
   const { user } = useAuth();
-  const { theme, setTheme, primaryColor, setPrimaryColor, secondaryColor, setSecondaryColor, resetPrimaryColor } = useTheme();
+  const {
+    theme,
+    setTheme,
+    primaryColor,
+    setPrimaryColor,
+    secondaryColor,
+    setSecondaryColor,
+    resetPrimaryColor,
+  } = useTheme();
   const { institution, loading: loadingInst, refreshInstitution } = useUserInstitution();
 
-  const isAdmin = user?.role?.name === 'admin' || user?.role?.name === 'coordinator' || user?.role?.name === 'admin-campus' || user?.role?.name === 'supervisor';
-  const [activeTab, setActiveTab] = useState<'general' | 'appearance'>(isAdmin ? 'general' : 'appearance');
+  const isAdmin =
+    user?.role?.name === 'admin' ||
+    user?.role?.name === 'coordinator' ||
+    user?.role?.name === 'admin-campus' ||
+    user?.role?.name === 'supervisor';
+  const [activeTab, setActiveTab] = useState<'general' | 'appearance'>(
+    isAdmin ? 'general' : 'appearance'
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -24,7 +48,6 @@ const SettingsPage: React.FC = () => {
   const [website, setWebsite] = useState('');
   const [address, setAddress] = useState('');
   const [email, setEmail] = useState('');
-
 
   useEffect(() => {
     if (institution) {
@@ -49,7 +72,7 @@ const SettingsPage: React.FC = () => {
         description,
         website,
         address,
-        email
+        email,
       });
 
       await refreshInstitution();
@@ -69,7 +92,7 @@ const SettingsPage: React.FC = () => {
     { id: 'gray', name: 'Alto Contraste', color: 'bg-gray-100', border: 'border-gray-200' },
     { id: 'indigo', name: 'Moderno', color: 'bg-indigo-50', border: 'border-indigo-200' },
     { id: 'corporate', name: 'Corporativo', color: 'bg-slate-100', border: 'border-slate-200' },
-    { id: 'dark', name: '🌙 Dark Mode', color: 'bg-slate-900', border: 'border-slate-700' }
+    { id: 'dark', name: '🌙 Dark Mode', color: 'bg-slate-900', border: 'border-slate-700' },
   ];
 
   // Removing the aggressive early return that blocked non-admins completely
@@ -108,8 +131,9 @@ const SettingsPage: React.FC = () => {
       <div className="flex border-b border-border mb-6">
         {isAdmin && (
           <button
-            className={`px-6 py-3 font-medium text-sm transition-colors relative ${activeTab === 'general' ? 'text-primary' : 'text-text-light hover:text-text-dark'
-              }`}
+            className={`px-6 py-3 font-medium text-sm transition-colors relative ${
+              activeTab === 'general' ? 'text-primary' : 'text-text-light hover:text-text-dark'
+            }`}
             onClick={() => setActiveTab('general')}
           >
             Información General
@@ -119,8 +143,9 @@ const SettingsPage: React.FC = () => {
           </button>
         )}
         <button
-          className={`px-6 py-3 font-medium text-sm transition-colors relative ${activeTab === 'appearance' ? 'text-primary' : 'text-text-light hover:text-text-dark'
-            }`}
+          className={`px-6 py-3 font-medium text-sm transition-colors relative ${
+            activeTab === 'appearance' ? 'text-primary' : 'text-text-light hover:text-text-dark'
+          }`}
           onClick={() => setActiveTab('appearance')}
         >
           Apariencia
@@ -162,7 +187,9 @@ const SettingsPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-text-light mb-1">Descripción</label>
+                  <label className="block text-sm font-medium text-text-light mb-1">
+                    Descripción
+                  </label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
@@ -229,13 +256,20 @@ const SettingsPage: React.FC = () => {
                   <IconPalette className="w-5 h-5 text-text-light" />
                   Color de la Institución (Aplica a Botones, Tablas y Links)
                 </h3>
-                <p className="text-text-light opacity-70 mb-4 text-sm">Cambia el color principal (primary) usado en la interfaz de la plataforma en tu dispositivo.</p>
+                <p className="text-text-light opacity-70 mb-4 text-sm">
+                  Cambia el color principal (primary) usado en la interfaz de la plataforma en tu
+                  dispositivo.
+                </p>
 
                 <div className="flex flex-col sm:flex-row items-start gap-6 mb-4">
                   {/* Primer Picker: Primario */}
                   <div className="flex flex-col gap-1 w-full sm:w-auto">
-                    <label className="text-xs font-semibold text-text-light opacity-50 uppercase">Color Primario (Hex)</label>
-                    <p className="text-[10px] text-text-light opacity-40 mb-1">Botones principales y enlaces activos</p>
+                    <label className="text-xs font-semibold text-text-light opacity-50 uppercase">
+                      Color Primario (Hex)
+                    </label>
+                    <p className="text-[10px] text-text-light opacity-40 mb-1">
+                      Botones principales y enlaces activos
+                    </p>
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
@@ -254,8 +288,12 @@ const SettingsPage: React.FC = () => {
 
                   {/* Segundo Picker: Secundario */}
                   <div className="flex flex-col gap-1 w-full sm:w-auto">
-                    <label className="text-xs font-semibold text-text-light opacity-50 uppercase">Color Secundario (Hex)</label>
-                    <p className="text-[10px] text-text-light opacity-40 mb-1">Acentos menores y botones inactivos</p>
+                    <label className="text-xs font-semibold text-text-light opacity-50 uppercase">
+                      Color Secundario (Hex)
+                    </label>
+                    <p className="text-[10px] text-text-light opacity-40 mb-1">
+                      Acentos menores y botones inactivos
+                    </p>
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
@@ -296,12 +334,18 @@ const SettingsPage: React.FC = () => {
                       <button
                         className="text-white font-medium py-2 px-6 rounded transition-colors shadow-sm"
                         style={{ backgroundColor: 'var(--primary)', borderColor: 'var(--primary)' }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-hover)'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.backgroundColor = 'var(--primary-hover)')
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.backgroundColor = 'var(--primary)')
+                        }
                       >
                         Botón Primario
                       </button>
-                      <span className="text-[10px] text-text-light opacity-40 font-mono">var(--primary)</span>
+                      <span className="text-[10px] text-text-light opacity-40 font-mono">
+                        var(--primary)
+                      </span>
                     </div>
 
                     {/* Botón Secundario alimentado por var(--secondary) */}
@@ -309,12 +353,18 @@ const SettingsPage: React.FC = () => {
                       <button
                         className="text-white font-medium py-2 px-6 rounded transition-colors shadow-sm"
                         style={{ backgroundColor: 'var(--secondary)' }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--secondary-hover)'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--secondary)'}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.backgroundColor = 'var(--secondary-hover)')
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.backgroundColor = 'var(--secondary)')
+                        }
                       >
                         Botón Secundario
                       </button>
-                      <span className="text-[10px] text-text-light opacity-40 font-mono">var(--secondary)</span>
+                      <span className="text-[10px] text-text-light opacity-40 font-mono">
+                        var(--secondary)
+                      </span>
                     </div>
 
                     {/* Enlace alimentado por var(--primary) */}
@@ -322,8 +372,8 @@ const SettingsPage: React.FC = () => {
                       <span
                         className="font-semibold cursor-pointer border-b-2"
                         style={{ color: 'var(--primary)', borderColor: 'var(--primary)' }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-hover)'}
-                        onMouseLeave={(e) => e.currentTarget.style.color = 'var(--primary)'}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--primary-hover)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--primary)')}
                       >
                         Enlace Activo
                       </span>
@@ -338,23 +388,33 @@ const SettingsPage: React.FC = () => {
                 <IconPalette className="w-5 h-5 text-text-light" />
                 Tema del Fondo de la Interfaz
               </h3>
-              <p className="text-text-light opacity-70 mb-6 text-sm">Selecciona el esquema de colores para el fondo de la pantalla y paneles de la aplicación en tu sesión.</p>
+              <p className="text-text-light opacity-70 mb-6 text-sm">
+                Selecciona el esquema de colores para el fondo de la pantalla y paneles de la
+                aplicación en tu sesión.
+              </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {themes.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => setTheme(t.id)}
-                    className={`relative p-4 rounded-lg border-2 text-left transition-all ${theme === t.id
-                      ? `border-primary ring-2 ring-primary/20 ${t.color}`
-                      : `${t.id === 'dark' ? 'border-slate-600 bg-slate-800 hover:border-slate-500' : 'border-gray-200 hover:border-gray-300 bg-white'}`
-                      }`}
+                    className={`relative p-4 rounded-lg border-2 text-left transition-all ${
+                      theme === t.id
+                        ? `border-primary ring-2 ring-primary/20 ${t.color}`
+                        : `${t.id === 'dark' ? 'border-slate-600 bg-slate-800 hover:border-slate-500' : 'border-gray-200 hover:border-gray-300 bg-white'}`
+                    }`}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className={`font-semibold ${theme === t.id ? (t.id === 'dark' ? 'text-indigo-400' : 'text-primary') : (t.id === 'dark' ? 'text-gray-200' : 'text-gray-700')}`}>
+                      <span
+                        className={`font-semibold ${theme === t.id ? (t.id === 'dark' ? 'text-indigo-400' : 'text-primary') : t.id === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}
+                      >
                         {t.name}
                       </span>
-                      {theme === t.id && <IconCheck className={`w-5 h-5 ${t.id === 'dark' ? 'text-indigo-400' : 'text-primary'}`} />}
+                      {theme === t.id && (
+                        <IconCheck
+                          className={`w-5 h-5 ${t.id === 'dark' ? 'text-indigo-400' : 'text-primary'}`}
+                        />
+                      )}
                     </div>
                     <div className={`w-full h-12 rounded border ${t.border} ${t.color}`}></div>
                   </button>
@@ -371,20 +431,52 @@ const SettingsPage: React.FC = () => {
                 </h3>
                 <div className="text-sm text-gray-300 space-y-4 pt-2">
                   <p>
-                    Si deseas hardcodear o customizar 100% los valores por defecto del frontend para una implementación On-Premise o White-label a nivel de código de forma permanente, debes seguir estos pasos en el repositorio:
+                    Si deseas hardcodear o customizar 100% los valores por defecto del frontend para
+                    una implementación On-Premise o White-label a nivel de código de forma
+                    permanente, debes seguir estos pasos en el repositorio:
                   </p>
                   <div className="bg-slate-900 p-4 rounded border border-slate-700 shadow-inner">
-                    <h4 className="text-blue-400 font-bold mb-2 flex items-center gap-2">1. Definir Variables `src/index.css`</h4>
-                    <p className="mb-2">El bloque <code>:root</code> define las bases por defecto. Puedes editar permanentemente el color primario aquí:</p>
-                    <code className="text-pink-400 block bg-black p-3 rounded font-mono text-xs overflow-x-auto shadow-inner">:root &#123;<br />&nbsp;&nbsp;--primary: #tu_color_hex;<br />&nbsp;&nbsp;--primary-hover: #tu_color_mas_oscuro;<br />&#125;</code>
+                    <h4 className="text-blue-400 font-bold mb-2 flex items-center gap-2">
+                      1. Definir Variables `src/index.css`
+                    </h4>
+                    <p className="mb-2">
+                      El bloque <code>:root</code> define las bases por defecto. Puedes editar
+                      permanentemente el color primario aquí:
+                    </p>
+                    <code className="text-pink-400 block bg-black p-3 rounded font-mono text-xs overflow-x-auto shadow-inner">
+                      :root &#123;
+                      <br />
+                      &nbsp;&nbsp;--primary: #tu_color_hex;
+                      <br />
+                      &nbsp;&nbsp;--primary-hover: #tu_color_mas_oscuro;
+                      <br />
+                      &#125;
+                    </code>
                   </div>
                   <div className="bg-slate-900 p-4 rounded border border-slate-700 shadow-inner">
-                    <h4 className="text-blue-400 font-bold mb-2 flex items-center gap-2">2. Declaración `tailwind.config.cjs`</h4>
-                    <p className="mb-2">Aquí se definen las variantes de paleta. En <code>theme.extend.colors</code> puedes mapear las variables a utilidades Tailwind custom:</p>
-                    <code className="text-pink-400 block bg-black p-3 rounded font-mono text-xs overflow-x-auto shadow-inner">colors: &#123;<br />&nbsp;&nbsp;primary: 'var(--primary)',<br />&nbsp;&nbsp;/* Agrega un objeto de colores 50-900 para usar clases como bg-primary-500 */<br />&#125;</code>
+                    <h4 className="text-blue-400 font-bold mb-2 flex items-center gap-2">
+                      2. Declaración `tailwind.config.cjs`
+                    </h4>
+                    <p className="mb-2">
+                      Aquí se definen las variantes de paleta. En <code>theme.extend.colors</code>{' '}
+                      puedes mapear las variables a utilidades Tailwind custom:
+                    </p>
+                    <code className="text-pink-400 block bg-black p-3 rounded font-mono text-xs overflow-x-auto shadow-inner">
+                      colors: &#123;
+                      <br />
+                      &nbsp;&nbsp;primary: 'var(--primary)',
+                      <br />
+                      &nbsp;&nbsp;/* Agrega un objeto de colores 50-900 para usar clases como
+                      bg-primary-500 */
+                      <br />
+                      &#125;
+                    </code>
                   </div>
                   <div className="mt-4 flex items-start gap-2 text-gray-400 bg-slate-900/50 p-3 rounded">
-                    <span className="text-yellow-400 font-bold">⚠️ Nota:</span> Todo cambio estructural en `tailwind.config.cjs` requiere recompilar (reiniciar el terminal con `npm run dev` o hacer build `npm run build`) para que el motor JIT de Tailwind genere las nuevas clases CSS correspondientes.
+                    <span className="text-yellow-400 font-bold">⚠️ Nota:</span> Todo cambio
+                    estructural en `tailwind.config.cjs` requiere recompilar (reiniciar el terminal
+                    con `npm run dev` o hacer build `npm run build`) para que el motor JIT de
+                    Tailwind genere las nuevas clases CSS correspondientes.
                   </div>
                 </div>
               </Card>

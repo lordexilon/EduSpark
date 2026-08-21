@@ -77,7 +77,6 @@ const InstitutionLandingPage: React.FC = () => {
                   className="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg"
                   style={{
                     backgroundColor: config?.primary_color || '#2563eb',
-                    shadowColor: `${config?.primary_color}33`,
                   }}
                 >
                   <IconSparkles className="w-6 h-6 text-white" />

@@ -6,6 +6,7 @@
 import { synthesizeSpeech } from '@/services/geminiService';
 import { resolveGeminiApiKey } from '../utils/env';
 import type { VoiceConfig, VoiceAgentStatus, AudioCapabilities } from '../types/agents';
+import type { PedagogicalSettings } from '../types/pedagogical';
 
 // =====================================================
 // Clase VoiceAgent
@@ -56,14 +57,16 @@ export class VoiceAgent {
       const hasAudioContext = !!(window.AudioContext || window.webkitAudioContext);
 
       // Verificar Speech Recognition
-      const supportsSpeechRecognition = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+      const supportsSpeechRecognition = !!(
+        window.SpeechRecognition || window.webkitSpeechRecognition
+      );
 
       // Verificar micrófono
       let hasMicrophone = false;
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         hasMicrophone = true;
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       } catch (err) {
         hasMicrophone = false;
         console.warn('Microphone access denied or not available:', err);
@@ -73,7 +76,7 @@ export class VoiceAgent {
         hasMicrophone,
         hasSpeakers: hasAudioContext,
         hasAudioContext,
-        supportsSpeechRecognition
+        supportsSpeechRecognition,
       };
 
       if (supportsSpeechRecognition) {
@@ -85,7 +88,7 @@ export class VoiceAgent {
         hasMicrophone: false,
         hasSpeakers: false,
         hasAudioContext: false,
-        supportsSpeechRecognition: false
+        supportsSpeechRecognition: false,
       };
     }
   }
@@ -193,13 +196,23 @@ export class VoiceAgent {
       if (missing) {
         console.warn('GEMINI_API_KEY no configurada. Saltando síntesis de voz.');
         // Simular audio para continuar el flujo
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         return;
       }
 
       // Generar audio con Gemini usando voces expresivas
       // Mapear configuración de voz a estilos expresivos
-      const expressiveStyles: Array<'friendly' | 'professional' | 'energetic' | 'calm' | 'excited' | 'empathetic' | 'authoritative' | 'warm' | 'clear'> = [];
+      const expressiveStyles: Array<
+        | 'friendly'
+        | 'professional'
+        | 'energetic'
+        | 'calm'
+        | 'excited'
+        | 'empathetic'
+        | 'authoritative'
+        | 'warm'
+        | 'clear'
+      > = [];
 
       // Determinar estilos basados en la voz seleccionada
       switch (voiceConfig.voiceName) {
@@ -237,7 +250,9 @@ export class VoiceAgent {
 
       if (!audioContent) {
         // Si no hay audio (porque el modelo no lo soporta o está desactivado), simplemente retornar
-        console.warn('⚠️ VoiceAgent: No se pudo generar audio - síntesis desactivada o no disponible');
+        console.warn(
+          '⚠️ VoiceAgent: No se pudo generar audio - síntesis desactivada o no disponible'
+        );
         this.isSpeaking = false;
         this.isPaused = false;
         return;
@@ -247,7 +262,6 @@ export class VoiceAgent {
 
       // Reproducir audio
       await this.playAudio(audioContent, voiceConfig);
-
     } catch (error) {
       this.isSpeaking = false;
       this.isPaused = false;
@@ -335,12 +349,11 @@ export class VoiceAgent {
       this.audioSource = source;
 
       console.log('✅ VoiceAgent: Audio expresivo iniciado', {
-        duration: `${(buffer.duration).toFixed(2)}s`,
+        duration: `${buffer.duration.toFixed(2)}s`,
         sampleRate: buffer.sampleRate,
         channels: buffer.numberOfChannels,
         playbackRate: speed,
       });
-
     } catch (error) {
       console.error('❌ VoiceAgent: Error reproduciendo audio expresivo:', error);
       this.isSpeaking = false;
@@ -383,6 +396,33 @@ export class VoiceAgent {
   }
 
   /**
+   * Cambia la voz del agente
+   */
+  setVoice(voiceName: VoiceConfig['voiceName']): void {
+    this.updateVoiceConfig({ voiceName });
+  }
+
+  /**
+   * Cambia la velocidad de la voz, validando el rango permitido
+   */
+  setSpeed(speed: number): void {
+    const clamped = Math.max(0.5, Math.min(2.0, speed));
+    this.updateVoiceConfig({ speed: clamped });
+  }
+
+  /**
+   * Aplica la configuración de voz desde la configuración pedagógica
+   */
+  applyPedagogicalSettings(
+    settings: Pick<PedagogicalSettings, 'voiceName' | 'voiceSpeed' | 'tonePreference'>
+  ): void {
+    this.updateVoiceConfig({
+      voiceName: settings.voiceName,
+      speed: settings.voiceSpeed,
+    });
+  }
+
+  /**
    * Obtiene el estado actual del agente
    */
   getStatus(): VoiceAgentStatus {
@@ -390,7 +430,7 @@ export class VoiceAgent {
       isListening: this.isListening,
       isSpeaking: this.isSpeaking,
       isPaused: this.isPaused,
-      currentVoice: { ...this.currentVoice }
+      currentVoice: { ...this.currentVoice },
     };
   }
 
@@ -412,9 +452,9 @@ export class VoiceAgent {
    * Verifica si el agente está listo para usar
    */
   isReady(): boolean {
-    return this.capabilities !== null &&
-      this.capabilities.hasAudioContext &&
-      this.recognition !== null;
+    return (
+      this.capabilities !== null && this.capabilities.hasAudioContext && this.recognition !== null
+    );
   }
 
   /**
@@ -434,10 +474,7 @@ export class VoiceAgent {
    * Decodifica datos de audio para AudioContext
    * Gemini 2.5 Flash devuelve audio en formato PCM lineal (16-bit, mono, 24kHz)
    */
-  private async decodeAudioData(
-    data: Uint8Array,
-    ctx: AudioContext
-  ): Promise<AudioBuffer> {
+  private async decodeAudioData(data: Uint8Array, ctx: AudioContext): Promise<AudioBuffer> {
     try {
       // Gemini TTS devuelve audio PCM lineal de 16-bit
       // Formato: PCM 16-bit, mono, 24kHz (según documentación de Gemini)
@@ -474,7 +511,9 @@ export class VoiceAgent {
       return buffer;
     } catch (error) {
       console.error('❌ VoiceAgent: Error decodificando audio:', error);
-      throw new Error(`Error decodificando audio: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Error decodificando audio: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -493,4 +532,3 @@ export class VoiceAgent {
     this.recognition = null;
   }
 }
-

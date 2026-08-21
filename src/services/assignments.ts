@@ -51,7 +51,8 @@ export const assignmentService = {
   async getAssignmentsWithSubmissions(courseId: number): Promise<AssignmentWithSubmissions[]> {
     const { data, error } = await supabase
       .from('assignments')
-      .select(`
+      .select(
+        `
         *,
         assignment_submissions (
           id,
@@ -62,24 +63,25 @@ export const assignmentService = {
           grade,
           feedback
         )
-      `)
+      `
+      )
       .eq('course_id', courseId)
       .order('due_at', { ascending: true });
 
     if (error) throw error;
 
-    return (data || []).map(assignment => ({
+    return (data || []).map((assignment) => ({
       ...assignment,
       submissions: assignment.assignment_submissions || [],
       submission_count: assignment.assignment_submissions?.length || 0,
-      graded_count: assignment.assignment_submissions?.filter(s => s.grade !== null).length || 0
+      graded_count: assignment.assignment_submissions?.filter((s) => s.grade !== null).length || 0,
     }));
   },
 
   // Crear nueva tarea
   async createAssignment(assignment: Omit<Assignment, 'id' | 'created_at'>): Promise<Assignment> {
     console.log('🔵 assignmentService.createAssignment - Datos recibidos:', assignment);
-    
+
     try {
       const { data, error } = await supabase
         .from('assignments')
@@ -87,7 +89,10 @@ export const assignmentService = {
         .select()
         .single();
 
-      console.log('🔵 assignmentService.createAssignment - Respuesta de Supabase:', { data, error });
+      console.log('🔵 assignmentService.createAssignment - Respuesta de Supabase:', {
+        data,
+        error,
+      });
 
       if (error) {
         console.error('🔴 assignmentService.createAssignment - Error:', error);
@@ -122,21 +127,14 @@ export const assignmentService = {
 
   // Eliminar tarea
   async deleteAssignment(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('assignments')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('assignments').delete().eq('id', id);
 
     if (error) throw error;
   },
 
   // Obtener tarea por ID
   async getAssignment(id: string): Promise<Assignment | null> {
-    const { data, error } = await supabase
-      .from('assignments')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { data, error } = await supabase.from('assignments').select('*').eq('id', id).single();
 
     if (error) {
       if (error.code === 'PGRST116') return null;
@@ -148,10 +146,8 @@ export const assignmentService = {
   // Obtener tareas de todos los cursos de un estudiante (basado en sus inscripciones)
   async getStudentAssignments(studentId: string, courseId?: number): Promise<Assignment[]> {
     console.log('🔵 getStudentAssignments - Iniciando', { studentId, courseId });
-    
-    let query = supabase
-      .from('assignments')
-      .select('*');
+
+    let query = supabase.from('assignments').select('*');
 
     if (courseId) {
       // Si se especifica un curso, solo obtener assignments de ese curso
@@ -166,19 +162,25 @@ export const assignmentService = {
         .eq('student_id', studentId)
         .eq('status', 'active');
 
-      console.log('🔵 getStudentAssignments - Resultado de inscripciones:', { enrollments, enrollmentsError });
+      console.log('🔵 getStudentAssignments - Resultado de inscripciones:', {
+        enrollments,
+        enrollmentsError,
+      });
 
       if (enrollmentsError) {
-        console.error('🔴 getStudentAssignments - Error al obtener inscripciones:', enrollmentsError);
+        console.error(
+          '🔴 getStudentAssignments - Error al obtener inscripciones:',
+          enrollmentsError
+        );
         throw enrollmentsError;
       }
-      
+
       if (!enrollments || enrollments.length === 0) {
         console.warn('⚠️ getStudentAssignments - El estudiante no tiene inscripciones activas');
         return [];
       }
 
-      const courseIds = enrollments.map(e => e.course_id);
+      const courseIds = enrollments.map((e) => e.course_id);
       console.log('🔵 getStudentAssignments - IDs de cursos inscritos:', courseIds);
       query = query.in('course_id', courseIds);
     }
@@ -186,19 +188,19 @@ export const assignmentService = {
     console.log('🔵 getStudentAssignments - Ejecutando consulta de assignments...');
     const { data, error } = await query.order('due_at', { ascending: true });
 
-    console.log('🔵 getStudentAssignments - Resultado de assignments:', { 
-      count: data?.length || 0, 
+    console.log('🔵 getStudentAssignments - Resultado de assignments:', {
+      count: data?.length || 0,
       error,
-      assignments: data?.map(a => ({ id: a.id, title: a.title, course_id: a.course_id }))
+      assignments: data?.map((a) => ({ id: a.id, title: a.title, course_id: a.course_id })),
     });
 
     if (error) {
       console.error('🔴 getStudentAssignments - Error al obtener assignments:', error);
       throw error;
     }
-    
+
     return data || [];
-  }
+  },
 };
 
 // Servicios de Entregas
@@ -207,7 +209,8 @@ export const submissionService = {
   async getAssignmentSubmissions(assignmentId: string): Promise<AssignmentSubmission[]> {
     const { data, error } = await supabase
       .from('assignment_submissions')
-      .select(`
+      .select(
+        `
         *,
         users!assignment_submissions_student_id_fkey (
           id,
@@ -215,7 +218,8 @@ export const submissionService = {
           last_name,
           email
         )
-      `)
+      `
+      )
       .eq('assignment_id', assignmentId)
       .order('submitted_at', { ascending: false });
 
@@ -224,7 +228,10 @@ export const submissionService = {
   },
 
   // Obtener entrega por estudiante y tarea
-  async getStudentSubmission(assignmentId: string, studentId: string): Promise<AssignmentSubmission | null> {
+  async getStudentSubmission(
+    assignmentId: string,
+    studentId: string
+  ): Promise<AssignmentSubmission | null> {
     const { data, error } = await supabase
       .from('assignment_submissions')
       .select('*')
@@ -242,13 +249,17 @@ export const submissionService = {
   },
 
   // Crear nueva entrega
-  async createSubmission(submission: Omit<AssignmentSubmission, 'id' | 'submitted_at'>): Promise<AssignmentSubmission> {
+  async createSubmission(
+    submission: Omit<AssignmentSubmission, 'id' | 'submitted_at'>
+  ): Promise<AssignmentSubmission> {
     const { data, error } = await supabase
       .from('assignment_submissions')
-      .insert([{
-        ...submission,
-        submitted_at: new Date().toISOString()
-      }])
+      .insert([
+        {
+          ...submission,
+          submitted_at: new Date().toISOString(),
+        },
+      ])
       .select()
       .single();
 
@@ -257,7 +268,10 @@ export const submissionService = {
   },
 
   // Actualizar entrega
-  async updateSubmission(id: string, updates: Partial<AssignmentSubmission>): Promise<AssignmentSubmission> {
+  async updateSubmission(
+    id: string,
+    updates: Partial<AssignmentSubmission>
+  ): Promise<AssignmentSubmission> {
     const { data, error } = await supabase
       .from('assignment_submissions')
       .update(updates)
@@ -270,7 +284,11 @@ export const submissionService = {
   },
 
   // Calificar entrega
-  async gradeSubmission(id: string, grade: number, feedback?: string): Promise<AssignmentSubmission> {
+  async gradeSubmission(
+    id: string,
+    grade: number,
+    feedback?: string
+  ): Promise<AssignmentSubmission> {
     const { data, error } = await supabase
       .from('assignment_submissions')
       .update({ grade, feedback })
@@ -284,13 +302,10 @@ export const submissionService = {
 
   // Eliminar entrega
   async deleteSubmission(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('assignment_submissions')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('assignment_submissions').delete().eq('id', id);
 
     if (error) throw error;
-  }
+  },
 };
 
 // Servicios de Estadísticas
@@ -309,14 +324,14 @@ export const assignmentStatsService = {
 
     if (assignmentsError) throw assignmentsError;
 
-    const assignmentIds = assignments?.map(a => a.id) || [];
+    const assignmentIds = assignments?.map((a) => a.id) || [];
 
     if (assignmentIds.length === 0) {
       return {
         total_assignments: 0,
         total_submissions: 0,
         average_grade: 0,
-        pending_grades: 0
+        pending_grades: 0,
       };
     }
 
@@ -327,15 +342,15 @@ export const assignmentStatsService = {
 
     if (submissionsError) throw submissionsError;
 
-    const grades = submissions?.map(s => s.grade).filter(g => g !== null) || [];
+    const grades = submissions?.map((s) => s.grade).filter((g) => g !== null) || [];
     const averageGrade = grades.length > 0 ? grades.reduce((a, b) => a + b, 0) / grades.length : 0;
-    const pendingGrades = submissions?.filter(s => s.grade === null).length || 0;
+    const pendingGrades = submissions?.filter((s) => s.grade === null).length || 0;
 
     return {
       total_assignments: assignmentIds.length,
       total_submissions: submissions?.length || 0,
       average_grade: Math.round(averageGrade * 100) / 100,
-      pending_grades: pendingGrades
+      pending_grades: pendingGrades,
     };
-  }
+  },
 };

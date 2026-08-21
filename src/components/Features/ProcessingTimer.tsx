@@ -13,13 +13,13 @@ interface ProcessingTimerProps {
   jobStatus?: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
 }
 
-export const ProcessingTimer: React.FC<ProcessingTimerProps> = ({ 
-  startTime, 
+export const ProcessingTimer: React.FC<ProcessingTimerProps> = ({
+  startTime,
   isProcessing,
   estimatedMinutes,
   chunksProcessed,
   chunksTotal,
-  jobStatus
+  jobStatus,
 }) => {
   const [elapsed, setElapsed] = useState<string>('00:00');
   const [estimatedRemaining, setEstimatedRemaining] = useState<string | null>(null);
@@ -30,7 +30,7 @@ export const ProcessingTimer: React.FC<ProcessingTimerProps> = ({
     if (estimatedMinutes) {
       const hours = Math.floor(estimatedMinutes / 60);
       const mins = Math.floor(estimatedMinutes % 60);
-      
+
       if (hours > 0) {
         setEstimatedTotal(`${hours}h ${mins}m`);
       } else {
@@ -39,7 +39,7 @@ export const ProcessingTimer: React.FC<ProcessingTimerProps> = ({
     } else {
       setEstimatedTotal(null);
     }
-    
+
     if (!startTime || !isProcessing) {
       setElapsed('00:00');
       setEstimatedRemaining(null);
@@ -62,60 +62,65 @@ export const ProcessingTimer: React.FC<ProcessingTimerProps> = ({
       } else {
         start = new Date(startTime as any);
       }
-      
+
       // Validar que la fecha sea válida
       if (isNaN(start.getTime())) {
         console.warn('ProcessingTimer: Fecha inválida', startTime);
         return;
       }
-      
+
       const now = new Date();
       const diff = now.getTime() - start.getTime();
-      
+
       const minutes = Math.floor(diff / 60000);
       const seconds = Math.floor((diff % 60000) / 1000);
-      
+
       setElapsed(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
-      
+
       // Mostrar tiempo pronosticado total siempre (si está disponible)
       if (estimatedMinutes) {
         const hours = Math.floor(estimatedMinutes / 60);
         const mins = Math.floor(estimatedMinutes % 60);
-        
+
         if (hours > 0) {
           setEstimatedTotal(`${hours}h ${mins}m`);
         } else {
           setEstimatedTotal(`${mins}m`);
         }
       }
-      
+
       // Si el job está en "pending", no calcular tiempo restante (aún no ha comenzado a procesarse)
       if (jobStatus === 'pending') {
         // Si está en cola, mostrar el tiempo estimado total pero no el restante
         setEstimatedRemaining(null);
-      } else if (chunksProcessed !== undefined && chunksTotal !== undefined && chunksTotal > 0 && chunksProcessed > 0) {
+      } else if (
+        chunksProcessed !== undefined &&
+        chunksTotal !== undefined &&
+        chunksTotal > 0 &&
+        chunksProcessed > 0
+      ) {
         // Calcular tiempo estimado restante basado en progreso de chunks
         const progress = chunksProcessed / chunksTotal;
         const elapsedMinutes = diff / 60000;
-        
+
         // Solo calcular si hay progreso real (más de 1 chunk procesado y progreso > 0.01)
         if (progress > 0.01 && chunksProcessed > 1) {
           // Calcular velocidad promedio (chunks por minuto)
           const chunksPerMinute = chunksProcessed / elapsedMinutes;
-          
+
           // Solo si la velocidad es razonable (> 0.1 chunks/minuto)
           if (chunksPerMinute > 0.1) {
             const remainingChunks = chunksTotal - chunksProcessed;
             const remainingMinutes = remainingChunks / chunksPerMinute;
-            
+
             // Limitar el tiempo restante a un máximo razonable (24 horas)
             const maxRemainingMinutes = 24 * 60;
             const finalRemainingMinutes = Math.min(remainingMinutes, maxRemainingMinutes);
-            
+
             if (finalRemainingMinutes > 0) {
               const hours = Math.floor(finalRemainingMinutes / 60);
               const mins = Math.floor(finalRemainingMinutes % 60);
-              
+
               if (hours > 0) {
                 setEstimatedRemaining(`${hours}h ${mins}m`);
               } else {
@@ -133,12 +138,12 @@ export const ProcessingTimer: React.FC<ProcessingTimerProps> = ({
         // Usar estimación inicial solo si el job está realmente procesando (no en cola)
         const elapsedMinutes = diff / 60000;
         const remaining = estimatedMinutes - elapsedMinutes;
-        
+
         if (remaining > 1) {
           // Si queda más de 1 minuto, mostrar tiempo restante
           const hours = Math.floor(remaining / 60);
           const mins = Math.floor(remaining % 60);
-          
+
           if (hours > 0) {
             setEstimatedRemaining(`${hours}h ${mins}m`);
           } else {
@@ -187,4 +192,3 @@ export const ProcessingTimer: React.FC<ProcessingTimerProps> = ({
     </div>
   );
 };
-

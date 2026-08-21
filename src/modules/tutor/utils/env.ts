@@ -72,4 +72,3 @@ export const resolveGeminiApiKey = () => {
 export const getGeminiApiKey = (): string | null => resolveGeminiApiKey().key;
 
 export const isGeminiApiConfigured = (): boolean => !resolveGeminiApiKey().missing;
-

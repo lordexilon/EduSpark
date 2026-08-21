@@ -4,7 +4,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { courseService, Course } from '@/services/teacherCourses';
-import { comprehensiveReportService, CourseComprehensiveReport } from '@/services/comprehensiveReportService';
+import {
+  comprehensiveReportService,
+  CourseComprehensiveReport,
+} from '@/services/comprehensiveReportService';
 import { adminReportsService } from '@/services/adminReportsService';
 import { institutionService } from '@/services/institutionService';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,7 +18,17 @@ import ComprehensiveStudentCard from '@/components/Features/ComprehensiveStudent
 import CorrelationChart from '@/components/Features/CorrelationChart';
 import InsightsPanel from '@/components/Features/InsightsPanel';
 import ExportReportButton from '@/components/Features/ExportReportButton';
-import { IconChevronLeft, IconRefreshCw, IconUsers, IconChartBar, IconRobot, IconBookOpen, IconDollarSign, IconCheckCircle, IconAlertTriangle } from '@/components/Common/Icons';
+import {
+  IconChevronLeft,
+  IconRefreshCw,
+  IconUsers,
+  IconChartBar,
+  IconRobot,
+  IconBookOpen,
+  IconDollarSign,
+  IconCheckCircle,
+  IconAlertTriangle,
+} from '@/components/Common/Icons';
 
 export const CourseComprehensiveReportPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,22 +48,22 @@ export const CourseComprehensiveReportPage: React.FC = () => {
       // Obtener institución del usuario si es admin-campus o coordinator
       const isAdminCampus = user?.role?.name === 'admin-campus';
       const isCoordinator = user?.role?.name === 'coordinator';
-      
+
       if (isAdminCampus || isCoordinator) {
-        institutionService.getUserInstitution(user.id).then(institution => {
+        institutionService.getUserInstitution(user.id).then((institution) => {
           if (institution) {
             setUserInstitutionId(institution.id);
           }
         });
       }
-      
+
       loadData();
     }
   }, [id, dateFrom, dateTo, user?.id]);
 
   const loadData = async () => {
     if (!id) return;
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -58,11 +71,11 @@ export const CourseComprehensiveReportPage: React.FC = () => {
 
       // Cargar curso
       const courseData = await courseService.getCourse(courseId);
-      
+
       // Verificar que el curso pertenezca a la institución del usuario (si es admin-campus/coordinator)
       const isAdminCampus = user?.role?.name === 'admin-campus';
       const isCoordinator = user?.role?.name === 'coordinator';
-      
+
       // Verificar acceso por institución si es admin-campus/coordinator
       if ((isAdminCampus || isCoordinator) && userInstitutionId && courseData) {
         // Obtener institución del curso
@@ -71,14 +84,14 @@ export const CourseComprehensiveReportPage: React.FC = () => {
           .select('institution_id')
           .eq('id', courseId)
           .single();
-        
+
         if (courseInstitution?.institution_id !== userInstitutionId) {
           setError('No tienes acceso a este curso. Solo puedes ver cursos de tu institución.');
           setLoading(false);
           return;
         }
       }
-      
+
       setCourse(courseData);
 
       // Cargar informe comprehensivo con filtros de fecha
@@ -87,7 +100,7 @@ export const CourseComprehensiveReportPage: React.FC = () => {
         dateFrom || undefined,
         dateTo || undefined
       );
-      
+
       if (!comprehensiveReport) {
         setError('No se pudo cargar el informe comprehensivo');
         return;
@@ -175,11 +188,7 @@ export const CourseComprehensiveReportPage: React.FC = () => {
         </div>
         <div className="flex gap-2">
           {report && (
-            <ExportReportButton
-              report={report}
-              courseTitle={course.title}
-              showCosts={showCosts}
-            />
+            <ExportReportButton report={report} courseTitle={course.title} showCosts={showCosts} />
           )}
           <Button
             onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
@@ -254,16 +263,15 @@ export const CourseComprehensiveReportPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <IconAlertTriangle className="w-5 h-5 text-blue-600" />
             <p className="text-sm text-blue-800">
-              <strong>Nota:</strong> Estás viendo solo los cursos de tu institución. Los tokens y costos no se muestran en esta vista.
+              <strong>Nota:</strong> Estás viendo solo los cursos de tu institución. Los tokens y
+              costos no se muestran en esta vista.
             </p>
           </div>
         </Card>
       )}
 
       {/* Gráfico de Correlación */}
-      {report.students.length > 0 && (
-        <CorrelationChart students={report.students} />
-      )}
+      {report.students.length > 0 && <CorrelationChart students={report.students} />}
 
       {/* Insights y Recomendaciones */}
       <Card className="p-6">
@@ -372,13 +380,17 @@ export const CourseComprehensiveReportPage: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {report.students
-                  .sort((a, b) => b.academicProgress.completionPercentage - a.academicProgress.completionPercentage)
+                  .sort(
+                    (a, b) =>
+                      b.academicProgress.completionPercentage -
+                      a.academicProgress.completionPercentage
+                  )
                   .map((student) => {
                     const correlationConfig = {
                       'high-usage-high-progress': { label: '✅ Positiva', color: 'text-green-600' },
                       'high-usage-low-progress': { label: '❌ Negativa', color: 'text-red-600' },
                       'low-usage-high-progress': { label: '⚠️ Sin Tutor', color: 'text-blue-600' },
-                      'low-usage-low-progress': { label: '🔴 Bajo', color: 'text-orange-600' }
+                      'low-usage-low-progress': { label: '🔴 Bajo', color: 'text-orange-600' },
                     };
                     const config = correlationConfig[student.insights.tutorUsageVsProgress];
 
@@ -410,14 +422,20 @@ export const CourseComprehensiveReportPage: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            student.insights.riskLevel === 'high'
-                              ? 'bg-red-100 text-red-800'
+                          <span
+                            className={`text-xs px-2 py-1 rounded ${
+                              student.insights.riskLevel === 'high'
+                                ? 'bg-red-100 text-red-800'
+                                : student.insights.riskLevel === 'medium'
+                                  ? 'bg-orange-100 text-orange-800'
+                                  : 'bg-green-100 text-green-800'
+                            }`}
+                          >
+                            {student.insights.riskLevel === 'high'
+                              ? 'Alto'
                               : student.insights.riskLevel === 'medium'
-                              ? 'bg-orange-100 text-orange-800'
-                              : 'bg-green-100 text-green-800'
-                          }`}>
-                            {student.insights.riskLevel === 'high' ? 'Alto' : student.insights.riskLevel === 'medium' ? 'Medio' : 'Bajo'}
+                                ? 'Medio'
+                                : 'Bajo'}
                           </span>
                         </td>
                       </tr>
@@ -433,4 +451,3 @@ export const CourseComprehensiveReportPage: React.FC = () => {
 };
 
 export default CourseComprehensiveReportPage;
-

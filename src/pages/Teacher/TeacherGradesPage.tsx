@@ -8,7 +8,14 @@ import { supabase } from '@/lib/supabase';
 import { courseService, Course } from '@/services/teacherCourses';
 import { gradingService, StudentFinalGrade } from '@/services/gradingService';
 import Card from '@/components/Common/Card';
-import { IconChartBar, IconBookOpen, IconUser, IconAlertTriangle, IconTrophy, IconCog } from '@/components/Common/Icons';
+import {
+  IconChartBar,
+  IconBookOpen,
+  IconUser,
+  IconAlertTriangle,
+  IconTrophy,
+  IconCog,
+} from '@/components/Common/Icons';
 
 interface StudentGrade {
   id: string;
@@ -34,7 +41,9 @@ const TeacherGradesPage: React.FC = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<Course[]>([]);
-  const [selectedCourse, setSelectedCourse] = useState<number | null>(initialCourseId ? parseInt(initialCourseId) : null);
+  const [selectedCourse, setSelectedCourse] = useState<number | null>(
+    initialCourseId ? parseInt(initialCourseId) : null
+  );
   const [grades, setGrades] = useState<StudentGrade[]>([]);
   const [finalGrades, setFinalGrades] = useState<StudentFinalGrade[]>([]);
   const [loadingFinalGrades, setLoadingFinalGrades] = useState(false);
@@ -82,7 +91,8 @@ const TeacherGradesPage: React.FC = () => {
       // Obtener todos los intentos de assessments de estudiantes en este curso
       const { data: attempts, error: attemptsError } = await supabase
         .from('assessment_attempts')
-        .select(`
+        .select(
+          `
           *,
           assessments!inner (
             id,
@@ -94,7 +104,8 @@ const TeacherGradesPage: React.FC = () => {
               title
             )
           )
-        `)
+        `
+        )
         .eq('assessments.course_id', selectedCourse)
         .in('status', ['submitted', 'graded'])
         .order('submitted_at', { ascending: false });
@@ -102,7 +113,9 @@ const TeacherGradesPage: React.FC = () => {
       if (attemptsError) throw attemptsError;
 
       // Obtener IDs únicos de estudiantes
-      const studentIds = [...new Set((attempts || []).map((a: any) => a.student_id).filter(Boolean))];
+      const studentIds = [
+        ...new Set((attempts || []).map((a: any) => a.student_id).filter(Boolean)),
+      ];
 
       // Obtener información de los estudiantes
       const { data: students, error: studentsError } = await supabase
@@ -119,7 +132,9 @@ const TeacherGradesPage: React.FC = () => {
       });
 
       // Obtener todas las preguntas de todos los assessments para calcular puntos reales
-      const assessmentIds = [...new Set((attempts || []).map((a: any) => a.assessments?.id).filter(Boolean))];
+      const assessmentIds = [
+        ...new Set((attempts || []).map((a: any) => a.assessments?.id).filter(Boolean)),
+      ];
 
       const { data: allQuestions, error: questionsError } = await supabase
         .from('questions')
@@ -143,7 +158,8 @@ const TeacherGradesPage: React.FC = () => {
 
         // Calcular puntos totales reales desde las preguntas
         const totalPointsFromQuestions = pointsByAssessment.get(assessment?.id) || 0;
-        const totalPoints = totalPointsFromQuestions > 0 ? totalPointsFromQuestions : (assessment?.total_points || 0);
+        const totalPoints =
+          totalPointsFromQuestions > 0 ? totalPointsFromQuestions : assessment?.total_points || 0;
 
         const score = attempt.score || 0;
         const percentage = totalPoints > 0 ? (score / totalPoints) * 100 : 0;
@@ -151,7 +167,9 @@ const TeacherGradesPage: React.FC = () => {
         return {
           id: attempt.id,
           studentId: student?.id || '',
-          studentName: `${student?.first_name || ''} ${student?.last_name || ''}`.trim() || 'Estudiante sin nombre',
+          studentName:
+            `${student?.first_name || ''} ${student?.last_name || ''}`.trim() ||
+            'Estudiante sin nombre',
           studentEmail: student?.email || '',
           assessmentId: assessment?.id || '',
           assessmentTitle: assessment?.title || 'Evaluación sin título',
@@ -162,7 +180,7 @@ const TeacherGradesPage: React.FC = () => {
           percentage: percentage > 0 ? percentage : null,
           submittedAt: attempt.submitted_at,
           status: attempt.status,
-          attemptId: attempt.id
+          attemptId: attempt.id,
         };
       });
 
@@ -183,7 +201,7 @@ const TeacherGradesPage: React.FC = () => {
       const finalGradesData = await gradingService.calculateAllStudentsFinalGrades(selectedCourse);
 
       // Obtener información de estudiantes para mostrar nombres
-      const studentIds = finalGradesData.map(fg => fg.studentId);
+      const studentIds = finalGradesData.map((fg) => fg.studentId);
       if (studentIds.length > 0) {
         const { data: students } = await supabase
           .from('users')
@@ -197,16 +215,18 @@ const TeacherGradesPage: React.FC = () => {
         });
 
         // Agregar nombres a las notas finales
-        const finalGradesWithNames = finalGradesData.map(fg => ({
+        const finalGradesWithNames = finalGradesData.map((fg) => ({
           ...fg,
           studentName: (() => {
             const student = studentsMap.get(fg.studentId);
-            return student ? `${student.first_name || ''} ${student.last_name || ''}`.trim() : fg.studentId;
+            return student
+              ? `${student.first_name || ''} ${student.last_name || ''}`.trim()
+              : fg.studentId;
           })(),
           studentEmail: (() => {
             const student = studentsMap.get(fg.studentId);
             return student?.email || '';
-          })()
+          })(),
         }));
 
         setFinalGrades(finalGradesWithNames as any);
@@ -223,22 +243,22 @@ const TeacherGradesPage: React.FC = () => {
 
   const getTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      'quiz': 'Quiz',
-      'trivia': 'Trivia',
-      'exam': 'Examen',
-      'assignment': 'Tarea',
-      'project': 'Proyecto'
+      quiz: 'Quiz',
+      trivia: 'Trivia',
+      exam: 'Examen',
+      assignment: 'Tarea',
+      project: 'Proyecto',
     };
     return labels[type] || type;
   };
 
   const getTypeColor = (type: string) => {
     const colors: Record<string, string> = {
-      'quiz': 'bg-blue-100 text-blue-800',
-      'trivia': 'bg-purple-100 text-purple-800',
-      'exam': 'bg-red-100 text-red-800',
-      'assignment': 'bg-yellow-100 text-yellow-800',
-      'project': 'bg-green-100 text-green-800'
+      quiz: 'bg-blue-100 text-blue-800',
+      trivia: 'bg-purple-100 text-purple-800',
+      exam: 'bg-red-100 text-red-800',
+      assignment: 'bg-yellow-100 text-yellow-800',
+      project: 'bg-green-100 text-green-800',
     };
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
@@ -269,7 +289,7 @@ const TeacherGradesPage: React.FC = () => {
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -285,12 +305,18 @@ const TeacherGradesPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Calificaciones de Estudiantes</h1>
-          <p className="text-sm text-gray-600 mt-1">Gestiona y revisa las calificaciones de tus estudiantes</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
+            Calificaciones de Estudiantes
+          </h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Gestiona y revisa las calificaciones de tus estudiantes
+          </p>
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <IconTrophy className="w-5 h-5" />
-          <span>{grades.length} calificación{grades.length !== 1 ? 'es' : ''}</span>
+          <span>
+            {grades.length} calificación{grades.length !== 1 ? 'es' : ''}
+          </span>
         </div>
       </div>
 
@@ -298,7 +324,10 @@ const TeacherGradesPage: React.FC = () => {
       {courses.length > 0 && (
         <Card>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <label htmlFor="course-select" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            <label
+              htmlFor="course-select"
+              className="text-sm font-medium text-gray-700 whitespace-nowrap"
+            >
               Filtrar por curso:
             </label>
             <select
@@ -314,21 +343,22 @@ const TeacherGradesPage: React.FC = () => {
                 </option>
               ))}
             </select>
-            {selectedCourse && (() => {
-              const course = courses.find(c => c.id === selectedCourse);
-              if (course?.subject_id) {
-                return (
-                  <Link
-                    to={`/teacher/courses/${selectedCourse}/grading-weights`}
-                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 text-sm font-medium"
-                  >
-                    <IconCog className="w-4 h-4" />
-                    Configurar Ponderaciones
-                  </Link>
-                );
-              }
-              return null;
-            })()}
+            {selectedCourse &&
+              (() => {
+                const course = courses.find((c) => c.id === selectedCourse);
+                if (course?.subject_id) {
+                  return (
+                    <Link
+                      to={`/teacher/courses/${selectedCourse}/grading-weights`}
+                      className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 text-sm font-medium"
+                    >
+                      <IconCog className="w-4 h-4" />
+                      Configurar Ponderaciones
+                    </Link>
+                  );
+                }
+                return null;
+              })()}
           </div>
         </Card>
       )}
@@ -351,14 +381,30 @@ const TeacherGradesPage: React.FC = () => {
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Estudiante</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Quizzes/Tareas</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Prácticos</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Examen 1</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Examen 2</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Examen 3</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Final</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Nota Final</th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                      Estudiante
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                      Quizzes/Tareas
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                      Prácticos
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                      Examen 1
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                      Examen 2
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                      Examen 3
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                      Final
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                      Nota Final
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-slate-200">
@@ -394,10 +440,15 @@ const TeacherGradesPage: React.FC = () => {
                       </td>
                       <td className="px-4 sm:px-6 py-4">
                         {fg.finalGrade !== null ? (
-                          <span className={`px-3 py-1 inline-flex text-sm font-semibold rounded-full ${fg.finalGrade >= 80 ? 'bg-green-100 text-green-800' :
-                            fg.finalGrade >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
+                          <span
+                            className={`px-3 py-1 inline-flex text-sm font-semibold rounded-full ${
+                              fg.finalGrade >= 80
+                                ? 'bg-green-100 text-green-800'
+                                : fg.finalGrade >= 60
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-red-100 text-red-800'
+                            }`}
+                          >
                             {fg.finalGrade.toFixed(2)}%
                           </span>
                         ) : (
@@ -427,7 +478,9 @@ const TeacherGradesPage: React.FC = () => {
           <div className="text-center py-12">
             <IconBookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <p className="text-slate-600 text-lg mb-2">No tienes cursos asignados.</p>
-            <p className="text-slate-500 text-sm">Crea un curso para comenzar a gestionar calificaciones.</p>
+            <p className="text-slate-500 text-sm">
+              Crea un curso para comenzar a gestionar calificaciones.
+            </p>
           </div>
         </Card>
       ) : grades.length === 0 && !loading ? (
@@ -448,28 +501,52 @@ const TeacherGradesPage: React.FC = () => {
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                  >
                     Estudiante
                   </th>
-                  <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                  >
                     Evaluación
                   </th>
-                  <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                  >
                     Tipo
                   </th>
-                  <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                  >
                     Puntaje
                   </th>
-                  <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                  >
                     Porcentaje
                   </th>
-                  <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                  >
                     Fecha
                   </th>
-                  <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                  >
                     Estado
                   </th>
-                  <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                  >
                     Acciones
                   </th>
                 </tr>
@@ -479,20 +556,26 @@ const TeacherGradesPage: React.FC = () => {
                   <tr key={grade.id} className="hover:bg-gray-50">
                     <td className="px-4 sm:px-6 py-4">
                       <div>
-                        <div className="text-sm font-medium text-slate-900">{grade.studentName}</div>
+                        <div className="text-sm font-medium text-slate-900">
+                          {grade.studentName}
+                        </div>
                         <div className="text-xs text-slate-500">{grade.studentEmail}</div>
                       </div>
                     </td>
                     <td className="px-4 sm:px-6 py-4">
                       <div>
-                        <div className="text-sm font-medium text-slate-900">{grade.assessmentTitle}</div>
+                        <div className="text-sm font-medium text-slate-900">
+                          {grade.assessmentTitle}
+                        </div>
                         {grade.courseTitle && (
                           <div className="text-xs text-slate-500">{grade.courseTitle}</div>
                         )}
                       </div>
                     </td>
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTypeColor(grade.assessmentType)}`}>
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTypeColor(grade.assessmentType)}`}
+                      >
                         {getTypeLabel(grade.assessmentType)}
                       </span>
                     </td>
@@ -500,7 +583,9 @@ const TeacherGradesPage: React.FC = () => {
                       {formatScore(grade)}
                     </td>
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getScoreColor(grade.percentage)}`}>
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getScoreColor(grade.percentage)}`}
+                      >
                         {formatPercentage(grade)}
                       </span>
                     </td>
@@ -508,13 +593,20 @@ const TeacherGradesPage: React.FC = () => {
                       {formatDate(grade.submittedAt)}
                     </td>
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${grade.status === 'graded'
-                        ? 'bg-green-100 text-green-800'
-                        : grade.status === 'submitted'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-gray-100 text-gray-800'
-                        }`}>
-                        {grade.status === 'graded' ? 'Calificado' : grade.status === 'submitted' ? 'En revisión' : 'Pendiente'}
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          grade.status === 'graded'
+                            ? 'bg-green-100 text-green-800'
+                            : grade.status === 'submitted'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {grade.status === 'graded'
+                          ? 'Calificado'
+                          : grade.status === 'submitted'
+                            ? 'En revisión'
+                            : 'Pendiente'}
                       </span>
                     </td>
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -537,4 +629,3 @@ const TeacherGradesPage: React.FC = () => {
 };
 
 export default TeacherGradesPage;
-

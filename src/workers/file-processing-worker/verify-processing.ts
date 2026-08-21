@@ -44,7 +44,14 @@ async function verifyProcessing() {
 
       console.log('  Estados:');
       Object.entries(statusCounts).forEach(([status, count]) => {
-        const icon = status === 'completed' ? '✅' : status === 'failed' ? '❌' : status === 'processing' ? '⏳' : '⏸️';
+        const icon =
+          status === 'completed'
+            ? '✅'
+            : status === 'failed'
+              ? '❌'
+              : status === 'processing'
+                ? '⏳'
+                : '⏸️';
         console.log(`    ${icon} ${status}: ${count}`);
       });
 
@@ -68,7 +75,9 @@ async function verifyProcessing() {
     } else {
       if (pendingJobs && pendingJobs.length > 0) {
         pendingJobs.forEach((job: any) => {
-          console.log(`  - ${job.file_name} (${job.metadata?.jobType || 'unknown'}) - Creado: ${new Date(job.created_at).toLocaleString()}`);
+          console.log(
+            `  - ${job.file_name} (${job.metadata?.jobType || 'unknown'}) - Creado: ${new Date(job.created_at).toLocaleString()}`
+          );
         });
       } else {
         console.log('  ✅ No hay trabajos pendientes');
@@ -158,9 +167,12 @@ async function verifyProcessing() {
     } else {
       if (processingJobs && processingJobs.length > 0) {
         processingJobs.forEach((job: any) => {
-          const duration = new Date().getTime() - new Date(job.updated_at || job.created_at).getTime();
+          const duration =
+            new Date().getTime() - new Date(job.updated_at || job.created_at).getTime();
           const minutes = Math.floor(duration / 60000);
-          console.log(`  - ${job.file_name} (${job.metadata?.jobType || 'unknown'}) - ${minutes} minutos`);
+          console.log(
+            `  - ${job.file_name} (${job.metadata?.jobType || 'unknown'}) - ${minutes} minutos`
+          );
         });
       } else {
         console.log('  ✅ No hay trabajos en procesamiento');
@@ -168,7 +180,6 @@ async function verifyProcessing() {
     }
 
     console.log('\n✅ Verificación completada\n');
-
   } catch (error: any) {
     console.error('❌ Error en verificación:', error);
     process.exit(1);
@@ -182,4 +193,3 @@ verifyProcessing()
     console.error('❌ Error fatal:', error);
     process.exit(1);
   });
-

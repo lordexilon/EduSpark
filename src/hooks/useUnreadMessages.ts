@@ -45,7 +45,7 @@ export const useUnreadMessages = () => {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'messages'
+          table: 'messages',
         },
         async (payload) => {
           // Verificar si el mensaje es para el usuario actual
@@ -55,7 +55,10 @@ export const useUnreadMessages = () => {
             .eq('id', payload.new.conversation_id)
             .single();
 
-          if (conversation && (conversation.participant1_id === user.id || conversation.participant2_id === user.id)) {
+          if (
+            conversation &&
+            (conversation.participant1_id === user.id || conversation.participant2_id === user.id)
+          ) {
             // Solo contar si no es un mensaje propio
             if (payload.new.sender_id !== user.id) {
               // Recargar el conteo
@@ -70,7 +73,7 @@ export const useUnreadMessages = () => {
           event: 'UPDATE',
           schema: 'public',
           table: 'messages',
-          filter: `is_read=eq.true`
+          filter: `is_read=eq.true`,
         },
         () => {
           // Cuando se marca un mensaje como leído, recargar el conteo
@@ -95,4 +98,3 @@ export const useUnreadMessages = () => {
 
   return { unreadCount, loading };
 };
-

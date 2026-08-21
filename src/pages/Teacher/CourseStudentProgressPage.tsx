@@ -32,7 +32,7 @@ export const CourseStudentProgressPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Totales del curso
   const [totalUnits, setTotalUnits] = useState(0);
   const [totalSessions, setTotalSessions] = useState(0);
@@ -46,7 +46,7 @@ export const CourseStudentProgressPage: React.FC = () => {
 
   const loadData = async () => {
     if (!id) return;
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -60,7 +60,7 @@ export const CourseStudentProgressPage: React.FC = () => {
       const [units, sessions, quizzes] = await Promise.all([
         unitService.getCourseUnits(courseId),
         sessionService.getCourseSessions(courseId),
-        quizService.getCourseAssessments(courseId, ['quiz', 'trivia'])
+        quizService.getCourseAssessments(courseId, ['quiz', 'trivia']),
       ]);
 
       setTotalUnits(units.length);
@@ -69,7 +69,7 @@ export const CourseStudentProgressPage: React.FC = () => {
 
       // Cargar estudiantes inscritos
       const enrollments = await courseEnrollmentService.getCourseStudents(courseId);
-      const activeEnrollments = enrollments.filter(e => e.status === 'active');
+      const activeEnrollments = enrollments.filter((e) => e.status === 'active');
 
       // Cargar progreso detallado de cada estudiante
       const studentsWithProgress = await Promise.all(
@@ -81,12 +81,12 @@ export const CourseStudentProgressPage: React.FC = () => {
               .select('first_name, last_name')
               .eq('id', enrollment.student_id)
               .maybeSingle();
-            
+
             if (studentError || !studentData) {
               console.warn(`No se pudo obtener datos del estudiante ${enrollment.student_id}`);
               return null;
             }
-            
+
             const studentName = `${studentData.first_name} ${studentData.last_name}`;
 
             // Calcular progreso detallado
@@ -99,7 +99,7 @@ export const CourseStudentProgressPage: React.FC = () => {
                 .eq('course_id', courseId)
                 .eq('is_completed', true)
                 .then(({ count }) => count || 0),
-              
+
               // Sesiones completadas
               supabase
                 .from('session_progress')
@@ -108,19 +108,19 @@ export const CourseStudentProgressPage: React.FC = () => {
                 .eq('course_id', courseId)
                 .eq('is_completed', true)
                 .then(({ count }) => count || 0),
-              
+
               // Quizzes completados
               (async () => {
-                const quizIds = quizzes.map(q => q.id);
+                const quizIds = quizzes.map((q) => q.id);
                 if (quizIds.length === 0) return 0;
-                
+
                 const { count } = await supabase
                   .from('assessment_attempts')
                   .select('assessment_id', { count: 'exact' })
                   .eq('student_id', enrollment.student_id)
                   .in('assessment_id', quizIds)
                   .in('status', ['submitted', 'graded']);
-                
+
                 // Contar únicos
                 const { data } = await supabase
                   .from('assessment_attempts')
@@ -128,9 +128,9 @@ export const CourseStudentProgressPage: React.FC = () => {
                   .eq('student_id', enrollment.student_id)
                   .in('assessment_id', quizIds)
                   .in('status', ['submitted', 'graded']);
-                
-                return new Set(data?.map(a => a.assessment_id) || []).size;
-              })()
+
+                return new Set(data?.map((a) => a.assessment_id) || []).size;
+              })(),
             ]);
 
             // Recalcular progreso del curso
@@ -138,7 +138,7 @@ export const CourseStudentProgressPage: React.FC = () => {
               await progressService.updateCourseProgress(enrollment.student_id, courseId);
               // Recargar enrollment para obtener progreso actualizado
               const updatedEnrollments = await courseEnrollmentService.getCourseStudents(courseId);
-              const updatedEnrollment = updatedEnrollments.find(e => e.id === enrollment.id);
+              const updatedEnrollment = updatedEnrollments.find((e) => e.id === enrollment.id);
               if (updatedEnrollment) {
                 enrollment = updatedEnrollment;
               }
@@ -152,7 +152,7 @@ export const CourseStudentProgressPage: React.FC = () => {
               enrollment,
               completedUnits,
               completedSessions,
-              completedQuizzes
+              completedQuizzes,
             };
           } catch (err) {
             console.error(`Error cargando progreso para estudiante ${enrollment.student_id}:`, err);
@@ -164,7 +164,10 @@ export const CourseStudentProgressPage: React.FC = () => {
       // Filtrar nulos y ordenar por progreso descendente
       const validStudents = studentsWithProgress
         .filter((s): s is StudentProgressData => s !== null)
-        .sort((a, b) => (b.enrollment.completion_percentage || 0) - (a.enrollment.completion_percentage || 0));
+        .sort(
+          (a, b) =>
+            (b.enrollment.completion_percentage || 0) - (a.enrollment.completion_percentage || 0)
+        );
 
       setStudents(validStudents);
     } catch (err: any) {
@@ -301,4 +304,3 @@ export const CourseStudentProgressPage: React.FC = () => {
 };
 
 export default CourseStudentProgressPage;
-

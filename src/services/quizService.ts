@@ -134,7 +134,9 @@ export const quizService = {
   /**
    * Obtener assessment por ID con sus preguntas
    */
-  async getAssessmentWithQuestions(assessmentId: string): Promise<{ assessment: Assessment; questions: Question[] }> {
+  async getAssessmentWithQuestions(
+    assessmentId: string
+  ): Promise<{ assessment: Assessment; questions: Question[] }> {
     // Obtener assessment
     const { data: assessment, error: assessmentError } = await supabase
       .from('assessments')
@@ -143,7 +145,10 @@ export const quizService = {
       .maybeSingle();
 
     if (assessmentError) throw assessmentError;
-    if (!assessment) throw new Error('El quiz no existe o no tienes permiso para verlo (asegúrate de estar inscrito en el curso y que el quiz esté publicado).');
+    if (!assessment)
+      throw new Error(
+        'El quiz no existe o no tienes permiso para verlo (asegúrate de estar inscrito en el curso y que el quiz esté publicado).'
+      );
 
     // Obtener preguntas
     const { data: questions, error: questionsError } = await supabase
@@ -156,14 +161,16 @@ export const quizService = {
 
     return {
       assessment,
-      questions: questions || []
+      questions: questions || [],
     };
   },
 
   /**
    * Crear assessment (solo docentes)
    */
-  async createAssessment(assessment: Omit<Assessment, 'id' | 'created_at' | 'updated_at'>): Promise<Assessment> {
+  async createAssessment(
+    assessment: Omit<Assessment, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Assessment> {
     const { data, error } = await supabase
       .from('assessments')
       .insert([assessment])
@@ -193,10 +200,7 @@ export const quizService = {
    * Eliminar assessment (solo docentes)
    */
   async deleteAssessment(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('assessments')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('assessments').delete().eq('id', id);
 
     if (error) throw error;
   },
@@ -208,12 +212,10 @@ export const quizService = {
   /**
    * Crear pregunta en un assessment (solo docentes)
    */
-  async createQuestion(question: Omit<Question, 'id' | 'created_at' | 'updated_at'>): Promise<Question> {
-    const { data, error } = await supabase
-      .from('questions')
-      .insert([question])
-      .select()
-      .single();
+  async createQuestion(
+    question: Omit<Question, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Question> {
+    const { data, error } = await supabase.from('questions').insert([question]).select().single();
 
     if (error) throw error;
     return data;
@@ -238,10 +240,7 @@ export const quizService = {
    * Eliminar pregunta (solo docentes)
    */
   async deleteQuestion(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('questions')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('questions').delete().eq('id', id);
 
     if (error) throw error;
   },
@@ -249,15 +248,16 @@ export const quizService = {
   /**
    * Reordenar preguntas
    */
-  async reorderQuestions(assessmentId: string, questionOrders: Array<{ id: string; order_index: number }>): Promise<void> {
-    const updates = questionOrders.map(qo => ({
+  async reorderQuestions(
+    assessmentId: string,
+    questionOrders: Array<{ id: string; order_index: number }>
+  ): Promise<void> {
+    const updates = questionOrders.map((qo) => ({
       ...qo,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     }));
 
-    const { error } = await supabase
-      .from('questions')
-      .upsert(updates, { onConflict: 'id' });
+    const { error } = await supabase.from('questions').upsert(updates, { onConflict: 'id' });
 
     if (error) throw error;
   },
@@ -269,7 +269,11 @@ export const quizService = {
   /**
    * Iniciar un intento de assessment
    */
-  async startAttempt(studentId: string, assessmentId: string, attemptNumber: number): Promise<AssessmentAttempt> {
+  async startAttempt(
+    studentId: string,
+    assessmentId: string,
+    attemptNumber: number
+  ): Promise<AssessmentAttempt> {
     const { data, error } = await supabase
       .from('assessment_attempts')
       .insert({
@@ -277,7 +281,7 @@ export const quizService = {
         assessment_id: assessmentId,
         attempt_number: attemptNumber,
         status: 'in_progress',
-        started_at: new Date().toISOString()
+        started_at: new Date().toISOString(),
       })
       .select()
       .single();
@@ -304,7 +308,10 @@ export const quizService = {
   /**
    * Obtener intento activo del estudiante
    */
-  async getActiveAttempt(studentId: string, assessmentId: string): Promise<AssessmentAttempt | null> {
+  async getActiveAttempt(
+    studentId: string,
+    assessmentId: string
+  ): Promise<AssessmentAttempt | null> {
     const { data, error } = await supabase
       .from('assessment_attempts')
       .select('*')
@@ -322,7 +329,9 @@ export const quizService = {
   /**
    * Enviar respuesta a una pregunta
    */
-  async submitResponse(response: Omit<QuestionResponse, 'id' | 'submitted_at'>): Promise<QuestionResponse> {
+  async submitResponse(
+    response: Omit<QuestionResponse, 'id' | 'submitted_at'>
+  ): Promise<QuestionResponse> {
     // Primero verificar si ya existe una respuesta
     const { data: existing } = await supabase
       .from('question_responses')
@@ -351,7 +360,7 @@ export const quizService = {
       points_earned: response.points_earned,
       teacher_feedback: response.teacher_feedback,
       auto_feedback: response.auto_feedback,
-      submitted_at: new Date().toISOString()
+      submitted_at: new Date().toISOString(),
     };
 
     if (existing) {
@@ -423,12 +432,11 @@ export const quizService = {
     const totalPointsFromQuestions = questions?.reduce((sum, q) => sum + (q.points || 0), 0) || 0;
 
     // Usar el total calculado de preguntas o el del assessment, el que sea más preciso
-    const totalPoints = totalPointsFromQuestions > 0 ? totalPointsFromQuestions : assessment.total_points;
+    const totalPoints =
+      totalPointsFromQuestions > 0 ? totalPointsFromQuestions : assessment.total_points;
 
     // Calcular percentage
-    let percentage = totalPoints > 0
-      ? (totalScore / totalPoints) * 100
-      : 0;
+    let percentage = totalPoints > 0 ? (totalScore / totalPoints) * 100 : 0;
 
     // Asegurar que no exceda 100% y redondear a 2 decimales para evitar errores de constraint
     percentage = Math.min(100, Math.max(0, percentage));
@@ -456,7 +464,7 @@ export const quizService = {
         time_spent_minutes: timeSpentMinutes,
         score: totalScore,
         percentage: percentage,
-        is_passed: isPassed
+        is_passed: isPassed,
       })
       .eq('id', attemptId)
       .select()
@@ -493,7 +501,7 @@ export const quizService = {
 
     return {
       attempt,
-      responses: responses || []
+      responses: responses || [],
     };
   },
 
@@ -515,13 +523,17 @@ export const quizService = {
   /**
    * Calificar respuesta manualmente (solo docentes)
    */
-  async gradeResponse(responseId: string, pointsEarned: number, feedback?: string): Promise<QuestionResponse> {
+  async gradeResponse(
+    responseId: string,
+    pointsEarned: number,
+    feedback?: string
+  ): Promise<QuestionResponse> {
     const { data, error } = await supabase
       .from('question_responses')
       .update({
         points_earned: pointsEarned,
         teacher_feedback: feedback,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', responseId)
       .select()
@@ -538,7 +550,7 @@ export const quizService = {
     const { data, error } = await supabase
       .from('assessment_attempts')
       .update({
-        status: 'graded'
+        status: 'graded',
       })
       .eq('id', attemptId)
       .select()
@@ -546,6 +558,5 @@ export const quizService = {
 
     if (error) throw error;
     return data;
-  }
+  },
 };
-

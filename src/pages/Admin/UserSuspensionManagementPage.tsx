@@ -3,10 +3,25 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { userSuspensionService, UserSuspensionData, SuspensionResult } from '@/services/userSuspensionService';
+import {
+  userSuspensionService,
+  UserSuspensionData,
+  SuspensionResult,
+} from '@/services/userSuspensionService';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
-import { IconUpload, IconFileText, IconUsers, IconX, IconCheck, IconXCircle, IconDownload, IconAlertCircle, IconBan, IconCheckCircle } from '@/components/Common/Icons';
+import {
+  IconUpload,
+  IconFileText,
+  IconUsers,
+  IconX,
+  IconCheck,
+  IconXCircle,
+  IconDownload,
+  IconAlertCircle,
+  IconBan,
+  IconCheckCircle,
+} from '@/components/Common/Icons';
 
 const UserSuspensionManagementPage: React.FC = () => {
   const { user } = useAuth();
@@ -27,7 +42,7 @@ const UserSuspensionManagementPage: React.FC = () => {
       const validUsers: UserSuspensionData[] = [];
       const invalidUsers: Array<{ documento: string; errors: string[] }> = [];
 
-      parsedUsers.forEach(userData => {
+      parsedUsers.forEach((userData) => {
         const validation = userSuspensionService.validateSuspensionData(userData);
         if (validation.valid) {
           validUsers.push(userData);
@@ -37,8 +52,9 @@ const UserSuspensionManagementPage: React.FC = () => {
       });
 
       if (invalidUsers.length > 0) {
-        const errorMsg = `Se encontraron ${invalidUsers.length} registro(s) con errores:\n\n` +
-          invalidUsers.map(u => `- ${u.documento}: ${u.errors.join(', ')}`).join('\n');
+        const errorMsg =
+          `Se encontraron ${invalidUsers.length} registro(s) con errores:\n\n` +
+          invalidUsers.map((u) => `- ${u.documento}: ${u.errors.join(', ')}`).join('\n');
         alert(errorMsg);
       }
 
@@ -58,14 +74,16 @@ const UserSuspensionManagementPage: React.FC = () => {
       return;
     }
 
-    const suspendCount = users.filter(u => !u.is_active).length;
-    const reactivateCount = users.filter(u => u.is_active).length;
+    const suspendCount = users.filter((u) => !u.is_active).length;
+    const reactivateCount = users.filter((u) => u.is_active).length;
 
-    if (!confirm(
-      `¿Estás seguro de procesar ${users.length} usuario(s)?\n\n` +
-      `- Suspender: ${suspendCount}\n` +
-      `- Reactivar: ${reactivateCount}`
-    )) {
+    if (
+      !confirm(
+        `¿Estás seguro de procesar ${users.length} usuario(s)?\n\n` +
+          `- Suspender: ${suspendCount}\n` +
+          `- Reactivar: ${reactivateCount}`
+      )
+    ) {
       return;
     }
 
@@ -80,11 +98,11 @@ const UserSuspensionManagementPage: React.FC = () => {
       if (processResult.success_count > 0) {
         alert(
           `✅ Procesamiento completado:\n\n` +
-          `- Total: ${processResult.total}\n` +
-          `- Exitosos: ${processResult.success_count}\n` +
-          `- Fallidos: ${processResult.failed_count}`
+            `- Total: ${processResult.total}\n` +
+            `- Exitosos: ${processResult.success_count}\n` +
+            `- Fallidos: ${processResult.failed_count}`
         );
-        
+
         // Limpiar lista si todo fue exitoso
         if (processResult.failed_count === 0) {
           setUsers([]);
@@ -127,7 +145,8 @@ const UserSuspensionManagementPage: React.FC = () => {
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Gestión de Suspensiones de Usuarios</h1>
           <p className="mt-2 text-gray-600">
-            Suspende o reactiva usuarios masivamente mediante importación desde CSV usando documento de identidad
+            Suspende o reactiva usuarios masivamente mediante importación desde CSV usando documento
+            de identidad
           </p>
         </div>
 
@@ -159,9 +178,12 @@ const UserSuspensionManagementPage: React.FC = () => {
               rows={10}
             />
             <p className="text-xs text-gray-500 mt-2">
-              <strong>Formato:</strong> documento_identidad,is_active<br />
-              <strong>is_active:</strong> true = reactivar, false = suspender<br />
-              <strong>Columnas alternativas:</strong> documento, dni, cedula, identidad (para documento) | activo, active, estado, status (para estado)
+              <strong>Formato:</strong> documento_identidad,is_active
+              <br />
+              <strong>is_active:</strong> true = reactivar, false = suspender
+              <br />
+              <strong>Columnas alternativas:</strong> documento, dni, cedula, identidad (para
+              documento) | activo, active, estado, status (para estado)
             </p>
           </div>
           <div className="mt-4">
@@ -176,14 +198,12 @@ const UserSuspensionManagementPage: React.FC = () => {
         {users.length > 0 && (
           <Card className="p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">
-                Usuarios a Procesar ({users.length})
-              </h2>
+              <h2 className="text-xl font-semibold">Usuarios a Procesar ({users.length})</h2>
               <Button
                 onClick={handleProcess}
                 disabled={processing}
                 className={`flex items-center gap-2 ${
-                  users.filter(u => !u.is_active).length > 0
+                  users.filter((u) => !u.is_active).length > 0
                     ? 'bg-red-600 hover:bg-red-700'
                     : 'bg-green-600 hover:bg-green-700'
                 }`}
@@ -206,9 +226,7 @@ const UserSuspensionManagementPage: React.FC = () => {
                 <div
                   key={index}
                   className={`flex items-center justify-between p-3 rounded-lg border ${
-                    userData.is_active
-                      ? 'bg-green-50 border-green-200'
-                      : 'bg-red-50 border-red-200'
+                    userData.is_active ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
                   }`}
                 >
                   <div className="flex-1 flex items-center gap-3">
@@ -221,7 +239,9 @@ const UserSuspensionManagementPage: React.FC = () => {
                       <div className="font-medium text-gray-900">
                         Documento: {userData.documento_identidad}
                       </div>
-                      <div className={`text-sm ${userData.is_active ? 'text-green-700' : 'text-red-700'}`}>
+                      <div
+                        className={`text-sm ${userData.is_active ? 'text-green-700' : 'text-red-700'}`}
+                      >
                         {userData.is_active ? '✅ Reactivar' : '❌ Suspender'}
                       </div>
                     </div>
@@ -259,7 +279,7 @@ const UserSuspensionManagementPage: React.FC = () => {
               <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
                 <h3 className="font-medium text-red-600">Usuarios con errores:</h3>
                 {result.results
-                  .filter(r => !r.success)
+                  .filter((r) => !r.success)
                   .map((resultItem, index) => (
                     <div key={index} className="p-2 bg-red-50 rounded text-sm">
                       <div className="font-medium">{resultItem.documento_identidad}</div>
@@ -272,7 +292,7 @@ const UserSuspensionManagementPage: React.FC = () => {
               <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
                 <h3 className="font-medium text-green-600">Usuarios procesados exitosamente:</h3>
                 {result.results
-                  .filter(r => r.success)
+                  .filter((r) => r.success)
                   .map((resultItem, index) => (
                     <div key={index} className="p-2 bg-green-50 rounded text-sm">
                       <div className="font-medium">{resultItem.documento_identidad}</div>
@@ -293,13 +313,14 @@ const UserSuspensionManagementPage: React.FC = () => {
             <div>
               <h3 className="font-medium text-blue-900 mb-1">ℹ️ Información</h3>
               <p className="text-sm text-blue-800">
-                <strong>Formato CSV:</strong> El archivo debe tener al menos una columna con el documento de identidad 
-                (puede llamarse: documento, dni, cedula, identidad) y opcionalmente una columna con el estado 
-                (activo, active, estado, status). Si no hay columna de estado, se asume suspender (false).
+                <strong>Formato CSV:</strong> El archivo debe tener al menos una columna con el
+                documento de identidad (puede llamarse: documento, dni, cedula, identidad) y
+                opcionalmente una columna con el estado (activo, active, estado, status). Si no hay
+                columna de estado, se asume suspender (false).
               </p>
               <p className="text-sm text-blue-800 mt-2">
-                <strong>Valores de estado:</strong> true, 1, si, yes, activo, reactivar = Reactivar | 
-                false, 0, no, suspendido = Suspender
+                <strong>Valores de estado:</strong> true, 1, si, yes, activo, reactivar = Reactivar
+                | false, 0, no, suspendido = Suspender
               </p>
             </div>
           </div>
@@ -310,4 +331,3 @@ const UserSuspensionManagementPage: React.FC = () => {
 };
 
 export default UserSuspensionManagementPage;
-

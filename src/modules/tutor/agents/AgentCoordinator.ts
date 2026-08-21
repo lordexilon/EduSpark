@@ -12,12 +12,9 @@ import type {
   VoiceConfig,
   AgentError,
   AgentEvent,
-  AgentEventListener
+  AgentEventListener,
 } from '../types/agents';
-import type {
-  PedagogicalSettings,
-  StudentProfile
-} from '../types/pedagogical';
+import type { PedagogicalSettings, StudentProfile } from '../types/pedagogical';
 
 // =====================================================
 // Clase AgentCoordinator
@@ -32,11 +29,7 @@ export class AgentCoordinator {
   private currentContext: FullContext | null = null;
   private audioMuted: boolean = true; // Audio desactivado por defecto
 
-  constructor(
-    voiceAgent?: VoiceAgent,
-    ragAgent?: RAGAgent,
-    contextAgent?: ContextAgent
-  ) {
+  constructor(voiceAgent?: VoiceAgent, ragAgent?: RAGAgent, contextAgent?: ContextAgent) {
     this.voiceAgent = voiceAgent || new VoiceAgent();
     this.ragAgent = ragAgent || new RAGAgent();
     this.contextAgent = contextAgent || new ContextAgent();
@@ -57,12 +50,12 @@ export class AgentCoordinator {
     try {
       console.log('🔄 AgentCoordinator.initialize - Paso 1: Creando conversación...');
       // Inicializar contexto de conversación (con timeout y fallback)
-      const conversation = await Promise.race([
+      const conversation = (await Promise.race([
         this.contextAgent.initConversation(studentId, courseId),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Timeout en initConversation')), 8000)
-        )
-      ]) as any;
+        ),
+      ])) as any;
 
       console.log('🔄 AgentCoordinator.initialize - Paso 2: Obteniendo contexto pedagógico...');
 
@@ -79,7 +72,7 @@ export class AgentCoordinator {
         voiceName: 'Kore',
         voiceSpeed: 1.0,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       const defaultStudentProfile = {
@@ -91,7 +84,7 @@ export class AgentCoordinator {
         avgSessionDuration: 0,
         topicsStruggled: [],
         topicsMastered: [],
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       };
 
       // Obtener contexto pedagógico y del estudiante (con timeouts individuales)
@@ -103,7 +96,7 @@ export class AgentCoordinator {
           this.contextAgent.getPedagogicalContext(courseId),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Timeout en getPedagogicalContext')), 5000)
-          )
+          ),
         ]);
       } catch (error) {
         console.warn('⚠️ Error obteniendo contexto pedagógico, usando valores por defecto:', error);
@@ -115,10 +108,13 @@ export class AgentCoordinator {
           this.contextAgent.getStudentContext(studentId, courseId),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Timeout en getStudentContext')), 5000)
-          )
+          ),
         ]);
       } catch (error) {
-        console.warn('⚠️ Error obteniendo perfil de estudiante, usando valores por defecto:', error);
+        console.warn(
+          '⚠️ Error obteniendo perfil de estudiante, usando valores por defecto:',
+          error
+        );
         studentProfile = defaultStudentProfile;
       }
 
@@ -129,7 +125,7 @@ export class AgentCoordinator {
         console.log('📊 AgentCoordinator - Enriqueciendo perfil con datos comprehensivos');
         studentProfile = {
           ...studentProfile,
-          comprehensiveData: options.comprehensiveData
+          comprehensiveData: options.comprehensiveData,
         };
       }
 
@@ -138,33 +134,32 @@ export class AgentCoordinator {
         user: {
           id: user.id,
           role: user.role?.name || 'student',
-          name: `${user.first_name} ${user.last_name}`.trim()
+          name: `${user.first_name} ${user.last_name}`.trim(),
         },
         course: {
           id: courseId,
           name: 'Curso', // Se obtendría de la base de datos
           teacherId: pedagogicalSettings.teacherId,
-          moduleId: options?.moduleId
+          moduleId: options?.moduleId,
         },
         pedagogical: pedagogicalSettings,
         student: studentProfile,
         conversation,
-        recentMessages: []
+        recentMessages: [],
       };
 
       // Configurar voz según preferencias pedagógicas
       this.voiceAgent.updateVoiceConfig({
         voiceName: pedagogicalSettings.voiceName,
-        speed: pedagogicalSettings.voiceSpeed
+        speed: pedagogicalSettings.voiceSpeed,
       });
 
       this.emitEvent({
         type: 'message_sent',
         agent: 'coordinator',
         data: { action: 'initialized', conversationId: conversation.id },
-        timestamp: new Date()
+        timestamp: new Date(),
       });
-
     } catch (error) {
       console.error('Error initializing agent system:', error);
       throw error;
@@ -175,6 +170,13 @@ export class AgentCoordinator {
    * Maneja la entrada del usuario (texto o audio)
    */
   private cancelCurrentRequest: boolean = false;
+
+  /**
+   * Detiene la entrada de voz en curso
+   */
+  stopVoiceInput(): void {
+    this.voiceAgent.stopListening();
+  }
 
   /**
    * Cancela la solicitud actual en curso
@@ -199,7 +201,7 @@ export class AgentCoordinator {
       // Si ya hay una solicitud en curso, cancelarla primero
       this.cancelCurrentResponse();
       // Esperar un momento antes de procesar la nueva
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
 
     this.isProcessing = true;
@@ -219,12 +221,13 @@ export class AgentCoordinator {
           // porque no tenemos el texto del mensaje
           return {
             success: false,
-            message: 'Error en el reconocimiento de voz. Por favor, escribe tu mensaje en el campo de texto.',
+            message:
+              'Error en el reconocimiento de voz. Por favor, escribe tu mensaje en el campo de texto.',
             metadata: {
               error: error instanceof Error ? error.message : 'Unknown error',
-              userMessage: null // No hay mensaje reconocido
+              userMessage: null, // No hay mensaje reconocido
             },
-            agentUsed: 'voice'
+            agentUsed: 'voice',
           };
         }
       } else {
@@ -234,7 +237,9 @@ export class AgentCoordinator {
           console.log('📝 Mensaje de texto recibido:', userMessage?.substring(0, 50));
         } else {
           // Si es Blob pero no es audio, convertir a string (no debería pasar normalmente)
-          console.warn('⚠️ AgentCoordinator: Blob recibido pero no es audio, intentando procesar como texto');
+          console.warn(
+            '⚠️ AgentCoordinator: Blob recibido pero no es audio, intentando procesar como texto'
+          );
           userMessage = '';
         }
       }
@@ -251,9 +256,9 @@ export class AgentCoordinator {
           message: 'No se pudo procesar tu mensaje. Por favor, inténtalo de nuevo.',
           metadata: {
             error: 'Empty input',
-            userMessage: null // No hay mensaje
+            userMessage: null, // No hay mensaje
           },
-          agentUsed: 'voice'
+          agentUsed: 'voice',
         };
       }
 
@@ -263,7 +268,7 @@ export class AgentCoordinator {
         role: 'user' as const,
         text: userMessage,
         timestamp: new Date(),
-        metadata: {}
+        metadata: {},
       };
 
       // Agregar a la conversación
@@ -280,14 +285,14 @@ export class AgentCoordinator {
         conversationId: this.currentContext!.conversation.id,
         pedagogicalSettings: this.currentContext!.pedagogical,
         studentProfile: this.currentContext!.student,
-        recentMessages: contextWindow.messages
+        recentMessages: contextWindow.messages,
       };
 
       console.log('🔗 AgentCoordinator - Enviando consulta al RAG:', {
         userMessage: userMessage.substring(0, 50),
         courseId: conversationContext.courseId,
         moduleId: conversationContext.moduleId,
-        studentId: conversationContext.studentId
+        studentId: conversationContext.studentId,
       });
 
       // Verificar si se canceló antes de obtener respuesta
@@ -308,7 +313,7 @@ export class AgentCoordinator {
       console.log('📥 AgentCoordinator - Respuesta del RAG recibida:', {
         answerLength: ragResponse.answer?.length,
         confidence: ragResponse.confidence,
-        sourcesCount: ragResponse.sources?.length
+        sourcesCount: ragResponse.sources?.length,
       });
 
       // Aplicar personalización del estudiante
@@ -333,12 +338,12 @@ export class AgentCoordinator {
           confidence: ragResponse.confidence,
           sources: ragResponse.sources,
           sourceMetadata: ragResponse.metadata?.sourceMetadata ?? [],
-          contextUsed: ragResponse.context
-        }
+          contextUsed: ragResponse.context,
+        },
       };
 
       // Agregar respuesta a la conversación (no bloqueante)
-      this.contextAgent.addMessage(assistantMessage).catch(err => {
+      this.contextAgent.addMessage(assistantMessage).catch((err) => {
         console.warn('Error agregando mensaje a conversación:', err);
       });
 
@@ -353,13 +358,19 @@ export class AgentCoordinator {
         });
 
         // Ejecutar síntesis de voz en background sin bloquear
-        this.voiceAgent.speak(personalizedResponse).then(() => {
-          audioUrl = 'generated-audio-url';
-          console.log('✅ AgentCoordinator: Audio expresivo generado y reproducido exitosamente');
-        }).catch((audioError) => {
-          // No es crítico si falla el audio - el sistema continúa funcionando
-          console.warn('⚠️ AgentCoordinator: Audio no disponible - continuando sin audio', audioError?.message || audioError);
-        });
+        this.voiceAgent
+          .speak(personalizedResponse)
+          .then(() => {
+            audioUrl = 'generated-audio-url';
+            console.log('✅ AgentCoordinator: Audio expresivo generado y reproducido exitosamente');
+          })
+          .catch((audioError) => {
+            // No es crítico si falla el audio - el sistema continúa funcionando
+            console.warn(
+              '⚠️ AgentCoordinator: Audio no disponible - continuando sin audio',
+              audioError?.message || audioError
+            );
+          });
       } else {
         console.warn('⚠️ AgentCoordinator: Audio deshabilitado', {
           voiceReady: this.voiceAgent.isReady(),
@@ -369,7 +380,7 @@ export class AgentCoordinator {
 
       // Actualizar progreso del estudiante en background (NO bloqueante)
       // Esto no debe retrasar la respuesta al usuario
-      this.updateStudentProgress(userMessage, personalizedResponse).catch(err => {
+      this.updateStudentProgress(userMessage, personalizedResponse).catch((err) => {
         console.warn('Error actualizando progreso del estudiante:', err);
       });
 
@@ -379,9 +390,9 @@ export class AgentCoordinator {
         data: {
           userMessage,
           response: personalizedResponse,
-          confidence: ragResponse.confidence
+          confidence: ragResponse.confidence,
         },
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       this.isProcessing = false;
@@ -396,11 +407,10 @@ export class AgentCoordinator {
           sourceMetadata: ragResponse.metadata?.sourceMetadata ?? [],
           contextUsed: ragResponse.context,
           agentUsed: 'rag',
-          userMessage: userMessage // Incluir el texto del mensaje del usuario para mostrarlo en el chat
+          userMessage: userMessage, // Incluir el texto del mensaje del usuario para mostrarlo en el chat
         },
-        agentUsed: 'rag'
+        agentUsed: 'rag',
       };
-
     } catch (error) {
       this.isProcessing = false;
       console.error('Error handling user input:', error);
@@ -411,7 +421,7 @@ export class AgentCoordinator {
         type: 'error_occurred',
         agent: 'coordinator',
         data: { error: error instanceof Error ? error.message : 'Unknown error' },
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       return errorResponse;
@@ -427,7 +437,7 @@ export class AgentCoordinator {
       message: error.message,
       agent: 'coordinator',
       timestamp: new Date(),
-      recoverable: true
+      recoverable: true,
     };
 
     // Intentar recuperación si es posible
@@ -446,9 +456,9 @@ export class AgentCoordinator {
       metadata: {
         error: error.message,
         code: agentError.code,
-        recoverable: agentError.recoverable
+        recoverable: agentError.recoverable,
       },
-      agentUsed: 'coordinator'
+      agentUsed: 'coordinator',
     };
   }
 
@@ -456,11 +466,7 @@ export class AgentCoordinator {
    * Verifica si un error es recuperable
    */
   private canRecover(error: AgentError): boolean {
-    const recoverableErrors = [
-      'NETWORK_ERROR',
-      'TIMEOUT_ERROR',
-      'RATE_LIMIT_ERROR'
-    ];
+    const recoverableErrors = ['NETWORK_ERROR', 'TIMEOUT_ERROR', 'RATE_LIMIT_ERROR'];
 
     return recoverableErrors.includes(error.code) && error.recoverable;
   }
@@ -477,9 +483,9 @@ export class AgentCoordinator {
       message: 'Error temporal. Por favor, inténtalo de nuevo.',
       metadata: {
         error: error.message,
-        recoveryAttempted: true
+        recoveryAttempted: true,
       },
-      agentUsed: 'coordinator'
+      agentUsed: 'coordinator',
     };
   }
 
@@ -499,7 +505,7 @@ export class AgentCoordinator {
       // Actualizar contador de interacciones
       const updatedProfile: Partial<StudentProfile> = {
         interactionCount: progress.interactionCount + 1,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       };
 
       // Detectar temas de dificultad o maestría basado en la conversación
@@ -508,14 +514,14 @@ export class AgentCoordinator {
       if (this.detectStrugglingTopics(userMessage, assistantResponse)) {
         updatedProfile.topicsStruggled = [
           ...this.currentContext.student.topicsStruggled,
-          ...topics
+          ...topics,
         ].filter((topic, index, arr) => arr.indexOf(topic) === index);
       }
 
       if (this.detectMasteredTopics(userMessage, assistantResponse)) {
         updatedProfile.topicsMastered = [
           ...this.currentContext.student.topicsMastered,
-          ...topics
+          ...topics,
         ].filter((topic, index, arr) => arr.indexOf(topic) === index);
       }
 
@@ -525,7 +531,6 @@ export class AgentCoordinator {
         this.currentContext.course.id,
         updatedProfile
       );
-
     } catch (error) {
       console.error('Error updating student progress:', error);
     }
@@ -537,11 +542,18 @@ export class AgentCoordinator {
   private extractTopicsFromConversation(userMessage: string, assistantResponse: string): string[] {
     const allText = `${userMessage} ${assistantResponse}`.toLowerCase();
     const educationKeywords = [
-      'matemáticas', 'algebra', 'geometría', 'física', 'química',
-      'biología', 'historia', 'literatura', 'programación'
+      'matemáticas',
+      'algebra',
+      'geometría',
+      'física',
+      'química',
+      'biología',
+      'historia',
+      'literatura',
+      'programación',
     ];
 
-    return educationKeywords.filter(keyword => allText.includes(keyword));
+    return educationKeywords.filter((keyword) => allText.includes(keyword));
   }
 
   /**
@@ -549,13 +561,16 @@ export class AgentCoordinator {
    */
   private detectStrugglingTopics(userMessage: string, assistantResponse: string): boolean {
     const strugglingIndicators = [
-      'no entiendo', 'no comprendo', 'confuso', 'difícil',
-      'complicado', 'ayuda', 'explica mejor'
+      'no entiendo',
+      'no comprendo',
+      'confuso',
+      'difícil',
+      'complicado',
+      'ayuda',
+      'explica mejor',
     ];
 
-    return strugglingIndicators.some(indicator =>
-      userMessage.toLowerCase().includes(indicator)
-    );
+    return strugglingIndicators.some((indicator) => userMessage.toLowerCase().includes(indicator));
   }
 
   /**
@@ -563,13 +578,16 @@ export class AgentCoordinator {
    */
   private detectMasteredTopics(userMessage: string, assistantResponse: string): boolean {
     const masteryIndicators = [
-      'entendido', 'claro', 'perfecto', 'ahora sí',
-      'comprendo', 'fácil', 'obvio'
+      'entendido',
+      'claro',
+      'perfecto',
+      'ahora sí',
+      'comprendo',
+      'fácil',
+      'obvio',
     ];
 
-    return masteryIndicators.some(indicator =>
-      userMessage.toLowerCase().includes(indicator)
-    );
+    return masteryIndicators.some((indicator) => userMessage.toLowerCase().includes(indicator));
   }
 
   /**
@@ -585,7 +603,7 @@ export class AgentCoordinator {
       isProcessing: this.isProcessing,
       voiceAgent: this.voiceAgent.getStatus(),
       contextAgent: this.contextAgent.getCurrentConversation(),
-      currentContext: this.currentContext
+      currentContext: this.currentContext,
     };
   }
 
@@ -610,7 +628,7 @@ export class AgentCoordinator {
    * Emite un evento a todos los listeners
    */
   private emitEvent(event: AgentEvent): void {
-    this.eventListeners.forEach(listener => {
+    this.eventListeners.forEach((listener) => {
       try {
         listener(event);
       } catch (error) {

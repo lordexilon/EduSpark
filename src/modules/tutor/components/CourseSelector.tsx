@@ -4,7 +4,7 @@
 // =====================================================
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from "../lib/supabase-shared";
+import { supabase } from '../lib/supabase-shared';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserInstitution } from '@/hooks/useUserInstitution';
 
@@ -29,7 +29,7 @@ export const CourseSelector: React.FC<CourseSelectorProps> = ({
   selectedCourseId,
   onCourseSelect,
   isLoading = false,
-  disabled = false
+  disabled = false,
 }) => {
   const { user } = useAuth();
   const { institution } = useUserInstitution();
@@ -38,7 +38,8 @@ export const CourseSelector: React.FC<CourseSelectorProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // Determinar si debemos filtrar por institución
-  const shouldFilterByInstitution = user?.role?.name &&
+  const shouldFilterByInstitution =
+    user?.role?.name &&
     ['supervisor', 'admin-campus', 'coordinator', 'teacher'].includes(user.role.name);
   const isAdmin = user?.role?.name === 'admin';
 
@@ -60,13 +61,14 @@ export const CourseSelector: React.FC<CourseSelectorProps> = ({
         userRole: user?.role?.name,
         institutionId: institution?.id,
         shouldFilterByInstitution,
-        isAdmin
+        isAdmin,
       });
 
       // Construir la consulta base
       let query = supabase
         .from('courses')
-        .select(`
+        .select(
+          `
           id,
           title,
           code,
@@ -75,7 +77,8 @@ export const CourseSelector: React.FC<CourseSelectorProps> = ({
           institution_id,
           users!courses_teacher_id_fkey(first_name, last_name),
           course_pedagogical_settings(voice_name)
-        `)
+        `
+        )
         .eq('status', 'active');
 
       // Filtrar por institución si es necesario
@@ -85,8 +88,9 @@ export const CourseSelector: React.FC<CourseSelectorProps> = ({
       }
 
       // Ordenar y ejecutar
-      const { data: coursesData, error: coursesError } = await query
-        .order('created_at', { ascending: false });
+      const { data: coursesData, error: coursesError } = await query.order('created_at', {
+        ascending: false,
+      });
 
       if (coursesError) {
         console.error('❌ CourseSelector: Error al cargar cursos', coursesError);
@@ -96,7 +100,10 @@ export const CourseSelector: React.FC<CourseSelectorProps> = ({
       console.log('📚 CourseSelector: Resultado de consulta', {
         totalCursos: coursesData?.length || 0,
         cursos: coursesData,
-        filtroAplicado: shouldFilterByInstitution && institution?.id ? `institution_id = ${institution.id}` : 'ninguno'
+        filtroAplicado:
+          shouldFilterByInstitution && institution?.id
+            ? `institution_id = ${institution.id}`
+            : 'ninguno',
       });
 
       if (!coursesData || coursesData.length === 0) {
@@ -104,7 +111,7 @@ export const CourseSelector: React.FC<CourseSelectorProps> = ({
           filtroInstitucion: shouldFilterByInstitution,
           institutionId: institution?.id,
           isAdmin,
-          query: query
+          query: query,
         });
         setCourses([]);
         return;
@@ -118,9 +125,12 @@ export const CourseSelector: React.FC<CourseSelectorProps> = ({
         title: course.title || 'Sin título',
         code: course.code || `CURSO-${course.id}`,
         description: course.description || 'Sin descripción',
-        teacherName: course.users ? `${course.users.first_name} ${course.users.last_name}` : 'Docente',
+        teacherName: course.users
+          ? `${course.users.first_name} ${course.users.last_name}`
+          : 'Docente',
         tutorName: course.course_pedagogical_settings?.[0]?.voice_name || 'Kore',
-        coverImageUrl: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=300&h=200&fit=crop'
+        coverImageUrl:
+          'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=300&h=200&fit=crop',
       }));
 
       setCourses(courses);
@@ -168,19 +178,18 @@ export const CourseSelector: React.FC<CourseSelectorProps> = ({
 
   return (
     <div className="bg-slate-800 rounded-lg p-6">
-      <h3 className="text-xl font-semibold text-white mb-4">
-        Selecciona un Curso
-      </h3>
+      <h3 className="text-xl font-semibold text-white mb-4">Selecciona un Curso</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {courses.map((course) => (
           <div
             key={course.id}
             onClick={() => handleCourseSelect(course.id)}
-            className={`relative bg-white dark:bg-slate-700 rounded-xl p-4 cursor-pointer transition-all duration-300 border border-slate-200 dark:border-slate-600 ${selectedCourseId === course.id
-              ? 'ring-2 ring-blue-500 shadow-md transform scale-[1.02]'
-              : 'hover:shadow-lg hover:-translate-y-1 hover:border-blue-300 dark:hover:border-blue-500'
-              } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`relative bg-white dark:bg-slate-700 rounded-xl p-4 cursor-pointer transition-all duration-300 border border-slate-200 dark:border-slate-600 ${
+              selectedCourseId === course.id
+                ? 'ring-2 ring-blue-500 shadow-md transform scale-[1.02]'
+                : 'hover:shadow-lg hover:-translate-y-1 hover:border-blue-300 dark:hover:border-blue-500'
+            } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {/* Imagen del curso */}
             <div className="aspect-video bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg mb-4 overflow-hidden relative group">
@@ -199,9 +208,7 @@ export const CourseSelector: React.FC<CourseSelectorProps> = ({
               {/* Badge de Tutor */}
               <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-md flex items-center gap-1.5 border border-white/10">
                 <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                <span className="text-xs font-medium text-white">
-                  {course.tutorName || 'Kore'}
-                </span>
+                <span className="text-xs font-medium text-white">{course.tutorName || 'Kore'}</span>
               </div>
             </div>
 
@@ -231,9 +238,7 @@ export const CourseSelector: React.FC<CourseSelectorProps> = ({
 
                 <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
                   <span className="bg-blue-100 dark:bg-blue-900/30 p-1 rounded-full">🤖</span>
-                  <span className="font-medium">
-                    {course.tutorName || 'Kore'}
-                  </span>
+                  <span className="font-medium">{course.tutorName || 'Kore'}</span>
                 </div>
               </div>
             </div>
@@ -242,8 +247,18 @@ export const CourseSelector: React.FC<CourseSelectorProps> = ({
             {selectedCourseId === course.id && (
               <div className="absolute top-3 right-3 z-10">
                 <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg transform transition-transform duration-300 scale-110">
-                  <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-3.5 h-3.5 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                 </div>
               </div>
@@ -275,4 +290,3 @@ export const CourseSelector: React.FC<CourseSelectorProps> = ({
     </div>
   );
 };
-

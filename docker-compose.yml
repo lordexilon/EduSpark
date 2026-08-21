@@ -1,4 +1,4 @@
-version: '3.8'
+
 
 services:
   # Frontend - Vite App con Nginx
@@ -43,6 +43,37 @@ services:
       retries: 3
       start_period: 40s
 
+  # AISpark Core - Langflow
+  langflow:
+    image: langflowai/langflow:latest
+    ports:
+      - "7860:7860"
+    environment:
+      - LANGFLOW_HOST=0.0.0.0
+      - LANGFLOW_SUPERUSER=admin
+      - LANGFLOW_SUPERUSER_PASSWORD=admin12345
+      - LANGFLOW_SSRF_ALLOWED_HOSTS=host.docker.internal
+      - LANGFLOW_AUTO_LOGIN=true
+      - LANGFLOW_SKIP_AUTH_AUTO_LOGIN=true
+      # Persist LangFlow in the local Supabase Postgres instance.
+      # A dedicated database keeps LangFlow metadata isolated from EduSpark.
+      - LANGFLOW_DATABASE_URL=${LANGFLOW_DATABASE_URL:-postgresql://postgres:postgres@supabase_db_eduspark-lms-local:5432/langflow}
+      # You can add API keys here for Langflow to use automatically
+      # - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - langflow-data:/app/langflow
+      - .:/data/documents
+    restart: unless-stopped
+    networks:
+      - eduspark-network
+      - supabase_network_eduspark-lms-local
+
+volumes:
+  langflow-data:
+
+
 networks:
   eduspark-network:
     driver: bridge
+  supabase_network_eduspark-lms-local:
+    external: true

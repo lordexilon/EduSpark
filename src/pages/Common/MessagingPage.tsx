@@ -9,7 +9,15 @@ import { studentService } from '@/services/studentService';
 import Card from '@/components/Common/Card';
 import ChatWindow from '@/components/Features/ChatWindow';
 import Button from '@/components/Common/Button';
-import { IconPhone, IconVideoCamera, IconArrowLeft, IconSearch, IconX, IconMenu, IconMessage } from '@/components/Common/Icons';
+import {
+  IconPhone,
+  IconVideoCamera,
+  IconArrowLeft,
+  IconSearch,
+  IconX,
+  IconMenu,
+  IconMessage,
+} from '@/components/Common/Icons';
 
 const MessagingPage: React.FC = () => {
   const { user } = useAuth();
@@ -17,7 +25,9 @@ const MessagingPage: React.FC = () => {
   // Derived state for role checks (case insensitive)
   // Derived state for role checks (case insensitive)
   const userRole = user?.role?.name?.toLowerCase();
-  const isAdminLike = ['admin', 'admin-campus', 'coordinator', 'supervisor'].includes(userRole || '');
+  const isAdminLike = ['admin', 'admin-campus', 'coordinator', 'supervisor'].includes(
+    userRole || ''
+  );
   const isTeacher = userRole === 'teacher';
   const isTeacherOrAdmin = isTeacher || isAdminLike;
   const isStudent = userRole === 'student';
@@ -44,30 +54,35 @@ const MessagingPage: React.FC = () => {
       }
 
       // Suscribirse a nuevas conversaciones y actualizaciones en tiempo real
-      messagingService.subscribeToConversations((conversation) => {
-        setConversations((prev) => {
-          const index = prev.findIndex(c => c.id === conversation.id);
-          if (index >= 0) {
-            // Actualizar conversación existente
-            const updated = [...prev];
-            updated[index] = conversation;
-            return updated.sort((a, b) =>
-              new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
-            );
-          } else {
-            // Agregar nueva conversación
-            return [conversation, ...prev].sort((a, b) =>
-              new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
-            );
+      messagingService
+        .subscribeToConversations((conversation) => {
+          setConversations((prev) => {
+            const index = prev.findIndex((c) => c.id === conversation.id);
+            if (index >= 0) {
+              // Actualizar conversación existente
+              const updated = [...prev];
+              updated[index] = conversation;
+              return updated.sort(
+                (a, b) =>
+                  new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
+              );
+            } else {
+              // Agregar nueva conversación
+              return [conversation, ...prev].sort(
+                (a, b) =>
+                  new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
+              );
+            }
+          });
+        })
+        .then((subscription) => {
+          if (subscription) {
+            subscriptionRef.current = subscription;
           }
+        })
+        .catch((error) => {
+          console.error('Error subscribing to conversations:', error);
         });
-      }).then((subscription) => {
-        if (subscription) {
-          subscriptionRef.current = subscription;
-        }
-      }).catch((error) => {
-        console.error('Error subscribing to conversations:', error);
-      });
 
       return () => {
         if (subscriptionRef.current) {
@@ -120,10 +135,11 @@ const MessagingPage: React.FC = () => {
             .eq('status', 'active');
 
           if (enrollments && enrollments.length > 0) {
-            const studentIds = enrollments.map(e => e.student_id);
+            const studentIds = enrollments.map((e) => e.student_id);
             const { data: students } = await supabase
               .from('users')
-              .select(`
+              .select(
+                `
                 id,
                 first_name,
                 last_name,
@@ -131,14 +147,15 @@ const MessagingPage: React.FC = () => {
                 avatar_url,
                 role_id,
                 roles(id, name)
-              `)
+              `
+              )
               .in('id', studentIds);
             // .eq('role_id', 1); // Removed strict check to rely on enrollment
 
             setAvailableUsers(
-              (students || []).map(s => ({
+              (students || []).map((s) => ({
                 ...s,
-                role: s.roles
+                role: s.roles,
               }))
             );
           } else {
@@ -161,7 +178,7 @@ const MessagingPage: React.FC = () => {
         console.log('📚 Inscripciones encontradas:', enrollments);
 
         if (enrollments && enrollments.length > 0) {
-          const courseIds = enrollments.map(e => e.course_id);
+          const courseIds = enrollments.map((e) => e.course_id);
           console.log('🎓 IDs de cursos:', courseIds);
 
           // 1. Obtener docentes de los cursos
@@ -173,7 +190,9 @@ const MessagingPage: React.FC = () => {
           if (coursesError) console.error('❌ Error fetching courses:', coursesError);
           console.log('🏫 Cursos encontrados:', courses);
 
-          const teacherIds = courses ? [...new Set(courses.map(c => c.teacher_id).filter(id => id))] : [];
+          const teacherIds = courses
+            ? [...new Set(courses.map((c) => c.teacher_id).filter((id) => id))]
+            : [];
           console.log('👨‍🏫 IDs de docentes:', teacherIds);
 
           // 2. Obtener compañeros de clase (otros estudiantes en los mismos cursos)
@@ -186,7 +205,9 @@ const MessagingPage: React.FC = () => {
 
           if (classmatesError) console.error('❌ Error fetching classmates:', classmatesError);
 
-          const classmateIds = classmatesEnrollments ? [...new Set(classmatesEnrollments.map(e => e.student_id))] : [];
+          const classmateIds = classmatesEnrollments
+            ? [...new Set(classmatesEnrollments.map((e) => e.student_id))]
+            : [];
           console.log('👥 IDs de compañeros:', classmateIds);
 
           // Combinar IDs de docentes y compañeros
@@ -200,11 +221,11 @@ const MessagingPage: React.FC = () => {
             console.log('✅ Usuarios encontrados (detalles service):', users);
 
             const usersMap = new Map();
-            (users || []).forEach(u => {
+            (users || []).forEach((u) => {
               usersMap.set(u.id, {
                 ...u,
                 // Ensure role structure - service provides standardized 'role' property
-                role: u.role || u.roles || { name: 'Unknown' }
+                role: u.role || u.roles || { name: 'Unknown' },
               });
             });
 
@@ -301,12 +322,10 @@ const MessagingPage: React.FC = () => {
               {conversations.length === 0 ? (
                 <div className="p-8 text-center">
                   <IconMessage className="mx-auto h-12 w-12 text-text-light opacity-30" />
-                  <p className="mt-2 text-sm text-text-light opacity-70">No tienes conversaciones</p>
-                  <Button
-                    onClick={() => setShowNewChatModal(true)}
-                    className="mt-4"
-                    size="sm"
-                  >
+                  <p className="mt-2 text-sm text-text-light opacity-70">
+                    No tienes conversaciones
+                  </p>
+                  <Button onClick={() => setShowNewChatModal(true)} className="mt-4" size="sm">
                     Iniciar conversación
                   </Button>
                 </div>
@@ -319,8 +338,9 @@ const MessagingPage: React.FC = () => {
                       <button
                         key={conversation.id}
                         onClick={() => setSelectedConversation(conversation)}
-                        className={`w-full p-4 text-left hover:bg-muted transition-colors ${isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''
-                          }`}
+                        className={`w-full p-4 text-left hover:bg-muted transition-colors ${
+                          isSelected ? 'bg-primary/5 border-l-4 border-l-primary' : ''
+                        }`}
                       >
                         <div className="flex items-start gap-3">
                           {otherUser?.avatar_url ? (
@@ -332,7 +352,8 @@ const MessagingPage: React.FC = () => {
                           ) : (
                             <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                               <span className="text-primary font-semibold">
-                                {otherUser?.first_name?.[0]}{otherUser?.last_name?.[0]}
+                                {otherUser?.first_name?.[0]}
+                                {otherUser?.last_name?.[0]}
                               </span>
                             </div>
                           )}
@@ -379,15 +400,27 @@ const MessagingPage: React.FC = () => {
             <Card className="h-full flex items-center justify-center bg-muted/30">
               <div className="text-center p-8">
                 <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm ring-4 ring-primary/5">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-12 w-12 text-primary"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    />
                   </svg>
                 </div>
                 <h3 className="text-xl font-bold text-text-dark mb-2">
                   ¡Hola, {user?.first_name}! 👋
                 </h3>
                 <p className="text-text-light opacity-70 max-w-sm mx-auto">
-                  Selecciona una conversación de la lista o inicia un nuevo chat para comunicarte con tus compañeros y docentes.
+                  Selecciona una conversación de la lista o inicia un nuevo chat para comunicarte
+                  con tus compañeros y docentes.
                 </p>
               </div>
             </Card>
@@ -403,9 +436,7 @@ const MessagingPage: React.FC = () => {
 
             {isTeacherOrAdmin && (
               <div className="mb-4">
-                <label className="block text-sm font-medium text-text-light mb-2">
-                  Curso
-                </label>
+                <label className="block text-sm font-medium text-text-light mb-2">Curso</label>
                 <select
                   value={selectedCourseId || ''}
                   onChange={(e) => {
@@ -457,9 +488,9 @@ const MessagingPage: React.FC = () => {
                   <p className="text-sm text-text-light opacity-50">
                     {selectedCourseId
                       ? 'No hay usuarios disponibles en este curso'
-                      : (isTeacherOrAdmin
+                      : isTeacherOrAdmin
                         ? 'Selecciona un curso para ver estudiantes'
-                        : 'No se encontraron usuarios disponibles')}
+                        : 'No se encontraron usuarios disponibles'}
                   </p>
                 </div>
               ) : (
@@ -471,7 +502,8 @@ const MessagingPage: React.FC = () => {
                   <option value="">Selecciona un usuario</option>
                   {availableUsers.map((u) => (
                     <option key={u.id} value={u.id}>
-                      {u.first_name} {u.last_name} ({u.role?.name?.toLowerCase() === 'student' ? 'Estudiante' : 'Docente'})
+                      {u.first_name} {u.last_name} (
+                      {u.role?.name?.toLowerCase() === 'student' ? 'Estudiante' : 'Docente'})
                     </option>
                   ))}
                 </select>

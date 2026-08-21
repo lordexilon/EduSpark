@@ -40,7 +40,7 @@ export const googleOAuthService = {
   getAuthorizationUrl(state?: string, services: ('calendar' | 'drive')[] = ['calendar']): string {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
     const redirectUri = this.getRedirectUri();
-    
+
     // Construir scopes según los servicios solicitados
     const scopes: string[] = [];
     if (services.includes('calendar')) {
@@ -52,9 +52,9 @@ export const googleOAuthService = {
       // 'drive' permite leer y escribir todos los archivos del Drive del usuario
       scopes.push('https://www.googleapis.com/auth/drive');
     }
-    
+
     const scope = scopes.join(' ');
-    
+
     if (!clientId) {
       throw new Error('VITE_GOOGLE_CLIENT_ID no está configurado en las variables de entorno');
     }
@@ -66,7 +66,7 @@ export const googleOAuthService = {
       scope: scope,
       access_type: 'offline', // Necesario para obtener refresh_token
       prompt: 'consent', // Forzar consentimiento para obtener refresh_token
-      ...(state ? { state } : {})
+      ...(state ? { state } : {}),
     });
 
     return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
@@ -130,7 +130,7 @@ export const googleOAuthService = {
     const hasCalendar = scope.includes('calendar');
     const hasDrive = scope.includes('drive');
     let finalServiceType = serviceType;
-    
+
     if (hasCalendar && hasDrive) {
       finalServiceType = 'both';
     } else if (hasDrive) {
@@ -141,17 +141,20 @@ export const googleOAuthService = {
 
     const { data, error } = await supabase
       .from('user_google_tokens')
-      .upsert({
-        user_id: userId,
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        expires_at: expiresAt,
-        token_type: 'Bearer',
-        scope: scope,
-        service_type: finalServiceType,
-      }, {
-        onConflict: 'user_id,service_type'
-      })
+      .upsert(
+        {
+          user_id: userId,
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          expires_at: expiresAt,
+          token_type: 'Bearer',
+          scope: scope,
+          service_type: finalServiceType,
+        },
+        {
+          onConflict: 'user_id,service_type',
+        }
+      )
       .select()
       .single();
 
@@ -166,16 +169,13 @@ export const googleOAuthService = {
   async getAccessToken(userId: string, serviceType?: 'calendar' | 'drive'): Promise<string | null> {
     try {
       // Obtener token de la base de datos
-      let query = supabase
-        .from('user_google_tokens')
-        .select('*')
-        .eq('user_id', userId);
-      
+      let query = supabase.from('user_google_tokens').select('*').eq('user_id', userId);
+
       if (serviceType) {
         // Buscar token específico del servicio o 'both'
         query = query.in('service_type', [serviceType, 'both']);
       }
-      
+
       const { data: token, error } = await query.maybeSingle();
 
       if (error || !token) {
@@ -243,12 +243,12 @@ export const googleOAuthService = {
 
     const data = await response.json();
 
-          // Actualizar el token en la base de datos
-      const { data: tokenData } = await supabase
-        .from('user_google_tokens')
-        .select('user_id')
-        .eq('refresh_token', refreshToken)
-        .maybeSingle();
+    // Actualizar el token en la base de datos
+    const { data: tokenData } = await supabase
+      .from('user_google_tokens')
+      .select('user_id')
+      .eq('refresh_token', refreshToken)
+      .maybeSingle();
 
     if (tokenData) {
       const expiresAt = new Date(Date.now() + data.expires_in * 1000).toISOString();
@@ -281,15 +281,12 @@ export const googleOAuthService = {
    * @param serviceType - Tipo de servicio: 'calendar' o 'drive' (opcional, elimina todos si no se especifica)
    */
   async disconnectAccount(userId: string, serviceType?: 'calendar' | 'drive'): Promise<void> {
-    let query = supabase
-      .from('user_google_tokens')
-      .delete()
-      .eq('user_id', userId);
-    
+    let query = supabase.from('user_google_tokens').delete().eq('user_id', userId);
+
     if (serviceType) {
       query = query.in('service_type', [serviceType, 'both']);
     }
-    
+
     const { error } = await query;
 
     if (error) throw error;
@@ -299,16 +296,16 @@ export const googleOAuthService = {
    * Obtiene información del token del usuario
    * @param serviceType - Tipo de servicio: 'calendar' o 'drive' (opcional)
    */
-  async getTokenInfo(userId: string, serviceType?: 'calendar' | 'drive'): Promise<GoogleToken | null> {
-    let query = supabase
-      .from('user_google_tokens')
-      .select('*')
-      .eq('user_id', userId);
-    
+  async getTokenInfo(
+    userId: string,
+    serviceType?: 'calendar' | 'drive'
+  ): Promise<GoogleToken | null> {
+    let query = supabase.from('user_google_tokens').select('*').eq('user_id', userId);
+
     if (serviceType) {
       query = query.in('service_type', [serviceType, 'both']);
     }
-    
+
     const { data, error } = await query.maybeSingle();
 
     if (error || !data) return null;

@@ -38,7 +38,9 @@ export const learningOutcomeService = {
     return data || [];
   },
 
-  async create(row: Omit<LearningOutcome, 'id' | 'created_at' | 'updated_at'>): Promise<LearningOutcome> {
+  async create(
+    row: Omit<LearningOutcome, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<LearningOutcome> {
     const { data, error } = await supabase
       .from('learning_outcomes')
       .insert([row])
@@ -143,16 +145,13 @@ export const learningOutcomeService = {
       if (!publishedIds.has(att.assessment_id)) continue;
       const minPass = passingById.get(att.assessment_id) ?? 70;
       const pct = att.percentage != null ? Number(att.percentage) : null;
-      const ok =
-        att.is_passed === true || (pct != null && !Number.isNaN(pct) && pct >= minPass);
+      const ok = att.is_passed === true || (pct != null && !Number.isNaN(pct) && pct >= minPass);
       if (ok) passedAssessmentIds.add(att.assessment_id);
     }
 
     return los.map((lo) => {
       const aIds = loToAssessments.get(lo.id) || [];
-      const evidenced = aIds.some(
-        (aid) => publishedIds.has(aid) && passedAssessmentIds.has(aid)
-      );
+      const evidenced = aIds.some((aid) => publishedIds.has(aid) && passedAssessmentIds.has(aid));
       return { learningOutcome: lo, evidenced };
     });
   },
@@ -174,7 +173,7 @@ export const learningOutcomeService = {
           const rows = await this.getStudentProgress(cid, studentId);
           out[cid] = {
             total: rows.length,
-            evidenced: rows.filter((r) => r.evidenced).length
+            evidenced: rows.filter((r) => r.evidenced).length,
           };
         } catch {
           out[cid] = { total: 0, evidenced: 0 };
@@ -198,10 +197,10 @@ export const learningOutcomeService = {
     const rows = learningOutcomeIds.map((learning_outcome_id) => ({
       assessment_id: assessmentId,
       learning_outcome_id,
-      weight: 1.0
+      weight: 1.0,
     }));
 
     const { error: insErr } = await supabase.from('assessment_learning_outcomes').insert(rows);
     if (insErr) throw insErr;
-  }
+  },
 };

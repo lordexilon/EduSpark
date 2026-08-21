@@ -1,0 +1,1 @@
+export { EmbeddedChat } from './EmbeddedChat';

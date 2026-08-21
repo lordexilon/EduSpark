@@ -4,14 +4,26 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserInstitution } from '@/hooks/useUserInstitution';
-import { bulkUserImportService, BulkUserData, BulkImportResult } from '@/services/bulkUserImportService';
+import {
+  bulkUserImportService,
+  BulkUserData,
+  BulkImportResult,
+} from '@/services/bulkUserImportService';
 import { institutionService } from '@/services/institutionService';
 import { careerService } from '@/services/academicService';
 import { subjectService } from '@/services/academicService';
 import { courseService } from '@/services/teacherCourses';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
-import { IconUpload, IconFileText, IconUsers, IconCheck, IconX, IconXCircle, IconDownload } from '@/components/Common/Icons';
+import {
+  IconUpload,
+  IconFileText,
+  IconUsers,
+  IconCheck,
+  IconX,
+  IconXCircle,
+  IconDownload,
+} from '@/components/Common/Icons';
 
 const BulkUserImportPage: React.FC = () => {
   const { user } = useAuth();
@@ -28,7 +40,9 @@ const BulkUserImportPage: React.FC = () => {
   // Datos de referencia
   const [institutions, setInstitutions] = useState<Array<{ id: number; name: string }>>([]);
   const [careers, setCareers] = useState<Array<{ id: number; name: string }>>([]);
-  const [subjects, setSubjects] = useState<Array<{ id: number; name: string; career_id?: number }>>([]);
+  const [subjects, setSubjects] = useState<Array<{ id: number; name: string; career_id?: number }>>(
+    []
+  );
   const [courses, setCourses] = useState<Array<{ id: number; title: string }>>([]);
   const [loadingData, setLoadingData] = useState(true);
 
@@ -45,13 +59,13 @@ const BulkUserImportPage: React.FC = () => {
     subject_id: undefined,
     course_id: undefined,
     position: '',
-    skip_email_confirmation: true
+    skip_email_confirmation: true,
   });
 
   // Si es supervisor, pre-seleccionar su institución
   useEffect(() => {
     if (isSupervisor && institution) {
-      setFormData(prev => ({ ...prev, institution_id: institution.id }));
+      setFormData((prev) => ({ ...prev, institution_id: institution.id }));
     }
   }, [isSupervisor, institution]);
 
@@ -74,13 +88,13 @@ const BulkUserImportPage: React.FC = () => {
       const [careersData, subjectsData, coursesData] = await Promise.all([
         careerService.getActiveCareers().catch(() => []),
         subjectService.getAllSubjects().catch(() => []),
-        courseService.getMyCourses(user?.id || '').catch(() => [])
+        courseService.getMyCourses(user?.id || '').catch(() => []),
       ]);
 
-      setInstitutions(instData.map(i => ({ id: i.id, name: i.name })));
-      setCareers(careersData.map(c => ({ id: c.id, name: c.name })));
-      setSubjects(subjectsData.map(s => ({ id: s.id, name: s.name, career_id: s.career_id })));
-      setCourses(coursesData.map(c => ({ id: c.id, title: c.title })));
+      setInstitutions(instData.map((i) => ({ id: i.id, name: i.name })));
+      setCareers(careersData.map((c) => ({ id: c.id, name: c.name })));
+      setSubjects(subjectsData.map((s) => ({ id: s.id, name: s.name, career_id: s.career_id })));
+      setCourses(coursesData.map((c) => ({ id: c.id, title: c.title })));
     } catch (error: any) {
       console.error('Error cargando datos de referencia:', error);
       alert('Error cargando datos: ' + error.message);
@@ -110,7 +124,7 @@ const BulkUserImportPage: React.FC = () => {
       subject_id: undefined,
       course_id: undefined,
       position: '',
-      skip_email_confirmation: true
+      skip_email_confirmation: true,
     });
   };
 
@@ -168,7 +182,7 @@ const BulkUserImportPage: React.FC = () => {
   const processParsedUsers = async (parsedUsers: BulkUserData[]) => {
     // Si es supervisor, forzar institution_id para todos los usuarios
     if (isSupervisor && institution) {
-      parsedUsers.forEach(user => {
+      parsedUsers.forEach((user) => {
         user.institution_id = institution.id;
         user.institution_name = institution.name;
       });
@@ -189,7 +203,7 @@ const BulkUserImportPage: React.FC = () => {
 
     // Identificar usuarios por identity_document si está disponible
     const usersByIdentityDoc = new Map<string, BulkUserData>();
-    parsedUsers.forEach(user => {
+    parsedUsers.forEach((user) => {
       if (user.identity_document) {
         const doc = user.identity_document.trim();
         if (doc.length >= 4) {
@@ -206,7 +220,7 @@ const BulkUserImportPage: React.FC = () => {
       if (isSupervisor && institution && user.institution_id !== institution.id) {
         invalidUsers.push({
           email: user.email || user.identity_document || 'sin identificador',
-          errors: [`El usuario debe pertenecer a la institución "${institution.name}"`]
+          errors: [`El usuario debe pertenecer a la institución "${institution.name}"`],
         });
         continue;
       }
@@ -214,7 +228,7 @@ const BulkUserImportPage: React.FC = () => {
       if (!validation.valid) {
         invalidUsers.push({
           email: user.email || user.identity_document || 'sin identificador',
-          errors: validation.errors
+          errors: validation.errors,
         });
         continue;
       }
@@ -224,7 +238,7 @@ const BulkUserImportPage: React.FC = () => {
           email: user.email || user.identity_document || 'sin identificador',
           errors: user.institution_name
             ? [`Institución "${user.institution_name}" no encontrada`]
-            : ['Institución es requerida']
+            : ['Institución es requerida'],
         });
         continue;
       }
@@ -240,7 +254,7 @@ const BulkUserImportPage: React.FC = () => {
       if (!relationshipValidation.valid) {
         invalidUsers.push({
           email: user.email || user.identity_document || 'sin identificador',
-          errors: relationshipValidation.errors
+          errors: relationshipValidation.errors,
         });
         continue;
       }
@@ -260,7 +274,7 @@ const BulkUserImportPage: React.FC = () => {
       if (errors.length > 0) {
         invalidUsers.push({
           email: user.email || user.identity_document || 'sin identificador',
-          errors
+          errors,
         });
         continue;
       }
@@ -270,11 +284,14 @@ const BulkUserImportPage: React.FC = () => {
     }
 
     if (invalidUsers.length > 0) {
-      const errorMsg = `Se encontraron ${invalidUsers.length} usuario(s) con errores:\n\n` +
-        invalidUsers.map(u => {
-          const identifier = u.email || 'sin identificador';
-          return `- ${identifier}: ${u.errors.join(', ')}`;
-        }).join('\n');
+      const errorMsg =
+        `Se encontraron ${invalidUsers.length} usuario(s) con errores:\n\n` +
+        invalidUsers
+          .map((u) => {
+            const identifier = u.email || 'sin identificador';
+            return `- ${identifier}: ${u.errors.join(', ')}`;
+          })
+          .join('\n');
       alert(errorMsg);
     }
 
@@ -293,18 +310,20 @@ const BulkUserImportPage: React.FC = () => {
 
     // Si es supervisor, verificar que todos los usuarios pertenezcan a su institución
     if (isSupervisor && institution) {
-      const usersFromOtherInstitution = users.filter(u =>
-        u.institution_id && u.institution_id !== institution.id
+      const usersFromOtherInstitution = users.filter(
+        (u) => u.institution_id && u.institution_id !== institution.id
       );
 
       if (usersFromOtherInstitution.length > 0) {
-        alert(`Error: No puedes importar usuarios de otras instituciones.\n\n` +
-          `${usersFromOtherInstitution.length} usuario(s) no pertenecen a "${institution.name}"`);
+        alert(
+          `Error: No puedes importar usuarios de otras instituciones.\n\n` +
+            `${usersFromOtherInstitution.length} usuario(s) no pertenecen a "${institution.name}"`
+        );
         return;
       }
 
       // Forzar institution_id para todos los usuarios
-      users.forEach(user => {
+      users.forEach((user) => {
         user.institution_id = institution.id;
       });
     }
@@ -319,14 +338,22 @@ const BulkUserImportPage: React.FC = () => {
     );
 
     // Validar que todos tengan institution_id
-    const usersWithoutInstitution = resolvedUsers.filter(u => !u.institution_id);
+    const usersWithoutInstitution = resolvedUsers.filter((u) => !u.institution_id);
     if (usersWithoutInstitution.length > 0) {
-      alert(`Error: ${usersWithoutInstitution.length} usuario(s) no tienen institución válida:\n\n` +
-        usersWithoutInstitution.map(u => `- ${u.email}: Institución "${u.institution_name || 'N/A'}" no encontrada`).join('\n'));
+      alert(
+        `Error: ${usersWithoutInstitution.length} usuario(s) no tienen institución válida:\n\n` +
+          usersWithoutInstitution
+            .map((u) => `- ${u.email}: Institución "${u.institution_name || 'N/A'}" no encontrada`)
+            .join('\n')
+      );
       return;
     }
 
-    if (!confirm(`¿Estás seguro de importar ${users.length} usuario(s)?\n\nEsto creará los usuarios sin confirmación de email.`)) {
+    if (
+      !confirm(
+        `¿Estás seguro de importar ${users.length} usuario(s)?\n\nEsto creará los usuarios sin confirmación de email.`
+      )
+    ) {
       return;
     }
 
@@ -341,9 +368,9 @@ const BulkUserImportPage: React.FC = () => {
       if (result.success_count > 0) {
         alert(
           `✅ Importación completada:\n\n` +
-          `- Total: ${result.total}\n` +
-          `- Exitosos: ${result.success_count}\n` +
-          `- Fallidos: ${result.failed_count}`
+            `- Total: ${result.total}\n` +
+            `- Exitosos: ${result.success_count}\n` +
+            `- Fallidos: ${result.failed_count}`
         );
 
         // Limpiar lista si todo fue exitoso
@@ -378,61 +405,61 @@ const BulkUserImportPage: React.FC = () => {
       // Crear datos de ejemplo que muestren diferentes casos de uso válidos
       const data = [
         {
-          'email': 'usuario1@ejemplo.com',
-          'password': 'Password123!',
-          'first_name': 'Juan',
-          'last_name': 'Pérez',
-          'role': 'student',
-          'institution_name': 'Universidad Ejemplo',
-          'identity_document': '12345678',
-          'identity_document_type': 'DNI',
-          'career_name': 'Ingeniería en Sistemas',
-          'subject_name': '',
-          'course_name': '',
-          'position': ''
+          email: 'usuario1@ejemplo.com',
+          password: 'Password123!',
+          first_name: 'Juan',
+          last_name: 'Pérez',
+          role: 'student',
+          institution_name: 'Universidad Ejemplo',
+          identity_document: '12345678',
+          identity_document_type: 'DNI',
+          career_name: 'Ingeniería en Sistemas',
+          subject_name: '',
+          course_name: '',
+          position: '',
         },
         {
-          'email': 'usuario2@ejemplo.com',
-          'password': 'Password123!',
-          'first_name': 'María',
-          'last_name': 'González',
-          'role': 'teacher',
-          'institution_name': 'Universidad Ejemplo',
-          'identity_document': '87654321',
-          'identity_document_type': 'CEDULA',
-          'career_name': 'Ingeniería en Sistemas',
-          'subject_name': 'Matemáticas',
-          'course_name': 'Álgebra Lineal',
-          'position': 'Profesor de Matemáticas'
+          email: 'usuario2@ejemplo.com',
+          password: 'Password123!',
+          first_name: 'María',
+          last_name: 'González',
+          role: 'teacher',
+          institution_name: 'Universidad Ejemplo',
+          identity_document: '87654321',
+          identity_document_type: 'CEDULA',
+          career_name: 'Ingeniería en Sistemas',
+          subject_name: 'Matemáticas',
+          course_name: 'Álgebra Lineal',
+          position: 'Profesor de Matemáticas',
         },
         {
-          'email': 'usuario3@ejemplo.com',
-          'password': 'Password123!',
-          'first_name': 'Carlos',
-          'last_name': 'Rodríguez',
-          'role': 'student',
-          'institution_name': 'Universidad Ejemplo',
-          'identity_document': '11223344',
-          'identity_document_type': 'DNI',
-          'career_name': 'Ingeniería en Sistemas',
-          'subject_name': 'Programación',
-          'course_name': 'Programación I',
-          'position': ''
+          email: 'usuario3@ejemplo.com',
+          password: 'Password123!',
+          first_name: 'Carlos',
+          last_name: 'Rodríguez',
+          role: 'student',
+          institution_name: 'Universidad Ejemplo',
+          identity_document: '11223344',
+          identity_document_type: 'DNI',
+          career_name: 'Ingeniería en Sistemas',
+          subject_name: 'Programación',
+          course_name: 'Programación I',
+          position: '',
         },
         {
-          'email': 'usuario4@ejemplo.com',
-          'password': 'Password123!',
-          'first_name': 'Ana',
-          'last_name': 'Martínez',
-          'role': 'student',
-          'institution_name': 'Universidad Ejemplo',
-          'identity_document': '44332211',
-          'identity_document_type': 'DNI',
-          'career_name': 'Ingeniería en Sistemas',
-          'subject_name': '',
-          'course_name': 'Base de Datos',
-          'position': ''
-        }
+          email: 'usuario4@ejemplo.com',
+          password: 'Password123!',
+          first_name: 'Ana',
+          last_name: 'Martínez',
+          role: 'student',
+          institution_name: 'Universidad Ejemplo',
+          identity_document: '44332211',
+          identity_document_type: 'DNI',
+          career_name: 'Ingeniería en Sistemas',
+          subject_name: '',
+          course_name: 'Base de Datos',
+          position: '',
+        },
       ];
 
       // Crear workbook y worksheet
@@ -452,7 +479,7 @@ const BulkUserImportPage: React.FC = () => {
         { wch: 25 }, // career_name
         { wch: 20 }, // subject_name
         { wch: 20 }, // course_name
-        { wch: 25 }  // position
+        { wch: 25 }, // position
       ];
 
       // Agregar worksheet al workbook
@@ -469,7 +496,9 @@ const BulkUserImportPage: React.FC = () => {
         ['- institution_name: Nombre de la institución (REQUERIDO)'],
         [''],
         ['Columnas opcionales pero recomendadas:'],
-        ['- identity_document: Documento de identidad (DNI, cédula, etc.) - IDENTIFICADOR PRINCIPAL'],
+        [
+          '- identity_document: Documento de identidad (DNI, cédula, etc.) - IDENTIFICADOR PRINCIPAL',
+        ],
         ['  * Si se proporciona, se usa para buscar usuarios existentes antes que el email'],
         ['  * Debe tener al menos 4 caracteres, sin espacios'],
         ['  * Es único e irrepetible en el sistema'],
@@ -493,15 +522,21 @@ const BulkUserImportPage: React.FC = () => {
         ['1. Use NOMBRES en lugar de IDs para institución, carrera, materia y curso'],
         ['2. Los nombres deben coincidir exactamente con los registrados en el sistema'],
         ['3. El documento de identidad (identity_document) es el IDENTIFICADOR PRINCIPAL'],
-        ['   * Si un usuario ya existe con ese documento, se actualizará en lugar de crear uno nuevo'],
+        [
+          '   * Si un usuario ya existe con ese documento, se actualizará en lugar de crear uno nuevo',
+        ],
         ['   * Si no existe por documento, se buscará por email'],
         ['   * El documento de identidad es único e irrepetible'],
         ['4. Si no se proporciona password, se generará una automáticamente'],
         ['5. Los usuarios se crearán sin confirmación de email por defecto'],
         [''],
         ['VALIDACIÓN DE RELACIONES CARRERA-MATERIA-CURSO:'],
-        ['- Si proporciona carrera + materia + curso: se valida que curso pertenezca a materia y materia a carrera'],
-        ['- Si proporciona carrera + curso (sin materia): se valida que el curso pertenezca a una materia de esa carrera'],
+        [
+          '- Si proporciona carrera + materia + curso: se valida que curso pertenezca a materia y materia a carrera',
+        ],
+        [
+          '- Si proporciona carrera + curso (sin materia): se valida que el curso pertenezca a una materia de esa carrera',
+        ],
         ['- Si proporciona materia + carrera: se valida que la materia pertenezca a esa carrera'],
         ['- Si solo proporciona carrera: se asigna solo a la carrera (sin validar relaciones)'],
         [''],
@@ -509,17 +544,23 @@ const BulkUserImportPage: React.FC = () => {
         ['- Usuario 1: Estudiante con solo carrera (caso básico)'],
         ['- Usuario 2: Docente con carrera + materia + curso (relación completa, validada)'],
         ['- Usuario 3: Estudiante con carrera + materia + curso (relación completa, validada)'],
-        ['- Usuario 4: Estudiante con carrera + curso sin materia (se valida que curso pertenezca a materia de esa carrera)'],
+        [
+          '- Usuario 4: Estudiante con carrera + curso sin materia (se valida que curso pertenezca a materia de esa carrera)',
+        ],
         [''],
         ['IMPORTANTE SOBRE RELACIONES:'],
         ['Los ejemplos muestran diferentes combinaciones válidas. Asegúrate de que:'],
         ['- Si proporciona materia, debe pertenecer a la carrera especificada'],
         ['- Si proporciona curso, debe pertenecer a la materia especificada (si hay materia)'],
-        ['- Si proporciona curso sin materia, el curso debe pertenecer a una materia de la carrera'],
+        [
+          '- Si proporciona curso sin materia, el curso debe pertenecer a una materia de la carrera',
+        ],
         [''],
         ['Ejemplos de valores:'],
-        ['- role: student, teacher, admin, administrador, admin-campus, admin-campos, coordinator, coordinador'],
-        ['- identity_document_type: DNI, CEDULA, PASAPORTE, LICENCIA, OTRO']
+        [
+          '- role: student, teacher, admin, administrador, admin-campus, admin-campos, coordinator, coordinador',
+        ],
+        ['- identity_document_type: DNI, CEDULA, PASAPORTE, LICENCIA, OTRO'],
       ];
 
       const wsInstructions = XLSX.utils.aoa_to_sheet(instructionsData);
@@ -549,7 +590,9 @@ usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,4433
       link.click();
       document.body.removeChild(link);
 
-      alert('Se descargó la plantilla en formato CSV. Para Excel, asegúrate de tener la librería xlsx instalada.');
+      alert(
+        'Se descargó la plantilla en formato CSV. Para Excel, asegúrate de tener la librería xlsx instalada.'
+      );
     }
   };
 
@@ -575,30 +618,33 @@ usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,4433
         <div className="mb-6 flex gap-4">
           <button
             onClick={() => setImportMode('manual')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${importMode === 'manual'
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              importMode === 'manual'
                 ? 'bg-blue-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
+            }`}
           >
             <IconUsers className="w-5 h-5 inline mr-2" />
             Ingreso Manual
           </button>
           <button
             onClick={() => setImportMode('excel')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${importMode === 'excel'
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              importMode === 'excel'
                 ? 'bg-blue-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
+            }`}
           >
             <IconFileText className="w-5 h-5 inline mr-2" />
             Importar desde Excel
           </button>
           <button
             onClick={() => setImportMode('csv')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${importMode === 'csv'
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              importMode === 'csv'
                 ? 'bg-blue-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
+            }`}
           >
             <IconFileText className="w-5 h-5 inline mr-2" />
             Importar desde CSV
@@ -611,9 +657,7 @@ usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,4433
             <h2 className="text-xl font-semibold mb-4">Agregar Usuario Manualmente</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
                 <input
                   type="email"
                   value={formData.email}
@@ -634,9 +678,7 @@ usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,4433
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
                 <input
                   type="text"
                   value={formData.first_name}
@@ -646,9 +688,7 @@ usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,4433
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Apellido *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Apellido *</label>
                 <input
                   type="text"
                   value={formData.last_name}
@@ -663,10 +703,12 @@ usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,4433
                 </label>
                 <select
                   value={formData.identity_document_type || ''}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    identity_document_type: e.target.value || undefined as any
-                  })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      identity_document_type: e.target.value || (undefined as any),
+                    })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Seleccionar tipo</option>
@@ -693,9 +735,7 @@ usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,4433
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Rol *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Rol *</label>
                 <select
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
@@ -714,21 +754,31 @@ usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,4433
                 </label>
                 <select
                   value={formData.institution_id}
-                  onChange={(e) => setFormData({ ...formData, institution_id: parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, institution_id: parseInt(e.target.value) })
+                  }
                   disabled={isSupervisor && institution !== null}
-                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 ${isSupervisor && institution ? 'bg-gray-100 cursor-not-allowed' : ''
-                    }`}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    isSupervisor && institution ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`}
                   required
-                  title={isSupervisor && institution ? `Solo puedes importar usuarios a ${institution.name}` : ''}
+                  title={
+                    isSupervisor && institution
+                      ? `Solo puedes importar usuarios a ${institution.name}`
+                      : ''
+                  }
                 >
                   <option value="0">Seleccionar...</option>
-                  {institutions.map(inst => (
-                    <option key={inst.id} value={inst.id}>{inst.name}</option>
+                  {institutions.map((inst) => (
+                    <option key={inst.id} value={inst.id}>
+                      {inst.name}
+                    </option>
                   ))}
                 </select>
                 {isSupervisor && institution && (
                   <p className="text-sm text-gray-500 mt-1">
-                    Solo puedes importar usuarios a tu institución: <strong>{institution.name}</strong>
+                    Solo puedes importar usuarios a tu institución:{' '}
+                    <strong>{institution.name}</strong>
                   </p>
                 )}
               </div>
@@ -738,12 +788,19 @@ usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,4433
                 </label>
                 <select
                   value={formData.career_id || ''}
-                  onChange={(e) => setFormData({ ...formData, career_id: e.target.value ? parseInt(e.target.value) : undefined })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      career_id: e.target.value ? parseInt(e.target.value) : undefined,
+                    })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Ninguna</option>
-                  {careers.map(career => (
-                    <option key={career.id} value={career.id}>{career.name}</option>
+                  {careers.map((career) => (
+                    <option key={career.id} value={career.id}>
+                      {career.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -753,12 +810,19 @@ usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,4433
                 </label>
                 <select
                   value={formData.subject_id || ''}
-                  onChange={(e) => setFormData({ ...formData, subject_id: e.target.value ? parseInt(e.target.value) : undefined })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      subject_id: e.target.value ? parseInt(e.target.value) : undefined,
+                    })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Ninguna</option>
-                  {subjects.map(subject => (
-                    <option key={subject.id} value={subject.id}>{subject.name}</option>
+                  {subjects.map((subject) => (
+                    <option key={subject.id} value={subject.id}>
+                      {subject.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -768,12 +832,19 @@ usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,4433
                 </label>
                 <select
                   value={formData.course_id || ''}
-                  onChange={(e) => setFormData({ ...formData, course_id: e.target.value ? parseInt(e.target.value) : undefined })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      course_id: e.target.value ? parseInt(e.target.value) : undefined,
+                    })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Ninguno</option>
-                  {courses.map(course => (
-                    <option key={course.id} value={course.id}>{course.title}</option>
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.title}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -813,8 +884,8 @@ usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,4433
                 Descargar Plantilla Excel
               </Button>
               <p className="text-sm text-gray-600">
-                Descarga la plantilla Excel (.xlsx) con el formato correcto y ejemplos.
-                Incluye hoja de instrucciones detalladas.
+                Descarga la plantilla Excel (.xlsx) con el formato correcto y ejemplos. Incluye hoja
+                de instrucciones detalladas.
               </p>
             </div>
             <div>
@@ -837,13 +908,18 @@ usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,4433
                 {processingExcel ? 'Procesando...' : 'Seleccionar archivo Excel'}
               </label>
               <p className="text-xs text-gray-600 mt-2">
-                El archivo Excel debe tener columnas: <code>email</code> (o <code>identity_document</code>),
-                <code>first_name</code>, <code>last_name</code>, <code>institution_name</code> (o <code>institution_id</code>),
-                <code>identity_document</code> (identificador principal), <code>identity_document_type</code> (opcional),
-                <code>career_name</code> (opcional), <code>subject_name</code> (opcional), <code>course_name</code> (opcional).
+                El archivo Excel debe tener columnas: <code>email</code> (o{' '}
+                <code>identity_document</code>),
+                <code>first_name</code>, <code>last_name</code>, <code>institution_name</code> (o{' '}
+                <code>institution_id</code>),
+                <code>identity_document</code> (identificador principal),{' '}
+                <code>identity_document_type</code> (opcional),
+                <code>career_name</code> (opcional), <code>subject_name</code> (opcional),{' '}
+                <code>course_name</code> (opcional).
                 <br />
-                <strong>Importante:</strong> Se validarán las relaciones carrera-materia-curso. Si proporciona curso y materia,
-                el curso debe pertenecer a esa materia. Si proporciona materia y carrera, la materia debe pertenecer a esa carrera.
+                <strong>Importante:</strong> Se validarán las relaciones carrera-materia-curso. Si
+                proporciona curso y materia, el curso debe pertenecer a esa materia. Si proporciona
+                materia y carrera, la materia debe pertenecer a esa carrera.
               </p>
             </div>
           </Card>
@@ -891,9 +967,7 @@ usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,4433
         {users.length > 0 && (
           <Card className="p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">
-                Usuarios a Importar ({users.length})
-              </h2>
+              <h2 className="text-xl font-semibold">Usuarios a Importar ({users.length})</h2>
               <Button
                 onClick={handleImport}
                 disabled={importing}
@@ -924,14 +998,23 @@ usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,4433
                     </div>
                     <div className="text-sm text-gray-600">{user.email}</div>
                     <div className="text-xs text-gray-500 mt-1">
-                      Rol: {user.role} | Institución: {user.institution_id
-                        ? institutions.find(i => i.id === user.institution_id)?.name || user.institution_id
+                      Rol: {user.role} | Institución:{' '}
+                      {user.institution_id
+                        ? institutions.find((i) => i.id === user.institution_id)?.name ||
+                          user.institution_id
                         : user.institution_name || 'N/A'}
-                      {user.career_id && ` | Carrera: ${careers.find(c => c.id === user.career_id)?.name || user.career_id}`}
-                      {user.career_name && !user.career_id && ` | Carrera: ${user.career_name} (no encontrada)`}
-                      {user.course_id && ` | Curso: ${courses.find(c => c.id === user.course_id)?.title || user.course_id}`}
-                      {user.course_name && !user.course_id && ` | Curso: ${user.course_name} (no encontrado)`}
-                      {user.identity_document && ` | Doc: ${user.identity_document_type ? `${user.identity_document_type} ` : ''}${user.identity_document}`}
+                      {user.career_id &&
+                        ` | Carrera: ${careers.find((c) => c.id === user.career_id)?.name || user.career_id}`}
+                      {user.career_name &&
+                        !user.career_id &&
+                        ` | Carrera: ${user.career_name} (no encontrada)`}
+                      {user.course_id &&
+                        ` | Curso: ${courses.find((c) => c.id === user.course_id)?.title || user.course_id}`}
+                      {user.course_name &&
+                        !user.course_id &&
+                        ` | Curso: ${user.course_name} (no encontrado)`}
+                      {user.identity_document &&
+                        ` | Doc: ${user.identity_document_type ? `${user.identity_document_type} ` : ''}${user.identity_document}`}
                       {!user.email && user.identity_document && ` (identificado por documento)`}
                     </div>
                   </div>
@@ -968,11 +1051,11 @@ usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,4433
               <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
                 <h3 className="font-medium text-red-600">Usuarios con errores:</h3>
                 {importResult.results
-                  .filter(r => !r.success)
+                  .filter((r) => !r.success)
                   .map((result, index) => (
                     <div key={index} className="p-2 bg-red-50 rounded text-sm">
                       <div className="font-medium">
-                        {result.email || result.identity_document || 'Usuario sin identificador'}
+                        {result.email || result.user_id || 'Usuario sin identificador'}
                       </div>
                       <div className="text-red-600">{result.error}</div>
                     </div>
@@ -989,9 +1072,11 @@ usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,4433
             <div>
               <h3 className="font-medium text-yellow-900 mb-1">⚠️ Importante</h3>
               <p className="text-sm text-yellow-800">
-                Los usuarios se crearán en <code>public.users</code> pero para crear usuarios en <code>auth.users</code>
-                sin confirmación de email, se requiere usar Supabase Admin API desde un backend seguro o Edge Function.
-                Los usuarios creados aquí necesitarán hacer signup normal o ser creados mediante Admin API.
+                Los usuarios se crearán en <code>public.users</code> pero para crear usuarios en{' '}
+                <code>auth.users</code>
+                sin confirmación de email, se requiere usar Supabase Admin API desde un backend
+                seguro o Edge Function. Los usuarios creados aquí necesitarán hacer signup normal o
+                ser creados mediante Admin API.
               </p>
             </div>
           </div>
@@ -1002,4 +1087,3 @@ usuario4@ejemplo.com,Password123!,Ana,Martínez,student,Universidad Ejemplo,4433
 };
 
 export default BulkUserImportPage;
-

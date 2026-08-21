@@ -85,7 +85,7 @@ const getJsPDF = async (): Promise<JSPDF> => {
     if (jsPDFModule.jsPDF) {
       return jsPDFModule.jsPDF;
     } else if (jsPDFModule.default) {
-      return jsPDFModule.default.jsPDF || jsPDFModule.default;
+      return (jsPDFModule.default as any).jsPDF || jsPDFModule.default;
     }
 
     return jsPDFModule as any;
@@ -150,9 +150,8 @@ export const exportToPDF = async (options: PDFExportOptions): Promise<void> => {
 
       doc.setFontSize(10);
       options.summaries.forEach((summary) => {
-        const value = typeof summary.value === 'number'
-          ? summary.value.toLocaleString('es-ES')
-          : summary.value;
+        const value =
+          typeof summary.value === 'number' ? summary.value.toLocaleString('es-ES') : summary.value;
         doc.text(`${summary.label}: ${value}`, 14, currentY);
         currentY += 6;
       });
@@ -180,18 +179,18 @@ export const exportToPDF = async (options: PDFExportOptions): Promise<void> => {
           body: table.rows,
           startY: currentY,
           styles: {
-            fontSize: orientation === 'landscape' ? 8 : 9,
-            cellPadding: 2
+            fontSize: options.orientation === 'landscape' ? 8 : 9,
+            cellPadding: 2,
           },
           headStyles: {
             fillColor: [66, 139, 202],
             textColor: 255,
-            fontStyle: 'bold'
+            fontStyle: 'bold',
           },
           alternateRowStyles: {
-            fillColor: [245, 247, 250]
+            fillColor: [245, 247, 250],
           },
-          margin: { top: currentY }
+          margin: { top: currentY },
         });
 
         currentY = (doc as any).lastAutoTable.finalY + 10;
@@ -201,10 +200,11 @@ export const exportToPDF = async (options: PDFExportOptions): Promise<void> => {
     // Guardar el PDF
     const fileName = `${sanitizeFileName(options.fileName)}_${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(fileName);
-
   } catch (error) {
     console.error('Error exportando a PDF:', error);
-    throw new Error('Error al exportar a PDF. Asegúrate de que las librerías jspdf y jspdf-autotable estén instaladas.');
+    throw new Error(
+      'Error al exportar a PDF. Asegúrate de que las librerías jspdf y jspdf-autotable estén instaladas.'
+    );
   }
 };
 
@@ -235,17 +235,16 @@ export const exportToExcel = async (options: ExcelExportOptions): Promise<void> 
 
       // Ajustar ancho de columnas (opcional, mejora la experiencia)
       const maxWidth = 50;
-      const colWidths = sheet.data.length > 0
-        ? Object.keys(sheet.data[0]).map((key) => {
-          const maxLength = Math.max(
-            key.length,
-            ...sheet.data.map((row: any) =>
-              String(row[key] || '').length
-            )
-          );
-          return { wch: Math.min(maxLength + 2, maxWidth) };
-        })
-        : [];
+      const colWidths =
+        sheet.data.length > 0
+          ? Object.keys(sheet.data[0]).map((key) => {
+              const maxLength = Math.max(
+                key.length,
+                ...sheet.data.map((row: any) => String(row[key] || '').length)
+              );
+              return { wch: Math.min(maxLength + 2, maxWidth) };
+            })
+          : [];
 
       ws['!cols'] = colWidths;
 
@@ -255,7 +254,6 @@ export const exportToExcel = async (options: ExcelExportOptions): Promise<void> 
     // Guardar el archivo Excel
     const fileName = `${sanitizeFileName(options.fileName)}_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(wb, fileName);
-
   } catch (error) {
     console.error('Error exportando a Excel:', error);
     throw new Error('Error al exportar a Excel. Asegúrate de que la librería xlsx esté instalada.');
@@ -267,10 +265,9 @@ export const exportToExcel = async (options: ExcelExportOptions): Promise<void> 
  */
 export const createSummarySheet = (summaries: ExportSummaryData[]): Record<string, any>[] => {
   return summaries.map((summary) => ({
-    'Métrica': summary.label,
-    'Valor': typeof summary.value === 'number'
-      ? summary.value.toLocaleString('es-ES')
-      : summary.value
+    Métrica: summary.label,
+    Valor:
+      typeof summary.value === 'number' ? summary.value.toLocaleString('es-ES') : summary.value,
   }));
 };
 
@@ -289,4 +286,3 @@ export const createTableSheet = (
     return rowObj;
   });
 };
-

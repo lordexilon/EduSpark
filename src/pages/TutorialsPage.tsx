@@ -8,11 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import Card from '@/components/Common/Card';
 import Button from '@/components/Common/Button';
-import { 
-  getCompletedTutorials, 
-  resetTutorial, 
-  type TutorialId 
-} from '@/services/tutorialService';
+import { getCompletedTutorials, resetTutorial, type TutorialId } from '@/services/tutorialService';
 import { tutorialConfigs } from '@/config/tutorialConfigs';
 import { HelpCircle, Play, RotateCcw } from 'lucide-react';
 
@@ -50,7 +46,7 @@ export const TutorialsPage: React.FC = () => {
       setResetting(tutorialId);
       await resetTutorial(user.id, tutorialId);
       await loadCompletedTutorials();
-      
+
       // Mostrar mensaje de éxito
       alert('Tutorial reseteado. Se mostrará la próxima vez que accedas a esa página.');
     } catch (error) {
@@ -119,16 +115,10 @@ export const TutorialsPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                    {tutorial.name}
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    {tutorial.description}
-                  </p>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-1">{tutorial.name}</h3>
+                  <p className="text-sm text-gray-600 mb-4">{tutorial.description}</p>
                   <div className="flex items-center gap-2 mb-4">
-                    <span className="text-xs text-gray-500">
-                      {tutorial.steps.length} pasos
-                    </span>
+                    <span className="text-xs text-gray-500">{tutorial.steps.length} pasos</span>
                     {isCompleted && (
                       <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
                         ✓ Completado
@@ -169,10 +159,15 @@ export const TutorialsPage: React.FC = () => {
           <div>
             <h3 className="font-semibold text-blue-900 mb-2">¿Cómo funcionan los tutoriales?</h3>
             <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-              <li>Los tutoriales se muestran automáticamente la primera vez que accedes a una página</li>
+              <li>
+                Los tutoriales se muestran automáticamente la primera vez que accedes a una página
+              </li>
               <li>Puedes marcar "No volver a mostrar" al finalizar un tutorial</li>
               <li>Puedes ver cualquier tutorial nuevamente desde esta página</li>
-              <li>Al resetear un tutorial, se mostrará automáticamente la próxima vez que accedas a esa página</li>
+              <li>
+                Al resetear un tutorial, se mostrará automáticamente la próxima vez que accedas a
+                esa página
+              </li>
             </ul>
           </div>
         </div>
@@ -182,4 +177,3 @@ export const TutorialsPage: React.FC = () => {
 };
 
 export default TutorialsPage;
-
